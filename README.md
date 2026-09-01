@@ -23,4 +23,14 @@ npm run build
 
 ## テスト
 
-テスト環境は後続TASKで追加予定です。
+watch modeでテストを実行します。
+
+```bash
+npm test
+```
+
+テストを1回だけ実行します。
+
+```bash
+npm run test:run
+```
