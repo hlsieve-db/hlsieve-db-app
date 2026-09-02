@@ -49,7 +49,8 @@ export type Card = {
   nameReading?: string
   cardType: 'oshi' | 'holomem' | 'support' | 'cheer'
   colors: CardColor[]
-  bloomLevel?: 'debut' | 'first' | 'second' | 'spot' | 'buzz'
+  bloomLevel?: 'debut' | 'first' | 'second' | 'spot'
+  isBuzz: boolean
   debutType?: 'normal' | 'extra'
   hp?: number
   tags: string[]
