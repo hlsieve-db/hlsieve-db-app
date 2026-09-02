@@ -32,6 +32,7 @@ export type Art = {
   name: string
   requiredCheers: RequiredCheer[]
   damage?: number
+  effectText?: string
   critical?: {
     color: CriticalColor
     bonusDamage?: number

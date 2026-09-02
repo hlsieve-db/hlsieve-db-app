@@ -350,7 +350,7 @@ describe('metadata, semantic, and Q&A merge rules', () => {
             name: 'Changed art',
             requiredCheers: [],
             damage: 50,
-            text: 'Changed art 50',
+            effectText: 'Changed effect',
           },
         ],
       },
@@ -421,6 +421,11 @@ describe('FUWAMOCO official fixture integration', () => {
     expect(merged.printings[0]?.products).toEqual(reprint.products)
     expect(merged.printings[1]?.products).toEqual(original.products)
     expect(merged.colors).toEqual(['blue'])
+    const canonicalEffectText =
+      '自分のエールデッキから、[赤エールか青エール]1枚を自分の#Adventを持つホロメンに送る。そしてエールデッキをシャッフルする。'
+    expect(original.arts[0]?.effectText).toContain('1枚を公開し')
+    expect(reprint.arts[0]?.effectText).toBe(canonicalEffectText)
+    expect(merged.arts[0]?.effectText).toBe(canonicalEffectText)
     expect(merged.releaseDate).toBe('2025-03-21')
     expect(merged.rarities).toEqual(['R'])
     expect(merged.products).toEqual([

@@ -237,14 +237,15 @@ describe('normalizeCardDetail', () => {
     expect(card.abilities[0]?.text).toContain('アーツ+10')
   })
 
-  it('normalizes arts name, cost, damage, and preserves the raw display text', async () => {
+  it('normalizes arts name, cost, damage, and effect text separately', async () => {
     const card = await candidate('detail-multicolor-fuwamoco')
 
     expect(card.arts[0]).toMatchObject({
       name: '魔界乃番犬シスターズ',
       requiredCheers: [{ color: 'any', count: 2 }],
       damage: 40,
-      text: expect.stringContaining('エールデッキ'),
+      effectText:
+        '自分のエールデッキから、[赤エールか青エール]1枚を公開し、自分の#Adventを持つホロメンに送る。そしてエールデッキをシャッフルする。',
     })
     expect(card.arts[1]).toMatchObject({
       name: '2人揃ってFUWAMOCOです！',
@@ -254,6 +255,9 @@ describe('normalizeCardDetail', () => {
       ],
       damage: 60,
     })
+    expect(card.arts[0]?.effectText).not.toContain('魔界乃番犬シスターズ')
+    expect(card.arts[0]?.effectText).not.toContain('40')
+    expect(card.arts[1]?.effectText).toBeUndefined()
   })
 
   it('creates Critical only from the structured Critical image token', async () => {

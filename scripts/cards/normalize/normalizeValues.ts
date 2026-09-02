@@ -282,8 +282,9 @@ export function normalizeArts(blocks: RawContentBlock[]): {
     if (headerToken.kind !== 'text') {
       return
     }
-    const header =
-      normalizeDisplayText(headerToken.textRaw).split('\n')[0] ?? ''
+    const normalizedBlockText = normalizeDisplayText(block.textRaw)
+    const [header = '', ...effectLines] = normalizedBlockText.split('\n')
+    const effectText = normalizeOptionalText(effectLines.join('\n'))
     const headerMatch = header.match(/^(.+?)\s+(\d+)\+?$/)
     const name = normalizeDisplayText(headerMatch?.[1] ?? header)
     if (!name) {
@@ -341,8 +342,8 @@ export function normalizeArts(blocks: RawContentBlock[]): {
       name,
       requiredCheers: cost.value,
       ...(damage !== undefined ? { damage } : {}),
+      ...(effectText ? { effectText } : {}),
       ...(critical ? { critical } : {}),
-      text: normalizeDisplayText(block.textRaw),
     })
   })
 

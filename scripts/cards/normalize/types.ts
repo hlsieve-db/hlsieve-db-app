@@ -14,9 +14,7 @@ export type NormalizedProduct = {
   detailUrl?: string
 }
 
-export type NormalizedArt = Art & {
-  text: string
-}
+export type NormalizedArt = Art
 
 export type NormalizedCardCandidate = {
   officialId: string
