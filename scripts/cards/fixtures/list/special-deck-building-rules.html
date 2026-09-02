@@ -1,0 +1,173 @@
+<div id="content">
+        <h1><span class="en">CARDLIST</span><span class="jp">ーカードリストー</span></h1>
+        <div class="inner">
+            <div class="con-wrap">
+                <div class="cardlist-Result">
+
+			<h2 class="product_List_Ttl cardlist-Result_Ttl">“キーワードが「デッキ構築ルール」”のカード</h2>
+            <div class="cardlist-Result_Target">
+            <p class="cardlist-Result_Target_Num">検索結果<span class="num bold">1</span>件</p>
+			            <a class="cardlist-Result_Target_Back hover" href="javascript:void(0);" onclick="javascript:location.href='/cardlist/?keyword=%E3%83%87%E3%83%83%E3%82%AD%E6%A7%8B%E7%AF%89%E3%83%AB%E3%83%BC%E3%83%AB&amp;view=text';">検索条件を変更</a>
+			            </div>
+			<script type="text/javascript">
+				function c_move(_param) {
+					if(_param) {
+						location.href='/cardlist/cardsearch/?keyword=%E3%83%87%E3%83%83%E3%82%AD%E6%A7%8B%E7%AF%89%E3%83%AB%E3%83%BC%E3%83%AB&view=text&s_param='+_param+'&s_param2=';
+					} else {
+						location.href='/cardlist/cardsearch/?keyword=%E3%83%87%E3%83%83%E3%82%AD%E6%A7%8B%E7%AF%89%E3%83%AB%E3%83%BC%E3%83%AB&view=text';
+					}
+				}
+				function c_move2() {
+										location.href='/cardlist/cardsearch/?keyword=%E3%83%87%E3%83%83%E3%82%AD%E6%A7%8B%E7%AF%89%E3%83%AB%E3%83%BC%E3%83%AB&view=text&s_param=&s_param2=notmix';
+									}
+			</script>
+            <div class="color-select">
+                <ul>
+                    <li class="active"><a href="javascript:void(0);" onclick="c_move('');">すべて</a></li>
+										                </ul>
+            </div>
+
+
+	<div class="cardlist-wrap">
+	        <div class="cardlist-Result_View">
+			<select name="sort" class="saerchform-Select saerchform-Select_Vie"><option value="new" selected="selected">新しい順</option><option value="old">古い順</option><option value="no">カード番号順</option><option value="kana">50音順</option><option value="tag">タグ別</option><option value="kind">カードタイプ</option></select>            <div class="cardlist-Result_View_Cange">
+            <a class="change-Btn change-Btn_Gallery hover" href="/cardlist/cardsearch/?keyword=%E3%83%87%E3%83%83%E3%82%AD%E6%A7%8B%E7%AF%89%E3%83%AB%E3%83%BC%E3%83%AB&amp;view=image&amp;sort=new"><svg viewBox="0 0 32 28"><path fill-rule="evenodd" clip-rule="evenodd" d="M0 0h8v7H0V0Zm0 10.5h8v7H0v-7ZM8 21H0v7h8v-7Zm4-21h8v7h-8V0Zm8 10.5h-8v7h8v-7ZM12 21h8v7h-8v-7ZM32 0h-8v7h8V0Zm-8 10.5h8v7h-8v-7ZM32 21h-8v7h8v-7Z"></path></svg></a>
+            <a class="change-Btn change-Btn_Txt current" href="/cardlist/cardsearch/?keyword=%E3%83%87%E3%83%83%E3%82%AD%E6%A7%8B%E7%AF%89%E3%83%AB%E3%83%BC%E3%83%AB&amp;view=text&amp;sort=new"><svg viewBox="0 0 32 28"><path fill-rule="evenodd" clip-rule="evenodd" d="M8 0H0v7h8V0Zm0 10.5H0v7h8v-7ZM0 21h8v7H0v-7ZM32 0H12v7h20V0ZM12 10h20v7H12v-7Zm20 11H12v7h20v-7Z"></path></svg></a>
+            </div>
+        </div>
+
+<script type="text/javascript">
+jQuery(function($) {
+	$(":input[name=sort]").on('change', function() {
+		location.href="/cardlist/cardsearch/?keyword=%E3%83%87%E3%83%83%E3%82%AD%E6%A7%8B%E7%AF%89%E3%83%AB%E3%83%BC%E3%83%AB&sort=" + $(this).val();
+	});
+});
+</script>
+
+
+
+<script type="text/javascript">
+var bottom_status = 'init';
+var cur_page = 1;
+var max_page = 1;
+var _target = '.cardlist-Result_List_Txt';
+var _wrap = '.all-wrap';
+jQuery(function($) {
+	$(_wrap).on('scroll', function() {
+		if(bottom_status == 'wait') {
+			let objTop = $('.cardlist-Result_List_scroll').offset().top;
+			let winH = $(window).height();
+			if(objTop - winH <= 0){
+				if(cur_page < max_page) {
+					exload();
+				} else {
+					ex_end();
+				}
+			}
+		}
+	});
+	$(window).on('scroll', function() {
+		if(bottom_status == 'wait') {
+			let objTop = $('.cardlist-Result_List_scroll').offset().top;
+			let winH = $(window).height();
+			let scroll = $(window).scrollTop();
+			if(objTop - winH - scroll <= 0){
+				if(cur_page < max_page) {
+					exload();
+				} else {
+					ex_end();
+				}
+			}
+		}
+	});
+	$('html,body').animate({ scrollTop: 0 }, { duration : 'fast', complete : function() { bottom_status='wait'; } });
+});
+function ex_end() {
+	//console.log("ex_end");
+	bottom_status == 'end';
+	$(window).off('scroll');
+	$(_wrap).off('scroll');
+}
+function exload() {
+	bottom_status = 'loading';
+	var date = new Date();
+	$.ajax({
+		type: 'GET',
+		cache: false,
+		url: '/cardlist/cardsearch_ex?keyword=%E3%83%87%E3%83%83%E3%82%AD%E6%A7%8B%E7%AF%89%E3%83%AB%E3%83%BC%E3%83%AB&view=text&page='+(cur_page+1)+'&t='+date.getTime(),
+		success: function(data) {
+			$(_target).append(data);
+					$(_target+' li.ex-item').fadeIn(500, function() {
+				$(this).removeClass('ex-item');
+				if(!$(_target+' li:last-child').hasClass('ex-item')) {
+					cur_page += 1;
+					if(cur_page >= max_page) {
+						ex_end();
+					}
+					bottom_status = 'wait';
+				}
+			});
+
+				},
+		error: function(XMLHttpRequest, textStatus, errorThrown) {
+			bottom_status = 'wait';
+		}
+	});
+
+}
+
+</script>
+
+
+<!-- List -->
+<ul class="cardlist-Result_List cardlist-Result_List_Txt">
+
+<li><a href="/cardlist/?id=2697&amp;keyword=%E3%83%87%E3%83%83%E3%82%AD%E6%A7%8B%E7%AF%89%E3%83%AB%E3%83%BC%E3%83%AB&amp;view=text">
+<div class="img w100"><img src="/wp-content/images/cardlist/selehGS26/selehGS26_teaching.png" alt="デッキ構築ルール" title="デッキ構築ルール" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></div>
+<div class="center-Txtarea txt">
+<p class="number">null</p>
+<p class="name">デッキ構築ルール</p>
+<div class="info">
+<dl>
+    <dt>カードタイプ</dt>
+    <dd>サポート</dd>
+            <dt>収録商品</dt>
+    <dd>
+				【使用可能カード】hGS 2026 大阪 セレクションロード	</dd>
+	                <dt>能力テキスト</dt>
+    <dd>※本説明用カードはデッキ登録できません。<br>
+<br>
+【デッキ構築ルール】<br>
+「推しホロメンカード」とメインデッキのカードは下記に収録するカードと同じカードナンバーのカードのみ使用できます。<br>
+<br>
+ブースターパック エンチャントレガリア<br>
+ブースターパック アヤカシヴァーミリオン<br>
+ブースターパック ディーヴァフィーバー<br>
+ブースターパック バウンサーバウンド<br>
+エクストラブースター サマー・ホログラム<br>
+スタートデッキ FLOW GLOW 推し 輪堂千速<br>
+スタートデッキ FLOW GLOW 推し 虎金妃笑虎<br>
+スタートデッキ 推し Advent<br>
+スタートデッキ 推し Justice<br>
+ライブスタートデッキ 白上フブキ<br>
+ライブスタートデッキ 儒烏風亭らでん<br>
+ライブスタートデッキ さくらみこ<br>
+ライブスタートデッキ 星街すいせい<br>
+ライブスタートデッキ 森カリオペ<br>
+ライブスタートデッキ 大空スバル</dd>
+            </dl>
+</div>
+
+<div class="txtarea-Btn txtarea-Btn-more Garamond">MORE</div>
+</div>
+</a></li>
+
+</ul>
+<div class="cardlist-Result_List_scroll"></div>
+
+</div>
+
+                </div>
+			</div>
+        </div>
+    </div>

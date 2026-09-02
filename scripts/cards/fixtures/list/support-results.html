@@ -1,0 +1,544 @@
+<div id="content">
+        <h1><span class="en">CARDLIST</span><span class="jp">ーカードリストー</span></h1>
+        <div class="inner">
+            <div class="con-wrap">
+                <div class="cardlist-Result">
+
+			<h2 class="product_List_Ttl cardlist-Result_Ttl">“カードタイプが「サポート」”のカード</h2>
+            <div class="cardlist-Result_Target">
+            <p class="cardlist-Result_Target_Num">検索結果<span class="num bold">448</span>件</p>
+			            <a class="cardlist-Result_Target_Back hover" href="javascript:void(0);" onclick="javascript:location.href='/cardlist/?card_kind%5B0%5D=%E3%82%B5%E3%83%9D%E3%83%BC%E3%83%88&amp;view=text';">検索条件を変更</a>
+			            </div>
+			<script type="text/javascript">
+				function c_move(_param) {
+					if(_param) {
+						location.href='/cardlist/cardsearch/?card_kind%5B0%5D=%E3%82%B5%E3%83%9D%E3%83%BC%E3%83%88&view=text&s_param='+_param+'&s_param2=';
+					} else {
+						location.href='/cardlist/cardsearch/?card_kind%5B0%5D=%E3%82%B5%E3%83%9D%E3%83%BC%E3%83%88&view=text';
+					}
+				}
+				function c_move2() {
+										location.href='/cardlist/cardsearch/?card_kind%5B0%5D=%E3%82%B5%E3%83%9D%E3%83%BC%E3%83%88&view=text&s_param=&s_param2=notmix';
+									}
+			</script>
+            <div class="color-select">
+                <ul>
+                    <li class="active"><a href="javascript:void(0);" onclick="c_move('');">すべて</a></li>
+										                </ul>
+            </div>
+
+
+	<div class="cardlist-wrap">
+	        <div class="cardlist-Result_View">
+			<select name="sort" class="saerchform-Select saerchform-Select_Vie"><option value="new" selected="selected">新しい順</option><option value="old">古い順</option><option value="no">カード番号順</option><option value="kana">50音順</option><option value="tag">タグ別</option><option value="kind">カードタイプ</option></select>            <div class="cardlist-Result_View_Cange">
+            <a class="change-Btn change-Btn_Gallery hover" href="/cardlist/cardsearch/?card_kind%5B0%5D=%E3%82%B5%E3%83%9D%E3%83%BC%E3%83%88&amp;view=image&amp;sort=new"><svg viewBox="0 0 32 28"><path fill-rule="evenodd" clip-rule="evenodd" d="M0 0h8v7H0V0Zm0 10.5h8v7H0v-7ZM8 21H0v7h8v-7Zm4-21h8v7h-8V0Zm8 10.5h-8v7h8v-7ZM12 21h8v7h-8v-7ZM32 0h-8v7h8V0Zm-8 10.5h8v7h-8v-7ZM32 21h-8v7h8v-7Z"></path></svg></a>
+            <a class="change-Btn change-Btn_Txt current" href="/cardlist/cardsearch/?card_kind%5B0%5D=%E3%82%B5%E3%83%9D%E3%83%BC%E3%83%88&amp;view=text&amp;sort=new"><svg viewBox="0 0 32 28"><path fill-rule="evenodd" clip-rule="evenodd" d="M8 0H0v7h8V0Zm0 10.5H0v7h8v-7ZM0 21h8v7H0v-7ZM32 0H12v7h20V0ZM12 10h20v7H12v-7Zm20 11H12v7h20v-7Z"></path></svg></a>
+            </div>
+        </div>
+
+<script type="text/javascript">
+jQuery(function($) {
+	$(":input[name=sort]").on('change', function() {
+		location.href="/cardlist/cardsearch/?card_kind%5B0%5D=%E3%82%B5%E3%83%9D%E3%83%BC%E3%83%88&sort=" + $(this).val();
+	});
+});
+</script>
+
+
+
+<script type="text/javascript">
+var bottom_status = 'init';
+var cur_page = 1;
+var max_page = 30;
+var _target = '.cardlist-Result_List_Txt';
+var _wrap = '.all-wrap';
+jQuery(function($) {
+	$(_wrap).on('scroll', function() {
+		if(bottom_status == 'wait') {
+			let objTop = $('.cardlist-Result_List_scroll').offset().top;
+			let winH = $(window).height();
+			if(objTop - winH <= 0){
+				if(cur_page < max_page) {
+					exload();
+				} else {
+					ex_end();
+				}
+			}
+		}
+	});
+	$(window).on('scroll', function() {
+		if(bottom_status == 'wait') {
+			let objTop = $('.cardlist-Result_List_scroll').offset().top;
+			let winH = $(window).height();
+			let scroll = $(window).scrollTop();
+			if(objTop - winH - scroll <= 0){
+				if(cur_page < max_page) {
+					exload();
+				} else {
+					ex_end();
+				}
+			}
+		}
+	});
+	$('html,body').animate({ scrollTop: 0 }, { duration : 'fast', complete : function() { bottom_status='wait'; } });
+});
+function ex_end() {
+	//console.log("ex_end");
+	bottom_status == 'end';
+	$(window).off('scroll');
+	$(_wrap).off('scroll');
+}
+function exload() {
+	bottom_status = 'loading';
+	var date = new Date();
+	$.ajax({
+		type: 'GET',
+		cache: false,
+		url: '/cardlist/cardsearch_ex?card_kind%5B0%5D=%E3%82%B5%E3%83%9D%E3%83%BC%E3%83%88&view=text&page='+(cur_page+1)+'&t='+date.getTime(),
+		success: function(data) {
+			$(_target).append(data);
+					$(_target+' li.ex-item').fadeIn(500, function() {
+				$(this).removeClass('ex-item');
+				if(!$(_target+' li:last-child').hasClass('ex-item')) {
+					cur_page += 1;
+					if(cur_page >= max_page) {
+						ex_end();
+					}
+					bottom_status = 'wait';
+				}
+			});
+
+				},
+		error: function(XMLHttpRequest, textStatus, errorThrown) {
+			bottom_status = 'wait';
+		}
+	});
+
+}
+
+</script>
+
+
+<!-- List -->
+<ul class="cardlist-Result_List cardlist-Result_List_Txt">
+
+<li><a href="/cardlist/?id=2697&amp;card_kind%5B0%5D=%E3%82%B5%E3%83%9D%E3%83%BC%E3%83%88&amp;view=text">
+<div class="img w100"><img src="/wp-content/images/cardlist/selehGS26/selehGS26_teaching.png" alt="デッキ構築ルール" title="デッキ構築ルール" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></div>
+<div class="center-Txtarea txt">
+<p class="number">null</p>
+<p class="name">デッキ構築ルール</p>
+<div class="info">
+<dl>
+    <dt>カードタイプ</dt>
+    <dd>サポート</dd>
+            <dt>収録商品</dt>
+    <dd>
+				【使用可能カード】hGS 2026 大阪 セレクションロード	</dd>
+	                <dt>能力テキスト</dt>
+    <dd>※本説明用カードはデッキ登録できません。<br>
+<br>
+【デッキ構築ルール】<br>
+「推しホロメンカード」とメインデッキのカードは下記に収録するカードと同じカードナンバーのカードのみ使用できます。<br>
+<br>
+ブースターパック エンチャントレガリア<br>
+ブースターパック アヤカシヴァーミリオン<br>
+ブースターパック ディーヴァフィーバー<br>
+ブースターパック バウンサーバウンド<br>
+エクストラブースター サマー・ホログラム<br>
+スタートデッキ FLOW GLOW 推し 輪堂千速<br>
+スタートデッキ FLOW GLOW 推し 虎金妃笑虎<br>
+スタートデッキ 推し Advent<br>
+スタートデッキ 推し Justice<br>
+ライブスタートデッキ 白上フブキ<br>
+ライブスタートデッキ 儒烏風亭らでん<br>
+ライブスタートデッキ さくらみこ<br>
+ライブスタートデッキ 星街すいせい<br>
+ライブスタートデッキ 森カリオペ<br>
+ライブスタートデッキ 大空スバル</dd>
+            </dl>
+</div>
+
+<div class="txtarea-Btn txtarea-Btn-more Garamond">MORE</div>
+</div>
+</a></li>
+<li><a href="/cardlist/?id=952&amp;card_kind%5B0%5D=%E3%82%B5%E3%83%9D%E3%83%BC%E3%83%88&amp;view=text">
+<div class="img w100"><img src="/wp-content/images/cardlist/hBP04/hBP04-089_U.png" alt="ツートンカラーパソコン" title="ツートンカラーパソコン" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></div>
+<div class="center-Txtarea txt">
+<p class="number">hBP04-089</p>
+<p class="name">ツートンカラーパソコン</p>
+<div class="info">
+<dl>
+    <dt>カードタイプ</dt>
+    <dd>サポート・アイテム・LIMITED</dd>
+            <dt>レアリティ</dt>
+    <dd>U</dd>
+		    <dt>収録商品</dt>
+    <dd>
+				ブースターパック「キュリアスユニバース」	</dd>
+	                <dt>能力テキスト</dt>
+    <dd>このカードは、自分のステージに色が1色で異なる色のホロメンが2人以上いなければ使えない。<br>
+<br>
+自分のステージの色が1色で異なる色のホロメン2人を選ぶ。自分のデッキから、Buzz以外のそれぞれ選んだホロメンと同色の1stホロメン1枚ずつを公開し、手札に加える。そしてデッキをシャッフルする。<br>
+<br>
+LIMITED:ターンに1枚しか使えない。</dd>
+            </dl>
+</div>
+
+<div class="txtarea-Btn txtarea-Btn-more Garamond">MORE</div>
+</div>
+</a></li>
+<li><a href="/cardlist/?id=953&amp;card_kind%5B0%5D=%E3%82%B5%E3%83%9D%E3%83%BC%E3%83%88&amp;view=text">
+<div class="img w100"><img src="/wp-content/images/cardlist/hBP04/hBP04-090_U.png" alt="作業用パソコン" title="作業用パソコン" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></div>
+<div class="center-Txtarea txt">
+<p class="number">hBP04-090</p>
+<p class="name">作業用パソコン</p>
+<div class="info">
+<dl>
+    <dt>カードタイプ</dt>
+    <dd>サポート・アイテム・LIMITED</dd>
+            <dt>レアリティ</dt>
+    <dd>U</dd>
+		    <dt>収録商品</dt>
+    <dd>
+				ブースターパック「キュリアスユニバース」	</dd>
+	                <dt>能力テキスト</dt>
+    <dd>このカードは、自分の手札がこのカードを含まずに6枚以下でなければ使えない。<br>
+<br>
+自分のデッキの上から4枚を見る。その中から、ホロメン1枚と[ツールかマスコットかファン]1枚を公開し、公開したカードを手札に加える。そして残ったカードを好きな順でデッキの下に戻す。<br>
+<br>
+LIMITED:ターンに1枚しか使えない。</dd>
+            </dl>
+</div>
+
+<div class="txtarea-Btn txtarea-Btn-more Garamond">MORE</div>
+</div>
+</a></li>
+<li><a href="/cardlist/?id=954&amp;card_kind%5B0%5D=%E3%82%B5%E3%83%9D%E3%83%BC%E3%83%88&amp;view=text">
+<div class="img w100"><img src="/wp-content/images/cardlist/hBP04/hBP04-091_U.png" alt="限界飯" title="限界飯" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></div>
+<div class="center-Txtarea txt">
+<p class="number">hBP04-091</p>
+<p class="name">限界飯</p>
+<div class="info">
+<dl>
+    <dt>カードタイプ</dt>
+    <dd>サポート・イベント</dd>
+        <dt>タグ</dt>
+    <dd>#食べ物</dd>
+            <dt>レアリティ</dt>
+    <dd>U</dd>
+		    <dt>収録商品</dt>
+    <dd>
+				ブースターパック「キュリアスユニバース」	</dd>
+	                <dt>能力テキスト</dt>
+    <dd>このターンの間、自分の〈一条莉々華〉1人のアーツに必要な無色エール-1。自分の〈限界飯〉はターンに1回しか使えない。</dd>
+            </dl>
+</div>
+
+<div class="txtarea-Btn txtarea-Btn-more Garamond">MORE</div>
+</div>
+</a></li>
+<li><a href="/cardlist/?id=955&amp;card_kind%5B0%5D=%E3%82%B5%E3%83%9D%E3%83%BC%E3%83%88&amp;view=text">
+<div class="img w100"><img src="/wp-content/images/cardlist/hBP04/hBP04-092_U.png" alt="ねぽらぼ" title="ねぽらぼ" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></div>
+<div class="center-Txtarea txt">
+<p class="number">hBP04-092</p>
+<p class="name">ねぽらぼ</p>
+<div class="info">
+<dl>
+    <dt>カードタイプ</dt>
+    <dd>サポート・イベント・LIMITED</dd>
+            <dt>レアリティ</dt>
+    <dd>U</dd>
+		    <dt>収録商品</dt>
+    <dd>
+				ブースターパック「キュリアスユニバース」	</dd>
+	                <dt>能力テキスト</dt>
+    <dd>このカードは、自分の手札がこのカードを含まずに6枚以下でなければ使えない。<br>
+<br>
+自分のデッキの上から4枚を見る。その中から、#5期生を持つホロメンを好きな枚数公開し、公開したホロメンを手札に加える。そして残ったカードを好きな順でデッキの下に戻す。<br>
+<br>
+LIMITED:ターンに1枚しか使えない。</dd>
+            </dl>
+</div>
+
+<div class="txtarea-Btn txtarea-Btn-more Garamond">MORE</div>
+</div>
+</a></li>
+<li><a href="/cardlist/?id=956&amp;card_kind%5B0%5D=%E3%82%B5%E3%83%9D%E3%83%BC%E3%83%88&amp;view=text">
+<div class="img w100"><img src="/wp-content/images/cardlist/hBP04/hBP04-093_U.png" alt="ホロライブ2期生" title="ホロライブ2期生" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></div>
+<div class="center-Txtarea txt">
+<p class="number">hBP04-093</p>
+<p class="name">ホロライブ2期生</p>
+<div class="info">
+<dl>
+    <dt>カードタイプ</dt>
+    <dd>サポート・イベント・LIMITED</dd>
+            <dt>レアリティ</dt>
+    <dd>U</dd>
+		    <dt>収録商品</dt>
+    <dd>
+				ブースターパック「キュリアスユニバース」	</dd>
+	                <dt>能力テキスト</dt>
+    <dd>このカードは、自分の手札がこのカードを含まずに6枚以下でなければ使えない。<br>
+<br>
+自分のデッキの上から4枚を見る。その中から、#2期生を持つホロメンを好きな枚数公開し、公開したホロメンを手札に加える。そして残ったカードを好きな順でデッキの下に戻す。<br>
+<br>
+LIMITED:ターンに1枚しか使えない。</dd>
+            </dl>
+</div>
+
+<div class="txtarea-Btn txtarea-Btn-more Garamond">MORE</div>
+</div>
+</a></li>
+<li><a href="/cardlist/?id=957&amp;card_kind%5B0%5D=%E3%82%B5%E3%83%9D%E3%83%BC%E3%83%88&amp;view=text">
+<div class="img w100"><img src="/wp-content/images/cardlist/hBP04/hBP04-094_U.png" alt="まいたけダンス" title="まいたけダンス" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></div>
+<div class="center-Txtarea txt">
+<p class="number">hBP04-094</p>
+<p class="name">まいたけダンス</p>
+<div class="info">
+<dl>
+    <dt>カードタイプ</dt>
+    <dd>サポート・イベント</dd>
+        <dt>タグ</dt>
+    <dd>#きのこ</dd>
+            <dt>レアリティ</dt>
+    <dd>U</dd>
+		    <dt>収録商品</dt>
+    <dd>
+				ブースターパック「キュリアスユニバース」	</dd>
+	                <dt>能力テキスト</dt>
+    <dd>自分の〈儒烏風亭らでん〉1人を選ぶ。自分のステージのエール1～2枚を、選んだホロメンに付け替えられる。その後、選んだホロメンにエールが3枚以上付いている時、このターンの間、選んだホロメンのアーツ+10。</dd>
+            </dl>
+</div>
+
+<div class="txtarea-Btn txtarea-Btn-more Garamond">MORE</div>
+</div>
+</a></li>
+<li><a href="/cardlist/?id=958&amp;card_kind%5B0%5D=%E3%82%B5%E3%83%9D%E3%83%BC%E3%83%88&amp;view=text">
+<div class="img w100"><img src="/wp-content/images/cardlist/hBP04/hBP04-095_U.png" alt="マスコットキャッチャー" title="マスコットキャッチャー" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></div>
+<div class="center-Txtarea txt">
+<p class="number">hBP04-095</p>
+<p class="name">マスコットキャッチャー</p>
+<div class="info">
+<dl>
+    <dt>カードタイプ</dt>
+    <dd>サポート・イベント・LIMITED</dd>
+            <dt>レアリティ</dt>
+    <dd>U</dd>
+		    <dt>収録商品</dt>
+    <dd>
+				ブースターパック「キュリアスユニバース」	</dd>
+	                <dt>能力テキスト</dt>
+    <dd>自分のデッキから、マスコット1枚を公開し、手札に加える。そしてデッキをシャッフルする。<br>
+<br>
+LIMITED:ターンに1枚しか使えない。</dd>
+            </dl>
+</div>
+
+<div class="txtarea-Btn txtarea-Btn-more Garamond">MORE</div>
+</div>
+</a></li>
+<li><a href="/cardlist/?id=961&amp;card_kind%5B0%5D=%E3%82%B5%E3%83%9D%E3%83%BC%E3%83%88&amp;view=text">
+<div class="img w100"><img src="/wp-content/images/cardlist/hBP04/hBP04-097_U.png" alt="緑の試験管" title="緑の試験管" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></div>
+<div class="center-Txtarea txt">
+<p class="number">hBP04-097</p>
+<p class="name">緑の試験管</p>
+<div class="info">
+<dl>
+    <dt>カードタイプ</dt>
+    <dd>サポート・ツール</dd>
+        <dt>タグ</dt>
+    <dd>#こよラボ</dd>
+            <dt>レアリティ</dt>
+    <dd>U</dd>
+		    <dt>収録商品</dt>
+    <dd>
+				ブースターパック「キュリアスユニバース」	</dd>
+	                <dt>能力テキスト</dt>
+    <dd>このツールが付いているホロメンのアーツ+10。<br>
+<br>
+◆1st以上の〈博衣こより〉に付いていたら能力追加<br>
+自分のメインステップで、このツールが付いているホロメンのエール1枚をアーカイブできる:自分のお休みしている#秘密結社holoXを持つホロメン1人をアクティブにする。<br>
+<br>
+ツールは、自分のホロメン1人につき1枚だけ付けられる。</dd>
+            </dl>
+</div>
+
+<div class="txtarea-Btn txtarea-Btn-more Garamond">MORE</div>
+</div>
+</a></li>
+<li><a href="/cardlist/?id=962&amp;card_kind%5B0%5D=%E3%82%B5%E3%83%9D%E3%83%BC%E3%83%88&amp;view=text">
+<div class="img w100"><img src="/wp-content/images/cardlist/hBP04/hBP04-098_U.png" alt="鍛冶ハンマー" title="鍛冶ハンマー" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></div>
+<div class="center-Txtarea txt">
+<p class="number">hBP04-098</p>
+<p class="name">鍛冶ハンマー</p>
+<div class="info">
+<dl>
+    <dt>カードタイプ</dt>
+    <dd>サポート・ツール</dd>
+        <dt>タグ</dt>
+    <dd>#カエラ'sアームズ</dd>
+            <dt>レアリティ</dt>
+    <dd>U</dd>
+		    <dt>収録商品</dt>
+    <dd>
+				ブースターパック「キュリアスユニバース」	</dd>
+	                <dt>能力テキスト</dt>
+    <dd>このツールが付いているホロメンのアーツ+10。<br>
+<br>
+◆#ID3期生を持つ1st以上のホロメンに付いていたら能力追加<br>
+このツールが付いているホロメンのアーツ+10。<br>
+<br>
+ツールは、自分のホロメン1人につき1枚だけ付けられる。</dd>
+            </dl>
+</div>
+
+<div class="txtarea-Btn txtarea-Btn-more Garamond">MORE</div>
+</div>
+</a></li>
+<li><a href="/cardlist/?id=963&amp;card_kind%5B0%5D=%E3%82%B5%E3%83%9D%E3%83%BC%E3%83%88&amp;view=text">
+<div class="img w100"><img src="/wp-content/images/cardlist/hBP04/hBP04-099_U.png" alt="古代武器" title="古代武器" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></div>
+<div class="center-Txtarea txt">
+<p class="number">hBP04-099</p>
+<p class="name">古代武器</p>
+<div class="info">
+<dl>
+    <dt>カードタイプ</dt>
+    <dd>サポート・ツール</dd>
+            <dt>レアリティ</dt>
+    <dd>U</dd>
+		    <dt>収録商品</dt>
+    <dd>
+				ブースターパック「キュリアスユニバース」	</dd>
+	                <dt>能力テキスト</dt>
+    <dd>相手のターンで、このツールが付いているホロメンがダウンした時、自分の手札1枚をアーカイブできる:このツールを手札に戻す。<br>
+<br>
+◆1st以上の〈アーニャ・メルフィッサ〉に付いていたら能力追加<br>
+自分のステージの〈古代武器〉1枚につき、このツールが付いているホロメンのアーツ+10。<br>
+<br>
+ツールは、自分のホロメン1人につき1枚だけ付けられる。</dd>
+            </dl>
+</div>
+
+<div class="txtarea-Btn txtarea-Btn-more Garamond">MORE</div>
+</div>
+</a></li>
+<li><a href="/cardlist/?id=964&amp;card_kind%5B0%5D=%E3%82%B5%E3%83%9D%E3%83%BC%E3%83%88&amp;view=text">
+<div class="img w100"><img src="/wp-content/images/cardlist/hBP04/hBP04-100_C.png" alt="ココロ" title="ココロ" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></div>
+<div class="center-Txtarea txt">
+<p class="number">hBP04-100</p>
+<p class="name">ココロ</p>
+<div class="info">
+<dl>
+    <dt>カードタイプ</dt>
+    <dd>サポート・マスコット</dd>
+        <dt>タグ</dt>
+    <dd>#こよラボ</dd>
+            <dt>レアリティ</dt>
+    <dd>C</dd>
+		    <dt>収録商品</dt>
+    <dd>
+				ブースターパック「キュリアスユニバース」	</dd>
+	                <dt>能力テキスト</dt>
+    <dd>このマスコットが付いているホロメンのHP+20。<br>
+<br>
+◆〈博衣こより〉に付いていたら能力追加<br>
+このマスコットが付いているホロメンがコラボした時、このターンの間、このホロメンのアーツ+10。<br>
+<br>
+マスコットは、自分のホロメン1人につき1枚だけ付けられる。</dd>
+            </dl>
+</div>
+
+<div class="txtarea-Btn txtarea-Btn-more Garamond">MORE</div>
+</div>
+</a></li>
+<li><a href="/cardlist/?id=965&amp;card_kind%5B0%5D=%E3%82%B5%E3%83%9D%E3%83%BC%E3%83%88&amp;view=text">
+<div class="img w100"><img src="/wp-content/images/cardlist/hBP04/hBP04-101_C.png" alt="だいふく" title="だいふく" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></div>
+<div class="center-Txtarea txt">
+<p class="number">hBP04-101</p>
+<p class="name">だいふく</p>
+<div class="info">
+<dl>
+    <dt>カードタイプ</dt>
+    <dd>サポート・マスコット</dd>
+            <dt>レアリティ</dt>
+    <dd>C</dd>
+		    <dt>収録商品</dt>
+    <dd>
+				ブースターパック「キュリアスユニバース」	</dd>
+	                <dt>能力テキスト</dt>
+    <dd>このマスコットが付いているホロメンのアーツ+10。<br>
+<br>
+◆〈雪花ラミィ〉に付いていたら能力追加<br>
+このマスコットが付いているホロメンのHP+20。<br>
+<br>
+マスコットは、自分のホロメン1人につき1枚だけ付けられる。</dd>
+            </dl>
+</div>
+
+<div class="txtarea-Btn txtarea-Btn-more Garamond">MORE</div>
+</div>
+</a></li>
+<li><a href="/cardlist/?id=966&amp;card_kind%5B0%5D=%E3%82%B5%E3%83%9D%E3%83%BC%E3%83%88&amp;view=text">
+<div class="img w100"><img src="/wp-content/images/cardlist/hBP04/hBP04-102_C.png" alt="やめなー" title="やめなー" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></div>
+<div class="center-Txtarea txt">
+<p class="number">hBP04-102</p>
+<p class="name">やめなー</p>
+<div class="info">
+<dl>
+    <dt>カードタイプ</dt>
+    <dd>サポート・マスコット</dd>
+            <dt>レアリティ</dt>
+    <dd>C</dd>
+		    <dt>収録商品</dt>
+    <dd>
+				ブースターパック「キュリアスユニバース」	</dd>
+	                <dt>能力テキスト</dt>
+    <dd>このマスコットが付いているホロメンのアーツ+10。<br>
+<br>
+◆#5期生を持つ1st以上のホロメンに付いていたら能力追加<br>
+[バックポジション限定]このマスコットが付いているホロメンは相手からダメージを受けない。<br>
+<br>
+マスコットは、自分のホロメン1人につき1枚だけ付けられる。</dd>
+            </dl>
+</div>
+
+<div class="txtarea-Btn txtarea-Btn-more Garamond">MORE</div>
+</div>
+</a></li>
+<li><a href="/cardlist/?id=967&amp;card_kind%5B0%5D=%E3%82%B5%E3%83%9D%E3%83%BC%E3%83%88&amp;view=text">
+<div class="img w100"><img src="/wp-content/images/cardlist/hBP04/hBP04-103_C.png" alt="カラス" title="カラス" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></div>
+<div class="center-Txtarea txt">
+<p class="number">hBP04-103</p>
+<p class="name">カラス</p>
+<div class="info">
+<dl>
+    <dt>カードタイプ</dt>
+    <dd>サポート・マスコット</dd>
+            <dt>レアリティ</dt>
+    <dd>C</dd>
+		    <dt>収録商品</dt>
+    <dd>
+				ブースターパック「キュリアスユニバース」	</dd>
+	                <dt>能力テキスト</dt>
+    <dd>このマスコットが付いているホロメンのアーツ+10。<br>
+<br>
+◆〈ラプラス・ダークネス〉に付いていたら能力追加<br>
+[コラボポジション限定][ターンに1回]自分のメインステップで、サイコロを1回振れる:奇数の時、このマスコットが付いているホロメンをバックポジションに移動する。<br>
+<br>
+マスコットは、自分のホロメン1人につき1枚だけ付けられる。</dd>
+            </dl>
+</div>
+
+<div class="txtarea-Btn txtarea-Btn-more Garamond">MORE</div>
+</div>
+</a></li>
+
+</ul>
+<div class="cardlist-Result_List_scroll"></div>
+
+</div>
+
+                </div>
+			</div>
+        </div>
+    </div>

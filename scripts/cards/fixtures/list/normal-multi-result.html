@@ -1,0 +1,588 @@
+<div id="content">
+        <h1><span class="en">CARDLIST</span><span class="jp">ーカードリストー</span></h1>
+        <div class="inner">
+            <div class="con-wrap">
+                <div class="cardlist-Result">
+
+			<h2 class="product_List_Ttl cardlist-Result_Ttl">ブースターパック「ブルーミングレディアンス」</h2>
+            <div class="cardlist-Result_Target">
+            <p class="cardlist-Result_Target_Num">検索結果<span class="num bold">153</span>件</p>
+			            <a class="cardlist-Result_Target_Back hover" href="/cardlist/?change_ex">商品を選びなおす</a>
+			            </div>
+			<script type="text/javascript">
+				function c_move(_param) {
+					if(_param) {
+						location.href='/cardlist/cardsearch/?expansion=hBP01&view=text&s_param='+_param+'&s_param2=';
+					} else {
+						location.href='/cardlist/cardsearch/?expansion=hBP01&view=text';
+					}
+				}
+				function c_move2() {
+										location.href='/cardlist/cardsearch/?expansion=hBP01&view=text&s_param=&s_param2=notmix';
+									}
+			</script>
+            <div class="color-select">
+                <ul>
+                    <li class="active"><a href="javascript:void(0);" onclick="c_move('');">すべて</a></li>
+										<li><a href="javascript:void(0);" onclick="c_move('白');">白</a></li>
+										<li><a href="javascript:void(0);" onclick="c_move('緑');">緑</a></li>
+										<li><a href="javascript:void(0);" onclick="c_move('赤');">赤</a></li>
+										<li><a href="javascript:void(0);" onclick="c_move('青');">青</a></li>
+										<li><a href="javascript:void(0);" onclick="c_move('無');">無</a></li>
+										                    <li><a href="javascript:void(0);" onclick="c_move2();">多色を含めない</a></li>
+					                </ul>
+            </div>
+
+
+	<div class="cardlist-wrap">
+	        <div class="cardlist-Result_View">
+			<select name="sort" class="saerchform-Select saerchform-Select_Vie"><option value="new" selected="selected">新しい順</option><option value="old">古い順</option><option value="no">カード番号順</option><option value="kana">50音順</option><option value="tag">タグ別</option><option value="kind">カードタイプ</option></select>            <div class="cardlist-Result_View_Cange">
+            <a class="change-Btn change-Btn_Gallery hover" href="/cardlist/cardsearch/?expansion=hBP01&amp;view=image&amp;sort=new"><svg viewBox="0 0 32 28"><path fill-rule="evenodd" clip-rule="evenodd" d="M0 0h8v7H0V0Zm0 10.5h8v7H0v-7ZM8 21H0v7h8v-7Zm4-21h8v7h-8V0Zm8 10.5h-8v7h8v-7ZM12 21h8v7h-8v-7ZM32 0h-8v7h8V0Zm-8 10.5h8v7h-8v-7ZM32 21h-8v7h8v-7Z"></path></svg></a>
+            <a class="change-Btn change-Btn_Txt current" href="/cardlist/cardsearch/?expansion=hBP01&amp;view=text&amp;sort=new"><svg viewBox="0 0 32 28"><path fill-rule="evenodd" clip-rule="evenodd" d="M8 0H0v7h8V0Zm0 10.5H0v7h8v-7ZM0 21h8v7H0v-7ZM32 0H12v7h20V0ZM12 10h20v7H12v-7Zm20 11H12v7h20v-7Z"></path></svg></a>
+            </div>
+        </div>
+
+<script type="text/javascript">
+jQuery(function($) {
+	$(":input[name=sort]").on('change', function() {
+		location.href="/cardlist/cardsearch/?expansion=hBP01&sort=" + $(this).val();
+	});
+});
+</script>
+
+
+
+<script type="text/javascript">
+var bottom_status = 'init';
+var cur_page = 1;
+var max_page = 11;
+var _target = '.cardlist-Result_List_Txt';
+var _wrap = '.all-wrap';
+jQuery(function($) {
+	$(_wrap).on('scroll', function() {
+		if(bottom_status == 'wait') {
+			let objTop = $('.cardlist-Result_List_scroll').offset().top;
+			let winH = $(window).height();
+			if(objTop - winH <= 0){
+				if(cur_page < max_page) {
+					exload();
+				} else {
+					ex_end();
+				}
+			}
+		}
+	});
+	$(window).on('scroll', function() {
+		if(bottom_status == 'wait') {
+			let objTop = $('.cardlist-Result_List_scroll').offset().top;
+			let winH = $(window).height();
+			let scroll = $(window).scrollTop();
+			if(objTop - winH - scroll <= 0){
+				if(cur_page < max_page) {
+					exload();
+				} else {
+					ex_end();
+				}
+			}
+		}
+	});
+	$('html,body').animate({ scrollTop: 0 }, { duration : 'fast', complete : function() { bottom_status='wait'; } });
+});
+function ex_end() {
+	//console.log("ex_end");
+	bottom_status == 'end';
+	$(window).off('scroll');
+	$(_wrap).off('scroll');
+}
+function exload() {
+	bottom_status = 'loading';
+	var date = new Date();
+	$.ajax({
+		type: 'GET',
+		cache: false,
+		url: '/cardlist/cardsearch_ex?expansion=hBP01&view=text&page='+(cur_page+1)+'&t='+date.getTime(),
+		success: function(data) {
+			$(_target).append(data);
+					$(_target+' li.ex-item').fadeIn(500, function() {
+				$(this).removeClass('ex-item');
+				if(!$(_target+' li:last-child').hasClass('ex-item')) {
+					cur_page += 1;
+					if(cur_page >= max_page) {
+						ex_end();
+					}
+					bottom_status = 'wait';
+				}
+			});
+
+				},
+		error: function(XMLHttpRequest, textStatus, errorThrown) {
+			bottom_status = 'wait';
+		}
+	});
+
+}
+
+</script>
+
+
+<!-- List -->
+<ul class="cardlist-Result_List cardlist-Result_List_Txt">
+
+<li><a href="/cardlist/?id=22&amp;expansion=hBP01&amp;view=text">
+<div class="img w100"><img src="/wp-content/images/cardlist/hBP01/hBP01-001_OSR.png" alt="天音かなた" title="天音かなた" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></div>
+<div class="center-Txtarea txt">
+<p class="number">hBP01-001</p>
+<p class="name">天音かなた</p>
+<div class="info">
+<dl>
+    <dt>カードタイプ</dt>
+    <dd>推しホロメン</dd>
+            <dt>レアリティ</dt>
+    <dd>OSR</dd>
+		    <dt>収録商品</dt>
+    <dd>
+				ブースターパック「ブルーミングレディアンス」	</dd>
+	            <dt>色</dt>
+    <dd><img class="" src="/wp-content/images/texticon/type_white.png" alt="白" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></dd>
+            <dt>LIFE</dt>
+    <dd>5</dd>
+            </dl>
+</div>
+<div class="oshi skill"><p>推しスキル</p><p>[ホロパワー:-3]<span>ぎゅっぎゅっ</span>[ターンに1回]相手のセンターホロメンの残りHPを50にする。</p></div><div class="sp skill"><p>SP推しスキル</p><p>[ホロパワー:-2]<span>握りつぶしちゃうぞ</span>[ゲームに1回]このターンの間、自分のホロメン1人のアーツ+50。そのホロメンの色が白の時、さらに、そのアーツ+50。</p></div>
+<div class="txtarea-Btn txtarea-Btn-more Garamond">MORE</div>
+</div>
+</a></li>
+<li><a href="/cardlist/?id=24&amp;expansion=hBP01&amp;view=text">
+<div class="img w100"><img src="/wp-content/images/cardlist/hBP01/hBP01-002_OSR.png" alt="七詩ムメイ" title="七詩ムメイ" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></div>
+<div class="center-Txtarea txt">
+<p class="number">hBP01-002</p>
+<p class="name">七詩ムメイ</p>
+<div class="info">
+<dl>
+    <dt>カードタイプ</dt>
+    <dd>推しホロメン</dd>
+            <dt>レアリティ</dt>
+    <dd>OSR</dd>
+		    <dt>収録商品</dt>
+    <dd>
+				ブースターパック「ブルーミングレディアンス」	</dd>
+	            <dt>色</dt>
+    <dd><img class="" src="/wp-content/images/texticon/type_white.png" alt="白" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></dd>
+            <dt>LIFE</dt>
+    <dd>5</dd>
+            </dl>
+</div>
+<div class="oshi skill"><p>推しスキル</p><p>[ホロパワー:-2]<span>文明の守護者</span>[ターンに1回]相手のターンで、自分の#Promiseを持つホロメンが相手からダメージを受ける時に使える:そのホロメン1人が受けるダメージ-50。</p></div><div class="sp skill"><p>SP推しスキル</p><p>[ホロパワー:-2]<span>アメイジング・ドローイング</span>[ゲームに1回]自分のデッキから、イベント1枚を公開し、手札に加える。そしてデッキをシャッフルする。</p></div>
+<div class="txtarea-Btn txtarea-Btn-more Garamond">MORE</div>
+</div>
+</a></li>
+<li><a href="/cardlist/?id=26&amp;expansion=hBP01&amp;view=text">
+<div class="img w100"><img src="/wp-content/images/cardlist/hBP01/hBP01-003_OSR.png" alt="アキ・ローゼンタール" title="アキ・ローゼンタール" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></div>
+<div class="center-Txtarea txt">
+<p class="number">hBP01-003</p>
+<p class="name">アキ・ローゼンタール</p>
+<div class="info">
+<dl>
+    <dt>カードタイプ</dt>
+    <dd>推しホロメン</dd>
+            <dt>レアリティ</dt>
+    <dd>OSR</dd>
+		    <dt>収録商品</dt>
+    <dd>
+				ブースターパック「ブルーミングレディアンス」	</dd>
+	            <dt>色</dt>
+    <dd><img class="" src="/wp-content/images/texticon/type_green.png" alt="緑" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></dd>
+            <dt>LIFE</dt>
+    <dd>5</dd>
+            </dl>
+</div>
+<div class="oshi skill"><p>推しスキル</p><p>[ホロパワー:-2]<span>サバイバルパワー</span>[ターンに1回]自分のデッキから、〈石の斧〉1枚を公開し、自分の緑ホロメンに付ける。そしてデッキをシャッフルする。</p></div><div class="sp skill"><p>SP推しスキル</p><p>[ホロパワー:-2]<span>大地の唄</span>[ゲームに1回]自分の緑センターホロメンのHPすべて回復。</p></div>
+<div class="txtarea-Btn txtarea-Btn-more Garamond">MORE</div>
+</div>
+</a></li>
+<li><a href="/cardlist/?id=28&amp;expansion=hBP01&amp;view=text">
+<div class="img w100"><img src="/wp-content/images/cardlist/hBP01/hBP01-004_OSR.png" alt="兎田ぺこら" title="兎田ぺこら" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></div>
+<div class="center-Txtarea txt">
+<p class="number">hBP01-004</p>
+<p class="name">兎田ぺこら</p>
+<div class="info">
+<dl>
+    <dt>カードタイプ</dt>
+    <dd>推しホロメン</dd>
+            <dt>レアリティ</dt>
+    <dd>OSR</dd>
+		    <dt>収録商品</dt>
+    <dd>
+				ブースターパック「ブルーミングレディアンス」	</dd>
+	            <dt>色</dt>
+    <dd><img class="" src="/wp-content/images/texticon/type_green.png" alt="緑" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></dd>
+            <dt>LIFE</dt>
+    <dd>6</dd>
+            </dl>
+</div>
+<div class="oshi skill"><p>推しスキル</p><p>[ホロパワー:-2]<span>野兎たち～</span>[ターンに1回]相手のターンで、自分のホロメンがダウンした時に使える:自分のダウンしたホロメン1人の緑エールすべてを、自分の他のホロメンに割り振って付け替える。</p></div><div class="sp skill"><p>SP推しスキル</p><p>[ホロパワー:-3]<span>幸運兎</span>[ゲームに1回]このターンの間、自分のサイコロの目の数すべてを6として扱う。</p></div>
+<div class="txtarea-Btn txtarea-Btn-more Garamond">MORE</div>
+</div>
+</a></li>
+<li><a href="/cardlist/?id=30&amp;expansion=hBP01&amp;view=text">
+<div class="img w100"><img src="/wp-content/images/cardlist/hBP01/hBP01-005_OSR.png" alt="鷹嶺ルイ" title="鷹嶺ルイ" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></div>
+<div class="center-Txtarea txt">
+<p class="number">hBP01-005</p>
+<p class="name">鷹嶺ルイ</p>
+<div class="info">
+<dl>
+    <dt>カードタイプ</dt>
+    <dd>推しホロメン</dd>
+            <dt>レアリティ</dt>
+    <dd>OSR</dd>
+		    <dt>収録商品</dt>
+    <dd>
+				ブースターパック「ブルーミングレディアンス」	</dd>
+	            <dt>色</dt>
+    <dd><img class="" src="/wp-content/images/texticon/type_red.png" alt="赤" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></dd>
+            <dt>LIFE</dt>
+    <dd>5</dd>
+            </dl>
+</div>
+<div class="oshi skill"><p>推しスキル</p><p>[ホロパワー:-X]<span>女幹部の采配</span>[ターンに1回]自分の赤ホロメンの能力で手札をアーカイブする時に使える:アーカイブする手札1枚につき自分のホロパワー1枚を、かわりにアーカイブできる。</p></div><div class="sp skill"><p>SP推しスキル</p><p>[ホロパワー:-2]<span>ホークアイ</span>[ゲームに1回]次の相手のターンの間、相手のセンターホロメンとコラボホロメンは、バトンタッチ、移動、交代できない。</p></div>
+<div class="txtarea-Btn txtarea-Btn-more Garamond">MORE</div>
+</div>
+</a></li>
+<li><a href="/cardlist/?id=32&amp;expansion=hBP01&amp;view=text">
+<div class="img w100"><img src="/wp-content/images/cardlist/hBP01/hBP01-006_OSR.png" alt="小鳥遊キアラ" title="小鳥遊キアラ" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></div>
+<div class="center-Txtarea txt">
+<p class="number">hBP01-006</p>
+<p class="name">小鳥遊キアラ</p>
+<div class="info">
+<dl>
+    <dt>カードタイプ</dt>
+    <dd>推しホロメン</dd>
+            <dt>レアリティ</dt>
+    <dd>OSR</dd>
+		    <dt>収録商品</dt>
+    <dd>
+				ブースターパック「ブルーミングレディアンス」	</dd>
+	            <dt>色</dt>
+    <dd><img class="" src="/wp-content/images/texticon/type_red.png" alt="赤" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></dd>
+            <dt>LIFE</dt>
+    <dd>5</dd>
+            </dl>
+</div>
+<div class="oshi skill"><p>推しスキル</p><p>[ホロパワー:-2]<span>フェニックステール</span>[ターンに1回]自分のアーカイブのホロメン1枚を手札に戻す。</p></div><div class="sp skill"><p>SP推しスキル</p><p>[ホロパワー:-2]<span>Rise from the ashes</span>[ゲームに1回]相手のターンで、自分の赤ホロメンがダウンした時に使える:自分の減るライフ-1。さらに、ダウンした1人を選び、そのホロメンを含め重なっているホロメンすべてを手札に戻す。</p></div>
+<div class="txtarea-Btn txtarea-Btn-more Garamond">MORE</div>
+</div>
+</a></li>
+<li><a href="/cardlist/?id=35&amp;expansion=hBP01&amp;view=text">
+<div class="img w100"><img src="/wp-content/images/cardlist/hBP01/hBP01-007_OSR.png" alt="星街すいせい" title="星街すいせい" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></div>
+<div class="center-Txtarea txt">
+<p class="number">hBP01-007</p>
+<p class="name">星街すいせい</p>
+<div class="info">
+<dl>
+    <dt>カードタイプ</dt>
+    <dd>推しホロメン</dd>
+            <dt>レアリティ</dt>
+    <dd>OSR</dd>
+		    <dt>収録商品</dt>
+    <dd>
+				ブースターパック「ブルーミングレディアンス」	</dd>
+	            <dt>色</dt>
+    <dd><img class="" src="/wp-content/images/texticon/type_blue.png" alt="青" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></dd>
+            <dt>LIFE</dt>
+    <dd>5</dd>
+            </dl>
+</div>
+<div class="oshi skill"><p>推しスキル</p><p>[ホロパワー:-2]<span>ほうき星</span>[ターンに1回]この推しホロメンか自分の青ホロメンが相手のバックホロメンにダメージを与えた時に使える:その相手のバックホロメン1人に特殊ダメージ50を与える。</p></div><div class="sp skill"><p>SP推しスキル</p><p>[ホロパワー:-2]<span>シューティングスター</span>[ゲームに1回]自分の青ホロメンが相手のセンターホロメンかコラボホロメンにダメージを与えた時に使える:相手のバックホロメン1人にそれと同じ数値の特殊ダメージを与える。</p></div>
+<div class="txtarea-Btn txtarea-Btn-more Garamond">MORE</div>
+</div>
+</a></li>
+<li><a href="/cardlist/?id=38&amp;expansion=hBP01&amp;view=text">
+<div class="img w100"><img src="/wp-content/images/cardlist/hBP01/hBP01-008_OSR.png" alt="こぼ・かなえる" title="こぼ・かなえる" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></div>
+<div class="center-Txtarea txt">
+<p class="number">hBP01-008</p>
+<p class="name">こぼ・かなえる</p>
+<div class="info">
+<dl>
+    <dt>カードタイプ</dt>
+    <dd>推しホロメン</dd>
+            <dt>レアリティ</dt>
+    <dd>OSR</dd>
+		    <dt>収録商品</dt>
+    <dd>
+				ブースターパック「ブルーミングレディアンス」	</dd>
+	            <dt>色</dt>
+    <dd><img class="" src="/wp-content/images/texticon/type_blue.png" alt="青" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></dd>
+            <dt>LIFE</dt>
+    <dd>6</dd>
+            </dl>
+</div>
+<div class="oshi skill"><p>推しスキル</p><p>[ホロパワー:-1]<span>レイン・シャーマニズム</span>[ターンに1回]自分の青ホロメンの能力でエールをアーカイブした時に使える:相手のホロメン1人に特殊ダメージ20を与える。</p></div><div class="sp skill"><p>SP推しスキル</p><p>[ホロパワー:-3]<span>雨乞い</span>[ゲームに1回]自分のアーカイブのエール1～5枚を、自分の#IDを持つホロメンに割り振って送る。</p></div>
+<div class="txtarea-Btn txtarea-Btn-more Garamond">MORE</div>
+</div>
+</a></li>
+<li><a href="/cardlist/?id=41&amp;expansion=hBP01&amp;view=text">
+<div class="img w100"><img src="/wp-content/images/cardlist/hBP01/hBP01-010_U.png" alt="天音かなた" title="天音かなた" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></div>
+<div class="center-Txtarea txt">
+<p class="number">hBP01-010</p>
+<p class="name">天音かなた</p>
+<div class="info">
+<dl>
+    <dt>カードタイプ</dt>
+    <dd>ホロメン</dd>
+        <dt>タグ</dt>
+    <dd>#JP #4期生 #歌</dd>
+            <dt>レアリティ</dt>
+    <dd>U</dd>
+		    <dt>収録商品</dt>
+    <dd>
+				ブースターパック「ブルーミングレディアンス」	</dd>
+	        </dl>
+<dl class="info_Detail">
+    <dt>色</dt>
+    <dd><img class="" src="/wp-content/images/texticon/type_white.png" alt="白" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></dd>
+    <dt>HP</dt>
+    <dd>60</dd>
+    <dt>Bloomレベル</dt>
+    <dd>Debut</dd>
+    <dt>バトンタッチ</dt>
+    <dd><img class="" src="/wp-content/images/texticon/arts_null.png" alt="◇" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></dd>
+</dl>
+</div>
+<div class="keyword"><p>キーワード</p><p><span><img class="" src="/wp-content/images/texticon/collabEF.png" alt="コラボエフェクト" onmousedown="return false" onselectstart="return false" oncontextmenu="return false">お出かけ天使　</span>
+このターンの間、自分のセンターホロメンのアーツ+10。自分のセンターホロメンが#4期生を持つ時、さらに、自分のセンターホロメンのアーツ+20。</p></div>
+<div class="sp arts"><p>アーツ</p><p><span><img class="" src="/wp-content/images/texticon/arts_null.png" alt="◇" onmousedown="return false" onselectstart="return false" oncontextmenu="return false">行ってきまーす　20<span class="tokkou"></span></span>
+</p></div>
+
+
+<div class="txtarea-Btn txtarea-Btn-more Garamond">MORE</div>
+</div>
+</a></li>
+<li><a href="/cardlist/?id=43&amp;expansion=hBP01&amp;view=text">
+<div class="img w100"><img src="/wp-content/images/cardlist/hBP01/hBP01-012_U.png" alt="天音かなた" title="天音かなた" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></div>
+<div class="center-Txtarea txt">
+<p class="number">hBP01-012</p>
+<p class="name">天音かなた</p>
+<div class="info">
+<dl>
+    <dt>カードタイプ</dt>
+    <dd>ホロメン</dd>
+        <dt>タグ</dt>
+    <dd>#JP #4期生 #歌</dd>
+            <dt>レアリティ</dt>
+    <dd>U</dd>
+		    <dt>収録商品</dt>
+    <dd>
+				ブースターパック「ブルーミングレディアンス」	</dd>
+	        </dl>
+<dl class="info_Detail">
+    <dt>色</dt>
+    <dd><img class="" src="/wp-content/images/texticon/type_white.png" alt="白" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></dd>
+    <dt>HP</dt>
+    <dd>120</dd>
+    <dt>Bloomレベル</dt>
+    <dd>1st</dd>
+    <dt>バトンタッチ</dt>
+    <dd><img class="" src="/wp-content/images/texticon/arts_null.png" alt="◇" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></dd>
+</dl>
+</div>
+<div class="keyword"><p>キーワード</p><p><span><img class="" src="/wp-content/images/texticon/bloomEF.png" alt="ブルームエフェクト" onmousedown="return false" onselectstart="return false" oncontextmenu="return false">アイドルかなたそを　</span>
+サイコロを1回振れる:3以下の時、自分のデッキから、マスコット1枚を公開し、自分のホロメンに付ける。そしてデッキをシャッフルする。</p></div>
+<div class="sp arts"><p>アーツ</p><p><span><img class="" src="/wp-content/images/texticon/arts_null.png" alt="◇" onmousedown="return false" onselectstart="return false" oncontextmenu="return false">い～っぱい応援して！　40<span class="tokkou"></span></span>
+</p></div>
+
+
+<div class="txtarea-Btn txtarea-Btn-more Garamond">MORE</div>
+</div>
+</a></li>
+<li><a href="/cardlist/?id=45&amp;expansion=hBP01&amp;view=text">
+<div class="img w100"><img src="/wp-content/images/cardlist/hBP01/hBP01-014_RR.png" alt="天音かなた" title="天音かなた" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></div>
+<div class="center-Txtarea txt">
+<p class="number">hBP01-014</p>
+<p class="name">天音かなた</p>
+<div class="info">
+<dl>
+    <dt>カードタイプ</dt>
+    <dd>ホロメン</dd>
+        <dt>タグ</dt>
+    <dd>#JP #4期生 #歌</dd>
+            <dt>レアリティ</dt>
+    <dd>RR</dd>
+		    <dt>収録商品</dt>
+    <dd>
+				ブースターパック「ブルーミングレディアンス」	</dd>
+	        </dl>
+<dl class="info_Detail">
+    <dt>色</dt>
+    <dd><img class="" src="/wp-content/images/texticon/type_white.png" alt="白" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></dd>
+    <dt>HP</dt>
+    <dd>200</dd>
+    <dt>Bloomレベル</dt>
+    <dd>2nd</dd>
+    <dt>バトンタッチ</dt>
+    <dd><img class="" src="/wp-content/images/texticon/arts_null.png" alt="◇" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"><img class="" src="/wp-content/images/texticon/arts_null.png" alt="◇" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></dd>
+</dl>
+</div>
+<div class="keyword"><p>キーワード</p><p><span><img class="" src="/wp-content/images/texticon/collabEF.png" alt="コラボエフェクト" onmousedown="return false" onselectstart="return false" oncontextmenu="return false">堕ちた天使　</span>
+相手のセンターホロメンに特殊ダメージ50を与える。</p></div>
+<div class="sp arts"><p>アーツ</p><p><span><img class="" src="/wp-content/images/texticon/arts_white.png" alt="白" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"><img class="" src="/wp-content/images/texticon/arts_white.png" alt="白" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"><img class="" src="/wp-content/images/texticon/arts_white.png" alt="白" onmousedown="return false" onselectstart="return false" oncontextmenu="return false">♰漆黒の翼♰　100<span class="tokkou"><img class="" src="/wp-content/images/texticon/tokkou_50_red.png" alt="赤+50" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></span></span>
+このアーツで相手のホロメンをダウンさせた時、与えたダメージが残りHPを50以上オーバーしていれば、相手のライフ-1。</p></div>
+
+
+<div class="txtarea-Btn txtarea-Btn-more Garamond">MORE</div>
+</div>
+</a></li>
+<li><a href="/cardlist/?id=47&amp;expansion=hBP01&amp;view=text">
+<div class="img w100"><img src="/wp-content/images/cardlist/hBP01/hBP01-015_C.png" alt="七詩ムメイ" title="七詩ムメイ" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></div>
+<div class="center-Txtarea txt">
+<p class="number">hBP01-015</p>
+<p class="name">七詩ムメイ</p>
+<div class="info">
+<dl>
+    <dt>カードタイプ</dt>
+    <dd>ホロメン</dd>
+        <dt>タグ</dt>
+    <dd>#EN #Promise #トリ #絵</dd>
+            <dt>レアリティ</dt>
+    <dd>C</dd>
+		    <dt>収録商品</dt>
+    <dd>
+				ブースターパック「ブルーミングレディアンス」	</dd>
+	        </dl>
+<dl class="info_Detail">
+    <dt>色</dt>
+    <dd><img class="" src="/wp-content/images/texticon/type_white.png" alt="白" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></dd>
+    <dt>HP</dt>
+    <dd>90</dd>
+    <dt>Bloomレベル</dt>
+    <dd>Debut</dd>
+    <dt>バトンタッチ</dt>
+    <dd><img class="" src="/wp-content/images/texticon/arts_null.png" alt="◇" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></dd>
+</dl>
+</div>
+<div class="sp arts"><p>アーツ</p><p><span><img class="" src="/wp-content/images/texticon/arts_white.png" alt="白" onmousedown="return false" onselectstart="return false" oncontextmenu="return false">Oh,Hi　10+<span class="tokkou"></span></span>
+このターンに自分がサポートカードを使っていた時、このアーツ+20。</p></div>
+
+<div class="extra"><p>エクストラ</p><p>このホロメンはデッキに何枚でも入れられる</p></div>
+
+<div class="txtarea-Btn txtarea-Btn-more Garamond">MORE</div>
+</div>
+</a></li>
+<li><a href="/cardlist/?id=48&amp;expansion=hBP01&amp;view=text">
+<div class="img w100"><img src="/wp-content/images/cardlist/hBP01/hBP01-016_U.png" alt="七詩ムメイ" title="七詩ムメイ" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></div>
+<div class="center-Txtarea txt">
+<p class="number">hBP01-016</p>
+<p class="name">七詩ムメイ</p>
+<div class="info">
+<dl>
+    <dt>カードタイプ</dt>
+    <dd>ホロメン</dd>
+        <dt>タグ</dt>
+    <dd>#EN #Promise #トリ #絵</dd>
+            <dt>レアリティ</dt>
+    <dd>U</dd>
+		    <dt>収録商品</dt>
+    <dd>
+				ブースターパック「ブルーミングレディアンス」	</dd>
+	        </dl>
+<dl class="info_Detail">
+    <dt>色</dt>
+    <dd><img class="" src="/wp-content/images/texticon/type_white.png" alt="白" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></dd>
+    <dt>HP</dt>
+    <dd>60</dd>
+    <dt>Bloomレベル</dt>
+    <dd>Debut</dd>
+    <dt>バトンタッチ</dt>
+    <dd><img class="" src="/wp-content/images/texticon/arts_null.png" alt="◇" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></dd>
+</dl>
+</div>
+<div class="keyword"><p>キーワード</p><p><span><img class="" src="/wp-content/images/texticon/collabEF.png" alt="コラボエフェクト" onmousedown="return false" onselectstart="return false" oncontextmenu="return false">白いキャンバス　</span>
+自分のセンターホロメンが#Promiseを持つ時、自分のデッキを1枚引く。</p></div>
+<div class="sp arts"><p>アーツ</p><p><span><img class="" src="/wp-content/images/texticon/arts_null.png" alt="◇" onmousedown="return false" onselectstart="return false" oncontextmenu="return false">リラックスタイム　10<span class="tokkou"></span></span>
+</p></div>
+
+
+<div class="txtarea-Btn txtarea-Btn-more Garamond">MORE</div>
+</div>
+</a></li>
+<li><a href="/cardlist/?id=49&amp;expansion=hBP01&amp;view=text">
+<div class="img w100"><img src="/wp-content/images/cardlist/hBP01/hBP01-017_C.png" alt="七詩ムメイ" title="七詩ムメイ" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></div>
+<div class="center-Txtarea txt">
+<p class="number">hBP01-017</p>
+<p class="name">七詩ムメイ</p>
+<div class="info">
+<dl>
+    <dt>カードタイプ</dt>
+    <dd>ホロメン</dd>
+        <dt>タグ</dt>
+    <dd>#EN #Promise #トリ #絵</dd>
+            <dt>レアリティ</dt>
+    <dd>C</dd>
+		    <dt>収録商品</dt>
+    <dd>
+				ブースターパック「ブルーミングレディアンス」	</dd>
+	        </dl>
+<dl class="info_Detail">
+    <dt>色</dt>
+    <dd><img class="" src="/wp-content/images/texticon/type_white.png" alt="白" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></dd>
+    <dt>HP</dt>
+    <dd>130</dd>
+    <dt>Bloomレベル</dt>
+    <dd>1st</dd>
+    <dt>バトンタッチ</dt>
+    <dd><img class="" src="/wp-content/images/texticon/arts_null.png" alt="◇" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></dd>
+</dl>
+</div>
+<div class="sp arts"><p>アーツ</p><p><span><img class="" src="/wp-content/images/texticon/arts_white.png" alt="白" onmousedown="return false" onselectstart="return false" oncontextmenu="return false">一緒にお出かけ　20<span class="tokkou"></span></span>
+</p></div>
+<div class="sp arts"><p>アーツ</p><p><span><img class="" src="/wp-content/images/texticon/arts_white.png" alt="白" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"><img class="" src="/wp-content/images/texticon/arts_null.png" alt="◇" onmousedown="return false" onselectstart="return false" oncontextmenu="return false">コーヒーブレイク　60<span class="tokkou"></span></span>
+</p></div>
+
+
+<div class="txtarea-Btn txtarea-Btn-more Garamond">MORE</div>
+</div>
+</a></li>
+<li><a href="/cardlist/?id=50&amp;expansion=hBP01&amp;view=text">
+<div class="img w100"><img src="/wp-content/images/cardlist/hBP01/hBP01-018_C.png" alt="七詩ムメイ" title="七詩ムメイ" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></div>
+<div class="center-Txtarea txt">
+<p class="number">hBP01-018</p>
+<p class="name">七詩ムメイ</p>
+<div class="info">
+<dl>
+    <dt>カードタイプ</dt>
+    <dd>ホロメン</dd>
+        <dt>タグ</dt>
+    <dd>#EN #Promise #トリ #絵</dd>
+            <dt>レアリティ</dt>
+    <dd>C</dd>
+		    <dt>収録商品</dt>
+    <dd>
+				ブースターパック「ブルーミングレディアンス」	</dd>
+	        </dl>
+<dl class="info_Detail">
+    <dt>色</dt>
+    <dd><img class="" src="/wp-content/images/texticon/type_white.png" alt="白" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></dd>
+    <dt>HP</dt>
+    <dd>120</dd>
+    <dt>Bloomレベル</dt>
+    <dd>1st</dd>
+    <dt>バトンタッチ</dt>
+    <dd><img class="" src="/wp-content/images/texticon/arts_null.png" alt="◇" onmousedown="return false" onselectstart="return false" oncontextmenu="return false"></dd>
+</dl>
+</div>
+<div class="sp arts"><p>アーツ</p><p><span><img class="" src="/wp-content/images/texticon/arts_white.png" alt="白" onmousedown="return false" onselectstart="return false" oncontextmenu="return false">思い出の欠片　20+<span class="tokkou"></span></span>
+自分のデッキの上から1枚を公開できる:公開したカードが#Promiseを持つ時、このアーツ+20。そして公開したカードを手札に加える。</p></div>
+
+
+<div class="txtarea-Btn txtarea-Btn-more Garamond">MORE</div>
+</div>
+</a></li>
+
+</ul>
+<div class="cardlist-Result_List_scroll"></div>
+
+</div>
+
+                </div>
+			</div>
+        </div>
+    </div>
