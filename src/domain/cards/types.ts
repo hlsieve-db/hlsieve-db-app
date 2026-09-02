@@ -46,6 +46,7 @@ export type CardQa = {
 export type Card = {
   cardNumber: string
   name: string
+  imageUrl?: string
   nameReading?: string
   cardType: 'oshi' | 'holomem' | 'support' | 'cheer'
   colors: CardColor[]
@@ -77,6 +78,7 @@ export type Card = {
 export type CardPrinting = {
   officialId: string
   officialUrl: string
+  imageUrl?: string
   product?: string
   rarity?: string
   illustrator?: string
