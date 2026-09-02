@@ -1,5 +1,7 @@
 import type { Card } from '../../../src/domain/cards/types'
 import type { RawCardDetail } from '../parser/types'
+import { normalizeQaEntries } from '../qa/normalizeQa'
+import { parseQaSectionHtml } from '../qa/parseQaSection'
 import { normalizeProducts } from './normalizeProducts'
 import type {
   NormalizeIssue,
@@ -295,6 +297,9 @@ export function normalizeCardDetail(
   warnings.push(...arts.warnings)
   const products = normalizeProducts(raw.productBlocks)
   warnings.push(...products.warnings)
+  const parsedQas = parseQaSectionHtml(raw.qaSectionHtmlRaw)
+  const normalizedQas = normalizeQaEntries(parsedQas.entries)
+  warnings.push(...parsedQas.warnings, ...normalizedQas.warnings)
 
   let imageUrl: string | undefined
   if (raw.cardImage) {
@@ -353,6 +358,7 @@ export function normalizeCardDetail(
       ...(rarity ? { rarity } : {}),
       products: products.value,
       ...(illustrator ? { illustrator } : {}),
+      qas: normalizedQas.value,
     },
   }
 }

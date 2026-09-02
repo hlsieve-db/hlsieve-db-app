@@ -5,6 +5,7 @@ import type {
   CardColor,
   RequiredCheer,
 } from '../../../src/domain/cards/types'
+import type { NormalizedQaEntry } from '../qa/types'
 
 export type NormalizedProduct = {
   name: string
@@ -42,6 +43,7 @@ export type NormalizedCardCandidate = {
   rarity?: string
   products: NormalizedProduct[]
   illustrator?: string
+  qas: NormalizedQaEntry[]
 }
 
 export type NormalizedListEntry =
