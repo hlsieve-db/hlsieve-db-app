@@ -53,12 +53,15 @@ export type Card = {
   isBuzz: boolean
   debutType?: 'normal' | 'extra'
   hp?: number
+  life?: number
   tags: string[]
   supportType?: 'staff' | 'item' | 'event' | 'tool' | 'mascot' | 'fan'
   isLimited?: boolean
   supportSearchCategory?: 'limited' | 'general' | 'tool' | 'fan'
   abilities: Ability[]
   arts: Art[]
+  batonPass: RequiredCheer[]
+  extraText?: string
   effectTags: EffectTag[]
   criticalColors: CriticalColor[]
   rarities: string[]
