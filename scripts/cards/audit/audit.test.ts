@@ -132,6 +132,14 @@ describe('card pipeline dry-run audit', () => {
       restrictions: 0,
       cardsDataVersion: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
     })
+    expect(result.report.semanticOverrides).toMatchObject({
+      configured: 2,
+      applied: 0,
+      missingTargets: 2,
+      applications: [],
+      dataVersionBefore: result.report.output?.cardsDataVersion,
+      dataVersionAfter: result.report.output?.cardsDataVersion,
+    })
     expect(result.artifacts?.serializedCards.endsWith('\n')).toBe(true)
     expect(JSON.parse(result.artifacts?.serializedCards ?? '')).toEqual(
       result.artifacts?.cardsDataFile,
@@ -244,6 +252,60 @@ describe('card pipeline dry-run audit', () => {
     expect(result.report.processing.logicalCards).toBeLessThan(
       result.report.processing.printings,
     )
+  })
+
+  it('applies a confirmed Buzz correction between merge and derive', async () => {
+    const input = await fixtureInput()
+    const detailIndex = input.details.findIndex(
+      (detail) => detail.card.cardNumber === 'hSD09-003',
+    )
+    const original = input.details[detailIndex]!
+    const html = original.html
+      .replaceAll('hSD09-003', 'hBP07-019')
+      .replace('<dd>Buzzホロメン</dd>', '<dd>ホロメン</dd>')
+    const parsed = parseSuccess(html, original.card.detailUrl)
+    const card = { ...original.card, cardNumber: 'hBP07-019' }
+    input.details[detailIndex] = { ...original, card, html, parsed }
+    input.discovery.cards = input.discovery.cards.map((candidate) =>
+      candidate.officialId === card.officialId ? card : candidate,
+    )
+
+    const result = runCardPipelineDryRun(input)
+    const candidate = result.artifacts?.candidates.find(
+      (item) => item.cardNumber === 'hBP07-019',
+    )
+    const publicCard = result.artifacts?.cardsDataFile.cards.find(
+      (item) => item.cardNumber === 'hBP07-019',
+    )
+
+    expect(result.report.isPublishable).toBe(true)
+    expect(result.report.semanticOverrides).toMatchObject({
+      configured: 2,
+      applied: 1,
+      missingTargets: 1,
+      applications: [
+        {
+          overrideId: 'confirmed-buzz-hbp07-019',
+          cardNumber: 'hBP07-019',
+          field: 'isBuzz',
+          before: false,
+          after: true,
+          reason: expect.any(String),
+        },
+      ],
+      dataVersionBefore: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
+      dataVersionAfter: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
+    })
+    expect(result.report.semanticOverrides.dataVersionAfter).not.toBe(
+      result.report.semanticOverrides.dataVersionBefore,
+    )
+    expect(candidate).toMatchObject({
+      isBuzz: true,
+      officialUrl: original.card.detailUrl,
+      printings: [expect.objectContaining({ officialId: card.officialId })],
+    })
+    expect(publicCard?.isBuzz).toBe(true)
+    expect(publicCard).not.toHaveProperty('semanticOverrides')
   })
 
   it('produces a deterministic report and output for the same input', async () => {

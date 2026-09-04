@@ -8,6 +8,7 @@ import type { DiscoveryResult } from '../discovery/types'
 import type { FetchedCardDetail } from '../detailFetch/types'
 import type { CardsGenerationReport } from '../generate/types'
 import type { SearchIndexedCardCandidate } from '../searchIndex/types'
+import type { SemanticOverrideApplication } from '../overrides/types'
 
 export type CardPipelineAuditSeverity = 'warning' | 'fatal'
 
@@ -19,6 +20,7 @@ export type CardPipelineAuditIssue = {
     | 'normalize'
     | 'enrichment'
     | 'merge'
+    | 'override'
     | 'derive'
     | 'hash'
     | 'diff'
@@ -85,6 +87,14 @@ export type CardPipelineAuditReport = {
     beforeMerge: number
     afterMerge: number
     conflicts: number
+  }
+  semanticOverrides: {
+    configured: number
+    applied: number
+    missingTargets: number
+    applications: SemanticOverrideApplication[]
+    dataVersionBefore?: string
+    dataVersionAfter?: string
   }
   diff?: {
     added: number

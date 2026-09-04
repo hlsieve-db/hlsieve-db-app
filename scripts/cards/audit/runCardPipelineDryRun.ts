@@ -15,6 +15,7 @@ import {
 } from '../hash/stableStringify'
 import { mergeCardCandidates } from '../merge/mergeCardCandidates'
 import type { MergeConflict, MergedCardCandidate } from '../merge/types'
+import { applySemanticOverrides } from '../overrides/applySemanticOverrides'
 import { normalizeCardDetail } from '../normalize/normalizeCardDetail'
 import type { PrintingAwareNormalizedCardCandidate } from '../normalize/types'
 import { parseCardDetailHtml } from '../parser/parseCardDetail'
@@ -79,6 +80,12 @@ function emptyReport(input: CardPipelineDryRunInput): CardPipelineAuditReport {
       beforeMerge: 0,
       afterMerge: 0,
       conflicts: 0,
+    },
+    semanticOverrides: {
+      configured: 0,
+      applied: 0,
+      missingTargets: 0,
+      applications: [],
     },
     issues: [],
     isPublishable: false,
@@ -625,8 +632,40 @@ function runCardPipelineDryRunCore(
     return finishFailure(report)
   }
 
-  auditMergedCards(mergedCards, enriched, report)
-  verifyPrintingIdentity(cards, enriched, mergedCards, report)
+  const overridden = applySemanticOverrides(mergedCards)
+  if (!overridden.ok) {
+    addIssues(
+      report,
+      overridden.errors.map((error) =>
+        fatal('override', error.code, error.message, {
+          ...(error.cardNumber !== undefined
+            ? { cardNumber: error.cardNumber }
+            : {}),
+        }),
+      ),
+    )
+    return finishFailure(report)
+  }
+  report.semanticOverrides = {
+    configured: overridden.configured,
+    applied: overridden.applications.length,
+    missingTargets: overridden.warnings.length,
+    applications: overridden.applications,
+  }
+  addIssues(
+    report,
+    overridden.warnings.map((issue) =>
+      warning('override', issue.code, issue.message, {
+        ...(issue.cardNumber !== undefined
+          ? { cardNumber: issue.cardNumber }
+          : {}),
+      }),
+    ),
+  )
+  const logicalCards = overridden.value
+
+  auditMergedCards(logicalCards, enriched, report)
+  verifyPrintingIdentity(cards, enriched, logicalCards, report)
   if (report.issues.some((issue) => issue.severity === 'fatal')) {
     return finishFailure(report)
   }
@@ -634,7 +673,7 @@ function runCardPipelineDryRunCore(
   let candidates
   let snapshots
   try {
-    candidates = mergedCards.map((card) =>
+    candidates = logicalCards.map((card) =>
       toSearchIndexedCardCandidate(toDerivedCardCandidate(card)),
     )
     snapshots = candidates.map(buildDiffSnapshot)
@@ -742,6 +781,22 @@ function runCardPipelineDryRunCore(
     )
     return finishFailure(report)
   }
+  const beforeOverrideCards = publicCards.map((card) => {
+    const application = overridden.applications.find(
+      (item) => item.cardNumber === card.cardNumber,
+    )
+    return application ? { ...card, isBuzz: application.before } : card
+  })
+  const beforeOverrideData = buildCardsDataFile(beforeOverrideCards, {
+    generatedAt: input.generatedAt,
+  })
+  if (!beforeOverrideData.ok) {
+    addIssues(report, generationIssues('generation', beforeOverrideData.errors))
+    return finishFailure(report)
+  }
+  report.semanticOverrides.dataVersionBefore =
+    beforeOverrideData.value.dataVersion
+  report.semanticOverrides.dataVersionAfter = cardsData.value.dataVersion
   const serializedCards = serializeDataFile(cardsData.value)
   const serializedRestrictions = serializeDataFile(restrictionsData.value)
   if (!serializedCards.ok || !serializedRestrictions.ok) {
