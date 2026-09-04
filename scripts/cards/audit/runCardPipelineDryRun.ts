@@ -66,6 +66,11 @@ function emptyReport(input: CardPipelineDryRunInput): CardPipelineAuditReport {
       fromNonParallelPrinting: 0,
       missing: 0,
       ambiguousSource: 0,
+      normalAndParallelFromNonParallel: 0,
+      normalAndParallelFromParallel: 0,
+      parallelOnlyFromParallel: 0,
+      normalOnlyFromNonParallel: 0,
+      normalImageAvailableButParallel: 0,
     },
     canonicalPrintings: { parallel: 0, nonParallel: 0, missing: 0 },
     qas: {
@@ -311,18 +316,29 @@ function auditMergedCards(
     if (!card.imageUrl) {
       report.representativeImages.missing += 1
     } else {
-      const sources = card.printings.filter(
-        (printing) => printing.imageUrl === card.imageUrl,
+      const source = card.printings.find(
+        (printing) =>
+          printing.officialId === card.representativeImageOfficialId,
       )
-      const sourceKinds = new Set(
-        sources.map((printing) => printing.isParallel),
-      )
-      if (sourceKinds.size !== 1) {
+      if (!source || source.imageUrl !== card.imageUrl) {
         report.representativeImages.ambiguousSource += 1
-      } else if (sourceKinds.has(true)) {
+      } else if (source.isParallel) {
         report.representativeImages.fromParallelPrinting += 1
+        if (normal.length > 0) {
+          report.representativeImages.normalAndParallelFromParallel += 1
+          if (normal.some((printing) => printing.imageUrl)) {
+            report.representativeImages.normalImageAvailableButParallel += 1
+          }
+        } else {
+          report.representativeImages.parallelOnlyFromParallel += 1
+        }
       } else {
         report.representativeImages.fromNonParallelPrinting += 1
+        if (parallel.length > 0) {
+          report.representativeImages.normalAndParallelFromNonParallel += 1
+        } else {
+          report.representativeImages.normalOnlyFromNonParallel += 1
+        }
       }
     }
 

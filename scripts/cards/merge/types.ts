@@ -60,6 +60,7 @@ export type MergedCardCandidate = {
   deckLimit?: number | null
   qas: NormalizedQaEntry[]
   imageUrl?: string
+  representativeImageOfficialId?: string
   officialUrl?: string
   rarities: string[]
   products: string[]

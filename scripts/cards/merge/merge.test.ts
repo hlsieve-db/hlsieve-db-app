@@ -229,6 +229,7 @@ describe('mergeCardCandidates fundamentals', () => {
     )
 
     expect(merged.imageUrl).toBe('https://example.com/2.png')
+    expect(merged.representativeImageOfficialId).toBe('2')
     expect(merged.printings.map((printing) => printing.imageUrl)).toEqual([
       'https://example.com/2.png',
       'https://example.com/1.png',
@@ -246,10 +247,112 @@ describe('mergeCardCandidates fundamentals', () => {
     const merged = expectSuccess(result)
 
     expect(merged.imageUrl).toBe('https://example.com/1.png')
+    expect(merged.representativeImageOfficialId).toBe('1')
     expect(merged.officialUrl).toBe('https://example.com/canonical')
     expect(result.ok && result.warnings).toContainEqual(
       expect.objectContaining({ code: 'REPRESENTATIVE_IMAGE_FALLBACK' }),
     )
+  })
+
+  it('separates canonical semantics and officialUrl from a normal representative image', () => {
+    const normal = candidate({
+      officialId: '1',
+      imageUrl: 'https://example.com/normal.png',
+      hp: 100,
+    })
+    const parallel = candidate({
+      officialId: '2',
+      officialUrl: 'https://example.com/parallel',
+      isParallel: true,
+      imageUrl: 'https://example.com/parallel.png',
+      hp: 120,
+      products: [{ name: 'New', releaseDate: '2026-01-01' }],
+    })
+    const merged = expectSuccess(mergeCardCandidates([normal, parallel]))
+
+    expect(merged.printings.map((printing) => printing.officialId)).toEqual([
+      '2',
+      '1',
+    ])
+    expect(merged.imageUrl).toBe('https://example.com/normal.png')
+    expect(merged.representativeImageOfficialId).toBe('1')
+    expect(merged.officialUrl).toBe('https://example.com/parallel')
+    expect(merged.hp).toBe(120)
+    expect(semanticConflicts(merged)).toContainEqual(
+      expect.objectContaining({
+        field: 'hp',
+        canonicalOfficialId: '2',
+        conflictingOfficialId: '1',
+      }),
+    )
+  })
+
+  it('uses canonical ranking within normal image candidates independently of input order', () => {
+    const olderNormal = candidate({
+      officialId: '1',
+      imageUrl: 'https://example.com/normal-old.png',
+    })
+    const newerNormal = candidate({
+      officialId: '2',
+      imageUrl: 'https://example.com/normal-new.png',
+      products: [{ name: 'New normal', releaseDate: '2026-01-01' }],
+    })
+    const newestParallel = candidate({
+      officialId: '3',
+      isParallel: true,
+      imageUrl: 'https://example.com/parallel.png',
+      products: [{ name: 'New parallel', releaseDate: '2027-01-01' }],
+    })
+    const input = [olderNormal, newestParallel, newerNormal]
+    const forward = expectSuccess(mergeCardCandidates(input))
+    const reversed = expectSuccess(mergeCardCandidates([...input].reverse()))
+
+    expect(forward).toEqual(reversed)
+    expect(forward.printings[0]?.officialId).toBe('3')
+    expect(forward.imageUrl).toBe('https://example.com/normal-new.png')
+    expect(forward.representativeImageOfficialId).toBe('2')
+  })
+
+  it('falls back deterministically to a ranked parallel image when normal images are missing', () => {
+    const normalWithoutImage = candidate({
+      officialId: '1',
+      imageUrl: undefined,
+    })
+    const olderParallel = candidate({
+      officialId: '2',
+      isParallel: true,
+      imageUrl: 'https://example.com/parallel-old.png',
+    })
+    const newerParallel = candidate({
+      officialId: '3',
+      isParallel: true,
+      imageUrl: 'https://example.com/parallel-new.png',
+      products: [{ name: 'New parallel', releaseDate: '2026-01-01' }],
+    })
+    const input = [olderParallel, normalWithoutImage, newerParallel]
+    const forward = expectSuccess(mergeCardCandidates(input))
+    const reversed = expectSuccess(mergeCardCandidates([...input].reverse()))
+
+    expect(forward).toEqual(reversed)
+    expect(forward.imageUrl).toBe('https://example.com/parallel-new.png')
+    expect(forward.representativeImageOfficialId).toBe('3')
+  })
+
+  it('supports parallel-only, normal-only, and all-images-missing cards', () => {
+    const parallelOnly = expectSuccess(
+      mergeCardCandidates([candidate({ officialId: '2', isParallel: true })]),
+    )
+    const normalOnly = expectSuccess(mergeCardCandidates([candidate()]))
+    const missing = expectSuccess(
+      mergeCardCandidates([candidate({ imageUrl: undefined })]),
+    )
+
+    expect(parallelOnly.representativeImageOfficialId).toBe('2')
+    expect(parallelOnly.imageUrl).toBe('https://example.com/1.png')
+    expect(normalOnly.representativeImageOfficialId).toBe('1')
+    expect(normalOnly.imageUrl).toBe('https://example.com/1.png')
+    expect(missing.imageUrl).toBeUndefined()
+    expect(missing.representativeImageOfficialId).toBeUndefined()
   })
 })
 
@@ -441,9 +544,10 @@ describe('metadata, semantic, and Q&A merge rules', () => {
 describe('FUWAMOCO official fixture integration', () => {
   it('merges both real printings without losing images or hiding colors conflict', async () => {
     const original = await normalizedFixture('detail-multicolor-fuwamoco')
-    const reprint = await normalizedFixture(
-      'detail-multicolor-fuwamoco-reprint',
-    )
+    const reprint = {
+      ...(await normalizedFixture('detail-multicolor-fuwamoco-reprint')),
+      isParallel: true,
+    }
     const merged = expectSuccess(mergeCardCandidates([original, reprint]))
 
     expect(merged.cardNumber).toBe('hBP03-050')
@@ -451,8 +555,13 @@ describe('FUWAMOCO official fixture integration', () => {
       '2545',
       '614',
     ])
-    expect(merged.imageUrl).toBe(reprint.imageUrl)
+    expect(merged.imageUrl).toBe(original.imageUrl)
+    expect(merged.representativeImageOfficialId).toBe('614')
     expect(merged.officialUrl).toBe(reprint.officialUrl)
+    expect(merged.printings.map((printing) => printing.isParallel)).toEqual([
+      true,
+      false,
+    ])
     expect(merged.printings.map((printing) => printing.imageUrl)).toEqual([
       reprint.imageUrl,
       original.imageUrl,

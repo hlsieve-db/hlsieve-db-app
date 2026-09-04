@@ -156,6 +156,9 @@ describe('card pipeline dry-run audit', () => {
       [true, false],
     )
     expect(candidate).toMatchObject({
+      imageUrl:
+        'https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP03/hBP03-050_R.png',
+      representativeImageOfficialId: '614',
       officialUrl:
         'https://hololive-official-cardgame.com/cardlist/?faq=&id=2545',
       effectTags: ['cheer_acceleration'],
@@ -172,6 +175,8 @@ describe('card pipeline dry-run audit', () => {
     expect(publicCard).not.toHaveProperty('printings')
     expect(publicCard).not.toHaveProperty('conflicts')
     expect(publicCard).not.toHaveProperty('isParallel')
+    expect(publicCard).not.toHaveProperty('representativeImageOfficialId')
+    expect(publicCard?.imageUrl).toBe(candidate?.imageUrl)
   })
 
   it('audits parallel, canonical, representative image, Q&A, and conflicts', async () => {
@@ -191,10 +196,15 @@ describe('card pipeline dry-run audit', () => {
       missing: 0,
     })
     expect(report.representativeImages).toEqual({
-      fromParallelPrinting: 1,
-      fromNonParallelPrinting: 5,
+      fromParallelPrinting: 0,
+      fromNonParallelPrinting: 6,
       missing: 0,
       ambiguousSource: 0,
+      normalAndParallelFromNonParallel: 1,
+      normalAndParallelFromParallel: 0,
+      parallelOnlyFromParallel: 0,
+      normalOnlyFromNonParallel: 5,
+      normalImageAvailableButParallel: 0,
     })
     expect(report.qas.cardsWithQa + report.qas.cardsWithoutQa).toBe(6)
     expect(report.qas.beforeMerge).toBeGreaterThanOrEqual(report.qas.afterMerge)

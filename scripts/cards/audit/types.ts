@@ -68,6 +68,11 @@ export type CardPipelineAuditReport = {
     fromNonParallelPrinting: number
     missing: number
     ambiguousSource: number
+    normalAndParallelFromNonParallel: number
+    normalAndParallelFromParallel: number
+    parallelOnlyFromParallel: number
+    normalOnlyFromNonParallel: number
+    normalImageAvailableButParallel: number
   }
   canonicalPrintings: {
     parallel: number

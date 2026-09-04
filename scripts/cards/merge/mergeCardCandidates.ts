@@ -226,16 +226,14 @@ export function mergeCardCandidates(
   }
 
   const warnings = [...deduplicated.warnings]
-  let imageUrl = canonical.imageUrl
-  if (!imageUrl) {
-    const fallback = ranked.find((candidate) => candidate.imageUrl)
-    imageUrl = fallback?.imageUrl
-    if (fallback) {
-      warnings.push({
-        code: 'REPRESENTATIVE_IMAGE_FALLBACK',
-        message: `Used image from officialId ${fallback.officialId} because canonical officialId ${canonical.officialId} has no image.`,
-      })
-    }
+  const representative =
+    ranked.find((candidate) => !candidate.isParallel && candidate.imageUrl) ??
+    ranked.find((candidate) => candidate.imageUrl)
+  if (!canonical.imageUrl && representative) {
+    warnings.push({
+      code: 'REPRESENTATIVE_IMAGE_FALLBACK',
+      message: `Used image from officialId ${representative.officialId} because canonical officialId ${canonical.officialId} has no image.`,
+    })
   }
 
   const semanticConflicts = ranked
@@ -271,7 +269,12 @@ export function mergeCardCandidates(
         ? { deckLimit: canonical.deckLimit }
         : {}),
       qas: mergedQa.qas,
-      ...(imageUrl ? { imageUrl } : {}),
+      ...(representative?.imageUrl
+        ? {
+            imageUrl: representative.imageUrl,
+            representativeImageOfficialId: representative.officialId,
+          }
+        : {}),
       officialUrl: canonical.officialUrl,
       rarities: aggregateStrings(ranked, (candidate) => [candidate.rarity]),
       products: aggregateStrings(ranked, (candidate) =>
