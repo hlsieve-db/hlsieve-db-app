@@ -9,6 +9,7 @@
     "cards:audit": "tsx scripts/cards/audit/runAudit.ts",
     "cards:discover": "tsx scripts/cards/discovery/runDiscovery.ts",
     "cards:fetch-details": "tsx scripts/cards/detailFetch/runDetailFetch.ts",
+    "cards:publish": "tsx scripts/cards/publish/runPublish.ts",
     "lint": "eslint .",
     "test": "vitest",
     "test:run": "vitest run",
