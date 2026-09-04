@@ -2,7 +2,8 @@ import type {
   NormalizedCardCandidate,
   PrintingAwareNormalizedCardCandidate,
 } from '../normalize/types'
-import { compareSemanticFields, deepEqual } from './compareCandidates'
+import { compareSemanticFields } from './compareCandidates'
+import { deepEqual } from './deepEqual'
 import { mergeCandidateQas } from './mergeQa'
 import type {
   MergeIssue,

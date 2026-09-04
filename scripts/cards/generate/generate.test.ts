@@ -281,6 +281,38 @@ describe('toPublicCard', () => {
     expect(result).not.toHaveProperty('conflicts')
   })
 
+  it('keeps public serialization and dataVersion unchanged when a format-only conflict is removed', () => {
+    const withConflict = candidate('hBP01-104', {
+      conflicts: [
+        {
+          kind: 'semantic_conflict',
+          cardNumber: 'hBP01-104',
+          field: 'abilities',
+          canonicalOfficialId: '2',
+          conflictingOfficialId: '1',
+          canonicalValue: [{ type: 'normal', text: '1回' }],
+          conflictingValue: [{ type: 'normal', text: '１回' }],
+        },
+      ],
+    })
+    const withoutConflict = structuredClone(withConflict)
+    withoutConflict.conflicts = []
+    const before = publicCard(withConflict)
+    const after = publicCard(withoutConflict)
+    const beforeFile = expectSuccess(
+      buildCardsDataFile([before], { generatedAt: GENERATED_AT }),
+    )
+    const afterFile = expectSuccess(
+      buildCardsDataFile([after], { generatedAt: GENERATED_AT }),
+    )
+
+    expect(after).toEqual(before)
+    expect(afterFile.dataVersion).toBe(beforeFile.dataVersion)
+    expect(expectSuccess(serializeDataFile(afterFile))).toBe(
+      expectSuccess(serializeDataFile(beforeFile)),
+    )
+  })
+
   it.each([
     ['invalid image URL', { imageUrl: 'file:///card.png' }],
     ['non-HTTPS official URL', { officialUrl: 'http://example.com/card' }],

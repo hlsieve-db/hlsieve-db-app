@@ -14,6 +14,10 @@ import { parseCardDetailHtml } from '../parser/parseCardDetail'
 import type { ParseResult, RawCardDetail } from '../parser/types'
 import type { NormalizedQaEntry } from '../qa/types'
 import { mergeCardCandidates } from './mergeCardCandidates'
+import {
+  canonicalizeForSemanticComparison,
+  semanticEqual,
+} from './semanticComparison'
 import type { MergeResult, MergedCardCandidate } from './types'
 
 const fixtureRoot = resolve(process.cwd(), 'scripts/cards/fixtures')
@@ -357,6 +361,183 @@ describe('mergeCardCandidates fundamentals', () => {
 })
 
 describe('metadata, semantic, and Q&A merge rules', () => {
+  it.each([
+    ['digit width', '1', '１'],
+    ['colon width', ':', '：'],
+    ['colon in text', '効果:テキスト', '効果：テキスト'],
+    ['digit in text', '1ダメージ', '１ダメージ'],
+  ])(
+    'treats %s as equal after NFKC for comparison only',
+    (_label, left, right) => {
+      expect(semanticEqual(left, right)).toBe(true)
+    },
+  )
+
+  it.each([
+    ['meaningful wording', '～の時', '～なら'],
+    ['removed clause', '公開し、アーカイブする', 'アーカイブする'],
+  ])('retains %s as a semantic difference', (_label, left, right) => {
+    expect(semanticEqual(left, right)).toBe(false)
+  })
+
+  it('recursively canonicalizes string leaves without mutating source values', () => {
+    const source = {
+      abilities: [{ type: 'normal', text: '効果：１ダメージ' }],
+      values: [null, true, 1],
+    }
+    const canonicalized = canonicalizeForSemanticComparison(source)
+
+    expect(canonicalized).toEqual({
+      abilities: [{ type: 'normal', text: '効果:1ダメージ' }],
+      values: [null, true, 1],
+    })
+    expect(canonicalized).not.toBe(source)
+    expect(source.abilities[0]?.text).toBe('効果：１ダメージ')
+  })
+
+  it.each([
+    ['hBP01-104', 'abilities', 'このターンに1回', 'このターンに１回'],
+    ['hBP04-055', 'arts', '効果:テキスト', '効果：テキスト'],
+    ['hBP06-034', 'abilities', '条件:ドロー', '条件：ドロー'],
+    ['hSD14-010', 'arts', '追加効果:回収', '追加効果：回収'],
+  ] as const)(
+    'does not emit a format-only conflict for %s',
+    (cardNumber, field, halfWidth, fullWidth) => {
+      const canonical = candidate({
+        officialId: '2',
+        cardNumber,
+        products: [{ name: 'New', releaseDate: '2026-01-01' }],
+        ...(field === 'abilities'
+          ? { abilities: [{ type: 'normal', text: halfWidth }] }
+          : {
+              arts: [
+                {
+                  name: 'Art',
+                  requiredCheers: [],
+                  effectText: halfWidth,
+                },
+              ],
+            }),
+      })
+      const variant = candidate({
+        officialId: '1',
+        cardNumber,
+        ...(field === 'abilities'
+          ? { abilities: [{ type: 'normal', text: fullWidth }] }
+          : {
+              arts: [
+                {
+                  name: 'Art',
+                  requiredCheers: [],
+                  effectText: fullWidth,
+                },
+              ],
+            }),
+      })
+      const merged = expectSuccess(mergeCardCandidates([variant, canonical]))
+
+      expect(semanticConflicts(merged)).toEqual([])
+      expect(merged[field][0]).toEqual(canonical[field][0])
+      expect(variant[field][0]).not.toEqual(canonical[field][0])
+    },
+  )
+
+  it('keeps array length, order, requiredCheers, and Buzz differences', () => {
+    const canonical = candidate({
+      officialId: '2',
+      isBuzz: false,
+      abilities: [
+        { type: 'normal', text: 'First' },
+        { type: 'normal', text: 'Second' },
+      ],
+      arts: [
+        {
+          name: 'Art',
+          requiredCheers: [{ color: 'any', count: 1 }],
+        },
+      ],
+      products: [{ name: 'New', releaseDate: '2026-01-01' }],
+    })
+    const reordered = candidate({
+      officialId: '1',
+      isBuzz: true,
+      abilities: [
+        { type: 'normal', text: 'Second' },
+        { type: 'normal', text: 'First' },
+      ],
+      arts: [
+        {
+          name: 'Art',
+          requiredCheers: [
+            { color: 'green', count: 1 },
+            { color: 'any', count: 1 },
+          ],
+        },
+      ],
+    })
+    const shorter = { ...reordered, officialId: '0', abilities: [] }
+    const merged = expectSuccess(
+      mergeCardCandidates([reordered, shorter, canonical]),
+    )
+
+    expect(semanticConflicts(merged).map((conflict) => conflict.field)).toEqual(
+      ['isBuzz', 'abilities', 'arts', 'isBuzz', 'abilities', 'arts'],
+    )
+  })
+
+  it('keeps the hBP01-050 requiredCheers change as an arts conflict', () => {
+    const canonical = candidate({
+      officialId: '2',
+      cardNumber: 'hBP01-050',
+      arts: [
+        {
+          name: 'Art',
+          requiredCheers: [{ color: 'any', count: 1 }],
+        },
+      ],
+      products: [{ name: 'New', releaseDate: '2026-01-01' }],
+    })
+    const older = candidate({
+      officialId: '1',
+      cardNumber: 'hBP01-050',
+      arts: [
+        {
+          name: 'Art',
+          requiredCheers: [
+            { color: 'green', count: 1 },
+            { color: 'any', count: 1 },
+          ],
+        },
+      ],
+    })
+    const merged = expectSuccess(mergeCardCandidates([older, canonical]))
+
+    expect(semanticConflicts(merged)).toEqual([
+      expect.objectContaining({ field: 'arts' }),
+    ])
+  })
+
+  it.each(['hBP07-019', 'hBP07-048', 'hBP07-076'])(
+    'keeps the %s raw Buzz source inconsistency as a conflict',
+    (cardNumber) => {
+      const merged = expectSuccess(
+        mergeCardCandidates([
+          candidate({ officialId: '1', cardNumber, isBuzz: true }),
+          candidate({
+            officialId: '2',
+            cardNumber,
+            isBuzz: false,
+            products: [{ name: 'New', releaseDate: '2026-01-01' }],
+          }),
+        ]),
+      )
+
+      expect(semanticConflicts(merged)).toEqual([
+        expect.objectContaining({ field: 'isBuzz' }),
+      ])
+    },
+  )
+
   it('aggregates tags, rarities, products, and illustrators in canonical rank order', () => {
     const original = candidate({
       tags: ['#A', '#Original'],

@@ -364,6 +364,34 @@ describe('changed categories', () => {
     ).toEqual(['printing'])
   })
 
+  it('classifies removal of a format-only semantic conflict as printing', () => {
+    const previous = card('hBP01-104', {
+      conflicts: [
+        {
+          kind: 'semantic_conflict',
+          cardNumber: 'hBP01-104',
+          field: 'abilities',
+          canonicalOfficialId: '2',
+          conflictingOfficialId: '1',
+          canonicalValue: [{ type: 'normal', text: '1回' }],
+          conflictingValue: [{ type: 'normal', text: '１回' }],
+        },
+      ],
+    })
+    const current = changedCard((value) => {
+      value.conflicts = []
+    }, previous)
+    const result = diff(buildDiffSnapshot(previous), buildDiffSnapshot(current))
+
+    expect(result).toMatchObject({
+      status: 'changed',
+      changedCategories: ['printing'],
+      changedFields: [
+        expect.objectContaining({ category: 'printing', path: 'conflicts' }),
+      ],
+    })
+  })
+
   it('classifies qa_conflict-only changes as qa', () => {
     const previous = card('hTEST-001', {
       conflicts: [
