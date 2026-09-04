@@ -15,7 +15,7 @@ describe('DEFAULT_SEARCH_STATE', () => {
       effectTagsMode: 'and',
       rarities: [],
       products: [],
-      sort: 'new',
+      sort: 'default',
       perPage: 24,
       page: 1,
     })

@@ -5,6 +5,8 @@ import type {
   SearchState,
 } from './types'
 
+export const DEFAULT_CARD_PAGE_SIZE = 24
+
 export const BLOOM_FILTER_LABELS = {
   debut_normal: 'Debut（通常）',
   debut_extra: 'Debut（エクストラ）',
@@ -41,7 +43,7 @@ export const DEFAULT_SEARCH_STATE: SearchState = {
   effectTagsMode: 'and',
   rarities: [],
   products: [],
-  sort: 'new',
-  perPage: 24,
+  sort: 'default',
+  perPage: DEFAULT_CARD_PAGE_SIZE,
   page: 1,
 }

@@ -2,6 +2,9 @@ import type { CardColor, CriticalColor, EffectTag } from '../cards/types'
 
 export type MatchMode = 'and' | 'or'
 
+export type CardSort =
+  'default' | 'card_number_asc' | 'release_date_desc' | 'release_date_asc'
+
 export type BloomFilterValue =
   'debut_normal' | 'debut_extra' | 'first' | 'second' | 'spot' | 'buzz'
 
@@ -26,7 +29,7 @@ export type SearchState = {
   effectTagsMode: MatchMode
   rarities: string[]
   products: string[]
-  sort: 'new' | 'cardNumber' | 'name'
+  sort: CardSort
   perPage: 24 | 48 | 96
   page: number
 }
