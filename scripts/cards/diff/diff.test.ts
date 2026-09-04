@@ -11,7 +11,7 @@ import type { MergeResult } from '../merge/types'
 import { normalizeCardDetail } from '../normalize/normalizeCardDetail'
 import type {
   NormalizeResult,
-  NormalizedCardCandidate,
+  PrintingAwareNormalizedCardCandidate,
 } from '../normalize/types'
 import { parseCardDetailHtml } from '../parser/parseCardDetail'
 import type { ParseResult, RawCardDetail } from '../parser/types'
@@ -80,6 +80,7 @@ function card(
       {
         officialId: '2',
         officialUrl: 'https://example.com/card/2',
+        isParallel: true,
         imageUrl: 'https://example.com/card-2.png',
         rarity: 'SR',
         products: [{ name: 'Product B', releaseDate: '2026-02-01' }],
@@ -88,6 +89,7 @@ function card(
       {
         officialId: '1',
         officialUrl: 'https://example.com/card/1',
+        isParallel: false,
         imageUrl: 'https://example.com/card-1.png',
         products: [{ name: 'Product A' }],
       },
@@ -160,14 +162,16 @@ function collection(
   }
 }
 
-async function normalizedFixture(id: string): Promise<NormalizedCardCandidate> {
+async function normalizedFixture(
+  id: string,
+): Promise<PrintingAwareNormalizedCardCandidate> {
   const fixture = fixtureManifest.find((entry) => entry.id === id)
   if (!fixture || fixture.kind !== 'detail') throw new Error(id)
   const html = await readFile(resolve(fixtureRoot, fixture.file), 'utf8')
   const raw: RawCardDetail = expectSuccess(
     parseCardDetailHtml(html, fixture.sourceUrl),
   )
-  return expectSuccess(normalizeCardDetail(raw))
+  return { ...expectSuccess(normalizeCardDetail(raw)), isParallel: false }
 }
 
 async function fuwamocoSnapshot(): Promise<CardDiffSnapshot> {
@@ -278,6 +282,12 @@ describe('changed categories', () => {
       'printing',
     ],
     [
+      'printing parallel metadata',
+      (value: SearchIndexedCardCandidate) =>
+        (value.printings[0]!.isParallel = false),
+      'printing',
+    ],
+    [
       'name',
       (value: SearchIndexedCardCandidate) => (value.name = 'Other'),
       'metadata',
@@ -299,10 +309,20 @@ describe('changed categories', () => {
       'derived',
     ],
   ])('classifies %s changes as %s', (_label, update, category) => {
-    expect(changedDiff(update)).toMatchObject({
+    const result = changedDiff(update)
+    expect(result).toMatchObject({
       status: 'changed',
       changedCategories: [category],
     })
+    if (_label === 'printing parallel metadata') {
+      expect(result.changedFields).toContainEqual({
+        category: 'printing',
+        path: 'printings',
+        before: expect.any(Array),
+        after: expect.any(Array),
+      })
+      expect(result.changedCategories).not.toContain('game_content')
+    }
   })
 
   it('returns all simultaneous categories in fixed order', () => {
@@ -370,6 +390,7 @@ describe('changed categories', () => {
       value.printings.push({
         officialId: '3',
         officialUrl: 'https://example.com/card/3',
+        isParallel: false,
         products: [{ name: 'Product C' }],
       })
     })
@@ -377,6 +398,7 @@ describe('changed categories', () => {
       value.printings.push({
         officialId: '3',
         officialUrl: 'https://example.com/card/3',
+        isParallel: false,
         products: [{ name: 'Product C' }],
       })
       value.products.push('Product C')
@@ -541,7 +563,7 @@ describe('FUWAMOCO fixture integration', () => {
     const previous = await fuwamocoSnapshot()
     const current = await fuwamocoSnapshot()
     expect(previous.contentHash).toBe(
-      'sha256:add519a5a08fd3a2b071a81e678189420970ede3f3c63a14c9725ec00666c789',
+      'sha256:095b92573b4444626fc7a4711fb4655eae14f28c1223d21bbbd89d576f11876b',
     )
     expect(current.contentHash).toBe(previous.contentHash)
     expect(diff(previous, current)).toMatchObject({

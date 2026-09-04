@@ -79,6 +79,7 @@ export type Card = {
 export type CardPrinting = {
   officialId: string
   officialUrl: string
+  isParallel: boolean
   imageUrl?: string
   product?: string
   rarity?: string

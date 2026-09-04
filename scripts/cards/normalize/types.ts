@@ -44,6 +44,10 @@ export type NormalizedCardCandidate = {
   qas: NormalizedQaEntry[]
 }
 
+export type PrintingAwareNormalizedCardCandidate = NormalizedCardCandidate & {
+  isParallel: boolean
+}
+
 export type NormalizedListEntry =
   | {
       kind: 'card'

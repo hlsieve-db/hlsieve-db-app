@@ -10,7 +10,7 @@ import type { MergeResult, MergedCardCandidate } from '../merge/types'
 import { normalizeCardDetail } from '../normalize/normalizeCardDetail'
 import type {
   NormalizeResult,
-  NormalizedCardCandidate,
+  PrintingAwareNormalizedCardCandidate,
 } from '../normalize/types'
 import { parseCardDetailHtml } from '../parser/parseCardDetail'
 import type { ParseResult, RawCardDetail } from '../parser/types'
@@ -78,8 +78,13 @@ async function rawDetail(id: string): Promise<RawCardDetail> {
   return expectSuccess(parseCardDetailHtml(html, fixture.sourceUrl))
 }
 
-async function normalizedFixture(id: string): Promise<NormalizedCardCandidate> {
-  return expectSuccess(normalizeCardDetail(await rawDetail(id)))
+async function normalizedFixture(
+  id: string,
+): Promise<PrintingAwareNormalizedCardCandidate> {
+  return {
+    ...expectSuccess(normalizeCardDetail(await rawDetail(id))),
+    isParallel: false,
+  }
 }
 
 async function mergedFixture(...ids: string[]): Promise<MergedCardCandidate> {

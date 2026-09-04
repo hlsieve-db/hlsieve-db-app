@@ -1,4 +1,7 @@
-import type { NormalizedCardCandidate } from '../normalize/types'
+import type {
+  NormalizedCardCandidate,
+  PrintingAwareNormalizedCardCandidate,
+} from '../normalize/types'
 import { compareSemanticFields, deepEqual } from './compareCandidates'
 import { mergeCandidateQas } from './mergeQa'
 import type {
@@ -69,8 +72,8 @@ function compareOfficialIdsDescending(left: string, right: string): number {
 }
 
 export function rankCardCandidates(
-  candidates: readonly NormalizedCardCandidate[],
-): NormalizedCardCandidate[] {
+  candidates: readonly PrintingAwareNormalizedCardCandidate[],
+): PrintingAwareNormalizedCardCandidate[] {
   return [...candidates].sort((left, right) => {
     const leftDate = candidateLatestReleaseDate(left)
     const rightDate = candidateLatestReleaseDate(right)
@@ -84,10 +87,10 @@ export function rankCardCandidates(
 }
 
 function dedupePrintings(
-  candidates: readonly NormalizedCardCandidate[],
-): MergeResult<NormalizedCardCandidate[]> {
-  const unique: NormalizedCardCandidate[] = []
-  const byOfficialId = new Map<string, NormalizedCardCandidate>()
+  candidates: readonly PrintingAwareNormalizedCardCandidate[],
+): MergeResult<PrintingAwareNormalizedCardCandidate[]> {
+  const unique: PrintingAwareNormalizedCardCandidate[] = []
+  const byOfficialId = new Map<string, PrintingAwareNormalizedCardCandidate>()
   const warnings: MergeIssue[] = []
 
   for (const candidate of candidates) {
@@ -118,9 +121,9 @@ function dedupePrintings(
 }
 
 function aggregateStrings(
-  candidates: readonly NormalizedCardCandidate[],
+  candidates: readonly PrintingAwareNormalizedCardCandidate[],
   values: (
-    candidate: NormalizedCardCandidate,
+    candidate: PrintingAwareNormalizedCardCandidate,
   ) => readonly (string | undefined)[],
 ): string[] {
   const result: string[] = []
@@ -135,7 +138,7 @@ function aggregateStrings(
 }
 
 function earliestReleaseDate(
-  candidates: readonly NormalizedCardCandidate[],
+  candidates: readonly PrintingAwareNormalizedCardCandidate[],
 ): string | undefined {
   return candidates
     .flatMap((candidate) =>
@@ -150,10 +153,13 @@ function earliestReleaseDate(
     )
 }
 
-function toPrinting(candidate: NormalizedCardCandidate): MergedPrinting {
+function toPrinting(
+  candidate: PrintingAwareNormalizedCardCandidate,
+): MergedPrinting {
   return {
     officialId: candidate.officialId,
     officialUrl: candidate.officialUrl,
+    isParallel: candidate.isParallel,
     ...(candidate.imageUrl ? { imageUrl: candidate.imageUrl } : {}),
     ...(candidate.rarity ? { rarity: candidate.rarity } : {}),
     products: candidate.products,
@@ -162,13 +168,28 @@ function toPrinting(candidate: NormalizedCardCandidate): MergedPrinting {
 }
 
 export function mergeCardCandidates(
-  candidates: readonly NormalizedCardCandidate[],
+  candidates: readonly PrintingAwareNormalizedCardCandidate[],
 ): MergeResult<MergedCardCandidate> {
   if (candidates.length === 0) {
     return {
       ok: false,
       errors: [
         { code: 'EMPTY_MERGE_INPUT', message: 'No candidates to merge.' },
+      ],
+    }
+  }
+
+  if (
+    candidates.some((candidate) => typeof candidate.isParallel !== 'boolean')
+  ) {
+    return {
+      ok: false,
+      errors: [
+        {
+          code: 'MISSING_PARALLEL_METADATA',
+          message:
+            'Every merge candidate must contain explicit Discovery parallel metadata.',
+        },
       ],
     }
   }

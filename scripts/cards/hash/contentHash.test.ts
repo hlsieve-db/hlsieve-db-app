@@ -11,7 +11,7 @@ import type { MergeResult } from '../merge/types'
 import { normalizeCardDetail } from '../normalize/normalizeCardDetail'
 import type {
   NormalizeResult,
-  NormalizedCardCandidate,
+  PrintingAwareNormalizedCardCandidate,
 } from '../normalize/types'
 import { parseCardDetailHtml } from '../parser/parseCardDetail'
 import type { ParseResult, RawCardDetail } from '../parser/types'
@@ -81,6 +81,7 @@ function candidate(
       {
         officialId: '2',
         officialUrl: 'https://example.com/card/2',
+        isParallel: true,
         imageUrl: 'https://example.com/card-2.png',
         rarity: 'SR',
         products: [
@@ -96,6 +97,7 @@ function candidate(
       {
         officialId: '01',
         officialUrl: 'https://example.com/card/1',
+        isParallel: false,
         imageUrl: 'https://example.com/card-1.png',
         products: [{ name: 'Product A' }],
       },
@@ -146,14 +148,16 @@ function expectSuccess<T>(
   return result.value
 }
 
-async function normalizedFixture(id: string): Promise<NormalizedCardCandidate> {
+async function normalizedFixture(
+  id: string,
+): Promise<PrintingAwareNormalizedCardCandidate> {
   const fixture = fixtureManifest.find((entry) => entry.id === id)
   if (!fixture || fixture.kind !== 'detail') throw new Error(id)
   const html = await readFile(resolve(fixtureRoot, fixture.file), 'utf8')
   const raw: RawCardDetail = expectSuccess(
     parseCardDetailHtml(html, fixture.sourceUrl),
   )
-  return expectSuccess(normalizeCardDetail(raw))
+  return { ...expectSuccess(normalizeCardDetail(raw)), isParallel: false }
 }
 
 async function fuwamocoCandidate(): Promise<SearchIndexedCardCandidate> {
@@ -300,6 +304,7 @@ describe('stable card content hash', () => {
           card.printings.push({
             officialId: '3',
             officialUrl: 'u',
+            isParallel: false,
             products: [],
           }),
         ),
@@ -339,6 +344,12 @@ describe('stable card content hash', () => {
   it('ignores printing input order', () => {
     expect(hash(candidate())).toBe(
       hash(changed((card) => card.printings.reverse())),
+    )
+  })
+
+  it('changes when only printing isParallel changes', () => {
+    expect(hash(candidate())).not.toBe(
+      hash(changed((card) => (card.printings[0]!.isParallel = false))),
     )
   })
 
@@ -469,7 +480,7 @@ describe('FUWAMOCO full fixture pipeline', () => {
     const contentHash = computeContentHash(payload)
 
     expect(contentHash).toBe(
-      'sha256:add519a5a08fd3a2b071a81e678189420970ede3f3c63a14c9725ec00666c789',
+      'sha256:095b92573b4444626fc7a4711fb4655eae14f28c1223d21bbbd89d576f11876b',
     )
     expect(contentHash).toMatch(/^sha256:[0-9a-f]{64}$/)
     expect(computeCardContentHash(secondRun)).toBe(contentHash)

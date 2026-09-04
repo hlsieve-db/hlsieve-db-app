@@ -8,7 +8,7 @@ import { fixtureManifest } from '../fixtures/manifest'
 import { normalizeCardDetail } from '../normalize/normalizeCardDetail'
 import type {
   NormalizeResult,
-  NormalizedCardCandidate,
+  PrintingAwareNormalizedCardCandidate,
 } from '../normalize/types'
 import { parseCardDetailHtml } from '../parser/parseCardDetail'
 import type { ParseResult, RawCardDetail } from '../parser/types'
@@ -28,11 +28,12 @@ function expectSuccess<T>(
 }
 
 function candidate(
-  overrides: Partial<NormalizedCardCandidate> = {},
-): NormalizedCardCandidate {
+  overrides: Partial<PrintingAwareNormalizedCardCandidate> = {},
+): PrintingAwareNormalizedCardCandidate {
   return {
     officialId: '1',
     officialUrl: 'https://example.com/card?id=1',
+    isParallel: false,
     cardNumber: 'hTEST-001',
     name: 'Test Card',
     imageUrl: 'https://example.com/1.png',
@@ -82,8 +83,13 @@ async function rawDetail(id: string): Promise<RawCardDetail> {
   return expectSuccess(parseCardDetailHtml(html, fixture.sourceUrl))
 }
 
-async function normalizedFixture(id: string): Promise<NormalizedCardCandidate> {
-  return expectSuccess(normalizeCardDetail(await rawDetail(id)))
+async function normalizedFixture(
+  id: string,
+): Promise<PrintingAwareNormalizedCardCandidate> {
+  return {
+    ...expectSuccess(normalizeCardDetail(await rawDetail(id))),
+    isParallel: false,
+  }
 }
 
 function semanticConflicts(merged: MergedCardCandidate) {
@@ -116,6 +122,25 @@ describe('mergeCardCandidates fundamentals', () => {
       '2',
       '1',
     ])
+  })
+
+  it('keeps normal and parallel variants as separate printings without a semantic conflict', () => {
+    const merged = expectSuccess(
+      mergeCardCandidates([
+        candidate({ officialId: '1', isParallel: false }),
+        candidate({
+          officialId: '2',
+          officialUrl: 'https://example.com/card?id=2',
+          isParallel: true,
+        }),
+      ]),
+    )
+
+    expect(merged.printings).toEqual([
+      expect.objectContaining({ officialId: '2', isParallel: true }),
+      expect.objectContaining({ officialId: '1', isParallel: false }),
+    ])
+    expect(semanticConflicts(merged)).toEqual([])
   })
 
   it('fails an empty input', () => {
@@ -364,7 +389,7 @@ describe('metadata, semantic, and Q&A merge rules', () => {
       })
       const merged = expectSuccess(
         mergeCardCandidates([
-          candidate(change as Partial<NormalizedCardCandidate>),
+          candidate(change as Partial<PrintingAwareNormalizedCardCandidate>),
           canonical,
         ]),
       )
@@ -396,6 +421,20 @@ describe('metadata, semantic, and Q&A merge rules', () => {
     expect(!result.ok && result.errors[0]?.code).toBe(
       'DUPLICATE_OFFICIAL_ID_CONFLICT',
     )
+  })
+
+  it('fails when the same officialId has contradictory parallel metadata', () => {
+    const result = mergeCardCandidates([
+      candidate({ isParallel: false }),
+      candidate({ isParallel: true }),
+    ])
+
+    expect(result).toMatchObject({
+      ok: false,
+      errors: [
+        expect.objectContaining({ code: 'DUPLICATE_OFFICIAL_ID_CONFLICT' }),
+      ],
+    })
   })
 })
 

@@ -147,6 +147,7 @@ function canonicalizePrinting(printing: MergedPrinting): ContentHashPrinting {
   return {
     officialId: printing.officialId,
     officialUrl: printing.officialUrl,
+    isParallel: printing.isParallel,
     ...(printing.imageUrl !== undefined ? { imageUrl: printing.imageUrl } : {}),
     ...(printing.rarity !== undefined ? { rarity: printing.rarity } : {}),
     products: canonicalizeProducts(printing.products),

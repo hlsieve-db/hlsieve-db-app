@@ -40,6 +40,7 @@ export type ContentHashProduct = {
 export type ContentHashPrinting = {
   officialId: string
   officialUrl: string
+  isParallel: boolean
   imageUrl?: string
   rarity?: string
   products: ContentHashProduct[]

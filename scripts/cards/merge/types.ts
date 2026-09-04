@@ -10,6 +10,7 @@ import type { NormalizedQaEntry } from '../qa/types'
 export type MergedPrinting = {
   officialId: string
   officialUrl: string
+  isParallel: boolean
   imageUrl?: string
   rarity?: string
   products: NormalizedProduct[]

@@ -17,7 +17,7 @@ import type { MergeResult } from '../merge/types'
 import { normalizeCardDetail } from '../normalize/normalizeCardDetail'
 import type {
   NormalizeResult,
-  NormalizedCardCandidate,
+  PrintingAwareNormalizedCardCandidate,
 } from '../normalize/types'
 import { parseCardDetailHtml } from '../parser/parseCardDetail'
 import type { ParseResult, RawCardDetail } from '../parser/types'
@@ -85,6 +85,7 @@ function candidate(
       {
         officialId: '1',
         officialUrl: 'https://example.com/card/1',
+        isParallel: false,
         imageUrl: 'https://example.com/printing.png',
         products: [{ name: '商品A' }],
       },
@@ -148,14 +149,16 @@ function snapshotDiff(
   )
 }
 
-async function normalizedFixture(id: string): Promise<NormalizedCardCandidate> {
+async function normalizedFixture(
+  id: string,
+): Promise<PrintingAwareNormalizedCardCandidate> {
   const fixture = fixtureManifest.find((entry) => entry.id === id)
   if (!fixture || fixture.kind !== 'detail') throw new Error(id)
   const html = await readFile(resolve(fixtureRoot, fixture.file), 'utf8')
   const raw: RawCardDetail = expectSuccess(
     parseCardDetailHtml(html, fixture.sourceUrl),
   )
-  return expectSuccess(normalizeCardDetail(raw))
+  return { ...expectSuccess(normalizeCardDetail(raw)), isParallel: false }
 }
 
 async function fuwamocoCandidate(): Promise<SearchIndexedCardCandidate> {
@@ -204,6 +207,12 @@ describe('toPublicCard', () => {
 
   it('does not infer nameReading', () => {
     expect(publicCard()).not.toHaveProperty('nameReading')
+  })
+
+  it('keeps the public Card shape free of printing parallel metadata', () => {
+    const result = publicCard()
+    expect(result).not.toHaveProperty('isParallel')
+    expect(result).not.toHaveProperty('printings')
   })
 
   it.each([
@@ -633,7 +642,7 @@ describe('FUWAMOCO fixture generation pipeline', () => {
     )
 
     expect(entry.afterHash).toBe(
-      'sha256:add519a5a08fd3a2b071a81e678189420970ede3f3c63a14c9725ec00666c789',
+      'sha256:095b92573b4444626fc7a4711fb4655eae14f28c1223d21bbbd89d576f11876b',
     )
     expect(result).toMatchObject({
       cardNumber: 'hBP03-050',
