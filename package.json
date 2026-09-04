@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "cards:discover": "tsx scripts/cards/discovery/runDiscovery.ts",
+    "cards:fetch-details": "tsx scripts/cards/detailFetch/runDetailFetch.ts",
     "lint": "eslint .",
     "test": "vitest",
     "test:run": "vitest run",
