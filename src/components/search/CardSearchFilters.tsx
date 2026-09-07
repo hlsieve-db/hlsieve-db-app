@@ -1,5 +1,6 @@
 import {
   CARD_COLOR_LABELS,
+  CARD_TYPE_LABELS,
   CRITICAL_COLOR_LABELS,
   EFFECT_TAG_LABELS,
 } from '../../domain/cards/constants'
@@ -20,13 +21,6 @@ type CardSearchFiltersProps = {
   state: SearchUrlState
   onChange: (patch: Partial<SearchUrlState>) => void
 }
-
-const CARD_TYPE_LABELS = {
-  oshi: '推しホロメン',
-  holomem: 'ホロメン',
-  support: 'サポート',
-  cheer: 'エール',
-} satisfies Record<Card['cardType'], string>
 
 function toggleValue<T>(values: readonly T[], value: T): T[] {
   return values.includes(value)

@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+
 import type { Card } from '../../domain/cards/types'
 import type { CardPaginationResult } from '../../domain/search/paginateCards'
 
@@ -25,7 +27,11 @@ function CardResult({ card }: { card: Card }) {
       </div>
       <div className="card-result__body">
         <p className="card-result__number">{card.cardNumber}</p>
-        <h2>{card.name}</h2>
+        <h2>
+          <Link to={`/cards/${encodeURIComponent(card.cardNumber)}`}>
+            {card.name}
+          </Link>
+        </h2>
       </div>
     </article>
   )
