@@ -148,7 +148,7 @@ export function CardSearchPage({
   return (
     <main className="search-page">
       <header className="search-page__header">
-        <p className="search-page__eyebrow">hOCG Card Tool</p>
+        <p className="search-page__eyebrow">HLSieve DB</p>
         <h1>カード検索</h1>
         <p>カード名、能力、Q&amp;Aから公式カードを探せます。</p>
       </header>

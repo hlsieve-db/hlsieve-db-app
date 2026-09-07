@@ -1,4 +1,4 @@
-# hOCG Card Tool
+# HLSieve DB
 
 hOCGのカード検索・デッキ作成を行うWebアプリケーションです。現在はReactアプリケーションの実装基盤のみを提供しています。
 
