@@ -6,10 +6,11 @@ import {
   within,
 } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { Card, CardsDataFile } from '../domain/cards/types'
 import type { Deck } from '../domain/decks/types'
+import { decodeDeckSharePayload } from '../domain/share/deckShareCodec'
 import type { DeckRepository } from '../repositories/deckRepository'
 import { DeckEditPage } from './DeckEditPage'
 
@@ -107,6 +108,15 @@ function renderPage({
   )
   return { deckRepository, loadCards }
 }
+
+const originalClipboard = navigator.clipboard
+
+afterEach(() => {
+  Object.defineProperty(navigator, 'clipboard', {
+    configurable: true,
+    value: originalClipboard,
+  })
+})
 
 describe('DeckEditPage loading', () => {
   it('shows a deck loading state', () => {
@@ -393,5 +403,90 @@ describe('DeckEditPage editor operations', () => {
     fireEvent.click(within(alert).getByRole('button', { name: '再試行' }))
     expect(await screen.findByLabelText('カード検索')).toBeVisible()
     expect(loadCards).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe('DeckEditPage share link', () => {
+  it('generates a current-origin UTF-8 share URL from the current logical deck', async () => {
+    renderPage({
+      deckRepository: repository({
+        getDeck: async () =>
+          deck({
+            name: '日本語共有デッキ',
+            entries: [{ cardNumber: 'CARD-001', quantity: 2 }],
+          }),
+      }),
+    })
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: '共有リンクを作成' }),
+    )
+    const value = (screen.getByLabelText('共有URL') as HTMLInputElement).value
+    const url = new URL(value)
+    expect(url.origin).toBe(window.location.origin)
+    expect(url.pathname).toBe('/deck/share')
+    expect([...url.searchParams.keys()]).toEqual(['d'])
+    expect(decodeDeckSharePayload(url.searchParams.get('d') ?? '')).toEqual({
+      ok: true,
+      value: {
+        v: 1,
+        name: '日本語共有デッキ',
+        entries: [{ cardNumber: 'CARD-001', quantity: 2 }],
+      },
+    })
+    expect(
+      screen.getByText('共有URLにはデッキ名とカード構成が含まれます。'),
+    ).toBeVisible()
+  })
+
+  it('regenerates the visible link when the deck is edited', async () => {
+    renderPage()
+    fireEvent.click(
+      await screen.findByRole('button', { name: '共有リンクを作成' }),
+    )
+    const input = screen.getByLabelText('共有URL') as HTMLInputElement
+    const before = input.value
+
+    const search = screen.getByLabelText('カード検索')
+    fireEvent.change(search, { target: { value: '赤い' } })
+    fireEvent.click(
+      screen.getByRole('button', { name: '赤いカードをデッキに追加' }),
+    )
+
+    await waitFor(() => expect(input.value).not.toBe(before))
+    const encoded = new URL(input.value).searchParams.get('d') ?? ''
+    expect(decodeDeckSharePayload(encoded)).toEqual({
+      ok: true,
+      value: {
+        v: 1,
+        name: 'テストデッキ',
+        entries: [{ cardNumber: 'CARD-001', quantity: 1 }],
+      },
+    })
+  })
+
+  it('announces clipboard success and keeps the URL after clipboard failure', async () => {
+    const writeText = vi
+      .fn<(value: string) => Promise<void>>()
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error('permission denied'))
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    })
+    renderPage()
+    fireEvent.click(
+      await screen.findByRole('button', { name: '共有リンクを作成' }),
+    )
+    const input = screen.getByLabelText('共有URL') as HTMLInputElement
+    const link = input.value
+
+    fireEvent.click(screen.getByRole('button', { name: 'コピー' }))
+    expect(await screen.findByText('コピーしました')).toBeVisible()
+    expect(writeText).toHaveBeenLastCalledWith(link)
+
+    fireEvent.click(screen.getByRole('button', { name: 'コピー' }))
+    expect(await screen.findByText(/コピーできませんでした/)).toBeVisible()
+    expect(input.value).toBe(link)
   })
 })

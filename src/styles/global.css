@@ -938,6 +938,125 @@ summary:focus-visible {
   color: #9a2d2d;
 }
 
+.deck-share {
+  display: grid;
+  gap: 10px;
+  max-width: 800px;
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid #dce7ee;
+}
+
+.deck-share h2,
+.deck-share p {
+  margin: 0;
+}
+
+.deck-share > .button {
+  justify-self: start;
+}
+
+.deck-share__link {
+  display: grid;
+  gap: 7px;
+}
+
+.deck-share__link label {
+  font-weight: 700;
+}
+
+.deck-share__link > div {
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+}
+
+.deck-share__link input {
+  min-width: 0;
+  min-height: 46px;
+  flex: 1;
+  padding: 0 12px;
+  border: 1px solid #9bb2c3;
+  border-radius: 10px;
+  font: inherit;
+}
+
+.deck-share__link > p,
+.deck-share__copy-status {
+  color: #52657a;
+  font-size: 0.84rem;
+}
+
+.deck-share__copy-status {
+  min-height: 1.4em;
+}
+
+.shared-deck-heading {
+  margin-bottom: 20px;
+}
+
+.shared-deck-heading h1 {
+  margin: 4px 0 8px;
+  font-size: clamp(2rem, 5vw, 3rem);
+  overflow-wrap: anywhere;
+}
+
+.shared-deck-heading p {
+  margin: 0;
+}
+
+.shared-deck-heading__eyebrow {
+  color: #17658f;
+  font-weight: 800;
+}
+
+.shared-deck-entries {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.shared-deck-entries li {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #dce7ee;
+  border-radius: 12px;
+  background: #fbfdff;
+}
+
+.shared-deck-entries h3,
+.shared-deck-entries p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.shared-deck-entries p {
+  color: #52657a;
+  font-size: 0.84rem;
+}
+
+.shared-deck-import {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  margin-top: 20px;
+  padding: 20px;
+  border: 1px solid #bfd2de;
+  border-radius: 14px;
+  background: #f6fafc;
+}
+
+.shared-deck-import p {
+  margin: 0;
+  color: #9a2d2d;
+}
+
 .deck-editor__columns {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(340px, 0.8fr);
@@ -1123,12 +1242,16 @@ summary:focus-visible {
   }
 
   .deck-page__actions .button,
-  .deck-rename .button {
+  .deck-rename .button,
+  .deck-share > .button,
+  .deck-share__link .button,
+  .shared-deck-import .button {
     width: 100%;
   }
 
   .deck-list__item,
-  .deck-rename > div {
+  .deck-rename > div,
+  .deck-share__link > div {
     align-items: stretch;
     flex-direction: column;
   }

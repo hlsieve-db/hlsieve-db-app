@@ -2,8 +2,11 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
+import { DeckLegalitySummary } from '../components/decks/DeckLegalitySummary'
+import { DECK_ZONE_LABELS } from '../components/decks/constants'
 import { CARD_TYPE_LABELS } from '../domain/cards/constants'
 import type { Card, CardsDataFile } from '../domain/cards/types'
+import { DECK_NAME_MAX_LENGTH } from '../domain/decks/constants'
 import {
   addCardToDeck,
   decrementCardQuantity,
@@ -13,18 +16,9 @@ import {
   renameDeck,
 } from '../domain/decks/deck'
 import { getDeckZone, validateDeckLegality } from '../domain/decks/legality'
-import {
-  DECK_RULES_EFFECTIVE_FROM,
-  DECK_ZONE_COUNTS,
-  TOTAL_DECK_COUNT,
-} from '../domain/decks/restrictions'
-import type {
-  Deck,
-  DeckEntry,
-  DeckLegalityIssue,
-  DeckLegalityResult,
-} from '../domain/decks/types'
+import type { Deck, DeckEntry } from '../domain/decks/types'
 import { searchCards } from '../domain/search/searchCards'
+import { buildDeckShareUrl } from '../domain/share/deckShareCodec'
 import {
   deckRepository,
   type DeckRepository,
@@ -43,6 +37,7 @@ type CardLoadState =
   | { status: 'error' }
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
+type CopyResult = { status: 'copied' | 'error'; url: string }
 
 type DeckEditPageProps = {
   repository?: DeckRepository
@@ -58,120 +53,6 @@ function DeckCardImage({ card }: { card?: Card }) {
         <span>画像なし</span>
       )}
     </div>
-  )
-}
-
-const ZONE_LABELS = {
-  oshi: '推しホロメン',
-  main: 'メインデッキ',
-  cheer: 'エールデッキ',
-  unknown: '未確認カード',
-} as const
-
-function formatRuleDate(value: string): string {
-  const [year, month, day] = value.split('-').map(Number)
-  return `${year}年${month}月${day}日`
-}
-
-function formatCountIssue(
-  label: string,
-  actual: number,
-  expected: number,
-): string {
-  return actual < expected
-    ? `${label}をあと${expected - actual}枚追加してください`
-    : `${label}は${expected}枚にしてください（現在${actual}枚）`
-}
-
-function formatLegalityIssue(
-  issue: DeckLegalityIssue,
-  cardsByNumber: ReadonlyMap<string, Card>,
-): string {
-  switch (issue.code) {
-    case 'oshi_count':
-      return formatCountIssue(ZONE_LABELS.oshi, issue.actual, issue.expected)
-    case 'main_count':
-      return formatCountIssue(ZONE_LABELS.main, issue.actual, issue.expected)
-    case 'cheer_count':
-      return formatCountIssue(ZONE_LABELS.cheer, issue.actual, issue.expected)
-    case 'restricted_card': {
-      const card = cardsByNumber.get(issue.cardNumber)
-      return `${issue.cardNumber}${card ? ` ${card.name}` : ''}は制限カードのため${issue.max}枚までです（現在${issue.actual}枚）`
-    }
-    case 'copy_limit': {
-      const card = cardsByNumber.get(issue.cardNumber)
-      return `${issue.cardNumber}${card ? ` ${card.name}` : ''}は${issue.max}枚までです（現在${issue.actual}枚）`
-    }
-    case 'unknown_card':
-      return `${issue.cardNumber}は現在のカードデータに存在しません`
-    case 'unsupported_card_type':
-      return `${issue.cardNumber}のカード種別にはまだ対応していません`
-  }
-}
-
-function DeckLegalitySummary({
-  result,
-  cardsByNumber,
-}: {
-  result: DeckLegalityResult
-  cardsByNumber: ReadonlyMap<string, Card>
-}) {
-  const statusLabel = {
-    incomplete: '作成中',
-    invalid: 'ルール違反あり',
-    legal: '使用可能',
-  }[result.status]
-
-  return (
-    <section
-      className={`deck-legality deck-legality--${result.status}`}
-      aria-labelledby="deck-legality-heading"
-    >
-      <div className="deck-legality__heading">
-        <h2 id="deck-legality-heading">デッキ構築状態</h2>
-        <strong role="status">{statusLabel}</strong>
-      </div>
-      <dl className="deck-legality__counts">
-        <div>
-          <dt>推し</dt>
-          <dd>
-            {result.oshiCount} / {DECK_ZONE_COUNTS.oshi}
-          </dd>
-        </div>
-        <div>
-          <dt>メイン</dt>
-          <dd>
-            {result.mainCount} / {DECK_ZONE_COUNTS.main}
-          </dd>
-        </div>
-        <div>
-          <dt>エール</dt>
-          <dd>
-            {result.cheerCount} / {DECK_ZONE_COUNTS.cheer}
-          </dd>
-        </div>
-        <div>
-          <dt>合計</dt>
-          <dd>
-            {result.totalCount} / {TOTAL_DECK_COUNT}
-          </dd>
-        </div>
-      </dl>
-      {result.issues.length > 0 && (
-        <ul className="deck-legality__issues">
-          {result.issues.map((issue, index) => (
-            <li
-              key={`${issue.code}-${'cardNumber' in issue ? issue.cardNumber : ''}-${index}`}
-            >
-              {formatLegalityIssue(issue, cardsByNumber)}
-            </li>
-          ))}
-        </ul>
-      )}
-      <p className="deck-legality__effective-date">
-        {formatRuleDate(DECK_RULES_EFFECTIVE_FROM)}施行の制限ルールを反映
-      </p>
-    </section>
   )
 }
 
@@ -199,6 +80,8 @@ function DeckEditor({
   })
   const [cardsLoadAttempt, setCardsLoadAttempt] = useState(0)
   const [query, setQuery] = useState('')
+  const [isShareLinkVisible, setIsShareLinkVisible] = useState(false)
+  const [copyResult, setCopyResult] = useState<CopyResult>()
   const deckRef = useRef(initialDeck)
   const saveQueue = useRef<Promise<void>>(Promise.resolve())
   const saveVersion = useRef(0)
@@ -248,6 +131,18 @@ function DeckEditor({
     [cardsState, deck],
   )
 
+  const shareLink = useMemo(() => {
+    if (!isShareLinkVisible) return undefined
+    try {
+      return {
+        ok: true as const,
+        value: buildDeckShareUrl(deck, window.location.origin),
+      }
+    } catch {
+      return { ok: false as const }
+    }
+  }, [deck, isShareLinkVisible])
+
   const entryGroups = useMemo<DeckEntryGroup[]>(() => {
     if (cardsState.status !== 'loaded') {
       return deck.entries.length
@@ -276,7 +171,7 @@ function DeckEditor({
       .filter((key) => entriesByZone[key].length > 0)
       .map((key) => ({
         key,
-        label: ZONE_LABELS[key],
+        label: DECK_ZONE_LABELS[key],
         entries: entriesByZone[key],
       }))
   }, [cardsByNumber, cardsState.status, deck.entries])
@@ -324,6 +219,16 @@ function DeckEditor({
     setCardsLoadAttempt((attempt) => attempt + 1)
   }
 
+  const copyShareLink = async () => {
+    if (shareLink?.ok !== true) return
+    try {
+      await navigator.clipboard.writeText(shareLink.value)
+      setCopyResult({ status: 'copied', url: shareLink.value })
+    } catch {
+      setCopyResult({ status: 'error', url: shareLink.value })
+    }
+  }
+
   return (
     <>
       <section
@@ -348,7 +253,7 @@ function DeckEditor({
             <input
               id="deck-name"
               value={nameDraft}
-              maxLength={100}
+              maxLength={DECK_NAME_MAX_LENGTH}
               onChange={(event) => setNameDraft(event.currentTarget.value)}
             />
             <button type="submit" className="button">
@@ -367,6 +272,55 @@ function DeckEditor({
           {saveState === 'error' &&
             'デッキを保存できませんでした。もう一度操作すると再試行します。'}
         </p>
+        <section className="deck-share" aria-labelledby="deck-share-heading">
+          <h2 id="deck-share-heading">デッキを共有</h2>
+          <button
+            type="button"
+            className="button button--secondary"
+            onClick={() => setIsShareLinkVisible(true)}
+          >
+            共有リンクを作成
+          </button>
+          {shareLink?.ok === true && (
+            <div className="deck-share__link">
+              <label htmlFor="deck-share-url">共有URL</label>
+              <div>
+                <input
+                  id="deck-share-url"
+                  type="text"
+                  readOnly
+                  value={shareLink.value}
+                  onFocus={(event) => event.currentTarget.select()}
+                />
+                <button
+                  type="button"
+                  className="button"
+                  onClick={() => void copyShareLink()}
+                >
+                  コピー
+                </button>
+              </div>
+              <p>共有URLにはデッキ名とカード構成が含まれます。</p>
+              <p
+                className="deck-share__copy-status"
+                role="status"
+                aria-live="polite"
+              >
+                {copyResult?.url === shareLink.value &&
+                  copyResult.status === 'copied' &&
+                  'コピーしました'}
+                {copyResult?.url === shareLink.value &&
+                  copyResult.status === 'error' &&
+                  'コピーできませんでした。表示中のURLを手動でコピーしてください。'}
+              </p>
+            </div>
+          )}
+          {shareLink?.ok === false && (
+            <p role="alert">
+              現在のデッキから共有リンクを作成できませんでした。
+            </p>
+          )}
+        </section>
       </section>
 
       <div className="deck-editor__columns">
