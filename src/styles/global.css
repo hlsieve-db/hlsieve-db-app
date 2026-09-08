@@ -373,6 +373,138 @@ summary:focus-visible {
   object-fit: contain;
 }
 
+.detail-card__visual {
+  display: grid;
+  min-width: 0;
+  gap: 18px;
+}
+
+.printing-panel {
+  min-width: 0;
+  padding: 18px;
+  overflow-wrap: anywhere;
+  border: 1px solid #dce7ee;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 12px 36px rgb(39 69 92 / 8%);
+}
+
+.printing-panel h2,
+.printing-panel p {
+  margin-top: 0;
+}
+
+.printing-panel h2 {
+  margin-bottom: 14px;
+  font-size: 1.15rem;
+}
+
+.printing-panel__error {
+  color: #9a2d2d;
+}
+
+.printing-panel__error p {
+  margin-bottom: 12px;
+}
+
+.printing-selector {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  max-height: 430px;
+  margin-bottom: 18px;
+  padding: 2px;
+  overflow-y: auto;
+}
+
+.printing-option {
+  display: grid;
+  min-width: 0;
+  min-height: 44px;
+  gap: 4px;
+  padding: 8px;
+  border: 2px solid #d3e0e8;
+  border-radius: 12px;
+  color: #314759;
+  background: #f8fbfd;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: left;
+}
+
+.printing-option:hover {
+  border-color: #7eb8d8;
+}
+
+.printing-option[aria-pressed='true'] {
+  border-color: #087dbd;
+  background: #e9f7ff;
+  box-shadow: 0 0 0 2px rgb(8 125 189 / 14%);
+}
+
+.printing-option:focus-visible {
+  outline: 3px solid #f0a03a;
+  outline-offset: 2px;
+}
+
+.printing-option__image {
+  display: grid;
+  width: 100%;
+  aspect-ratio: 0.716;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 7px;
+  color: #6b7d8c;
+  background: #e8f0f5;
+  font-size: 0.65rem;
+  text-align: center;
+}
+
+.printing-option__image img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.printing-metadata {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  margin: 0;
+  border-top: 1px solid #e5edf2;
+}
+
+.printing-metadata > div {
+  min-width: 0;
+  padding: 10px 4px;
+  border-bottom: 1px solid #e5edf2;
+}
+
+.printing-metadata dt {
+  color: #52657a;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.printing-metadata dd {
+  margin: 4px 0 0;
+  font-weight: 700;
+}
+
+.printing-metadata__products {
+  grid-column: 1 / -1;
+}
+
+.printing-metadata ul {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
 .detail-card__content {
   min-width: 0;
   overflow-wrap: anywhere;
@@ -593,6 +725,11 @@ summary:focus-visible {
   .detail-card__image-frame {
     width: min(100%, 360px);
     margin: 0 auto;
+  }
+
+  .printing-selector {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    max-height: 380px;
   }
 
   .detail-facts,

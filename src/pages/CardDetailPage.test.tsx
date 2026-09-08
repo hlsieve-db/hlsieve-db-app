@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import {
   MemoryRouter,
   Route,
@@ -8,7 +14,11 @@ import {
 } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { Card, CardsDataFile } from '../domain/cards/types'
+import type {
+  Card,
+  CardPrintingsDataFile,
+  CardsDataFile,
+} from '../domain/cards/types'
 import { CardDetailPage } from './CardDetailPage'
 import { CardSearchPage } from './CardSearchPage'
 
@@ -73,25 +83,56 @@ function dataFile(cards: Card[] = [card()]): CardsDataFile {
   }
 }
 
+function printingsData(cardNumber = 'TEST-001'): CardPrintingsDataFile {
+  return {
+    format: 'hlsieve-card-printings',
+    formatVersion: 1,
+    cardsDataVersion: `sha256:${'0'.repeat(64)}`,
+    dataVersion: `sha256:${'1'.repeat(64)}`,
+    cards: {
+      [cardNumber]: {
+        defaultPrintingOfficialId: '1',
+        printings: [
+          {
+            officialId: '1',
+            officialUrl: `https://example.com/card/${cardNumber}`,
+            isParallel: false,
+            imageUrl: 'https://example.com/test.png',
+            rarity: 'C',
+            products: ['テスト商品'],
+          },
+        ],
+      },
+    },
+  }
+}
+
 function renderDetail({
   path = '/cards/TEST-001',
   loadCards = vi.fn(async () => dataFile()),
+  loadPrintings = vi.fn(async () => printingsData()),
 }: {
   path?: string
   loadCards?: () => Promise<CardsDataFile>
+  loadPrintings?: () => Promise<CardPrintingsDataFile>
 } = {}) {
   render(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route
           path="/cards/:cardNumber"
-          element={<CardDetailPage loadCards={loadCards} />}
+          element={
+            <CardDetailPage
+              loadCards={loadCards}
+              loadPrintings={loadPrintings}
+            />
+          }
         />
         <Route path="/cards" element={<p>検索画面</p>} />
       </Routes>
     </MemoryRouter>,
   )
-  return { loadCards }
+  return { loadCards, loadPrintings }
 }
 
 function HistoryControls() {
@@ -210,11 +251,14 @@ describe('CardDetailPage public card information', () => {
       'https://example.com/card/TEST-001',
     )
     expect(officialLink).toHaveAttribute('target', '_blank')
-    expect(document.title).toBe('テストホロメン | HLSieve DB')
+    await waitFor(() =>
+      expect(document.title).toBe('テストホロメン | HLSieve DB'),
+    )
   })
 
   it('omits absent optional fields, Q&A, and official URL', async () => {
     renderDetail({
+      loadPrintings: () => new Promise(() => undefined),
       loadCards: async () =>
         dataFile([
           card({
@@ -310,7 +354,12 @@ describe('search to detail navigation', () => {
           />
           <Route
             path="/cards/:cardNumber"
-            element={<CardDetailPage loadCards={loadCards} />}
+            element={
+              <CardDetailPage
+                loadCards={loadCards}
+                loadPrintings={async () => printingsData('CARD-025')}
+              />
+            }
           />
         </Routes>
         <HistoryControls />

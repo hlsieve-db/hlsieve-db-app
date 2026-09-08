@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 
 import {
   ABILITY_TYPE_LABELS,
@@ -12,7 +12,16 @@ import {
   SUPPORT_SEARCH_CATEGORY_LABELS,
   SUPPORT_TYPE_LABELS,
 } from '../domain/cards/constants'
-import type { Card, CardsDataFile, RequiredCheer } from '../domain/cards/types'
+import { assertCardPrintingsCompatibility } from '../domain/cards/cardPrintingsValidation'
+import type {
+  Card,
+  CardPrintingGroupPublic,
+  CardPrintingPublic,
+  CardPrintingsDataFile,
+  CardsDataFile,
+  RequiredCheer,
+} from '../domain/cards/types'
+import { loadCardPrintingsData } from '../repositories/loadCardPrintingsData'
 import { loadCardsData } from '../repositories/loadCardsData'
 
 type CardDataState =
@@ -22,7 +31,15 @@ type CardDataState =
 
 type CardDetailPageProps = {
   loadCards?: () => Promise<CardsDataFile>
+  loadPrintings?: () => Promise<CardPrintingsDataFile>
 }
+
+type PrintingDataState =
+  | { status: 'loading' }
+  | { status: 'loaded'; group: CardPrintingGroupPublic }
+  | { status: 'load-error' }
+  | { status: 'compatibility-error' }
+  | { status: 'missing-group' }
 
 function bloomLabel(card: Card): string | undefined {
   if (!card.bloomLevel) return undefined
@@ -61,7 +78,13 @@ function DetailHeader() {
   )
 }
 
-function CardInformation({ card }: { card: Card }) {
+function CardInformation({
+  card,
+  officialUrl,
+}: {
+  card: Card
+  officialUrl?: string
+}) {
   const bloom = bloomLabel(card)
   const isSupport = card.cardType === 'support'
   return (
@@ -252,9 +275,9 @@ function CardInformation({ card }: { card: Card }) {
         </section>
       )}
 
-      {card.officialUrl && (
+      {officialUrl && (
         <p className="detail-official-link">
-          <a href={card.officialUrl} target="_blank" rel="noopener noreferrer">
+          <a href={officialUrl} target="_blank" rel="noopener noreferrer">
             公式カードページ
           </a>
         </p>
@@ -263,8 +286,263 @@ function CardInformation({ card }: { card: Card }) {
   )
 }
 
+function printingKind(printing: CardPrintingPublic): string {
+  return printing.isParallel ? 'パラレル' : '通常'
+}
+
+function printingAccessibleName(
+  cardName: string,
+  printing: CardPrintingPublic,
+): string {
+  return [
+    cardName,
+    printingKind(printing),
+    printing.rarity,
+    `版 ${printing.officialId}`,
+  ]
+    .filter(Boolean)
+    .join(' ')
+}
+
+function PrintingMetadata({ printing }: { printing: CardPrintingPublic }) {
+  return (
+    <dl className="printing-metadata">
+      <div>
+        <dt>版種別</dt>
+        <dd>{printingKind(printing)}</dd>
+      </div>
+      {printing.rarity && (
+        <div>
+          <dt>レアリティ</dt>
+          <dd>{printing.rarity}</dd>
+        </div>
+      )}
+      {printing.illustrator && (
+        <div>
+          <dt>イラストレーター</dt>
+          <dd>{printing.illustrator}</dd>
+        </div>
+      )}
+      {printing.products.length > 0 && (
+        <div className="printing-metadata__products">
+          <dt>収録・関連商品</dt>
+          <dd>
+            <ul>
+              {printing.products.map((product) => (
+                <li key={product}>{product}</li>
+              ))}
+            </ul>
+          </dd>
+        </div>
+      )}
+      <div>
+        <dt>版番号</dt>
+        <dd>版 {printing.officialId}</dd>
+      </div>
+    </dl>
+  )
+}
+
+function PrintingPanel({
+  card,
+  state,
+  selectedPrinting,
+  onSelect,
+  onRetry,
+}: {
+  card: Card
+  state: PrintingDataState
+  selectedPrinting?: CardPrintingPublic
+  onSelect: (officialId: string) => void
+  onRetry: () => void
+}) {
+  return (
+    <section className="printing-panel" aria-labelledby="printing-heading">
+      <h2 id="printing-heading">版情報</h2>
+      {state.status === 'loading' && (
+        <p role="status" aria-live="polite">
+          版情報を読み込んでいます…
+        </p>
+      )}
+      {state.status === 'load-error' && (
+        <div className="printing-panel__error" role="alert">
+          <p>版情報を読み込めませんでした。</p>
+          <button type="button" className="button" onClick={onRetry}>
+            版情報を再試行
+          </button>
+        </div>
+      )}
+      {state.status === 'compatibility-error' && (
+        <p className="printing-panel__error" role="alert">
+          カード情報と版情報の互換性を確認できませんでした。
+        </p>
+      )}
+      {state.status === 'missing-group' && (
+        <p className="printing-panel__error" role="alert">
+          このカードの版情報が見つかりませんでした。
+        </p>
+      )}
+      {state.status === 'loaded' && selectedPrinting && (
+        <>
+          {state.group.printings.length > 1 && (
+            <div
+              className="printing-selector"
+              role="group"
+              aria-label="カードの版を選択"
+            >
+              {state.group.printings.map((printing) => (
+                <button
+                  type="button"
+                  className="printing-option"
+                  aria-label={printingAccessibleName(card.name, printing)}
+                  aria-pressed={
+                    printing.officialId === selectedPrinting.officialId
+                  }
+                  key={printing.officialId}
+                  onClick={() => onSelect(printing.officialId)}
+                >
+                  <span className="printing-option__image">
+                    {printing.imageUrl ? (
+                      <img src={printing.imageUrl} alt="" />
+                    ) : (
+                      <span>画像なし</span>
+                    )}
+                  </span>
+                  <span>{printingKind(printing)}</span>
+                  {printing.rarity && <span>{printing.rarity}</span>}
+                  <span>版 {printing.officialId}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          <PrintingMetadata printing={selectedPrinting} />
+        </>
+      )}
+    </section>
+  )
+}
+
+function LoadedCardDetail({
+  card,
+  cardsDataVersion,
+  loadPrintings,
+}: {
+  card: Card
+  cardsDataVersion: string
+  loadPrintings: () => Promise<CardPrintingsDataFile>
+}) {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [printingData, setPrintingData] = useState<PrintingDataState>({
+    status: 'loading',
+  })
+  const [loadAttempt, setLoadAttempt] = useState(0)
+
+  useEffect(() => {
+    let active = true
+    void loadPrintings().then(
+      (data) => {
+        if (!active) return
+        try {
+          assertCardPrintingsCompatibility(cardsDataVersion, data)
+        } catch {
+          setPrintingData({ status: 'compatibility-error' })
+          return
+        }
+        const group = data.cards[card.cardNumber]
+        setPrintingData(
+          group ? { status: 'loaded', group } : { status: 'missing-group' },
+        )
+      },
+      () => {
+        if (active) setPrintingData({ status: 'load-error' })
+      },
+    )
+    return () => {
+      active = false
+    }
+  }, [card.cardNumber, cardsDataVersion, loadAttempt, loadPrintings])
+
+  const requestedPrintingId = searchParams.get('printing')
+  const selectedPrinting = useMemo(() => {
+    if (printingData.status !== 'loaded') return undefined
+    const requested = requestedPrintingId
+      ? printingData.group.printings.find(
+          (printing) => printing.officialId === requestedPrintingId,
+        )
+      : undefined
+    return (
+      requested ??
+      printingData.group.printings.find(
+        (printing) =>
+          printing.officialId === printingData.group.defaultPrintingOfficialId,
+      )
+    )
+  }, [printingData, requestedPrintingId])
+
+  useEffect(() => {
+    if (printingData.status !== 'loaded' || requestedPrintingId === null) return
+    const isNumeric = /^\d+$/.test(requestedPrintingId)
+    const isInGroup = printingData.group.printings.some(
+      (printing) => printing.officialId === requestedPrintingId,
+    )
+    const isDefault =
+      requestedPrintingId === printingData.group.defaultPrintingOfficialId
+    if (isNumeric && isInGroup && !isDefault) return
+
+    const canonicalParams = new URLSearchParams(searchParams)
+    canonicalParams.delete('printing')
+    setSearchParams(canonicalParams, { replace: true })
+  }, [printingData, requestedPrintingId, searchParams, setSearchParams])
+
+  const selectPrinting = (officialId: string) => {
+    if (printingData.status !== 'loaded') return
+    const nextParams = new URLSearchParams(searchParams)
+    if (officialId === printingData.group.defaultPrintingOfficialId) {
+      nextParams.delete('printing')
+    } else {
+      nextParams.set('printing', officialId)
+    }
+    setSearchParams(nextParams)
+  }
+
+  const retryPrintings = () => {
+    setPrintingData({ status: 'loading' })
+    setLoadAttempt((attempt) => attempt + 1)
+  }
+
+  const imageUrl = selectedPrinting ? selectedPrinting.imageUrl : card.imageUrl
+  const officialUrl = selectedPrinting
+    ? selectedPrinting.officialUrl
+    : card.officialUrl
+
+  return (
+    <article className="detail-card">
+      <div className="detail-card__visual">
+        <div className="detail-card__image-frame">
+          {imageUrl ? (
+            <img src={imageUrl} alt={`${card.name}のカード画像`} />
+          ) : (
+            <span>画像なし</span>
+          )}
+        </div>
+        <PrintingPanel
+          card={card}
+          state={printingData}
+          selectedPrinting={selectedPrinting}
+          onSelect={selectPrinting}
+          onRetry={retryPrintings}
+        />
+      </div>
+      <div className="detail-card__content">
+        <CardInformation card={card} officialUrl={officialUrl} />
+      </div>
+    </article>
+  )
+}
+
 export function CardDetailPage({
   loadCards = loadCardsData,
+  loadPrintings = loadCardPrintingsData,
 }: CardDetailPageProps) {
   const { cardNumber } = useParams<'cardNumber'>()
   const [cardData, setCardData] = useState<CardDataState>({
@@ -354,18 +632,12 @@ export function CardDetailPage({
       )}
 
       {cardData.status === 'loaded' && card && (
-        <article className="detail-card">
-          <div className="detail-card__image-frame">
-            {card.imageUrl ? (
-              <img src={card.imageUrl} alt={`${card.name}のカード画像`} />
-            ) : (
-              <span>画像なし</span>
-            )}
-          </div>
-          <div className="detail-card__content">
-            <CardInformation card={card} />
-          </div>
-        </article>
+        <LoadedCardDetail
+          key={card.cardNumber}
+          card={card}
+          cardsDataVersion={cardData.data.dataVersion}
+          loadPrintings={loadPrintings}
+        />
       )}
     </main>
   )
