@@ -4,12 +4,17 @@ export type DeckCard = {
   order: number
 }
 
+export type DeckId = string
+
+export type DeckEntry = {
+  cardNumber: string
+  quantity: number
+}
+
 export type Deck = {
-  id: string
+  id: DeckId
   name: string
-  oshi: DeckCard[]
-  main: DeckCard[]
-  cheer: DeckCard[]
+  entries: DeckEntry[]
   createdAt: string
   updatedAt: string
 }

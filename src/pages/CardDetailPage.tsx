@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 
+import { AppNavigation } from '../components/AppNavigation'
 import {
   ABILITY_TYPE_LABELS,
   BLOOM_LEVEL_LABELS,
@@ -68,9 +69,7 @@ function CheerList({ cheers }: { cheers: RequiredCheer[] }) {
 function DetailHeader() {
   return (
     <header className="detail-page__header">
-      <Link className="site-brand" to="/cards">
-        HLSieve DB
-      </Link>
+      <AppNavigation />
       <Link className="back-link" to="/cards">
         カード検索へ戻る
       </Link>
