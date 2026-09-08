@@ -4,6 +4,7 @@ import { diffCardCollections } from '../diff/diffCardCollections'
 import { enrichPrintingMetadata } from '../discovery/enrichPrintingMetadata'
 import type { DiscoveredCard } from '../discovery/types'
 import { buildCardsDataFile } from '../generate/buildCardsDataFile'
+import { buildCardPrintingsDataFile } from '../generate/buildCardPrintingsDataFile'
 import { buildGenerationReport } from '../generate/buildGenerationReport'
 import { buildRestrictionsDataFile } from '../generate/buildRestrictionsDataFile'
 import { selectCardsForPublication } from '../generate/selectCardsForPublication'
@@ -798,15 +799,40 @@ function runCardPipelineDryRunCore(
     beforeOverrideData.value.dataVersion
   report.semanticOverrides.dataVersionAfter = cardsData.value.dataVersion
   const serializedCards = serializeDataFile(cardsData.value)
+  const cardPrintingsData = buildCardPrintingsDataFile(
+    candidates,
+    cardsData.value,
+  )
+  if (!cardPrintingsData.ok) {
+    addIssues(
+      report,
+      cardPrintingsData.errors.map((error) =>
+        fatal('generation', error.code, error.message, {
+          ...(error.cardNumber !== undefined
+            ? { cardNumber: error.cardNumber }
+            : {}),
+          ...(error.path !== undefined ? { path: error.path } : {}),
+        }),
+      ),
+    )
+    return finishFailure(report)
+  }
+  const serializedCardPrintings = serializeDataFile(cardPrintingsData.value)
   const serializedRestrictions = serializeDataFile(restrictionsData.value)
-  if (!serializedCards.ok || !serializedRestrictions.ok) {
+  if (
+    !serializedCards.ok ||
+    !serializedCardPrintings.ok ||
+    !serializedRestrictions.ok
+  ) {
     addIssues(
       report,
       generationIssues(
         'serialization',
         !serializedCards.ok
           ? serializedCards.errors
-          : serializedRestrictions.errors,
+          : !serializedCardPrintings.ok
+            ? serializedCardPrintings.errors
+            : serializedRestrictions.errors,
       ),
     )
     return finishFailure(report)
@@ -838,9 +864,11 @@ function runCardPipelineDryRunCore(
     candidates,
     snapshots,
     cardsDataFile: cardsData.value,
+    cardPrintingsDataFile: cardPrintingsData.value,
     restrictionsDataFile: restrictionsData.value,
     generationReport: generationReport.value,
     serializedCards: serializedCards.value,
+    serializedCardPrintings: serializedCardPrintings.value,
     serializedRestrictions: serializedRestrictions.value,
   }
   return { report, artifacts }

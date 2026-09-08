@@ -1,4 +1,7 @@
-import type { CardsDataFile } from '../../../src/domain/cards/types'
+import type {
+  CardPrintingsDataFile,
+  CardsDataFile,
+} from '../../../src/domain/cards/types'
 import type {
   CardRestriction,
   RestrictionsDataFile,
@@ -127,9 +130,11 @@ export type CardPipelineDryRunArtifacts = {
   candidates: SearchIndexedCardCandidate[]
   snapshots: CardDiffSnapshot[]
   cardsDataFile: CardsDataFile
+  cardPrintingsDataFile: CardPrintingsDataFile
   restrictionsDataFile: RestrictionsDataFile
   generationReport: CardsGenerationReport
   serializedCards: string
+  serializedCardPrintings: string
   serializedRestrictions: string
 }
 

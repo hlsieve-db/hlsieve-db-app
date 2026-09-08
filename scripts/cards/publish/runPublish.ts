@@ -4,7 +4,7 @@ import { runCardPipelineDryRun } from '../audit/runCardPipelineDryRun'
 import { fetchCardDetails } from '../detailFetch/fetchCardDetails'
 import { discoverCardEntries } from '../discovery/discoverCardEntries'
 import { createHtmlFetcher } from '../discovery/fetchHtml'
-import { publishCardsSnapshot } from './publishCardsSnapshot'
+import { publishCardDataSnapshots } from './publishCardDataSnapshots'
 
 const OFFICIAL_FORM_URL = 'https://hololive-official-cardgame.com/cardlist/'
 const discoveryFetcher = createHtmlFetcher({ minIntervalMs: 750 })
@@ -31,8 +31,9 @@ const pipeline = runCardPipelineDryRun({
   restrictions: [],
   generatedAt: new Date().toISOString(),
 })
-const publication = await publishCardsSnapshot(pipeline, {
-  outputPath: resolve('public/cards.json'),
+const publication = await publishCardDataSnapshots(pipeline, {
+  cardsOutputPath: resolve('public/cards.json'),
+  printingsOutputPath: resolve('public/card-printings.json'),
 })
 
 console.log(

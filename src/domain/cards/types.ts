@@ -104,3 +104,26 @@ export type CardsDataFile = {
   generatedAt: string
   cards: Card[]
 }
+
+export type CardPrintingPublic = {
+  officialId: string
+  officialUrl: string
+  isParallel: boolean
+  imageUrl?: string
+  rarity?: string
+  products: string[]
+  illustrator?: string
+}
+
+export type CardPrintingGroupPublic = {
+  defaultPrintingOfficialId: string
+  printings: CardPrintingPublic[]
+}
+
+export type CardPrintingsDataFile = {
+  format: 'hlsieve-card-printings'
+  formatVersion: 1
+  cardsDataVersion: string
+  dataVersion: string
+  cards: Record<string, CardPrintingGroupPublic>
+}
