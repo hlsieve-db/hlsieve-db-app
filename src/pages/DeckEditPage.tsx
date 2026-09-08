@@ -12,7 +12,18 @@ import {
   removeCardFromDeck,
   renameDeck,
 } from '../domain/decks/deck'
-import type { Deck } from '../domain/decks/types'
+import { getDeckZone, validateDeckLegality } from '../domain/decks/legality'
+import {
+  DECK_RULES_EFFECTIVE_FROM,
+  DECK_ZONE_COUNTS,
+  TOTAL_DECK_COUNT,
+} from '../domain/decks/restrictions'
+import type {
+  Deck,
+  DeckEntry,
+  DeckLegalityIssue,
+  DeckLegalityResult,
+} from '../domain/decks/types'
 import { searchCards } from '../domain/search/searchCards'
 import {
   deckRepository,
@@ -48,6 +59,126 @@ function DeckCardImage({ card }: { card?: Card }) {
       )}
     </div>
   )
+}
+
+const ZONE_LABELS = {
+  oshi: '推しホロメン',
+  main: 'メインデッキ',
+  cheer: 'エールデッキ',
+  unknown: '未確認カード',
+} as const
+
+function formatRuleDate(value: string): string {
+  const [year, month, day] = value.split('-').map(Number)
+  return `${year}年${month}月${day}日`
+}
+
+function formatCountIssue(
+  label: string,
+  actual: number,
+  expected: number,
+): string {
+  return actual < expected
+    ? `${label}をあと${expected - actual}枚追加してください`
+    : `${label}は${expected}枚にしてください（現在${actual}枚）`
+}
+
+function formatLegalityIssue(
+  issue: DeckLegalityIssue,
+  cardsByNumber: ReadonlyMap<string, Card>,
+): string {
+  switch (issue.code) {
+    case 'oshi_count':
+      return formatCountIssue(ZONE_LABELS.oshi, issue.actual, issue.expected)
+    case 'main_count':
+      return formatCountIssue(ZONE_LABELS.main, issue.actual, issue.expected)
+    case 'cheer_count':
+      return formatCountIssue(ZONE_LABELS.cheer, issue.actual, issue.expected)
+    case 'restricted_card': {
+      const card = cardsByNumber.get(issue.cardNumber)
+      return `${issue.cardNumber}${card ? ` ${card.name}` : ''}は制限カードのため${issue.max}枚までです（現在${issue.actual}枚）`
+    }
+    case 'copy_limit': {
+      const card = cardsByNumber.get(issue.cardNumber)
+      return `${issue.cardNumber}${card ? ` ${card.name}` : ''}は${issue.max}枚までです（現在${issue.actual}枚）`
+    }
+    case 'unknown_card':
+      return `${issue.cardNumber}は現在のカードデータに存在しません`
+    case 'unsupported_card_type':
+      return `${issue.cardNumber}のカード種別にはまだ対応していません`
+  }
+}
+
+function DeckLegalitySummary({
+  result,
+  cardsByNumber,
+}: {
+  result: DeckLegalityResult
+  cardsByNumber: ReadonlyMap<string, Card>
+}) {
+  const statusLabel = {
+    incomplete: '作成中',
+    invalid: 'ルール違反あり',
+    legal: '使用可能',
+  }[result.status]
+
+  return (
+    <section
+      className={`deck-legality deck-legality--${result.status}`}
+      aria-labelledby="deck-legality-heading"
+    >
+      <div className="deck-legality__heading">
+        <h2 id="deck-legality-heading">デッキ構築状態</h2>
+        <strong role="status">{statusLabel}</strong>
+      </div>
+      <dl className="deck-legality__counts">
+        <div>
+          <dt>推し</dt>
+          <dd>
+            {result.oshiCount} / {DECK_ZONE_COUNTS.oshi}
+          </dd>
+        </div>
+        <div>
+          <dt>メイン</dt>
+          <dd>
+            {result.mainCount} / {DECK_ZONE_COUNTS.main}
+          </dd>
+        </div>
+        <div>
+          <dt>エール</dt>
+          <dd>
+            {result.cheerCount} / {DECK_ZONE_COUNTS.cheer}
+          </dd>
+        </div>
+        <div>
+          <dt>合計</dt>
+          <dd>
+            {result.totalCount} / {TOTAL_DECK_COUNT}
+          </dd>
+        </div>
+      </dl>
+      {result.issues.length > 0 && (
+        <ul className="deck-legality__issues">
+          {result.issues.map((issue, index) => (
+            <li
+              key={`${issue.code}-${'cardNumber' in issue ? issue.cardNumber : ''}-${index}`}
+            >
+              {formatLegalityIssue(issue, cardsByNumber)}
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="deck-legality__effective-date">
+        {formatRuleDate(DECK_RULES_EFFECTIVE_FROM)}施行の制限ルールを反映
+      </p>
+    </section>
+  )
+}
+
+type DeckEntryGroup = {
+  key: 'oshi' | 'main' | 'cheer' | 'unknown'
+  label: string
+  entries: DeckEntry[]
 }
 
 function DeckEditor({
@@ -109,6 +240,47 @@ function DeckEditor({
     [cardsState, query],
   )
 
+  const legality = useMemo(
+    () =>
+      cardsState.status === 'loaded'
+        ? validateDeckLegality(deck, cardsState.data.cards)
+        : undefined,
+    [cardsState, deck],
+  )
+
+  const entryGroups = useMemo<DeckEntryGroup[]>(() => {
+    if (cardsState.status !== 'loaded') {
+      return deck.entries.length
+        ? [{ key: 'unknown', label: 'カード', entries: deck.entries }]
+        : []
+    }
+    const entriesByZone = {
+      oshi: [] as DeckEntry[],
+      main: [] as DeckEntry[],
+      cheer: [] as DeckEntry[],
+      unknown: [] as DeckEntry[],
+    }
+    for (const entry of deck.entries) {
+      const card = cardsByNumber.get(entry.cardNumber)
+      if (!card) {
+        entriesByZone.unknown.push(entry)
+        continue
+      }
+      try {
+        entriesByZone[getDeckZone(card)].push(entry)
+      } catch {
+        entriesByZone.unknown.push(entry)
+      }
+    }
+    return (Object.keys(entriesByZone) as (keyof typeof entriesByZone)[])
+      .filter((key) => entriesByZone[key].length > 0)
+      .map((key) => ({
+        key,
+        label: ZONE_LABELS[key],
+        entries: entriesByZone[key],
+      }))
+  }, [cardsByNumber, cardsState.status, deck.entries])
+
   const persist = (nextDeck: Deck) => {
     const version = ++saveVersion.current
     setSaveState('saving')
@@ -162,6 +334,14 @@ function DeckEditor({
         <p className="deck-total" aria-live="polite">
           合計 {getDeckTotal(deck)}枚
         </p>
+        {legality ? (
+          <DeckLegalitySummary
+            result={legality}
+            cardsByNumber={cardsByNumber}
+          />
+        ) : (
+          <p className="deck-legality-loading">構築ルールを確認しています…</p>
+        )}
         <form className="deck-rename" onSubmit={submitRename}>
           <label htmlFor="deck-name">デッキ名</label>
           <div>
@@ -195,68 +375,94 @@ function DeckEditor({
           {deck.entries.length === 0 ? (
             <p>カードが追加されていません。</p>
           ) : (
-            <ul className="deck-entry-list">
-              {deck.entries.map((entry) => {
-                const card = cardsByNumber.get(entry.cardNumber)
-                const displayName = card?.name ?? entry.cardNumber
-                return (
-                  <li className="deck-entry" key={entry.cardNumber}>
-                    <DeckCardImage card={card} />
-                    <div className="deck-entry__information">
-                      <h3>{displayName}</h3>
-                      <p>{entry.cardNumber}</p>
-                      {cardsState.status === 'loaded' && !card && (
-                        <p className="deck-entry__warning" role="alert">
-                          カードデータに存在しないカードです
-                        </p>
+            <div className="deck-zone-list">
+              {entryGroups.map((group) => (
+                <section
+                  className="deck-zone"
+                  aria-labelledby={`deck-zone-${group.key}`}
+                  key={group.key}
+                >
+                  <h3 id={`deck-zone-${group.key}`}>
+                    {group.label}
+                    <span>
+                      {group.entries.reduce(
+                        (total, entry) => total + entry.quantity,
+                        0,
                       )}
-                    </div>
-                    <div
-                      className="quantity-control"
-                      aria-label={`${displayName}の枚数`}
-                    >
-                      <button
-                        type="button"
-                        aria-label={`${displayName}を1枚減らす`}
-                        onClick={() =>
-                          applyDeckChange((current) =>
-                            decrementCardQuantity(current, entry.cardNumber),
-                          )
-                        }
-                      >
-                        −
-                      </button>
-                      <output aria-label={`${displayName}の現在枚数`}>
-                        {entry.quantity}
-                      </output>
-                      <button
-                        type="button"
-                        aria-label={`${displayName}を1枚増やす`}
-                        onClick={() =>
-                          applyDeckChange((current) =>
-                            incrementCardQuantity(current, entry.cardNumber),
-                          )
-                        }
-                      >
-                        ＋
-                      </button>
-                    </div>
-                    <button
-                      type="button"
-                      className="button button--secondary deck-entry__remove"
-                      aria-label={`${displayName}をデッキから削除`}
-                      onClick={() =>
-                        applyDeckChange((current) =>
-                          removeCardFromDeck(current, entry.cardNumber),
-                        )
-                      }
-                    >
-                      削除
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>
+                      枚
+                    </span>
+                  </h3>
+                  <ul className="deck-entry-list">
+                    {group.entries.map((entry) => {
+                      const card = cardsByNumber.get(entry.cardNumber)
+                      const displayName = card?.name ?? entry.cardNumber
+                      return (
+                        <li className="deck-entry" key={entry.cardNumber}>
+                          <DeckCardImage card={card} />
+                          <div className="deck-entry__information">
+                            <h4>{displayName}</h4>
+                            <p>{entry.cardNumber}</p>
+                            {cardsState.status === 'loaded' && !card && (
+                              <p className="deck-entry__warning" role="alert">
+                                カードデータに存在しないカードです
+                              </p>
+                            )}
+                          </div>
+                          <div
+                            className="quantity-control"
+                            aria-label={`${displayName}の枚数`}
+                          >
+                            <button
+                              type="button"
+                              aria-label={`${displayName}を1枚減らす`}
+                              onClick={() =>
+                                applyDeckChange((current) =>
+                                  decrementCardQuantity(
+                                    current,
+                                    entry.cardNumber,
+                                  ),
+                                )
+                              }
+                            >
+                              −
+                            </button>
+                            <output aria-label={`${displayName}の現在枚数`}>
+                              {entry.quantity}
+                            </output>
+                            <button
+                              type="button"
+                              aria-label={`${displayName}を1枚増やす`}
+                              onClick={() =>
+                                applyDeckChange((current) =>
+                                  incrementCardQuantity(
+                                    current,
+                                    entry.cardNumber,
+                                  ),
+                                )
+                              }
+                            >
+                              ＋
+                            </button>
+                          </div>
+                          <button
+                            type="button"
+                            className="button button--secondary deck-entry__remove"
+                            aria-label={`${displayName}をデッキから削除`}
+                            onClick={() =>
+                              applyDeckChange((current) =>
+                                removeCardFromDeck(current, entry.cardNumber),
+                              )
+                            }
+                          >
+                            削除
+                          </button>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </section>
+              ))}
+            </div>
           )}
         </section>
 

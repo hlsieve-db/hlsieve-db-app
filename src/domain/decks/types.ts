@@ -22,27 +22,41 @@ export type Deck = {
 export type CardRestriction = {
   cardNumber: string
   maxCopies: number
-  effectiveFrom?: string
+  effectiveFrom: string
   effectiveTo?: string
   note?: string
 }
 
-export type DeckWarning = {
-  code:
-    | 'oshi_count'
-    | 'main_count'
-    | 'cheer_count'
-    | 'card_limit'
-    | 'restricted_card'
-    | 'wrong_section'
-    | 'unknown_card'
-  message: string
-  cardNumber?: string
-}
+export type DeckZone = 'oshi' | 'main' | 'cheer'
 
-export type DeckValidationResult = {
-  isValid: boolean
-  warnings: DeckWarning[]
+export type DeckLegalityStatus = 'incomplete' | 'invalid' | 'legal'
+
+export type DeckLegalityIssue =
+  | {
+      code: 'oshi_count' | 'main_count' | 'cheer_count'
+      actual: number
+      expected: number
+    }
+  | {
+      code: 'copy_limit' | 'restricted_card'
+      cardNumber: string
+      actual: number
+      max: number
+    }
+  | {
+      code: 'unknown_card' | 'unsupported_card_type'
+      cardNumber: string
+      actual: number
+    }
+
+export type DeckLegalityResult = {
+  isLegal: boolean
+  status: DeckLegalityStatus
+  oshiCount: number
+  mainCount: number
+  cheerCount: number
+  totalCount: number
+  issues: DeckLegalityIssue[]
 }
 
 export type RestrictionsDataFile = {

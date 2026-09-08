@@ -24,7 +24,11 @@ function deck(overrides: Partial<Deck> = {}): Deck {
   }
 }
 
-function card(cardNumber: string, name: string): Card {
+function card(
+  cardNumber: string,
+  name: string,
+  overrides: Partial<Card> = {},
+): Card {
   return {
     cardNumber,
     name,
@@ -44,6 +48,7 @@ function card(cardNumber: string, name: string): Card {
     illustrators: [],
     qas: [],
     searchText: `${name.toLowerCase()} ${cardNumber.toLowerCase()}`,
+    ...overrides,
   }
 }
 
@@ -51,6 +56,11 @@ const cards = [
   card('CARD-001', '赤いカード'),
   card('CARD-002', '青いカード'),
   card('CARD-003', '緑のカード'),
+  card('OSHI-001', '推しカード', { cardType: 'oshi' }),
+  card('MAIN-UNLIMITED', '無制限カード', { deckLimit: null }),
+  card('MAIN-SIX', '6枚カード', { deckLimit: 6 }),
+  card('CHEER-001', '白エール', { cardType: 'cheer' }),
+  card('hBP01-030', 'IRyS'),
 ]
 
 function cardsData(): CardsDataFile {
@@ -162,7 +172,7 @@ describe('DeckEditPage editor operations', () => {
     })
 
     expect(await screen.findByText('赤いカード')).toBeVisible()
-    expect(screen.getAllByText('UNKNOWN-001')).toHaveLength(2)
+    expect(screen.getAllByText(/UNKNOWN-001/).length).toBeGreaterThanOrEqual(2)
     expect(screen.getByText('カードデータに存在しないカードです')).toBeVisible()
     expect(screen.getByText('合計 3枚')).toBeVisible()
   })
@@ -190,6 +200,71 @@ describe('DeckEditPage editor operations', () => {
     expect(await screen.findByText('保存しました')).toBeVisible()
   })
 
+  it('shows incomplete counts and actionable issues', async () => {
+    renderPage()
+
+    expect(await screen.findByText('作成中')).toBeVisible()
+    expect(screen.getByText('0 / 1')).toBeVisible()
+    expect(screen.getByText('0 / 50')).toBeVisible()
+    expect(screen.getByText('0 / 20')).toBeVisible()
+    expect(screen.getByText('0 / 71')).toBeVisible()
+    expect(
+      screen.getByText('メインデッキをあと50枚追加してください'),
+    ).toBeVisible()
+    expect(
+      screen.getByText('2026年6月19日施行の制限ルールを反映'),
+    ).toBeVisible()
+  })
+
+  it('shows a legal deck and groups entries by derived zone', async () => {
+    renderPage({
+      deckRepository: repository({
+        getDeck: async () =>
+          deck({
+            entries: [
+              { cardNumber: 'OSHI-001', quantity: 1 },
+              { cardNumber: 'MAIN-UNLIMITED', quantity: 50 },
+              { cardNumber: 'CHEER-001', quantity: 20 },
+            ],
+          }),
+      }),
+    })
+
+    expect(await screen.findByText('使用可能')).toBeVisible()
+    expect(screen.getByText('1 / 1')).toBeVisible()
+    expect(screen.getByText('50 / 50')).toBeVisible()
+    expect(screen.getByText('20 / 20')).toBeVisible()
+    expect(screen.getByText('71 / 71')).toBeVisible()
+    expect(screen.getByRole('heading', { name: /推しホロメン/ })).toBeVisible()
+    expect(screen.getByRole('heading', { name: /メインデッキ/ })).toBeVisible()
+    expect(screen.getByRole('heading', { name: /エールデッキ/ })).toBeVisible()
+  })
+
+  it('shows copy-limit, restricted-card, and deckLimit issues', async () => {
+    renderPage({
+      deckRepository: repository({
+        getDeck: async () =>
+          deck({
+            entries: [
+              { cardNumber: 'OSHI-001', quantity: 1 },
+              { cardNumber: 'CARD-001', quantity: 5 },
+              { cardNumber: 'MAIN-SIX', quantity: 7 },
+              { cardNumber: 'hBP01-030', quantity: 2 },
+              { cardNumber: 'MAIN-UNLIMITED', quantity: 36 },
+              { cardNumber: 'CHEER-001', quantity: 20 },
+            ],
+          }),
+      }),
+    })
+
+    expect(await screen.findByText('ルール違反あり')).toBeVisible()
+    expect(screen.getByText(/CARD-001 赤いカードは4枚まで/)).toBeVisible()
+    expect(screen.getByText(/MAIN-SIX 6枚カードは6枚まで/)).toBeVisible()
+    expect(
+      screen.getByText(/hBP01-030 IRySは制限カードのため1枚まで/),
+    ).toBeVisible()
+  })
+
   it('reuses searchCards and adds duplicate logical cards by quantity', async () => {
     const saveDeck = vi.fn<(value: Deck) => Promise<void>>(
       async () => undefined,
@@ -213,6 +288,8 @@ describe('DeckEditPage editor operations', () => {
     expect(saveDeck.mock.calls[1]?.[0].entries).toEqual([
       { cardNumber: 'CARD-001', quantity: 2 },
     ])
+    expect(saveDeck.mock.calls[1]?.[0]).not.toHaveProperty('legality')
+    expect(saveDeck.mock.calls[1]?.[0]).not.toHaveProperty('rulesVersion')
   })
 
   it('shows an empty search result without inventing search semantics', async () => {
