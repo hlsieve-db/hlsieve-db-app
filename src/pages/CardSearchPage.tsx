@@ -57,6 +57,14 @@ export function CardSearchPage({
   const [queryDraft, setQueryDraft] = useState(urlState.query)
   const isComposing = useRef(false)
 
+  useEffect(() => {
+    const previousTitle = document.title
+    document.title = 'カード検索 | HLSieve DB'
+    return () => {
+      document.title = previousTitle
+    }
+  }, [])
+
   const navigateToState = useCallback(
     (next: SearchUrlState, replace: boolean) => {
       navigate(

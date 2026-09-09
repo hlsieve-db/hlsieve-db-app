@@ -36,6 +36,47 @@ describe('App', () => {
     const document = new DOMParser().parseFromString(indexHtml, 'text/html')
 
     expect(document.title).toBe('HLSieve DB')
+    expect(
+      document
+        .querySelector('meta[name="description"]')
+        ?.getAttribute('content'),
+    ).toContain('非公式')
+    expect(
+      document.querySelector('link[rel="icon"]')?.getAttribute('href'),
+    ).toBe('/favicon.svg')
+    expect(indexHtml).toContain('hlsieve:theme')
+    expect(indexHtml).not.toContain('vite.svg')
+  })
+
+  it('shows the fan-made disclaimer', () => {
+    render(
+      <MemoryRouter initialEntries={['/cards']}>
+        <App />
+      </MemoryRouter>,
+    )
+    expect(
+      screen.getByText('HLSieve DBは非公式のファンメイドツールです。'),
+    ).toBeVisible()
+  })
+
+  it('renders a branded Not Found page with navigation', () => {
+    render(
+      <MemoryRouter initialEntries={['/this-does-not-exist']}>
+        <App />
+      </MemoryRouter>,
+    )
+    expect(
+      screen.getByRole('heading', { name: 'ページが見つかりません' }),
+    ).toBeVisible()
+    expect(screen.getByRole('link', { name: 'Cardsへ' })).toHaveAttribute(
+      'href',
+      '/cards',
+    )
+    expect(screen.getByRole('link', { name: 'Decksへ' })).toHaveAttribute(
+      'href',
+      '/decks',
+    )
+    expect(document.title).toBe('ページが見つかりません | HLSieve DB')
   })
 
   it('Decks navigation and canonical deck routes are available', async () => {
