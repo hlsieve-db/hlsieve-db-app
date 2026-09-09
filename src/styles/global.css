@@ -559,7 +559,6 @@ summary:focus-visible {
   font-weight: 800;
   letter-spacing: 0.12em;
   text-decoration: none;
-  text-transform: uppercase;
 }
 
 .back-link,
@@ -1654,6 +1653,23 @@ summary:focus-visible {
   .app-navigation {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .site-branding {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
+    width: 100%;
+  }
+
+  .site-brand {
+    white-space: nowrap;
+  }
+
+  .site-brand__subtitle {
+    max-width: calc(100% - 39px);
+    margin-left: 39px;
+    overflow-wrap: anywhere;
   }
 
   .app-navigation__controls {
