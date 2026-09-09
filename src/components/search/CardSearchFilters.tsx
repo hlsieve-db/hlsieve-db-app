@@ -17,9 +17,21 @@ import {
 import type { SearchUrlState } from '../../domain/search/searchUrlState'
 import type { BloomFilterValue, MatchMode } from '../../domain/search/types'
 
+export type CardSearchFilterState = Pick<
+  SearchUrlState,
+  | 'colors'
+  | 'colorMode'
+  | 'cardTypes'
+  | 'bloom'
+  | 'criticalColors'
+  | 'criticalColorMode'
+  | 'effectTags'
+  | 'effectTagMode'
+>
+
 type CardSearchFiltersProps = {
-  state: SearchUrlState
-  onChange: (patch: Partial<SearchUrlState>) => void
+  state: CardSearchFilterState
+  onChange: (patch: Partial<CardSearchFilterState>) => void
 }
 
 function toggleValue<T>(values: readonly T[], value: T): T[] {

@@ -3,7 +3,9 @@ import { Link, useParams } from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
 import { DeckLegalitySummary } from '../components/decks/DeckLegalitySummary'
+import { DeckQuantityControl } from '../components/decks/DeckQuantityControl'
 import { DECK_ZONE_LABELS } from '../components/decks/constants'
+import { CardSearchFilters } from '../components/search/CardSearchFilters'
 import { CARD_TYPE_LABELS } from '../domain/cards/constants'
 import type { Card, CardsDataFile } from '../domain/cards/types'
 import { DECK_NAME_MAX_LENGTH } from '../domain/decks/constants'
@@ -17,8 +19,14 @@ import {
 } from '../domain/decks/deck'
 import { getDeckZone, validateDeckLegality } from '../domain/decks/legality'
 import type { Deck, DeckEntry } from '../domain/decks/types'
-import { searchCards } from '../domain/search/searchCards'
+import { DEFAULT_CARD_PAGE_SIZE } from '../domain/search/constants'
+import { getCardSearchResults } from '../domain/search/getCardSearchResults'
+import {
+  DEFAULT_SEARCH_URL_STATE,
+  type SearchUrlState,
+} from '../domain/search/searchUrlState'
 import { buildDeckShareUrl } from '../domain/share/deckShareCodec'
+import { useDeckSaveQueue } from '../hooks/useDeckSaveQueue'
 import {
   deckRepository,
   type DeckRepository,
@@ -36,7 +44,6 @@ type CardLoadState =
   | { status: 'loaded'; data: CardsDataFile }
   | { status: 'error' }
 
-type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 type CopyResult = { status: 'copied' | 'error'; url: string }
 
 type DeckEditPageProps = {
@@ -74,17 +81,17 @@ function DeckEditor({
   const [deck, setDeck] = useState(initialDeck)
   const [nameDraft, setNameDraft] = useState(initialDeck.name)
   const [nameError, setNameError] = useState<string>()
-  const [saveState, setSaveState] = useState<SaveState>('idle')
+  const { saveState, persist } = useDeckSaveQueue(repository)
   const [cardsState, setCardsState] = useState<CardLoadState>({
     status: 'loading',
   })
   const [cardsLoadAttempt, setCardsLoadAttempt] = useState(0)
-  const [query, setQuery] = useState('')
+  const [pickerState, setPickerState] = useState<SearchUrlState>(
+    DEFAULT_SEARCH_URL_STATE,
+  )
   const [isShareLinkVisible, setIsShareLinkVisible] = useState(false)
   const [copyResult, setCopyResult] = useState<CopyResult>()
   const deckRef = useRef(initialDeck)
-  const saveQueue = useRef<Promise<void>>(Promise.resolve())
-  const saveVersion = useRef(0)
 
   useEffect(() => {
     document.title = `${deck.name} | HLSieve DB`
@@ -115,13 +122,22 @@ function DeckEditor({
     [cardsState],
   )
 
-  const results = useMemo(
+  const pickerResults = useMemo(
     () =>
-      cardsState.status === 'loaded' && query.trim()
-        ? searchCards(cardsState.data.cards, { query }).slice(0, 20)
-        : [],
-    [cardsState, query],
+      getCardSearchResults(
+        cardsState.status === 'loaded' ? cardsState.data.cards : [],
+        { ...pickerState, pageSize: DEFAULT_CARD_PAGE_SIZE },
+      ),
+    [cardsState, pickerState],
   )
+
+  const activeFilterCount =
+    pickerState.colors.length +
+    pickerState.cardTypes.length +
+    pickerState.bloom.length +
+    pickerState.criticalColors.length +
+    pickerState.effectTags.length +
+    (pickerState.sort === DEFAULT_SEARCH_URL_STATE.sort ? 0 : 1)
 
   const legality = useMemo(
     () =>
@@ -176,23 +192,6 @@ function DeckEditor({
       }))
   }, [cardsByNumber, cardsState.status, deck.entries])
 
-  const persist = (nextDeck: Deck) => {
-    const version = ++saveVersion.current
-    setSaveState('saving')
-    const request = saveQueue.current
-      .catch(() => undefined)
-      .then(() => repository.saveDeck(nextDeck))
-    saveQueue.current = request
-    void request.then(
-      () => {
-        if (saveVersion.current === version) setSaveState('saved')
-      },
-      () => {
-        if (saveVersion.current === version) setSaveState('error')
-      },
-    )
-  }
-
   const applyDeckChange = (update: (current: Deck) => Deck) => {
     const next = update(deckRef.current)
     deckRef.current = next
@@ -217,6 +216,10 @@ function DeckEditor({
   const retryCards = () => {
     setCardsState({ status: 'loading' })
     setCardsLoadAttempt((attempt) => attempt + 1)
+  }
+
+  const updatePicker = (patch: Partial<SearchUrlState>) => {
+    setPickerState((current) => ({ ...current, ...patch, page: 1 }))
   }
 
   const copyShareLink = async () => {
@@ -362,42 +365,26 @@ function DeckEditor({
                               </p>
                             )}
                           </div>
-                          <div
-                            className="quantity-control"
-                            aria-label={`${displayName}の枚数`}
-                          >
-                            <button
-                              type="button"
-                              aria-label={`${displayName}を1枚減らす`}
-                              onClick={() =>
-                                applyDeckChange((current) =>
-                                  decrementCardQuantity(
-                                    current,
-                                    entry.cardNumber,
-                                  ),
-                                )
-                              }
-                            >
-                              −
-                            </button>
-                            <output aria-label={`${displayName}の現在枚数`}>
-                              {entry.quantity}
-                            </output>
-                            <button
-                              type="button"
-                              aria-label={`${displayName}を1枚増やす`}
-                              onClick={() =>
-                                applyDeckChange((current) =>
-                                  incrementCardQuantity(
-                                    current,
-                                    entry.cardNumber,
-                                  ),
-                                )
-                              }
-                            >
-                              ＋
-                            </button>
-                          </div>
+                          <DeckQuantityControl
+                            cardName={displayName}
+                            quantity={entry.quantity}
+                            onDecrement={() =>
+                              applyDeckChange((current) =>
+                                decrementCardQuantity(
+                                  current,
+                                  entry.cardNumber,
+                                ),
+                              )
+                            }
+                            onIncrement={() =>
+                              applyDeckChange((current) =>
+                                incrementCardQuantity(
+                                  current,
+                                  entry.cardNumber,
+                                ),
+                              )
+                            }
+                          />
                           <button
                             type="button"
                             className="button button--secondary deck-entry__remove"
@@ -427,11 +414,50 @@ function DeckEditor({
             <input
               id="deck-card-search"
               type="search"
-              value={query}
+              value={pickerState.query}
               placeholder="カード名・能力・Q&Aを検索…"
-              onChange={(event) => setQuery(event.currentTarget.value)}
+              onChange={(event) =>
+                updatePicker({ query: event.currentTarget.value })
+              }
             />
           </label>
+
+          <details className="deck-picker-filters">
+            <summary>
+              詳細条件
+              {activeFilterCount > 0 && `（${activeFilterCount}件）`}
+            </summary>
+            <CardSearchFilters
+              state={pickerState}
+              onChange={(patch) => updatePicker(patch)}
+            />
+            <div className="search-actions">
+              <label htmlFor="deck-card-sort">
+                並び順
+                <select
+                  id="deck-card-sort"
+                  value={pickerState.sort}
+                  onChange={(event) =>
+                    updatePicker({
+                      sort: event.currentTarget.value as SearchUrlState['sort'],
+                    })
+                  }
+                >
+                  <option value="default">標準</option>
+                  <option value="card_number_asc">カード番号順</option>
+                  <option value="release_date_desc">リリース日 新しい順</option>
+                  <option value="release_date_asc">リリース日 古い順</option>
+                </select>
+              </label>
+              <button
+                type="button"
+                className="button button--secondary"
+                onClick={() => setPickerState(DEFAULT_SEARCH_URL_STATE)}
+              >
+                条件をクリア
+              </button>
+            </div>
+          </details>
 
           {cardsState.status === 'loading' && (
             <p role="status" aria-live="polite">
@@ -446,35 +472,94 @@ function DeckEditor({
               </button>
             </div>
           )}
-          {cardsState.status === 'loaded' &&
-            query.trim() &&
-            results.length === 0 && <p>条件に一致するカードがありません。</p>}
-          {results.length > 0 && (
-            <ul className="deck-search-results">
-              {results.map((card) => (
-                <li key={card.cardNumber}>
-                  <DeckCardImage card={card} />
-                  <div>
-                    <h3>{card.name}</h3>
-                    <p>
-                      {card.cardNumber}・{CARD_TYPE_LABELS[card.cardType]}
-                    </p>
-                  </div>
+          {cardsState.status === 'loaded' && (
+            <p className="deck-picker-result-count" aria-live="polite">
+              {pickerResults.totalItems}件
+            </p>
+          )}
+          {cardsState.status === 'loaded' && pickerResults.totalItems === 0 && (
+            <div className="deck-picker-empty">
+              <p>条件に一致するカードがありません。</p>
+              <button
+                type="button"
+                className="button button--secondary"
+                onClick={() => setPickerState(DEFAULT_SEARCH_URL_STATE)}
+              >
+                条件をクリア
+              </button>
+            </div>
+          )}
+          {pickerResults.items.length > 0 && (
+            <>
+              <ul className="deck-search-results">
+                {pickerResults.items.map((card) => {
+                  const quantity =
+                    deck.entries.find(
+                      (entry) => entry.cardNumber === card.cardNumber,
+                    )?.quantity ?? 0
+                  return (
+                    <li key={card.cardNumber}>
+                      <DeckCardImage card={card} />
+                      <div>
+                        <h3>{card.name}</h3>
+                        <p>
+                          {card.cardNumber}・{CARD_TYPE_LABELS[card.cardType]}
+                        </p>
+                      </div>
+                      <DeckQuantityControl
+                        cardName={card.name}
+                        quantity={quantity}
+                        onDecrement={() =>
+                          applyDeckChange((current) =>
+                            decrementCardQuantity(current, card.cardNumber),
+                          )
+                        }
+                        onIncrement={() =>
+                          applyDeckChange((current) =>
+                            quantity > 0
+                              ? incrementCardQuantity(current, card.cardNumber)
+                              : addCardToDeck(current, card.cardNumber),
+                          )
+                        }
+                      />
+                    </li>
+                  )
+                })}
+              </ul>
+              {pickerResults.totalPages > 1 && (
+                <nav className="pagination" aria-label="カード追加結果のページ">
                   <button
                     type="button"
-                    className="button"
-                    aria-label={`${card.name}をデッキに追加`}
+                    className="button button--secondary"
+                    disabled={!pickerResults.hasPreviousPage}
                     onClick={() =>
-                      applyDeckChange((current) =>
-                        addCardToDeck(current, card.cardNumber),
-                      )
+                      setPickerState((current) => ({
+                        ...current,
+                        page: pickerResults.page - 1,
+                      }))
                     }
                   >
-                    追加
+                    前へ
                   </button>
-                </li>
-              ))}
-            </ul>
+                  <span aria-current="page">
+                    {pickerResults.page} / {pickerResults.totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    className="button button--secondary"
+                    disabled={!pickerResults.hasNextPage}
+                    onClick={() =>
+                      setPickerState((current) => ({
+                        ...current,
+                        page: pickerResults.page + 1,
+                      }))
+                    }
+                  >
+                    次へ
+                  </button>
+                </nav>
+              )}
+            </>
           )}
         </section>
       </div>

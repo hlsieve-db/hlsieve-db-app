@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
+import { DeckQuantityControl } from '../components/decks/DeckQuantityControl'
+import { DeckTargetSelector } from '../components/decks/DeckTargetSelector'
 import {
   ABILITY_TYPE_LABELS,
   BLOOM_LEVEL_LABELS,
@@ -24,6 +26,11 @@ import type {
 } from '../domain/cards/types'
 import { loadCardPrintingsData } from '../repositories/loadCardPrintingsData'
 import { loadCardsData } from '../repositories/loadCardsData'
+import {
+  deckRepository,
+  type DeckRepository,
+} from '../repositories/deckRepository'
+import { useSavedDeckQuickEdit } from '../hooks/useSavedDeckQuickEdit'
 
 type CardDataState =
   | { status: 'loading' }
@@ -33,6 +40,7 @@ type CardDataState =
 type CardDetailPageProps = {
   loadCards?: () => Promise<CardsDataFile>
   loadPrintings?: () => Promise<CardPrintingsDataFile>
+  repository?: DeckRepository
 }
 
 type PrintingDataState =
@@ -425,16 +433,19 @@ function LoadedCardDetail({
   card,
   cardsDataVersion,
   loadPrintings,
+  repository,
 }: {
   card: Card
   cardsDataVersion: string
   loadPrintings: () => Promise<CardPrintingsDataFile>
+  repository: DeckRepository
 }) {
   const [searchParams, setSearchParams] = useSearchParams()
   const [printingData, setPrintingData] = useState<PrintingDataState>({
     status: 'loading',
   })
   const [loadAttempt, setLoadAttempt] = useState(0)
+  const deckQuickEdit = useSavedDeckQuickEdit(repository)
 
   useEffect(() => {
     let active = true
@@ -524,6 +535,28 @@ function LoadedCardDetail({
             <span>画像なし</span>
           )}
         </div>
+        <section
+          className="deck-quick-add-panel detail-deck-quick-add"
+          aria-labelledby="detail-deck-quick-add-heading"
+        >
+          <h2 id="detail-deck-quick-add-heading">デッキへ追加</h2>
+          <DeckTargetSelector
+            state={deckQuickEdit.state}
+            decks={deckQuickEdit.decks}
+            selectedDeckId={deckQuickEdit.selectedDeckId}
+            saveState={deckQuickEdit.saveState}
+            onSelect={deckQuickEdit.selectDeck}
+            onRetry={deckQuickEdit.retry}
+          />
+          {deckQuickEdit.selectedDeck && (
+            <DeckQuantityControl
+              cardName={card.name}
+              quantity={deckQuickEdit.quantityFor(card.cardNumber)}
+              onDecrement={() => deckQuickEdit.decrement(card.cardNumber)}
+              onIncrement={() => deckQuickEdit.increment(card.cardNumber)}
+            />
+          )}
+        </section>
         <PrintingPanel
           card={card}
           state={printingData}
@@ -542,6 +575,7 @@ function LoadedCardDetail({
 export function CardDetailPage({
   loadCards = loadCardsData,
   loadPrintings = loadCardPrintingsData,
+  repository = deckRepository,
 }: CardDetailPageProps) {
   const { cardNumber } = useParams<'cardNumber'>()
   const [cardData, setCardData] = useState<CardDataState>({
@@ -636,6 +670,7 @@ export function CardDetailPage({
           card={card}
           cardsDataVersion={cardData.data.dataVersion}
           loadPrintings={loadPrintings}
+          repository={repository}
         />
       )}
     </main>

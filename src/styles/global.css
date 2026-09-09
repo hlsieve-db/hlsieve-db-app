@@ -488,6 +488,11 @@ summary:focus-visible {
   text-underline-offset: 3px;
 }
 
+.card-result__body .deck-quantity-control {
+  justify-content: center;
+  margin-top: 12px;
+}
+
 .card-result__number {
   margin: 0;
   color: var(--color-muted);
@@ -573,6 +578,58 @@ summary:focus-visible {
   display: grid;
   min-width: 0;
   gap: 18px;
+}
+
+.deck-quick-add-panel {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--color-accent-border);
+  border-radius: 14px;
+  background: var(--color-surface-soft);
+}
+
+.deck-quick-add-panel h2,
+.deck-quick-add-panel p {
+  margin-top: 0;
+}
+
+.deck-quick-add-panel h2 {
+  margin-bottom: 12px;
+  font-size: 1.05rem;
+}
+
+.search-deck-target {
+  margin-top: 20px;
+  box-shadow: var(--shadow-card);
+}
+
+.deck-target-selector {
+  display: grid;
+  gap: 6px;
+  font-weight: 700;
+}
+
+.deck-target-selector select {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 36px 0 12px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 9px;
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+
+.deck-quick-add__empty,
+.deck-quick-add__error p {
+  margin-bottom: 0;
+}
+
+.deck-quick-add__error {
+  color: var(--color-danger-text);
+}
+
+.detail-deck-quick-add .deck-quantity-control {
+  margin-top: 12px;
 }
 
 .printing-panel {
@@ -908,6 +965,41 @@ summary:focus-visible {
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.deck-picker-filters {
+  margin-top: 16px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface-muted);
+}
+
+.deck-picker-filters > summary {
+  min-height: 44px;
+  padding: 10px 4px;
+  color: var(--color-accent-strong);
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.deck-picker-filters .filter-groups {
+  grid-template-columns: 1fr;
+}
+
+.deck-picker-filters .filter-group--wide {
+  grid-column: auto;
+}
+
+.deck-picker-result-count {
+  margin: 18px 0 0;
+  color: var(--color-muted);
+  font-weight: 800;
+}
+
+.deck-picker-empty {
+  margin-top: 18px;
+  text-align: center;
 }
 
 .deck-list__item,
@@ -1312,13 +1404,13 @@ summary:focus-visible {
   object-fit: contain;
 }
 
-.quantity-control {
+.deck-quantity-control {
   display: flex;
   align-items: center;
   gap: 7px;
 }
 
-.quantity-control button {
+.deck-quantity-control button {
   display: grid;
   width: 44px;
   min-width: 44px;
@@ -1333,8 +1425,13 @@ summary:focus-visible {
   font-weight: 800;
 }
 
-.quantity-control output {
-  min-width: 2ch;
+.deck-quantity-control button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.deck-quantity-control output {
+  min-width: 4ch;
   font-weight: 800;
   text-align: center;
 }

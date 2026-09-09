@@ -20,9 +20,19 @@ import type {
   CardPrintingsDataFile,
   CardsDataFile,
 } from '../domain/cards/types'
+import type { DeckRepository } from '../repositories/deckRepository'
 import { CardDetailPage } from './CardDetailPage'
 
 const cardsVersion = `sha256:${'0'.repeat(64)}`
+
+function emptyDeckRepository(): DeckRepository {
+  return {
+    listDecks: vi.fn(async () => []),
+    getDeck: vi.fn(async () => undefined),
+    saveDeck: vi.fn(async () => undefined),
+    deleteDeck: vi.fn(async () => undefined),
+  }
+}
 
 function card(overrides: Partial<Card> = {}): Card {
   return {
@@ -146,6 +156,7 @@ function renderDetail({
             <CardDetailPage
               loadCards={loadCards}
               loadPrintings={loadPrintings}
+              repository={emptyDeckRepository()}
             />
           }
         />

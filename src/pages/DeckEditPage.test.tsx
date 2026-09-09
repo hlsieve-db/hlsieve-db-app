@@ -54,9 +54,28 @@ function card(
 }
 
 const cards = [
-  card('CARD-001', '赤いカード'),
-  card('CARD-002', '青いカード'),
-  card('CARD-003', '緑のカード'),
+  card('CARD-001', '赤いカード', {
+    effectTags: ['draw'],
+    releaseDate: '2025-01-01',
+  }),
+  card('CARD-002', '青いカード', {
+    colors: ['blue'],
+    bloomLevel: 'first',
+    criticalColors: ['blue'],
+    effectTags: ['deck_search'],
+    releaseDate: '2026-01-01',
+  }),
+  card('CARD-003', '緑のカード', {
+    colors: ['green'],
+    bloomLevel: 'second',
+    isBuzz: true,
+  }),
+  card('CARD-004', '赤青カード', {
+    colors: ['red', 'blue'],
+    bloomLevel: 'first',
+    criticalColors: ['red', 'blue'],
+    effectTags: ['draw', 'deck_search'],
+  }),
   card('OSHI-001', '推しカード', { cardType: 'oshi' }),
   card('MAIN-UNLIMITED', '無制限カード', { deckLimit: null }),
   card('MAIN-SIX', '6枚カード', { deckLimit: 6 }),
@@ -64,13 +83,13 @@ const cards = [
   card('hBP01-030', 'IRyS'),
 ]
 
-function cardsData(): CardsDataFile {
+function cardsData(source = cards): CardsDataFile {
   return {
     format: 'holocard-cards',
     formatVersion: 1,
     dataVersion: `sha256:${'0'.repeat(64)}`,
     generatedAt: '2026-09-08T00:00:00.000Z',
-    cards,
+    cards: source,
   }
 }
 
@@ -181,7 +200,10 @@ describe('DeckEditPage editor operations', () => {
       }),
     })
 
-    expect(await screen.findByText('赤いカード')).toBeVisible()
+    const currentCards = await screen.findByRole('region', {
+      name: '現在のカード',
+    })
+    expect(await within(currentCards).findByText('赤いカード')).toBeVisible()
     expect(screen.getAllByText(/UNKNOWN-001/).length).toBeGreaterThanOrEqual(2)
     expect(screen.getByText('カードデータに存在しないカードです')).toBeVisible()
     expect(screen.getByText('合計 3枚')).toBeVisible()
@@ -283,16 +305,16 @@ describe('DeckEditPage editor operations', () => {
     const search = await screen.findByLabelText('カード検索')
 
     fireEvent.change(search, { target: { value: '赤い' } })
-    expect(screen.getByText('赤いカード')).toBeVisible()
-    expect(screen.queryByText('青いカード')).not.toBeInTheDocument()
-    fireEvent.click(
-      screen.getByRole('button', { name: '赤いカードをデッキに追加' }),
-    )
-    fireEvent.click(
-      screen.getByRole('button', { name: '赤いカードをデッキに追加' }),
-    )
+    const picker = screen.getByRole('region', { name: 'カードを追加' })
+    expect(within(picker).getByText('赤いカード')).toBeVisible()
+    expect(within(picker).queryByText('青いカード')).not.toBeInTheDocument()
+    const add = within(picker).getByRole('button', {
+      name: '赤いカードを1枚追加',
+    })
+    fireEvent.click(add)
+    fireEvent.click(add)
 
-    expect(screen.getByLabelText('赤いカードの現在枚数')).toHaveTextContent('2')
+    expect(within(picker).getByLabelText('現在 2枚')).toHaveTextContent('2')
     expect(screen.getByText('合計 2枚')).toBeVisible()
     await waitFor(() => expect(saveDeck).toHaveBeenCalledTimes(2))
     expect(saveDeck.mock.calls[1]?.[0].entries).toEqual([
@@ -309,6 +331,127 @@ describe('DeckEditPage editor operations', () => {
     expect(screen.getByText('条件に一致するカードがありません。')).toBeVisible()
   })
 
+  it('keeps shared structured filters collapsed by default and retains active values', async () => {
+    renderPage()
+    await screen.findByText('9件')
+    const summary = screen.getByText('詳細条件')
+    const details = summary.closest('details')!
+    expect(details).not.toHaveAttribute('open')
+
+    fireEvent.click(summary)
+    expect(details).toHaveAttribute('open')
+    fireEvent.click(
+      within(details)
+        .getByRole('group', { name: '色' })
+        .querySelector('input[value="blue"]')!,
+    )
+    expect(screen.getByText('詳細条件（1件）')).toBeVisible()
+    expect(screen.getByText('青いカード')).toBeVisible()
+    fireEvent.click(screen.getByText('詳細条件（1件）'))
+    expect(details).not.toHaveAttribute('open')
+    expect(
+      details.querySelector<HTMLInputElement>('input[value="blue"]'),
+    ).toBeChecked()
+
+    fireEvent.click(screen.getByText('詳細条件（1件）'))
+    fireEvent.click(
+      within(details).getByRole('button', { name: '条件をクリア' }),
+    )
+    expect(screen.getByText('詳細条件')).toBeVisible()
+    expect(screen.getByText('9件')).toBeVisible()
+  })
+
+  it('matches the Cards search contract for modes, types, Bloom, Critical, tags, sort, and combined conditions', async () => {
+    renderPage()
+    await screen.findByText('9件')
+    fireEvent.click(screen.getByText('詳細条件'))
+    const details = screen.getByText('詳細条件').closest('details')!
+    const clear = () =>
+      fireEvent.click(
+        within(details).getByRole('button', { name: '条件をクリア' }),
+      )
+    const checkbox = (groupName: string, value: string) =>
+      within(details)
+        .getByRole('group', { name: groupName })
+        .querySelector<HTMLInputElement>(`input[value="${value}"]`)!
+
+    fireEvent.click(checkbox('色', 'blue'))
+    fireEvent.click(checkbox('色', 'red'))
+    fireEvent.change(within(details).getByLabelText('色の一致条件'), {
+      target: { value: 'and' },
+    })
+    expect(screen.getByText('赤青カード')).toBeVisible()
+    expect(screen.getByText('1件')).toBeVisible()
+    clear()
+
+    fireEvent.click(checkbox('カードタイプ', 'oshi'))
+    expect(screen.getByText('推しカード')).toBeVisible()
+    clear()
+
+    fireEvent.click(checkbox('Bloom / Buzz', 'buzz'))
+    expect(screen.getByText('緑のカード')).toBeVisible()
+    clear()
+
+    fireEvent.click(checkbox('Critical', 'blue'))
+    fireEvent.click(checkbox('Critical', 'red'))
+    fireEvent.change(within(details).getByLabelText('Criticalの一致条件'), {
+      target: { value: 'and' },
+    })
+    expect(screen.getByText('赤青カード')).toBeVisible()
+    clear()
+
+    fireEvent.click(checkbox('効果タグ', 'draw'))
+    fireEvent.click(checkbox('効果タグ', 'deck_search'))
+    expect(screen.getByText('赤青カード')).toBeVisible()
+    fireEvent.change(within(details).getByLabelText('効果タグの一致条件'), {
+      target: { value: 'or' },
+    })
+    expect(screen.getByText('赤いカード')).toBeVisible()
+    expect(screen.getByText('青いカード')).toBeVisible()
+    clear()
+
+    fireEvent.change(within(details).getByLabelText('並び順'), {
+      target: { value: 'release_date_desc' },
+    })
+    const picker = screen.getByRole('region', { name: 'カードを追加' })
+    expect(
+      within(picker).getAllByRole('heading', { level: 3 })[0],
+    ).toHaveTextContent('青いカード')
+
+    fireEvent.change(screen.getByLabelText('カード検索'), {
+      target: { value: '赤青' },
+    })
+    fireEvent.click(checkbox('色', 'blue'))
+    fireEvent.click(checkbox('カードタイプ', 'holomem'))
+    fireEvent.click(checkbox('Bloom / Buzz', 'first'))
+    fireEvent.click(checkbox('Critical', 'red'))
+    fireEvent.click(checkbox('効果タグ', 'deck_search'))
+    expect(screen.getByText('赤青カード')).toBeVisible()
+    expect(screen.getByText('1件')).toBeVisible()
+  })
+
+  it('reuses 24-card pagination and keeps the current page while quantities change', async () => {
+    const manyCards = Array.from({ length: 30 }, (_, index) =>
+      card(
+        `PAGE-${String(index + 1).padStart(3, '0')}`,
+        `ページカード${index + 1}`,
+      ),
+    )
+    renderPage({ loadCards: async () => cardsData(manyCards) })
+    await screen.findByText('1 / 2')
+    const pagination = screen.getByRole('navigation', {
+      name: 'カード追加結果のページ',
+    })
+    fireEvent.click(within(pagination).getByRole('button', { name: '次へ' }))
+    expect(screen.getByText('2 / 2')).toBeVisible()
+    fireEvent.click(
+      screen.getByRole('button', { name: 'ページカード25を1枚追加' }),
+    )
+    expect(screen.getByText('2 / 2')).toBeVisible()
+    const picker = screen.getByRole('region', { name: 'カードを追加' })
+    expect(within(picker).getByLabelText('現在 1枚')).toBeVisible()
+  })
+
   it('increments, decrements to removal, removes directly, and autosaves totals', async () => {
     const saveDeck = vi.fn(async () => undefined)
     renderPage({
@@ -323,16 +466,26 @@ describe('DeckEditPage editor operations', () => {
         saveDeck,
       }),
     })
-    await screen.findByText('赤いカード')
+    const currentCards = await screen.findByRole('region', {
+      name: '現在のカード',
+    })
 
     fireEvent.click(
-      screen.getByRole('button', { name: '赤いカードを1枚増やす' }),
+      await within(currentCards).findByRole('button', {
+        name: '赤いカードを1枚追加',
+      }),
     )
-    expect(screen.getByLabelText('赤いカードの現在枚数')).toHaveTextContent('2')
+    expect(within(currentCards).getByLabelText('現在 2枚')).toHaveTextContent(
+      '2',
+    )
     fireEvent.click(
-      screen.getByRole('button', { name: '青いカードを1枚減らす' }),
+      within(currentCards).getByRole('button', {
+        name: '青いカードを1枚減らす',
+      }),
     )
-    expect(screen.queryByText('青いカード')).not.toBeInTheDocument()
+    expect(
+      within(currentCards).queryByText('青いカード'),
+    ).not.toBeInTheDocument()
     fireEvent.click(
       screen.getByRole('button', { name: '赤いカードをデッキから削除' }),
     )
@@ -354,8 +507,10 @@ describe('DeckEditPage editor operations', () => {
     renderPage({ deckRepository: repository({ saveDeck }) })
     const search = await screen.findByLabelText('カード検索')
     fireEvent.change(search, { target: { value: '赤い' } })
-    const add = screen.getByRole('button', {
-      name: '赤いカードをデッキに追加',
+    const add = within(
+      screen.getByRole('region', { name: 'カードを追加' }),
+    ).getByRole('button', {
+      name: '赤いカードを1枚追加',
     })
     fireEvent.click(add)
     fireEvent.click(add)
@@ -376,14 +531,19 @@ describe('DeckEditPage editor operations', () => {
     const search = await screen.findByLabelText('カード検索')
     fireEvent.change(search, { target: { value: '赤い' } })
     fireEvent.click(
-      screen.getByRole('button', { name: '赤いカードをデッキに追加' }),
+      await within(
+        screen.getByRole('region', { name: 'カードを追加' }),
+      ).findByRole('button', { name: '赤いカードを1枚追加' }),
     )
     expect(
       await screen.findByText(/デッキを保存できませんでした/),
     ).toBeVisible()
 
     fireEvent.click(
-      screen.getByRole('button', { name: '赤いカードを1枚増やす' }),
+      within(screen.getByRole('region', { name: 'カードを追加' })).getByRole(
+        'button',
+        { name: '赤いカードを1枚追加' },
+      ),
     )
     expect(await screen.findByText('保存しました')).toBeVisible()
     expect(saveDeck).toHaveBeenCalledTimes(2)
@@ -450,7 +610,10 @@ describe('DeckEditPage share link', () => {
     const search = screen.getByLabelText('カード検索')
     fireEvent.change(search, { target: { value: '赤い' } })
     fireEvent.click(
-      screen.getByRole('button', { name: '赤いカードをデッキに追加' }),
+      within(screen.getByRole('region', { name: 'カードを追加' })).getByRole(
+        'button',
+        { name: '赤いカードを1枚追加' },
+      ),
     )
 
     await waitFor(() => expect(input.value).not.toBe(before))

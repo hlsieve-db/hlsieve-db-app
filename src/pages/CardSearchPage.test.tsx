@@ -15,7 +15,17 @@ import {
 import { describe, expect, it, vi } from 'vitest'
 
 import type { Card, CardsDataFile } from '../domain/cards/types'
+import type { DeckRepository } from '../repositories/deckRepository'
 import { CardSearchPage } from './CardSearchPage'
+
+function emptyDeckRepository(): DeckRepository {
+  return {
+    listDecks: vi.fn(async () => []),
+    getDeck: vi.fn(async () => undefined),
+    saveDeck: vi.fn(async () => undefined),
+    deleteDeck: vi.fn(async () => undefined),
+  }
+}
 
 function card(
   cardNumber: string,
@@ -120,10 +130,12 @@ function renderPage({
   entries = ['/cards'],
   initialIndex,
   loadCards = vi.fn(async () => dataFile()),
+  repository = emptyDeckRepository(),
 }: {
   entries?: string[]
   initialIndex?: number
   loadCards?: () => Promise<CardsDataFile>
+  repository?: DeckRepository
 } = {}) {
   render(
     <MemoryRouter initialEntries={entries} initialIndex={initialIndex}>
@@ -132,7 +144,7 @@ function renderPage({
           path="/cards"
           element={
             <>
-              <CardSearchPage loadCards={loadCards} />
+              <CardSearchPage loadCards={loadCards} repository={repository} />
               <LocationControls />
             </>
           }
@@ -386,9 +398,10 @@ describe('CardSearchPage sort and pagination', () => {
         '/cards?sort=card_number_asc',
       ),
     )
-    expect(screen.getAllByRole('heading', { level: 2 })[0]).toHaveTextContent(
-      '青カード',
-    )
+    const results = screen.getByRole('region', { name: /件のカード/ })
+    expect(
+      within(results).getAllByRole('heading', { level: 2 })[0],
+    ).toHaveTextContent('青カード')
 
     fireEvent.change(screen.getByLabelText('並び順'), {
       target: { value: 'default' },
@@ -396,9 +409,9 @@ describe('CardSearchPage sort and pagination', () => {
     await waitFor(() =>
       expect(screen.getByTestId('location')).toHaveTextContent(/^\/cards$/),
     )
-    expect(screen.getAllByRole('heading', { level: 2 })[0]).toHaveTextContent(
-      'フワモコ',
-    )
+    expect(
+      within(results).getAllByRole('heading', { level: 2 })[0],
+    ).toHaveTextContent('フワモコ')
   })
 
   it('navigates next and previous while preserving filters', async () => {

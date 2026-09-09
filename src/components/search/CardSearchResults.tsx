@@ -1,16 +1,32 @@
 import { Link } from 'react-router-dom'
 
+import { DeckQuantityControl } from '../decks/DeckQuantityControl'
 import type { Card } from '../../domain/cards/types'
 import type { CardPaginationResult } from '../../domain/search/paginateCards'
+
+export type DeckQuickEditControls = {
+  disabled: boolean
+  quantityFor: (cardNumber: string) => number
+  onDecrement: (cardNumber: string) => void
+  onIncrement: (cardNumber: string) => void
+}
 
 type CardSearchResultsProps = {
   result: CardPaginationResult
   onPrevious: () => void
   onNext: () => void
   onClear: () => void
+  deckControls?: DeckQuickEditControls
 }
 
-function CardResult({ card }: { card: Card }) {
+function CardResult({
+  card,
+  deckControls,
+}: {
+  card: Card
+  deckControls?: DeckQuickEditControls
+}) {
+  const quantity = deckControls?.quantityFor(card.cardNumber) ?? 0
   return (
     <article className="card-result">
       <div className="card-result__image-frame">
@@ -32,6 +48,15 @@ function CardResult({ card }: { card: Card }) {
             {card.name}
           </Link>
         </h2>
+        {deckControls && (
+          <DeckQuantityControl
+            cardName={card.name}
+            quantity={quantity}
+            disabled={deckControls.disabled}
+            onDecrement={() => deckControls.onDecrement(card.cardNumber)}
+            onIncrement={() => deckControls.onIncrement(card.cardNumber)}
+          />
+        )}
       </div>
     </article>
   )
@@ -42,6 +67,7 @@ export function CardSearchResults({
   onPrevious,
   onNext,
   onClear,
+  deckControls,
 }: CardSearchResultsProps) {
   return (
     <section className="search-results" aria-labelledby="search-result-count">
@@ -66,7 +92,11 @@ export function CardSearchResults({
       ) : (
         <div className="card-grid">
           {result.items.map((card) => (
-            <CardResult card={card} key={card.cardNumber} />
+            <CardResult
+              card={card}
+              deckControls={deckControls}
+              key={card.cardNumber}
+            />
           ))}
         </div>
       )}

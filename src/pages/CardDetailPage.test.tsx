@@ -19,8 +19,18 @@ import type {
   CardPrintingsDataFile,
   CardsDataFile,
 } from '../domain/cards/types'
+import type { DeckRepository } from '../repositories/deckRepository'
 import { CardDetailPage } from './CardDetailPage'
 import { CardSearchPage } from './CardSearchPage'
+
+function emptyDeckRepository(): DeckRepository {
+  return {
+    listDecks: vi.fn(async () => []),
+    getDeck: vi.fn(async () => undefined),
+    saveDeck: vi.fn(async () => undefined),
+    deleteDeck: vi.fn(async () => undefined),
+  }
+}
 
 function card(overrides: Partial<Card> = {}): Card {
   return {
@@ -111,10 +121,12 @@ function renderDetail({
   path = '/cards/TEST-001',
   loadCards = vi.fn(async () => dataFile()),
   loadPrintings = vi.fn(async () => printingsData()),
+  repository = emptyDeckRepository(),
 }: {
   path?: string
   loadCards?: () => Promise<CardsDataFile>
   loadPrintings?: () => Promise<CardPrintingsDataFile>
+  repository?: DeckRepository
 } = {}) {
   render(
     <MemoryRouter initialEntries={[path]}>
@@ -125,6 +137,7 @@ function renderDetail({
             <CardDetailPage
               loadCards={loadCards}
               loadPrintings={loadPrintings}
+              repository={repository}
             />
           }
         />
@@ -350,7 +363,12 @@ describe('search to detail navigation', () => {
         <Routes>
           <Route
             path="/cards"
-            element={<CardSearchPage loadCards={loadCards} />}
+            element={
+              <CardSearchPage
+                loadCards={loadCards}
+                repository={emptyDeckRepository()}
+              />
+            }
           />
           <Route
             path="/cards/:cardNumber"
@@ -358,6 +376,7 @@ describe('search to detail navigation', () => {
               <CardDetailPage
                 loadCards={loadCards}
                 loadPrintings={async () => printingsData('CARD-025')}
+                repository={emptyDeckRepository()}
               />
             }
           />
@@ -389,7 +408,10 @@ describe('search to detail navigation', () => {
     const encodedCard = card({ cardNumber: 'TEST 001', name: '空白カード' })
     render(
       <MemoryRouter>
-        <CardSearchPage loadCards={async () => dataFile([encodedCard])} />
+        <CardSearchPage
+          loadCards={async () => dataFile([encodedCard])}
+          repository={emptyDeckRepository()}
+        />
       </MemoryRouter>,
     )
 

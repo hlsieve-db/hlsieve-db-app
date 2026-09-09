@@ -10,6 +10,7 @@ import {
 import { useLocation, useNavigate } from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
+import { DeckTargetSelector } from '../components/decks/DeckTargetSelector'
 import { CardSearchFilters } from '../components/search/CardSearchFilters'
 import { CardSearchResults } from '../components/search/CardSearchResults'
 import type { CardsDataFile } from '../domain/cards/types'
@@ -22,6 +23,11 @@ import {
   type SearchUrlState,
 } from '../domain/search/searchUrlState'
 import { loadCardsData } from '../repositories/loadCardsData'
+import {
+  deckRepository,
+  type DeckRepository,
+} from '../repositories/deckRepository'
+import { useSavedDeckQuickEdit } from '../hooks/useSavedDeckQuickEdit'
 
 type CardDataState =
   | { status: 'loading' }
@@ -30,6 +36,7 @@ type CardDataState =
 
 type CardSearchPageProps = {
   loadCards?: () => Promise<CardsDataFile>
+  repository?: DeckRepository
 }
 
 function searchString(params: URLSearchParams): string {
@@ -39,6 +46,7 @@ function searchString(params: URLSearchParams): string {
 
 export function CardSearchPage({
   loadCards = loadCardsData,
+  repository = deckRepository,
 }: CardSearchPageProps) {
   const location = useLocation()
   const navigate = useNavigate()
@@ -56,6 +64,7 @@ export function CardSearchPage({
   const [loadAttempt, setLoadAttempt] = useState(0)
   const [queryDraft, setQueryDraft] = useState(urlState.query)
   const isComposing = useRef(false)
+  const deckQuickEdit = useSavedDeckQuickEdit(repository)
 
   useEffect(() => {
     const previousTitle = document.title
@@ -210,6 +219,21 @@ export function CardSearchPage({
         </div>
       </section>
 
+      <section
+        className="deck-quick-add-panel search-deck-target"
+        aria-labelledby="search-deck-target-heading"
+      >
+        <h2 id="search-deck-target-heading">デッキへ追加</h2>
+        <DeckTargetSelector
+          state={deckQuickEdit.state}
+          decks={deckQuickEdit.decks}
+          selectedDeckId={deckQuickEdit.selectedDeckId}
+          saveState={deckQuickEdit.saveState}
+          onSelect={deckQuickEdit.selectDeck}
+          onRetry={deckQuickEdit.retry}
+        />
+      </section>
+
       {cardData.status === 'loading' && (
         <p className="status-message" role="status" aria-live="polite">
           カードデータを読み込んでいます…
@@ -235,6 +259,12 @@ export function CardSearchPage({
             navigateToState({ ...urlState, page: results.page + 1 }, false)
           }
           onClear={() => navigateToState(DEFAULT_SEARCH_URL_STATE, false)}
+          deckControls={{
+            disabled: !deckQuickEdit.selectedDeck,
+            quantityFor: deckQuickEdit.quantityFor,
+            onDecrement: deckQuickEdit.decrement,
+            onIncrement: deckQuickEdit.increment,
+          }}
         />
       )}
     </main>
