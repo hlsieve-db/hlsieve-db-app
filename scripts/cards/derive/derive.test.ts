@@ -125,6 +125,38 @@ describe('structured EffectTag rules', () => {
   it('does not derive gift from the card name', () => {
     expect(tags({ name: 'Gift of Hope' })).not.toContain('gift')
   })
+
+  it('derives second_turn_one only from a collab ability with the condition in that same ability', () => {
+    const positive = deriveCardEffects(
+      card({
+        abilities: [
+          {
+            type: 'collab',
+            text: 'コラボ能力\n自分が後攻で最初のターンなら、カードを1枚引く。',
+          },
+        ],
+      }),
+    )
+    expect(positive.effectTags).toContain('second_turn_one')
+    expect(positive.evidence).toContainEqual({
+      tag: 'second_turn_one',
+      source: 'ability_text',
+      sourceIndex: 0,
+      rule: 'collab_ability_second_turn_one',
+    })
+
+    expect(
+      tags({
+        abilities: [
+          { type: 'collab', text: 'コラボ能力だけを持つ。' },
+          {
+            type: 'normal',
+            text: '自分が後攻で最初のターンなら、カードを1枚引く。',
+          },
+        ],
+      }),
+    ).not.toContain('second_turn_one')
+  })
 })
 
 describe('individual semantic text rules', () => {

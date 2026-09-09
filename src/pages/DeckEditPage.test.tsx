@@ -203,9 +203,20 @@ describe('DeckEditPage editor operations', () => {
     const currentCards = await screen.findByRole('region', {
       name: '現在のカード',
     })
-    expect(await within(currentCards).findByText('赤いカード')).toBeVisible()
-    expect(screen.getAllByText(/UNKNOWN-001/).length).toBeGreaterThanOrEqual(2)
-    expect(screen.getByText('カードデータに存在しないカードです')).toBeVisible()
+    expect(
+      within(currentCards).queryByText('赤いカード'),
+    ).not.toBeInTheDocument()
+    expect(
+      await within(currentCards).findByRole('button', {
+        name: '赤いカードを1枚追加',
+      }),
+    ).toBeVisible()
+    expect(
+      within(currentCards).getByRole('button', {
+        name: 'UNKNOWN-001を1枚追加',
+      }),
+    ).toBeVisible()
+    expect(screen.getByText('カード情報なし')).toBeVisible()
     expect(screen.getByText('合計 3枚')).toBeVisible()
   })
 
@@ -270,6 +281,67 @@ describe('DeckEditPage editor operations', () => {
     expect(screen.getByRole('heading', { name: /推しホロメン/ })).toBeVisible()
     expect(screen.getByRole('heading', { name: /メインデッキ/ })).toBeVisible()
     expect(screen.getByRole('heading', { name: /エールデッキ/ })).toBeVisible()
+    const currentCards = screen.getByRole('region', { name: '現在のカード' })
+    const oshiEntry = within(currentCards).getByText('推しカード').closest('li')
+    expect(oshiEntry).toHaveClass('deck-entry')
+    expect(oshiEntry).not.toHaveClass('deck-entry--compact')
+    expect(within(oshiEntry!).getByText('OSHI-001')).toBeVisible()
+    expect(
+      within(oshiEntry!).getByRole('button', {
+        name: '推しカードをデッキから削除',
+      }),
+    ).toBeVisible()
+  })
+
+  it('renders non-Oshi entries as three-column image and quantity tiles', async () => {
+    renderPage({
+      deckRepository: repository({
+        getDeck: async () =>
+          deck({
+            entries: [
+              { cardNumber: 'CARD-001', quantity: 2 },
+              { cardNumber: 'CARD-002', quantity: 10 },
+              { cardNumber: 'CHEER-001', quantity: 1 },
+            ],
+          }),
+      }),
+    })
+
+    const currentCards = await screen.findByRole('region', {
+      name: '現在のカード',
+    })
+    await within(currentCards).findByRole('button', {
+      name: '赤いカードを1枚追加',
+    })
+    expect(
+      within(currentCards).queryByText('赤いカード'),
+    ).not.toBeInTheDocument()
+    expect(within(currentCards).queryByText('CARD-001')).not.toBeInTheDocument()
+
+    const mainList = screen
+      .getByRole('heading', { name: /メインデッキ/ })
+      .closest('section')!
+      .querySelector('ul')!
+    expect(mainList).toHaveClass('deck-entry-list--compact')
+    expect(mainList.children).toHaveLength(2)
+
+    const firstTile = mainList.children[0] as HTMLElement
+    expect(firstTile).toHaveClass('deck-entry--compact')
+    expect(firstTile.children[0]).toHaveClass('deck-card-image')
+    expect(firstTile.children[1]).toHaveClass('deck-quantity-control')
+    const controls = firstTile.children[1] as HTMLElement
+    expect(controls.children).toHaveLength(3)
+    expect(controls.children[0]).toHaveTextContent('−')
+    expect(controls.children[1]).toHaveTextContent('2')
+    expect(controls.children[1]).toHaveAttribute('aria-label', '現在 2枚')
+    expect(controls.children[2]).toHaveTextContent('＋')
+
+    const cheerList = screen
+      .getByRole('heading', { name: /エールデッキ/ })
+      .closest('section')!
+      .querySelector('ul')!
+    expect(cheerList).toHaveClass('deck-entry-list--compact')
+    expect(cheerList.children[0]?.children[0]).toHaveClass('deck-card-image')
   })
 
   it('shows copy-limit, restricted-card, and deckLimit issues', async () => {
@@ -452,8 +524,10 @@ describe('DeckEditPage editor operations', () => {
     expect(within(picker).getByLabelText('現在 1枚')).toBeVisible()
   })
 
-  it('increments, decrements to removal, removes directly, and autosaves totals', async () => {
-    const saveDeck = vi.fn(async () => undefined)
+  it('increments, decrements to removal, and autosaves compact entries', async () => {
+    const saveDeck = vi.fn<(value: Deck) => Promise<void>>(
+      async () => undefined,
+    )
     renderPage({
       deckRepository: repository({
         getDeck: async () =>
@@ -484,14 +558,24 @@ describe('DeckEditPage editor operations', () => {
       }),
     )
     expect(
-      within(currentCards).queryByText('青いカード'),
+      within(currentCards).queryByRole('button', {
+        name: '青いカードを1枚追加',
+      }),
     ).not.toBeInTheDocument()
     fireEvent.click(
-      screen.getByRole('button', { name: '赤いカードをデッキから削除' }),
+      within(currentCards).getByRole('button', {
+        name: '赤いカードを1枚減らす',
+      }),
+    )
+    fireEvent.click(
+      within(currentCards).getByRole('button', {
+        name: '赤いカードを1枚減らす',
+      }),
     )
     expect(screen.getByText('カードが追加されていません。')).toBeVisible()
     expect(screen.getByText('合計 0枚')).toBeVisible()
-    await waitFor(() => expect(saveDeck).toHaveBeenCalledTimes(3))
+    await waitFor(() => expect(saveDeck).toHaveBeenCalledTimes(4))
+    expect(saveDeck.mock.calls[3]?.[0].entries).toEqual([])
   })
 
   it('serializes rapid saves so the latest state cannot be overwritten', async () => {
@@ -507,9 +591,9 @@ describe('DeckEditPage editor operations', () => {
     renderPage({ deckRepository: repository({ saveDeck }) })
     const search = await screen.findByLabelText('カード検索')
     fireEvent.change(search, { target: { value: '赤い' } })
-    const add = within(
+    const add = await within(
       screen.getByRole('region', { name: 'カードを追加' }),
-    ).getByRole('button', {
+    ).findByRole('button', {
       name: '赤いカードを1枚追加',
     })
     fireEvent.click(add)

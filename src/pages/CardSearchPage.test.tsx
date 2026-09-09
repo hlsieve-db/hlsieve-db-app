@@ -11,6 +11,7 @@ import {
   Routes,
   useLocation,
   useNavigate,
+  useParams,
 } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -126,6 +127,16 @@ function LocationControls() {
   )
 }
 
+function DetailDestination() {
+  const { cardNumber } = useParams()
+  return (
+    <>
+      <h1>Detail destination {cardNumber}</h1>
+      <LocationControls />
+    </>
+  )
+}
+
 function renderPage({
   entries = ['/cards'],
   initialIndex,
@@ -150,6 +161,7 @@ function renderPage({
           }
         />
         <Route path="/previous" element={<p>前の画面</p>} />
+        <Route path="/cards/:cardNumber" element={<DetailDestination />} />
       </Routes>
     </MemoryRouter>,
   )
@@ -186,6 +198,57 @@ describe('CardSearchPage loading and results', () => {
     expect(
       screen.getByRole('heading', { name: 'フワモコ' }),
     ).toBeInTheDocument()
+  })
+
+  it.each([
+    ['card name', () => screen.getByRole('link', { name: 'フワモコ' })],
+    [
+      'card image',
+      () => screen.getByRole('link', { name: 'フワモコの詳細を見る' }),
+    ],
+  ] as const)(
+    'opens the same logical detail from the %s link',
+    async (_, getLink) => {
+      renderPage()
+      await loaded()
+
+      fireEvent.click(getLink())
+      expect(
+        screen.getByRole('heading', { name: 'Detail destination Z-003' }),
+      ).toBeVisible()
+      expect(screen.getByTestId('location')).toHaveTextContent('/cards/Z-003')
+    },
+  )
+
+  it('keeps the image link keyboard-focusable with lazy image semantics', async () => {
+    renderPage()
+    await loaded()
+    const imageLink = screen.getByRole('link', {
+      name: 'フワモコの詳細を見る',
+    })
+
+    imageLink.focus()
+    expect(imageLink).toHaveFocus()
+    expect(
+      screen.getByRole('img', { name: 'フワモコのカード画像' }),
+    ).toHaveAttribute('loading', 'lazy')
+  })
+
+  it('restores filters, sort, and page after returning from detail', async () => {
+    renderPage({ entries: ['/cards?color=green&sort=card_number_asc&page=2'] })
+    await screen.findByText('2 / 2ページ')
+
+    fireEvent.click(screen.getAllByRole('link', { name: /の詳細を見る/ })[0]!)
+    fireEvent.click(screen.getByRole('button', { name: '履歴を戻る' }))
+
+    expect(screen.getByTestId('location')).toHaveTextContent(
+      '/cards?color=green&sort=card_number_asc&page=2',
+    )
+    await waitFor(() => {
+      expect(screen.getByText('2 / 2ページ')).toBeVisible()
+      expect(group('色').querySelector('input[value="green"]')).toBeChecked()
+      expect(screen.getByLabelText('並び順')).toHaveValue('card_number_asc')
+    })
   })
 
   it('shows an error without results and retries successfully', async () => {

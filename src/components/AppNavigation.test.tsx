@@ -50,6 +50,31 @@ afterEach(() => {
 })
 
 describe('AppNavigation theme control', () => {
+  it.each([
+    '/cards',
+    '/cards/CARD-001',
+    '/decks',
+    '/decks/deck-1',
+    '/deck/share',
+    '/unknown',
+  ])(
+    'shows the visual subtitle without changing brand identity on %s',
+    (path) => {
+      mockColorScheme(false)
+      render(
+        <MemoryRouter initialEntries={[path]}>
+          <AppNavigation />
+        </MemoryRouter>,
+      )
+
+      expect(screen.getByText('ホロライブOCGカード検索DB')).toBeVisible()
+      expect(screen.getByRole('link', { name: 'HLSieve DB' })).toHaveAttribute(
+        'href',
+        '/cards',
+      )
+    },
+  )
+
   it('defaults to system and follows media-query changes', async () => {
     const media = mockColorScheme(false)
     render(

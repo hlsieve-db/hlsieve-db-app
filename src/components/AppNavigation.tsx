@@ -12,10 +12,15 @@ export function AppNavigation() {
 
   return (
     <div className="app-navigation">
-      <Link className="site-brand" to="/cards">
-        <img src="/hlsieve-mark.svg" alt="" aria-hidden="true" />
-        <span>HLSieve DB</span>
-      </Link>
+      <div className="site-branding">
+        <Link className="site-brand" to="/cards">
+          <img src="/hlsieve-mark.svg" alt="" aria-hidden="true" />
+          <span>HLSieve DB</span>
+        </Link>
+        <span className="site-brand__subtitle" aria-hidden="true">
+          ホロライブOCGカード検索DB
+        </span>
+      </div>
       <div className="app-navigation__controls">
         <nav aria-label="メインナビゲーション">
           <NavLink to="/cards">Cards</NavLink>

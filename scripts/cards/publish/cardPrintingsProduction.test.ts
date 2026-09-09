@@ -4,7 +4,8 @@ import { readFile } from 'node:fs/promises'
 
 import { describe, expect, it } from 'vitest'
 
-import type { CardsDataFile } from '../../../src/domain/cards/types'
+import type { Card, CardsDataFile } from '../../../src/domain/cards/types'
+import { matchesSecondTurnOne } from '../derive/effectTextRules'
 import { validateCardPrintingsSnapshotText } from './validateCardPrintingsSnapshot'
 import { validateCardsSnapshotText } from './validateCardsSnapshot'
 
@@ -54,9 +55,35 @@ describe('production card printing snapshot', () => {
     expect(isBuzz(cardsValidation.value, 'hBP07-019')).toBe(true)
     expect(isBuzz(cardsValidation.value, 'hBP07-048')).toBe(true)
     expect(isBuzz(cardsValidation.value, 'hBP07-076')).toBe(false)
+
+    const secondTurnOneCards = cardsValidation.value.cards.filter((card) =>
+      card.effectTags.includes('second_turn_one'),
+    )
+    expect(secondTurnOneCards).toHaveLength(45)
+    expect(
+      secondTurnOneCards.every((card) =>
+        card.abilities.some(
+          (ability) =>
+            ability.type === 'collab' && matchesSecondTurnOne(ability.text),
+        ),
+      ),
+    ).toBe(true)
+    expect(effectTags(cardsValidation.value, 'hBP05-009')).toContain(
+      'second_turn_one',
+    )
+    expect(effectTags(cardsValidation.value, 'hBP05-031')).not.toContain(
+      'second_turn_one',
+    )
   })
 })
 
 function isBuzz(cards: CardsDataFile, cardNumber: string): boolean | undefined {
   return cards.cards.find((card) => card.cardNumber === cardNumber)?.isBuzz
+}
+
+function effectTags(
+  cards: CardsDataFile,
+  cardNumber: string,
+): Card['effectTags'] | undefined {
+  return cards.cards.find((card) => card.cardNumber === cardNumber)?.effectTags
 }

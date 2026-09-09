@@ -349,10 +349,54 @@ function DeckEditor({
                       枚
                     </span>
                   </h3>
-                  <ul className="deck-entry-list">
+                  <ul
+                    className={
+                      group.key === 'oshi'
+                        ? 'deck-entry-list'
+                        : 'deck-entry-list deck-entry-list--compact'
+                    }
+                  >
                     {group.entries.map((entry) => {
                       const card = cardsByNumber.get(entry.cardNumber)
                       const displayName = card?.name ?? entry.cardNumber
+                      if (group.key !== 'oshi') {
+                        return (
+                          <li
+                            className="deck-entry deck-entry--compact"
+                            key={entry.cardNumber}
+                          >
+                            <DeckCardImage card={card} />
+                            <DeckQuantityControl
+                              cardName={displayName}
+                              quantity={entry.quantity}
+                              onDecrement={() =>
+                                applyDeckChange((current) =>
+                                  decrementCardQuantity(
+                                    current,
+                                    entry.cardNumber,
+                                  ),
+                                )
+                              }
+                              onIncrement={() =>
+                                applyDeckChange((current) =>
+                                  incrementCardQuantity(
+                                    current,
+                                    entry.cardNumber,
+                                  ),
+                                )
+                              }
+                            />
+                            {cardsState.status === 'loaded' && !card && (
+                              <span
+                                className="deck-entry__warning"
+                                role="alert"
+                              >
+                                カード情報なし
+                              </span>
+                            )}
+                          </li>
+                        )
+                      }
                       return (
                         <li className="deck-entry" key={entry.cardNumber}>
                           <DeckCardImage card={card} />

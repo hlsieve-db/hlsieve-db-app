@@ -71,7 +71,12 @@ function repository(
 
 function Location() {
   const location = useLocation()
-  return <output data-testid="location">{location.search}</output>
+  return (
+    <output data-testid="location">
+      {location.pathname}
+      {location.search}
+    </output>
+  )
 }
 
 function renderPage(
@@ -126,7 +131,7 @@ describe('CardSearchPage deck quick add', () => {
 
     await waitFor(() => expect(saveDeck).toHaveBeenCalledTimes(3))
     expect(saveDeck.mock.calls[2]?.[0].entries).toEqual([])
-    expect(screen.getByTestId('location')).toHaveTextContent('q=')
+    expect(screen.getByTestId('location')).toHaveTextContent('/cards?q=')
   })
 
   it('shares a valid preference, switches decks, and falls back from a stale ID', async () => {

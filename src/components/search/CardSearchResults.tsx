@@ -27,26 +27,31 @@ function CardResult({
   deckControls?: DeckQuickEditControls
 }) {
   const quantity = deckControls?.quantityFor(card.cardNumber) ?? 0
+  const detailPath = `/cards/${encodeURIComponent(card.cardNumber)}`
   return (
     <article className="card-result">
-      <div className="card-result__image-frame">
-        {card.imageUrl ? (
-          <img
-            src={card.imageUrl}
-            alt={`${card.name}のカード画像`}
-            loading="lazy"
-            decoding="async"
-          />
-        ) : (
-          <span className="card-result__image-missing">画像なし</span>
-        )}
-      </div>
+      <Link
+        className="card-result__image-link"
+        to={detailPath}
+        aria-label={`${card.name}の詳細を見る`}
+      >
+        <div className="card-result__image-frame">
+          {card.imageUrl ? (
+            <img
+              src={card.imageUrl}
+              alt={`${card.name}のカード画像`}
+              loading="lazy"
+              decoding="async"
+            />
+          ) : (
+            <span className="card-result__image-missing">画像なし</span>
+          )}
+        </div>
+      </Link>
       <div className="card-result__body">
         <p className="card-result__number">{card.cardNumber}</p>
         <h2>
-          <Link to={`/cards/${encodeURIComponent(card.cardNumber)}`}>
-            {card.name}
-          </Link>
+          <Link to={detailPath}>{card.name}</Link>
         </h2>
         {deckControls && (
           <DeckQuantityControl

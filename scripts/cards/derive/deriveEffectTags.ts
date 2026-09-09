@@ -52,7 +52,6 @@ export function collectEffectTextSources(
 }
 
 const TEXT_RULES = [
-  ['second_turn_one', 'second_turn_one', matchesSecondTurnOne],
   ['draw', 'draw', matchesDraw],
   ['deck_search', 'deck_search', matchesDeckSearch],
   ['cheer_acceleration', 'cheer_acceleration', matchesCheerAcceleration],
@@ -86,6 +85,15 @@ export function deriveEffectTags(card: MergedCardCandidate): {
         source: 'ability_type',
         sourceIndex,
         rule: `ability_type_${ability.type}`,
+      })
+    }
+    if (ability.type === 'collab' && matchesSecondTurnOne(ability.text)) {
+      detected.add('second_turn_one')
+      evidence.push({
+        tag: 'second_turn_one',
+        source: 'ability_text',
+        sourceIndex,
+        rule: 'collab_ability_second_turn_one',
       })
     }
   })
