@@ -6,8 +6,14 @@ import { DeckLegalitySummary } from '../components/decks/DeckLegalitySummary'
 import { DeckQuantityControl } from '../components/decks/DeckQuantityControl'
 import { DECK_ZONE_LABELS } from '../components/decks/constants'
 import { CardSearchFilters } from '../components/search/CardSearchFilters'
+import { assertCardPrintingsCompatibility } from '../domain/cards/cardPrintingsValidation'
 import { CARD_TYPE_LABELS } from '../domain/cards/constants'
-import type { Card, CardsDataFile } from '../domain/cards/types'
+import { buildOriginalPrintingImageMap } from '../domain/cards/originalPrinting'
+import type {
+  Card,
+  CardPrintingsDataFile,
+  CardsDataFile,
+} from '../domain/cards/types'
 import { DECK_NAME_MAX_LENGTH } from '../domain/decks/constants'
 import {
   addCardToDeck,
@@ -31,6 +37,7 @@ import {
   deckRepository,
   type DeckRepository,
 } from '../repositories/deckRepository'
+import { loadCardPrintingsData } from '../repositories/loadCardPrintingsData'
 import { loadCardsData } from '../repositories/loadCardsData'
 
 type DeckLoadState =
@@ -44,22 +51,47 @@ type CardLoadState =
   | { status: 'loaded'; data: CardsDataFile }
   | { status: 'error' }
 
+type PrintingLoadState =
+  | { status: 'loading' }
+  | { status: 'loaded'; data: CardPrintingsDataFile }
+  | { status: 'error' }
+
 type CopyResult = { status: 'copied' | 'error'; url: string }
 
 type DeckEditPageProps = {
   repository?: DeckRepository
   loadCards?: () => Promise<CardsDataFile>
+  loadPrintings?: () => Promise<CardPrintingsDataFile>
 }
 
-function DeckCardImage({ card }: { card?: Card }) {
-  return (
+function DeckCardImage({
+  card,
+  imageUrl = card?.imageUrl,
+  linkToDetail = false,
+}: {
+  card?: Card
+  imageUrl?: string
+  linkToDetail?: boolean
+}) {
+  const image = (
     <div className="deck-card-image">
-      {card?.imageUrl ? (
-        <img src={card.imageUrl} alt="" loading="lazy" decoding="async" />
+      {imageUrl ? (
+        <img src={imageUrl} alt="" loading="lazy" decoding="async" />
       ) : (
         <span>画像なし</span>
       )}
     </div>
+  )
+  return linkToDetail && card ? (
+    <Link
+      className="deck-card-image-link"
+      to={`/cards/${encodeURIComponent(card.cardNumber)}`}
+      aria-label={`${card.name}のカード詳細を開く`}
+    >
+      {image}
+    </Link>
+  ) : (
+    image
   )
 }
 
@@ -73,10 +105,12 @@ function DeckEditor({
   initialDeck,
   repository,
   loadCards,
+  loadPrintings,
 }: {
   initialDeck: Deck
   repository: DeckRepository
   loadCards: () => Promise<CardsDataFile>
+  loadPrintings: () => Promise<CardPrintingsDataFile>
 }) {
   const [deck, setDeck] = useState(initialDeck)
   const [nameDraft, setNameDraft] = useState(initialDeck.name)
@@ -86,6 +120,9 @@ function DeckEditor({
     status: 'loading',
   })
   const [cardsLoadAttempt, setCardsLoadAttempt] = useState(0)
+  const [printingsState, setPrintingsState] = useState<PrintingLoadState>({
+    status: 'loading',
+  })
   const [pickerState, setPickerState] = useState<SearchUrlState>(
     DEFAULT_SEARCH_URL_STATE,
   )
@@ -112,6 +149,21 @@ function DeckEditor({
     }
   }, [cardsLoadAttempt, loadCards])
 
+  useEffect(() => {
+    let active = true
+    void loadPrintings().then(
+      (data) => {
+        if (active) setPrintingsState({ status: 'loaded', data })
+      },
+      () => {
+        if (active) setPrintingsState({ status: 'error' })
+      },
+    )
+    return () => {
+      active = false
+    }
+  }, [loadPrintings])
+
   const cardsByNumber = useMemo(
     () =>
       new Map(
@@ -130,6 +182,24 @@ function DeckEditor({
       ),
     [cardsState, pickerState],
   )
+
+  const originalPrintingImages = useMemo(() => {
+    if (cardsState.status !== 'loaded' || printingsState.status !== 'loaded') {
+      return new Map<string, string>()
+    }
+    try {
+      assertCardPrintingsCompatibility(
+        cardsState.data.dataVersion,
+        printingsState.data,
+      )
+    } catch {
+      return new Map<string, string>()
+    }
+    return buildOriginalPrintingImageMap(
+      cardsState.data.cards,
+      printingsState.data.cards,
+    )
+  }, [cardsState, printingsState])
 
   const activeFilterCount =
     pickerState.colors.length +
@@ -365,7 +435,7 @@ function DeckEditor({
                             className="deck-entry deck-entry--compact"
                             key={entry.cardNumber}
                           >
-                            <DeckCardImage card={card} />
+                            <DeckCardImage card={card} linkToDetail />
                             <DeckQuantityControl
                               cardName={displayName}
                               quantity={entry.quantity}
@@ -399,7 +469,7 @@ function DeckEditor({
                       }
                       return (
                         <li className="deck-entry" key={entry.cardNumber}>
-                          <DeckCardImage card={card} />
+                          <DeckCardImage card={card} linkToDetail />
                           <div className="deck-entry__information">
                             <h4>{displayName}</h4>
                             <p>{entry.cardNumber}</p>
@@ -543,7 +613,10 @@ function DeckEditor({
                     )?.quantity ?? 0
                   return (
                     <li key={card.cardNumber}>
-                      <DeckCardImage card={card} />
+                      <DeckCardImage
+                        card={card}
+                        imageUrl={originalPrintingImages.get(card.cardNumber)}
+                      />
                       <div>
                         <h3>{card.name}</h3>
                         <p>
@@ -614,6 +687,7 @@ function DeckEditor({
 export function DeckEditPage({
   repository = deckRepository,
   loadCards = loadCardsData,
+  loadPrintings = loadCardPrintingsData,
 }: DeckEditPageProps) {
   const { deckId } = useParams<'deckId'>()
   const [state, setState] = useState<DeckLoadState>({ status: 'loading' })
@@ -688,6 +762,7 @@ export function DeckEditPage({
           initialDeck={state.deck}
           repository={repository}
           loadCards={loadCards}
+          loadPrintings={loadPrintings}
         />
       )}
     </main>

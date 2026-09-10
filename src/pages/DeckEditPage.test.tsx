@@ -5,10 +5,20 @@ import {
   waitFor,
   within,
 } from '@testing-library/react'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import {
+  MemoryRouter,
+  Route,
+  Routes,
+  useNavigate,
+  useParams,
+} from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import type { Card, CardsDataFile } from '../domain/cards/types'
+import type {
+  Card,
+  CardPrintingsDataFile,
+  CardsDataFile,
+} from '../domain/cards/types'
 import type { Deck } from '../domain/decks/types'
 import { decodeDeckSharePayload } from '../domain/share/deckShareCodec'
 import type { DeckRepository } from '../repositories/deckRepository'
@@ -93,6 +103,35 @@ function cardsData(source = cards): CardsDataFile {
   }
 }
 
+function printingsData(
+  source = cards,
+  groups: CardPrintingsDataFile['cards'] = {},
+): CardPrintingsDataFile {
+  return {
+    format: 'hlsieve-card-printings',
+    formatVersion: 1,
+    cardsDataVersion: cardsData(source).dataVersion,
+    dataVersion: `sha256:${'1'.repeat(64)}`,
+    cards: Object.fromEntries(
+      source.map((value, index) => [
+        value.cardNumber,
+        groups[value.cardNumber] ?? {
+          defaultPrintingOfficialId: String(index + 1),
+          printings: [
+            {
+              officialId: String(index + 1),
+              officialUrl: `https://example.com/printings/${index + 1}`,
+              isParallel: false,
+              imageUrl: value.imageUrl,
+              products: ['PRカード'],
+            },
+          ],
+        },
+      ]),
+    ),
+  }
+}
+
 function repository(overrides: Partial<DeckRepository> = {}): DeckRepository {
   return {
     listDecks: vi.fn(async () => []),
@@ -106,10 +145,12 @@ function repository(overrides: Partial<DeckRepository> = {}): DeckRepository {
 function renderPage({
   deckRepository = repository(),
   loadCards = vi.fn(async () => cardsData()),
+  loadPrintings = vi.fn(async () => printingsData()),
   path = '/decks/deck-1',
 }: {
   deckRepository?: DeckRepository
   loadCards?: () => Promise<CardsDataFile>
+  loadPrintings?: () => Promise<CardPrintingsDataFile>
   path?: string
 } = {}) {
   render(
@@ -118,14 +159,32 @@ function renderPage({
         <Route
           path="/decks/:deckId"
           element={
-            <DeckEditPage repository={deckRepository} loadCards={loadCards} />
+            <DeckEditPage
+              repository={deckRepository}
+              loadCards={loadCards}
+              loadPrintings={loadPrintings}
+            />
           }
         />
         <Route path="/decks" element={<p>Deck list destination</p>} />
+        <Route path="/cards/:cardNumber" element={<CardDetailDestination />} />
       </Routes>
     </MemoryRouter>,
   )
-  return { deckRepository, loadCards }
+  return { deckRepository, loadCards, loadPrintings }
+}
+
+function CardDetailDestination() {
+  const { cardNumber } = useParams<'cardNumber'>()
+  const navigate = useNavigate()
+  return (
+    <>
+      <p>Card detail destination: {cardNumber}</p>
+      <button type="button" onClick={() => navigate(-1)}>
+        Browser Back
+      </button>
+    </>
+  )
 }
 
 const originalClipboard = navigator.clipboard
@@ -327,7 +386,8 @@ describe('DeckEditPage editor operations', () => {
 
     const firstTile = mainList.children[0] as HTMLElement
     expect(firstTile).toHaveClass('deck-entry--compact')
-    expect(firstTile.children[0]).toHaveClass('deck-card-image')
+    expect(firstTile.children[0]).toHaveClass('deck-card-image-link')
+    expect(firstTile.children[0]?.children[0]).toHaveClass('deck-card-image')
     expect(firstTile.children[1]).toHaveClass('deck-quantity-control')
     const controls = firstTile.children[1] as HTMLElement
     expect(controls.children).toHaveLength(3)
@@ -341,7 +401,148 @@ describe('DeckEditPage editor operations', () => {
       .closest('section')!
       .querySelector('ul')!
     expect(cheerList).toHaveClass('deck-entry-list--compact')
-    expect(cheerList.children[0]?.children[0]).toHaveClass('deck-card-image')
+    expect(cheerList.children[0]?.children[0]).toHaveClass(
+      'deck-card-image-link',
+    )
+    expect(cheerList.children[0]?.children[0]?.children[0]).toHaveClass(
+      'deck-card-image',
+    )
+  })
+
+  it('links Oshi, Main, and Cheer images to logical Card Detail routes and preserves Back navigation', async () => {
+    renderPage({
+      deckRepository: repository({
+        getDeck: async () =>
+          deck({
+            entries: [
+              { cardNumber: 'OSHI-001', quantity: 1 },
+              { cardNumber: 'CARD-001', quantity: 2 },
+              { cardNumber: 'CHEER-001', quantity: 20 },
+            ],
+          }),
+      }),
+    })
+
+    const currentCards = await screen.findByRole('region', {
+      name: '現在のカード',
+    })
+    const oshiLink = await within(currentCards).findByRole('link', {
+      name: '推しカードのカード詳細を開く',
+    })
+    const mainLink = within(currentCards).getByRole('link', {
+      name: '赤いカードのカード詳細を開く',
+    })
+    const cheerLink = within(currentCards).getByRole('link', {
+      name: '白エールのカード詳細を開く',
+    })
+
+    expect(oshiLink).toHaveAttribute('href', '/cards/OSHI-001')
+    expect(mainLink).toHaveAttribute('href', '/cards/CARD-001')
+    expect(cheerLink).toHaveAttribute('href', '/cards/CHEER-001')
+    expect(mainLink.getAttribute('href')).not.toContain('?printing=')
+    expect(mainLink.tagName).toBe('A')
+    mainLink.focus()
+    expect(mainLink).toHaveFocus()
+
+    fireEvent.click(mainLink)
+    expect(screen.getByText('Card detail destination: CARD-001')).toBeVisible()
+    fireEvent.click(screen.getByRole('button', { name: 'Browser Back' }))
+    expect(
+      await screen.findByRole('region', { name: '現在のカード' }),
+    ).toBeVisible()
+  })
+
+  it('keeps quantity controls outside image links and does not navigate when they change quantity', async () => {
+    const saveDeck = vi.fn(async () => undefined)
+    renderPage({
+      deckRepository: repository({
+        getDeck: async () =>
+          deck({ entries: [{ cardNumber: 'CARD-001', quantity: 2 }] }),
+        saveDeck,
+      }),
+    })
+    const currentCards = await screen.findByRole('region', {
+      name: '現在のカード',
+    })
+    const link = await within(currentCards).findByRole('link', {
+      name: '赤いカードのカード詳細を開く',
+    })
+    expect(
+      within(link).queryByRole('button', { name: /赤いカードを1枚/ }),
+    ).not.toBeInTheDocument()
+
+    fireEvent.click(
+      within(currentCards).getByRole('button', {
+        name: '赤いカードを1枚減らす',
+      }),
+    )
+    expect(screen.getByRole('region', { name: '現在のカード' })).toBeVisible()
+    fireEvent.click(
+      within(currentCards).getByRole('button', {
+        name: '赤いカードを1枚追加',
+      }),
+    )
+    expect(screen.getByRole('region', { name: '現在のカード' })).toBeVisible()
+    await waitFor(() => expect(saveDeck).toHaveBeenCalledTimes(2))
+  })
+
+  it('uses the original non-parallel artwork only in Deck picker thumbnails', async () => {
+    const reprinted = card('REPRINT-001', '再録カード', {
+      imageUrl: 'https://img.example/representative.png',
+    })
+    const data = cardsData([reprinted])
+    const printingData = printingsData([reprinted], {
+      'REPRINT-001': {
+        defaultPrintingOfficialId: '200',
+        printings: [
+          {
+            officialId: '200',
+            officialUrl: 'https://example.com/printings/200',
+            isParallel: false,
+            imageUrl: 'https://img.example/reprint.png',
+            products: ['ブースターパック「エンチャントレガリア」'],
+          },
+          {
+            officialId: '100',
+            officialUrl: 'https://example.com/printings/100',
+            isParallel: false,
+            imageUrl: 'https://img.example/original.png',
+            products: ['ブースターパック「ブルーミングレディアンス」'],
+          },
+        ],
+      },
+    })
+    printingData.cardsDataVersion = data.dataVersion
+    renderPage({
+      loadCards: async () => data,
+      loadPrintings: async () => printingData,
+    })
+
+    const picker = await screen.findByRole('region', { name: 'カードを追加' })
+    await within(picker).findByText('再録カード')
+    expect(picker.querySelector('img')).toHaveAttribute(
+      'src',
+      'https://img.example/original.png',
+    )
+  })
+
+  it('falls back to the logical representative image when printing data fails', async () => {
+    const fallbackCard = card('FALLBACK-001', 'フォールバックカード', {
+      imageUrl: 'https://img.example/fallback.png',
+    })
+    renderPage({
+      loadCards: async () => cardsData([fallbackCard]),
+      loadPrintings: async () => {
+        throw new Error('printing unavailable')
+      },
+    })
+
+    const picker = await screen.findByRole('region', { name: 'カードを追加' })
+    await within(picker).findByText('フォールバックカード')
+    expect(picker.querySelector('img')).toHaveAttribute(
+      'src',
+      'https://img.example/fallback.png',
+    )
   })
 
   it('shows copy-limit, restricted-card, and deckLimit issues', async () => {
