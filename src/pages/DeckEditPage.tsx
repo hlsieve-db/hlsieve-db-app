@@ -33,6 +33,7 @@ import {
 } from '../domain/search/searchUrlState'
 import { buildDeckShareUrl } from '../domain/share/deckShareCodec'
 import { useDeckSaveQueue } from '../hooks/useDeckSaveQueue'
+import { useDocumentMetadata } from '../hooks/useDocumentMetadata'
 import {
   deckRepository,
   type DeckRepository,
@@ -62,6 +63,14 @@ type DeckEditPageProps = {
   repository?: DeckRepository
   loadCards?: () => Promise<CardsDataFile>
   loadPrintings?: () => Promise<CardPrintingsDataFile>
+}
+
+function DeckEditFallbackMetadata() {
+  useDocumentMetadata({
+    title: 'デッキ編集 | HLSieve DB',
+    robots: 'noindex,follow',
+  })
+  return null
 }
 
 function DeckCardImage({
@@ -130,9 +139,11 @@ function DeckEditor({
   const [copyResult, setCopyResult] = useState<CopyResult>()
   const deckRef = useRef(initialDeck)
 
-  useEffect(() => {
-    document.title = `${deck.name} | HLSieve DB`
-  }, [deck.name])
+  useDocumentMetadata({
+    title: `${deck.name} | HLSieve DB`,
+    canonicalPath: `/decks/${encodeURIComponent(deck.id)}`,
+    robots: 'noindex,follow',
+  })
 
   useEffect(() => {
     let active = true
@@ -710,17 +721,6 @@ export function DeckEditPage({
     }
   }, [deckId, loadAttempt, repository])
 
-  useEffect(() => {
-    const previousTitle = document.title
-    document.title =
-      state.status === 'loaded'
-        ? `${state.deck.name} | HLSieve DB`
-        : 'デッキ編集 | HLSieve DB'
-    return () => {
-      document.title = previousTitle
-    }
-  }, [state])
-
   const retryLoad = () => {
     setState({ status: 'loading' })
     setLoadAttempt((attempt) => attempt + 1)
@@ -728,6 +728,7 @@ export function DeckEditPage({
 
   return (
     <main className="deck-page deck-editor">
+      {state.status !== 'loaded' && <DeckEditFallbackMetadata />}
       <header className="deck-page__header">
         <AppNavigation />
         <Link className="back-link" to="/decks">

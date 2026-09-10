@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import indexHtml from '../index.html?raw'
+import { SITE_ORIGIN } from './domain/site/constants'
 import App from './App'
 
 vi.mock('./repositories/loadCardsData', () => ({
@@ -33,9 +34,12 @@ describe('App', () => {
   })
 
   it('root HTMLのdocument titleに正式名称を設定する', () => {
-    const document = new DOMParser().parseFromString(indexHtml, 'text/html')
+    const document = new DOMParser().parseFromString(
+      indexHtml.replaceAll('__SITE_ORIGIN__', SITE_ORIGIN),
+      'text/html',
+    )
 
-    expect(document.title).toBe('HLSieve DB')
+    expect(document.title).toBe('HLSieve DB | ホロライブOCGカード検索DB')
     expect(
       document
         .querySelector('meta[name="description"]')
@@ -44,7 +48,27 @@ describe('App', () => {
     expect(
       document.querySelector('link[rel="icon"]')?.getAttribute('href'),
     ).toBe('/favicon.svg')
+    expect(
+      document.querySelector('link[rel="canonical"]')?.getAttribute('href'),
+    ).toBe('https://hlsieve-db.pages.dev/cards')
+    expect(
+      document
+        .querySelector('meta[property="og:title"]')
+        ?.getAttribute('content'),
+    ).toBe('HLSieve DB | ホロライブOCGカード検索DB')
+    expect(
+      document
+        .querySelector('meta[property="og:url"]')
+        ?.getAttribute('content'),
+    ).toBe('https://hlsieve-db.pages.dev/cards')
+    expect(
+      document
+        .querySelector('meta[name="twitter:card"]')
+        ?.getAttribute('content'),
+    ).toBe('summary_large_image')
     expect(indexHtml).toContain('hlsieve:theme')
+    expect(indexHtml).toContain('__SITE_ORIGIN__')
+    expect(indexHtml).not.toContain(SITE_ORIGIN)
     expect(indexHtml).not.toContain('vite.svg')
   })
 
@@ -57,6 +81,18 @@ describe('App', () => {
     expect(
       screen.getByText('HLSieve DBは非公式のファンメイドツールです。'),
     ).toBeVisible()
+  })
+
+  it('canonicalizes parameterized card searches to the Cards route', () => {
+    render(
+      <MemoryRouter initialEntries={['/cards?q=AZKi&page=2']}>
+        <App />
+      </MemoryRouter>,
+    )
+
+    expect(
+      document.head.querySelector('link[rel="canonical"]'),
+    ).toHaveAttribute('href', 'https://hlsieve-db.pages.dev/cards')
   })
 
   it('renders a branded Not Found page with navigation', () => {
@@ -77,6 +113,10 @@ describe('App', () => {
       '/decks',
     )
     expect(document.title).toBe('ページが見つかりません | HLSieve DB')
+    expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute(
+      'content',
+      'noindex',
+    )
   })
 
   it('Decks navigation and canonical deck routes are available', async () => {
@@ -95,6 +135,10 @@ describe('App', () => {
       '/decks',
     )
     expect(await screen.findByText('デッキがありません')).toBeVisible()
+    expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute(
+      'content',
+      'noindex,follow',
+    )
   })
 
   it('uses /decks/:deckId for the editor route', async () => {
@@ -107,5 +151,9 @@ describe('App', () => {
     expect(
       await screen.findByRole('heading', { name: 'デッキが見つかりません' }),
     ).toBeVisible()
+    expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute(
+      'content',
+      'noindex,follow',
+    )
   })
 })

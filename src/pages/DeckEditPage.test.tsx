@@ -894,11 +894,11 @@ describe('DeckEditPage share link', () => {
 
     const search = screen.getByLabelText('カード検索')
     fireEvent.change(search, { target: { value: '赤い' } })
+    const addCardRegion = screen.getByRole('region', { name: 'カードを追加' })
     fireEvent.click(
-      within(screen.getByRole('region', { name: 'カードを追加' })).getByRole(
-        'button',
-        { name: '赤いカードを1枚追加' },
-      ),
+      await within(addCardRegion).findByRole('button', {
+        name: '赤いカードを1枚追加',
+      }),
     )
 
     await waitFor(() => expect(input.value).not.toBe(before))

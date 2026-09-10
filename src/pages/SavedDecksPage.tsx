@@ -8,6 +8,7 @@ import {
   deckRepository,
   type DeckRepository,
 } from '../repositories/deckRepository'
+import { useDocumentMetadata } from '../hooks/useDocumentMetadata'
 
 type DeckListState =
   | { status: 'loading' }
@@ -45,13 +46,11 @@ export function SavedDecksPage({
     }
   }, [loadAttempt, repository])
 
-  useEffect(() => {
-    const previousTitle = document.title
-    document.title = '保存デッキ | HLSieve DB'
-    return () => {
-      document.title = previousTitle
-    }
-  }, [])
+  useDocumentMetadata({
+    title: '保存デッキ | HLSieve DB',
+    canonicalPath: '/decks',
+    robots: 'noindex,follow',
+  })
 
   const retryLoad = () => {
     setState({ status: 'loading' })

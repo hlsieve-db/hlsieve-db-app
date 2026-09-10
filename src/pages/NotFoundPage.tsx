@@ -1,16 +1,14 @@
-import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
+import { useDocumentMetadata } from '../hooks/useDocumentMetadata'
 
 export function NotFoundPage() {
-  useEffect(() => {
-    const previousTitle = document.title
-    document.title = 'ページが見つかりません | HLSieve DB'
-    return () => {
-      document.title = previousTitle
-    }
-  }, [])
+  useDocumentMetadata({
+    title: 'ページが見つかりません | HLSieve DB',
+    description: 'お探しのページはHLSieve DBに見つかりませんでした。',
+    robots: 'noindex',
+  })
 
   return (
     <main className="deck-page not-found-page">

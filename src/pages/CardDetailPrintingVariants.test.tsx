@@ -238,8 +238,11 @@ describe('Card Detail printing variants', () => {
     expect(screen.getByText('変わらないアーツ本文')).toBeVisible()
     expect(screen.getByText('Buzzホロメン')).toBeVisible()
     await waitFor(() =>
-      expect(document.title).toBe('テストホロメン | HLSieve DB'),
+      expect(document.title).toBe('テストホロメン (TEST-001) | HLSieve DB'),
     )
+    expect(
+      document.head.querySelector('link[rel="canonical"]'),
+    ).toHaveAttribute('href', 'https://hlsieve-db.pages.dev/cards/TEST-001')
   })
 
   it('supports valid direct links and browser Back/Forward selection history', async () => {

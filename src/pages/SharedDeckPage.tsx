@@ -21,6 +21,7 @@ import {
   type DeckRepository,
 } from '../repositories/deckRepository'
 import { loadCardsData } from '../repositories/loadCardsData'
+import { useDocumentMetadata } from '../hooks/useDocumentMetadata'
 
 type CardLoadState =
   | { source: string; status: 'loading' }
@@ -93,16 +94,14 @@ export function SharedDeckPage({
   const activeImportState =
     importState.source === source ? importState.status : 'idle'
 
-  useEffect(() => {
-    const previousTitle = document.title
-    document.title =
+  useDocumentMetadata({
+    title:
       decoded?.ok === true
         ? `${decoded.value.name} | HLSieve DB`
-        : '共有デッキ | HLSieve DB'
-    return () => {
-      document.title = previousTitle
-    }
-  }, [decoded])
+        : '共有デッキ | HLSieve DB',
+    canonicalPath: '/deck/share',
+    robots: 'noindex,follow',
+  })
 
   useEffect(() => {
     if (decoded?.ok !== true) return

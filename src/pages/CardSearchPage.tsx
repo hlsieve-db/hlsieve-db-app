@@ -28,6 +28,8 @@ import {
   type DeckRepository,
 } from '../repositories/deckRepository'
 import { useSavedDeckQuickEdit } from '../hooks/useSavedDeckQuickEdit'
+import { useDocumentMetadata } from '../hooks/useDocumentMetadata'
+import { DEFAULT_DOCUMENT_TITLE } from '../domain/site/constants'
 
 type CardDataState =
   | { status: 'loading' }
@@ -66,13 +68,10 @@ export function CardSearchPage({
   const isComposing = useRef(false)
   const deckQuickEdit = useSavedDeckQuickEdit(repository)
 
-  useEffect(() => {
-    const previousTitle = document.title
-    document.title = 'カード検索 | HLSieve DB'
-    return () => {
-      document.title = previousTitle
-    }
-  }, [])
+  useDocumentMetadata({
+    title: DEFAULT_DOCUMENT_TITLE,
+    canonicalPath: '/cards',
+  })
 
   const navigateToState = useCallback(
     (next: SearchUrlState, replace: boolean) => {

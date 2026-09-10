@@ -3,4 +3,6 @@ node_modules
 package-lock.json
 public/cards.json
 public/card-printings.json
+public/robots.txt
+public/sitemap.xml
 scripts/cards/fixtures/**/*.html

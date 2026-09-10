@@ -159,6 +159,10 @@ describe('SharedDeckPage preview', () => {
     expect(screen.getByText('共有エール')).toBeVisible()
     expect(screen.getByText('推しホロメン / 推しホロメン')).toBeVisible()
     expect(document.title).toBe('共有テストデッキ | HLSieve DB')
+    expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute(
+      'content',
+      'noindex,follow',
+    )
     expect(loadCards).toHaveBeenCalledTimes(1)
     expect(screen.getByRole('link', { name: 'Cards' })).toHaveAttribute(
       'href',
@@ -175,6 +179,10 @@ describe('SharedDeckPage preview', () => {
     expect(screen.getByText('共有デッキが指定されていません。')).toBeVisible()
     expect(missingLoader).not.toHaveBeenCalled()
     expect(document.title).toBe('共有デッキ | HLSieve DB')
+    expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute(
+      'content',
+      'noindex,follow',
+    )
     missing.unmount()
 
     const invalidLoader = vi.fn(async () => cardsData())

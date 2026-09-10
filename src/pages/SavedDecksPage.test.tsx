@@ -90,7 +90,11 @@ describe('SavedDecksPage', () => {
         deck({ id: 'new-deck', entries: [] }),
       ),
     )
-    expect(screen.getByTestId('location')).toHaveTextContent('/decks/new-deck')
+    await waitFor(() =>
+      expect(screen.getByTestId('location')).toHaveTextContent(
+        '/decks/new-deck',
+      ),
+    )
   })
 
   it('does not navigate when creation persistence fails', async () => {

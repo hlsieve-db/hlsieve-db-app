@@ -31,6 +31,7 @@ import {
   type DeckRepository,
 } from '../repositories/deckRepository'
 import { useSavedDeckQuickEdit } from '../hooks/useSavedDeckQuickEdit'
+import { useDocumentMetadata } from '../hooks/useDocumentMetadata'
 
 type CardDataState =
   | { status: 'loading' }
@@ -611,17 +612,24 @@ export function CardDetailPage({
   const documentTitle =
     cardData.status === 'loaded'
       ? card
-        ? `${card.name} | HLSieve DB`
+        ? `${card.name} (${card.cardNumber}) | HLSieve DB`
         : 'カードが見つかりません | HLSieve DB'
       : 'カード詳細 | HLSieve DB'
 
-  useEffect(() => {
-    const previousTitle = document.title
-    document.title = documentTitle
-    return () => {
-      document.title = previousTitle
-    }
-  }, [documentTitle])
+  const description = card
+    ? `${card.name}（${card.cardNumber}）の${CARD_TYPE_LABELS[card.cardType]}カード情報、能力、アーツ、収録情報を確認できます。HLSieve DBはホロライブOCGの非公式カード検索DBです。`
+    : cardData.status === 'loaded'
+      ? '指定されたカードはHLSieve DBに登録されていません。'
+      : 'HLSieve DBでホロライブOCGのカード詳細を確認しています。'
+
+  useDocumentMetadata({
+    title: documentTitle,
+    description,
+    canonicalPath: card
+      ? `/cards/${encodeURIComponent(card.cardNumber)}`
+      : undefined,
+    robots: card ? 'index,follow' : 'noindex',
+  })
 
   const retryLoad = () => {
     setCardData({ status: 'loading' })

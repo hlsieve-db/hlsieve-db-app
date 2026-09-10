@@ -210,6 +210,10 @@ describe('CardDetailPage route and loader states', () => {
       screen.getAllByRole('link', { name: 'カード検索へ戻る' })[0],
     ).toHaveAttribute('href', '/cards')
     expect(document.title).toBe('カードが見つかりません | HLSieve DB')
+    expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute(
+      'content',
+      'noindex',
+    )
   })
 })
 
@@ -265,8 +269,17 @@ describe('CardDetailPage public card information', () => {
     )
     expect(officialLink).toHaveAttribute('target', '_blank')
     await waitFor(() =>
-      expect(document.title).toBe('テストホロメン | HLSieve DB'),
+      expect(document.title).toBe('テストホロメン (TEST-001) | HLSieve DB'),
     )
+    expect(
+      document.head.querySelector('meta[name="description"]'),
+    ).toHaveAttribute(
+      'content',
+      expect.stringContaining('テストホロメン（TEST-001）'),
+    )
+    expect(
+      document.head.querySelector('link[rel="canonical"]'),
+    ).toHaveAttribute('href', 'https://hlsieve-db.pages.dev/cards/TEST-001')
   })
 
   it('omits absent optional fields, Q&A, and official URL', async () => {
