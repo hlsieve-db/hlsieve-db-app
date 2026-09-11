@@ -579,7 +579,7 @@ describe('DeckEditPage editor operations', () => {
 
     fireEvent.change(search, { target: { value: '赤い' } })
     const picker = screen.getByRole('region', { name: 'カードを追加' })
-    expect(within(picker).getByText('赤いカード')).toBeVisible()
+    expect(await within(picker).findByText('赤いカード')).toBeVisible()
     expect(within(picker).queryByText('青いカード')).not.toBeInTheDocument()
     const add = within(picker).getByRole('button', {
       name: '赤いカードを1枚追加',

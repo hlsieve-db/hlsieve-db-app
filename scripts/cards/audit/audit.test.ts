@@ -97,6 +97,7 @@ async function fixtureInput() {
     details: records.map((record) => record.detail),
     restrictions: [],
     generatedAt: GENERATED_AT,
+    qaRelationScope: 'partial' as const,
   }
 }
 

@@ -1,3 +1,5 @@
+import type { Card } from '../../../src/domain/cards/types'
+
 import { toDerivedCardCandidate } from '../derive/deriveCardEffects'
 import { buildDiffSnapshot } from '../diff/buildDiffSnapshot'
 import { diffCardCollections } from '../diff/diffCardCollections'
@@ -19,6 +21,8 @@ import type { MergeConflict, MergedCardCandidate } from '../merge/types'
 import { applySemanticOverrides } from '../overrides/applySemanticOverrides'
 import { normalizeCardDetail } from '../normalize/normalizeCardDetail'
 import type { PrintingAwareNormalizedCardCandidate } from '../normalize/types'
+import { auditOfficialQas } from '../qa/auditOfficialQas'
+import { linkOfficialQas } from '../qa/linkOfficialQas'
 import { parseCardDetailHtml } from '../parser/parseCardDetail'
 import { toSearchIndexedCardCandidate } from '../searchIndex/buildSearchText'
 import type {
@@ -81,6 +85,14 @@ function emptyReport(input: CardPipelineDryRunInput): CardPipelineAuditReport {
       beforeMerge: 0,
       afterMerge: 0,
       conflicts: 0,
+      totalOccurrences: 0,
+      uniqueQas: 0,
+      multiCardQas: 0,
+      duplicateQaIds: 0,
+      orphanQas: 0,
+      invalidUrls: 0,
+      emptyQuestions: 0,
+      emptyAnswers: 0,
     },
     semanticOverrides: {
       configured: 0,
@@ -753,7 +765,7 @@ function runCardPipelineDryRunCore(
   }
   report.diff = { ...generationReport.value.counts }
 
-  const publicCards = []
+  let publicCards: Card[] = []
   for (const candidate of selected.value) {
     const converted = toPublicCard(candidate)
     if (!converted.ok) {
@@ -765,6 +777,49 @@ function runCardPipelineDryRunCore(
   if (report.issues.some((issue) => issue.severity === 'fatal')) {
     return finishFailure(report)
   }
+
+  const qaLinking = linkOfficialQas(publicCards, {
+    requireEveryRelatedCard: input.qaRelationScope !== 'partial',
+  })
+  if (!qaLinking.ok) {
+    addIssues(
+      report,
+      qaLinking.issues.map((issue) =>
+        fatal('audit', issue.code, issue.message, {
+          cardNumber: issue.cardNumber,
+          path: `qas.${issue.qaId}`,
+        }),
+      ),
+    )
+    return finishFailure(report)
+  }
+  publicCards = qaLinking.cards
+
+  const qaAudit = auditOfficialQas(publicCards, {
+    requireEveryRelatedCard: input.qaRelationScope !== 'partial',
+  })
+  Object.assign(report.qas, {
+    totalOccurrences: qaAudit.totalOccurrences,
+    uniqueQas: qaAudit.uniqueQas,
+    cardsWithQa: qaAudit.cardsWithQa,
+    cardsWithoutQa: qaAudit.cardsWithoutQa,
+    multiCardQas: qaAudit.multiCardQas,
+    duplicateQaIds: qaAudit.duplicateQaIds,
+    orphanQas: qaAudit.orphanQas,
+    invalidUrls: qaAudit.invalidUrls,
+    emptyQuestions: qaAudit.emptyQuestions,
+    emptyAnswers: qaAudit.emptyAnswers,
+  })
+  addIssues(
+    report,
+    qaAudit.issues.map((issue) =>
+      fatal('audit', issue.code, issue.message, {
+        cardNumber: issue.cardNumber,
+        path: `qas.${issue.qaId}`,
+      }),
+    ),
+  )
+  if (!qaAudit.isValid) return finishFailure(report)
 
   const cardsData = buildCardsDataFile(publicCards, {
     generatedAt: input.generatedAt,

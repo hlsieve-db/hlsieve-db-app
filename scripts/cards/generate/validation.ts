@@ -3,6 +3,7 @@ import type { CardRestriction } from '../../../src/domain/decks/types'
 import type { GenerationIssue } from './types'
 
 const CARD_TYPES = new Set(['oshi', 'holomem', 'support', 'cheer'])
+const OFFICIAL_QA_HOST = 'hololive-official-cardgame.com'
 
 function isUrlWithProtocols(
   value: string,
@@ -82,10 +83,47 @@ export function validatePublicCard(card: Card): GenerationIssue[] {
   }
   if (Array.isArray(card.qas)) {
     card.qas.forEach((qa, index) => {
+      if (!/^Q[1-9]\d*$/.test(qa.id))
+        invalid(`qas[${index}].id`, 'id must be an official Q number.')
       if (!qa.question.trim())
         invalid(`qas[${index}].question`, 'question must be nonempty.')
       if (!qa.answer.trim())
         invalid(`qas[${index}].answer`, 'answer must be nonempty.')
+      try {
+        const officialUrl = new URL(qa.officialUrl)
+        if (
+          officialUrl.protocol !== 'https:' ||
+          officialUrl.host !== OFFICIAL_QA_HOST ||
+          officialUrl.hash !== '#faq'
+        ) {
+          invalid(
+            `qas[${index}].officialUrl`,
+            'officialUrl must use the official HTTPS host and #faq anchor.',
+          )
+        }
+      } catch {
+        invalid(`qas[${index}].officialUrl`, 'officialUrl must be valid.')
+      }
+      if (
+        qa.publishedAt !== undefined &&
+        !/^\d{4}-\d{2}-\d{2}$/.test(qa.publishedAt)
+      ) {
+        invalid(`qas[${index}].publishedAt`, 'publishedAt must use YYYY-MM-DD.')
+      }
+      if (
+        !Array.isArray(qa.relatedCardNumbers) ||
+        qa.relatedCardNumbers.length === 0 ||
+        qa.relatedCardNumbers.some(
+          (cardNumber) =>
+            typeof cardNumber !== 'string' ||
+            !/^[A-Za-z0-9]+-[A-Za-z0-9]+$/.test(cardNumber),
+        )
+      ) {
+        invalid(
+          `qas[${index}].relatedCardNumbers`,
+          'relatedCardNumbers must contain official card numbers.',
+        )
+      }
     })
   }
   if (

@@ -40,8 +40,12 @@ export type Art = {
 }
 
 export type CardQa = {
+  id: string
   question: string
   answer: string
+  officialUrl: string
+  publishedAt?: string
+  relatedCardNumbers: string[]
 }
 
 export type Card = {

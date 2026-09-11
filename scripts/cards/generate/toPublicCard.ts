@@ -2,6 +2,7 @@ import type { Card } from '../../../src/domain/cards/types'
 import type { SearchIndexedCardCandidate } from '../searchIndex/types'
 import type { GenerationResult, PublicCardOptions } from './types'
 import { validatePublicCard } from './validation'
+import { buildOfficialQaId, buildOfficialQaUrl } from '../qa/officialQa'
 
 export function toPublicCard(
   candidate: SearchIndexedCardCandidate,
@@ -53,8 +54,14 @@ export function toPublicCard(
     products: [...candidate.products],
     illustrators: [...candidate.illustrators],
     qas: candidate.qas.map((qa) => ({
+      id: buildOfficialQaId(qa) ?? '',
       question: qa.question,
       answer: qa.answer,
+      officialUrl: buildOfficialQaUrl(candidate.officialUrl) ?? '',
+      ...(qa.publishedDate !== undefined
+        ? { publishedAt: qa.publishedDate }
+        : {}),
+      relatedCardNumbers: [...qa.relatedCardNumbers],
     })),
     ...(candidate.deckLimit !== undefined
       ? { deckLimit: candidate.deckLimit }

@@ -443,6 +443,7 @@ export function auditProductionUpdate(
   const warnings: UpdateAuditMessage[] = []
   const baselineCardsValidation = validateCardsSnapshotText(
     input.baselineCardsText,
+    { allowLegacyQa: true },
   )
   const candidateCardsValidation = validateCardsSnapshotText(
     input.candidateCardsText,

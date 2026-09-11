@@ -177,6 +177,14 @@ function group(name: string) {
 }
 
 describe('CardSearchPage loading and results', () => {
+  it('shows the actual latest publication date and complete update summary', () => {
+    renderPage()
+
+    const notice = screen.getByLabelText('最新のカードデータ更新')
+    expect(notice).toHaveTextContent('カードデータ更新 2026/09/12')
+    expect(notice).toHaveTextContent('カードデータ・公式Q&A情報を更新しました')
+  })
+
   it('shows accessible loading state without results', () => {
     renderPage({ loadCards: () => new Promise(() => undefined) })
     expect(

@@ -67,7 +67,7 @@ describe('production card printing snapshot', () => {
     const secondTurnOneCards = cardsValidation.value.cards.filter((card) =>
       card.effectTags.includes('second_turn_one'),
     )
-    expect(secondTurnOneCards).toHaveLength(45)
+    expect(secondTurnOneCards).toHaveLength(52)
     expect(
       secondTurnOneCards.every((card) =>
         card.abilities.some(
@@ -82,6 +82,28 @@ describe('production card printing snapshot', () => {
     expect(effectTags(cardsValidation.value, 'hBP05-031')).not.toContain(
       'second_turn_one',
     )
+
+    const volumeVortexProduct = 'ブースターパック「ボリュームヴォルテックス」'
+    const volumeVortexCards = cardsValidation.value.cards.filter((card) =>
+      /^hBP09-\d{3}$/.test(card.cardNumber),
+    )
+    expect(volumeVortexCards).toHaveLength(111)
+    expect(
+      volumeVortexCards.every(
+        (card) =>
+          card.products.includes(volumeVortexProduct) &&
+          card.releaseDate === '2026-09-19' &&
+          data.cards[card.cardNumber]?.printings.some((printing) => {
+            const url = new URL(printing.officialUrl)
+            return (
+              printing.products.includes(volumeVortexProduct) &&
+              url.protocol === 'https:' &&
+              url.host === 'hololive-official-cardgame.com' &&
+              url.pathname === '/cardlist/'
+            )
+          }),
+      ),
+    ).toBe(true)
   })
 })
 

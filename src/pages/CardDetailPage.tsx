@@ -272,12 +272,27 @@ function CardInformation({
 
       {card.qas.length > 0 && (
         <section className="detail-section" aria-labelledby="card-qa">
-          <h2 id="card-qa">Q&amp;A（{card.qas.length}件）</h2>
+          <h2 id="card-qa">公式Q&amp;A（{card.qas.length}件）</h2>
           <div className="qa-list">
-            {card.qas.map((qa, index) => (
-              <details key={index}>
+            {card.qas.map((qa) => (
+              <details key={qa.id}>
                 <summary>Q. {qa.question}</summary>
-                <p>A. {qa.answer}</p>
+                <div className="qa-answer">
+                  <p>A. {qa.answer}</p>
+                  <p className="qa-meta">
+                    <span>{qa.id}</span>
+                    {qa.publishedAt && <time>{qa.publishedAt}</time>}
+                  </p>
+                  <a
+                    className="qa-official-link"
+                    href={qa.officialUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`${qa.id}を公式で確認`}
+                  >
+                    公式で確認
+                  </a>
+                </div>
               </details>
             ))}
           </div>

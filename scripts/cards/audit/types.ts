@@ -90,6 +90,14 @@ export type CardPipelineAuditReport = {
     beforeMerge: number
     afterMerge: number
     conflicts: number
+    totalOccurrences: number
+    uniqueQas: number
+    multiCardQas: number
+    duplicateQaIds: number
+    orphanQas: number
+    invalidUrls: number
+    emptyQuestions: number
+    emptyAnswers: number
   }
   semanticOverrides: {
     configured: number
@@ -124,6 +132,7 @@ export type CardPipelineDryRunInput = {
   previousSnapshots?: readonly CardDiffSnapshot[]
   restrictions: readonly CardRestriction[]
   generatedAt: string
+  qaRelationScope?: 'complete' | 'partial'
 }
 
 export type CardPipelineDryRunArtifacts = {

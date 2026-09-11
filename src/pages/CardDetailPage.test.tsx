@@ -71,8 +71,13 @@ function card(overrides: Partial<Card> = {}): Card {
     illustrators: [],
     qas: [
       {
+        id: 'Q1',
         question: 'このカードは使えますか？',
         answer: 'はい、使えます。',
+        officialUrl:
+          'https://hololive-official-cardgame.com/cardlist/?id=1#faq',
+        publishedAt: '2026-01-01',
+        relatedCardNumbers: ['TEST-001'],
       },
     ],
     deckLimit: 2,
@@ -209,10 +214,13 @@ describe('CardDetailPage route and loader states', () => {
     expect(
       screen.getAllByRole('link', { name: 'カード検索へ戻る' })[0],
     ).toHaveAttribute('href', '/cards')
-    expect(document.title).toBe('カードが見つかりません | HLSieve DB')
-    expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute(
-      'content',
-      'noindex',
+    await waitFor(() =>
+      expect(document.title).toBe('カードが見つかりません | HLSieve DB'),
+    )
+    await waitFor(() =>
+      expect(
+        document.head.querySelector('meta[name="robots"]'),
+      ).toHaveAttribute('content', 'noindex'),
     )
   })
 })
@@ -280,9 +288,21 @@ describe('CardDetailPage public card information', () => {
     ).toBeVisible()
     expect(screen.getByText('2026-01-02')).toBeVisible()
     expect(screen.getByText('2枚')).toBeVisible()
-    expect(screen.getByRole('heading', { name: 'Q&A（1件）' })).toBeVisible()
-    expect(screen.getByText('Q. このカードは使えますか？')).toBeVisible()
+    expect(
+      screen.getByRole('heading', { name: '公式Q&A（1件）' }),
+    ).toBeVisible()
+    fireEvent.click(screen.getByText('Q. このカードは使えますか？'))
     expect(screen.getByText('A. はい、使えます。')).toBeInTheDocument()
+    expect(screen.getByText('Q1')).toBeVisible()
+    expect(screen.getByText('2026-01-01')).toBeVisible()
+    const qaLink = screen.getByRole('link', { name: 'Q1を公式で確認' })
+    expect(qaLink).toHaveTextContent('公式で確認')
+    expect(qaLink).toHaveAttribute(
+      'href',
+      'https://hololive-official-cardgame.com/cardlist/?id=1#faq',
+    )
+    expect(qaLink).toHaveAttribute('target', '_blank')
+    expect(qaLink).toHaveAttribute('rel', 'noopener noreferrer')
     expect(
       screen.queryByText('detail-only-search-text'),
     ).not.toBeInTheDocument()
@@ -350,12 +370,61 @@ describe('CardDetailPage public card information', () => {
     ).toHaveAttribute('content', 'https://hlsieve.com/og-image.png')
     expect(screen.getByText('画像なし')).toBeVisible()
     expect(
-      screen.queryByRole('heading', { name: /^Q&A/ }),
+      screen.queryByRole('heading', { name: /^公式Q&A/ }),
     ).not.toBeInTheDocument()
     expect(
       screen.queryByRole('link', { name: '公式カードページ' }),
     ).not.toBeInTheDocument()
     expect(screen.queryByText('undefined')).not.toBeInTheDocument()
+  })
+
+  it('renders multiple official Q&As and keeps them independent from printing selection', async () => {
+    const printings = printingsData()
+    printings.cards['TEST-001']?.printings.push({
+      officialId: '2',
+      officialUrl: 'https://example.com/card/TEST-001?printing=2',
+      isParallel: true,
+      imageUrl: 'https://example.com/parallel.png',
+      rarity: 'P',
+      products: ['テスト商品'],
+    })
+    renderDetail({
+      loadCards: async () =>
+        dataFile([
+          card({
+            qas: [
+              ...card().qas,
+              {
+                id: 'Q2',
+                question: '二つ目の質問ですか？',
+                answer: '二つ目の回答です。',
+                officialUrl:
+                  'https://hololive-official-cardgame.com/cardlist/?id=1#faq',
+                relatedCardNumbers: ['TEST-001'],
+              },
+            ],
+          }),
+        ]),
+      loadPrintings: async () => printings,
+    })
+
+    expect(
+      await screen.findByRole('heading', { name: '公式Q&A（2件）' }),
+    ).toBeVisible()
+    const linkBefore = screen.getByRole('link', {
+      name: 'Q1を公式で確認',
+      hidden: true,
+    })
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'テストホロメン パラレル P 版 2',
+      }),
+    )
+    expect(screen.getByText('Q. 二つ目の質問ですか？')).toBeInTheDocument()
+    expect(linkBefore).toHaveAttribute(
+      'href',
+      'https://hololive-official-cardgame.com/cardlist/?id=1#faq',
+    )
   })
 
   it('shows support gameplay classifications only for support cards', async () => {

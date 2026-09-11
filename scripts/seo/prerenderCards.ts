@@ -96,6 +96,33 @@ export function renderMetadataHtml(
   return html
 }
 
+export function renderCardDetailHtml(template: string, card: Card): string {
+  const metadataHtml = renderMetadataHtml(
+    template,
+    buildCardDetailMetadata(card),
+  )
+  const renderableQas = card.qas.filter(
+    (qa) => qa.id && qa.officialUrl && Array.isArray(qa.relatedCardNumbers),
+  )
+  if (renderableQas.length === 0) return metadataHtml
+
+  const $ = load(metadataHtml)
+  const items = renderableQas
+    .map(
+      (qa) => `<details>
+<summary>Q. ${escapeHtml(qa.question)}</summary>
+<div><p>A. ${escapeHtml(qa.answer)}</p>
+<p>${escapeHtml(qa.id)}${qa.publishedAt ? ` <time>${escapeHtml(qa.publishedAt)}</time>` : ''}</p>
+<a href="${escapeHtml(qa.officialUrl)}" rel="noopener noreferrer">公式で確認</a></div>
+</details>`,
+    )
+    .join('')
+  $('#root').append(
+    `<main data-prerender-card-detail="true"><section aria-labelledby="prerender-card-qa"><h1>${escapeHtml(card.name)}（${escapeHtml(card.cardNumber)}）</h1><h2 id="prerender-card-qa">公式Q&amp;A（${renderableQas.length}件）</h2>${items}</section></main>`,
+  )
+  return $.html()
+}
+
 export function assertSafeCardNumber(cardNumber: string): void {
   if (!SAFE_CARD_NUMBER.test(cardNumber)) {
     throw new Error(`Unsafe cardNumber for prerender path: ${cardNumber}`)
@@ -141,7 +168,7 @@ export function buildPrerenderRoutes(
     routes.push({
       routePath: `/cards/${encodedCardNumber}`,
       outputPath: join('cards', `${card.cardNumber}.html`),
-      html: renderMetadataHtml(template, buildCardDetailMetadata(card)),
+      html: renderCardDetailHtml(template, card),
     })
   }
 

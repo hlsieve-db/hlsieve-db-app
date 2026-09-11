@@ -1,5 +1,6 @@
 import type { Card, CardsDataFile } from '../../../src/domain/cards/types'
 import { buildCardsDataFile } from '../generate/buildCardsDataFile'
+import { buildDataVersion } from '../generate/buildDataVersion'
 import { serializeDataFile } from '../generate/serializeDataFile'
 
 export type CardsSnapshotValidation =
@@ -141,16 +142,57 @@ function isArt(value: unknown): boolean {
   )
 }
 
-function isQa(value: unknown): boolean {
-  return (
+function isQa(value: unknown, allowLegacyQa: boolean): boolean {
+  if (
+    allowLegacyQa &&
     isRecord(value) &&
     hasOnlyKeys(value, new Set(['question', 'answer'])) &&
     typeof value.question === 'string' &&
     typeof value.answer === 'string'
+  ) {
+    return true
+  }
+  return (
+    isRecord(value) &&
+    hasOnlyKeys(
+      value,
+      new Set([
+        'id',
+        'question',
+        'answer',
+        'officialUrl',
+        'publishedAt',
+        'relatedCardNumbers',
+      ]),
+    ) &&
+    typeof value.id === 'string' &&
+    /^Q[1-9]\d*$/.test(value.id) &&
+    typeof value.question === 'string' &&
+    value.question.length > 0 &&
+    typeof value.answer === 'string' &&
+    value.answer.length > 0 &&
+    typeof value.officialUrl === 'string' &&
+    isOfficialQaUrl(value.officialUrl) &&
+    isOptionalString(value.publishedAt) &&
+    isStringArray(value.relatedCardNumbers) &&
+    value.relatedCardNumbers.length > 0
   )
 }
 
-function isPublicCard(value: unknown): value is Card {
+function isOfficialQaUrl(value: string): boolean {
+  try {
+    const url = new URL(value)
+    return (
+      url.protocol === 'https:' &&
+      url.host === 'hololive-official-cardgame.com' &&
+      url.hash === '#faq'
+    )
+  } catch {
+    return false
+  }
+}
+
+function isPublicCard(value: unknown, allowLegacyQa: boolean): value is Card {
   if (!isRecord(value) || !hasOnlyKeys(value, CARD_KEYS)) return false
   return (
     typeof value.cardNumber === 'string' &&
@@ -192,7 +234,7 @@ function isPublicCard(value: unknown): value is Card {
     isStringArray(value.products) &&
     isStringArray(value.illustrators) &&
     Array.isArray(value.qas) &&
-    value.qas.every(isQa) &&
+    value.qas.every((qa) => isQa(qa, allowLegacyQa)) &&
     (value.deckLimit === undefined ||
       value.deckLimit === null ||
       Number.isSafeInteger(value.deckLimit)) &&
@@ -204,6 +246,7 @@ function isPublicCard(value: unknown): value is Card {
 
 export function validateCardsSnapshotText(
   serialized: string,
+  options: { allowLegacyQa?: boolean } = {},
 ): CardsSnapshotValidation {
   let parsed: unknown
   try {
@@ -234,7 +277,10 @@ export function validateCardsSnapshotText(
   ) {
     return { ok: false, errors: ['Invalid cards data file envelope.'] }
   }
-  const invalidIndex = parsed.cards.findIndex((card) => !isPublicCard(card))
+  const allowLegacyQa = options.allowLegacyQa === true
+  const invalidIndex = parsed.cards.findIndex(
+    (card) => !isPublicCard(card, allowLegacyQa),
+  )
   if (invalidIndex >= 0) {
     return {
       ok: false,
@@ -243,6 +289,27 @@ export function validateCardsSnapshotText(
   }
 
   const cardsDataFile = parsed as CardsDataFile
+  if (allowLegacyQa) {
+    const expectedVersion = buildDataVersion({
+      format: cardsDataFile.format,
+      formatVersion: cardsDataFile.formatVersion,
+      cards: cardsDataFile.cards,
+    })
+    if (expectedVersion !== cardsDataFile.dataVersion) {
+      return { ok: false, errors: ['dataVersion does not match card content.'] }
+    }
+    const canonical = serializeDataFile(cardsDataFile)
+    if (!canonical.ok) {
+      return {
+        ok: false,
+        errors: canonical.errors.map((error) => error.message),
+      }
+    }
+    if (canonical.value !== serialized) {
+      return { ok: false, errors: ['Cards snapshot is not canonical JSON.'] }
+    }
+    return { ok: true, value: cardsDataFile, serialized: canonical.value }
+  }
   const rebuilt = buildCardsDataFile(cardsDataFile.cards, {
     generatedAt: cardsDataFile.generatedAt,
   })

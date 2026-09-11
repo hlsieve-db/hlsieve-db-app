@@ -76,7 +76,7 @@ function candidate(
       },
     ],
     imageUrl: 'https://example.com/card.png',
-    officialUrl: 'https://example.com/card/1',
+    officialUrl: 'https://hololive-official-cardgame.com/cardlist/?faq=&id=1',
     rarities: ['SR'],
     products: ['商品A'],
     illustrators: ['絵師A'],
@@ -197,7 +197,17 @@ describe('toPublicCard', () => {
       rarities: source.rarities,
       products: source.products,
       illustrators: source.illustrators,
-      qas: [{ question: '質問ですか？', answer: '回答です。' }],
+      qas: [
+        {
+          id: 'Q100',
+          question: '質問ですか？',
+          answer: '回答です。',
+          officialUrl:
+            'https://hololive-official-cardgame.com/cardlist/?faq=&id=1#faq',
+          publishedAt: '2026-01-01',
+          relatedCardNumbers: ['hMETA-001'],
+        },
+      ],
       deckLimit: source.deckLimit,
       releaseDate: source.releaseDate,
       searchText: source.searchText,
@@ -207,6 +217,17 @@ describe('toPublicCard', () => {
 
   it('does not infer nameReading', () => {
     expect(publicCard()).not.toHaveProperty('nameReading')
+  })
+
+  it('preserves an official future release date without excluding the Card', () => {
+    const result = publicCard(
+      candidate('hFUTURE-001', {
+        releaseDate: '2099-01-01',
+      }),
+    )
+
+    expect(result.cardNumber).toBe('hFUTURE-001')
+    expect(result.releaseDate).toBe('2099-01-01')
   })
 
   it('keeps the public Card shape free of printing parallel metadata', () => {
@@ -240,7 +261,7 @@ describe('toPublicCard', () => {
     expect(read(publicCard())).toEqual(expected)
   })
 
-  it('publishes only Q&A question and answer in original order', () => {
+  it('publishes official Q&A identity, source metadata, and text in original order', () => {
     const result = publicCard(
       candidate('hTEST-001', {
         qas: [
@@ -248,19 +269,36 @@ describe('toPublicCard', () => {
           {
             question: '二問目',
             answer: '二答目',
-            relatedCardNumbers: [],
+            qNumber: 101,
+            publishedDate: '2026-01-02',
+            relatedCardNumbers: ['hTEST-001'],
             sourceIndex: 4,
           },
         ],
       }),
     )
     expect(result.qas).toEqual([
-      { question: '質問ですか？', answer: '回答です。' },
-      { question: '二問目', answer: '二答目' },
+      {
+        id: 'Q100',
+        question: '質問ですか？',
+        answer: '回答です。',
+        officialUrl:
+          'https://hololive-official-cardgame.com/cardlist/?faq=&id=1#faq',
+        publishedAt: '2026-01-01',
+        relatedCardNumbers: ['hMETA-001'],
+      },
+      {
+        id: 'Q101',
+        question: '二問目',
+        answer: '二答目',
+        officialUrl:
+          'https://hololive-official-cardgame.com/cardlist/?faq=&id=1#faq',
+        publishedAt: '2026-01-02',
+        relatedCardNumbers: ['hTEST-001'],
+      },
     ])
     expect(result.qas[0]).not.toHaveProperty('qNumber')
     expect(result.qas[0]).not.toHaveProperty('publishedDate')
-    expect(result.qas[0]).not.toHaveProperty('relatedCardNumbers')
     expect(result.qas[0]).not.toHaveProperty('sourceIndex')
   })
 
@@ -317,10 +355,13 @@ describe('toPublicCard', () => {
     ['invalid image URL', { imageUrl: 'file:///card.png' }],
     ['non-HTTPS official URL', { officialUrl: 'http://example.com/card' }],
   ])('rejects %s', (_label, overrides) => {
-    expect(toPublicCard(candidate('hTEST-001', overrides))).toMatchObject({
-      ok: false,
-      errors: [expect.objectContaining({ code: 'INVALID_PUBLIC_CARD' })],
-    })
+    const result = toPublicCard(candidate('hTEST-001', overrides))
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.errors).toContainEqual(
+        expect.objectContaining({ code: 'INVALID_PUBLIC_CARD' }),
+      )
+    }
   })
 })
 

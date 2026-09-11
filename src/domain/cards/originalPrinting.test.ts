@@ -45,6 +45,9 @@ describe('getOriginalNonParallelImageUrl', () => {
     expect(
       PRODUCT_RELEASE_DATES['ブースターパック「ブルーミングレディアンス」'],
     ).toBe('2024-09-20')
+    expect(
+      PRODUCT_RELEASE_DATES['ブースターパック「ボリュームヴォルテックス」'],
+    ).toBe('2026-09-19')
   })
 
   it('uses the only non-parallel printing', () => {

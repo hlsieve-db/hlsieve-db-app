@@ -192,10 +192,10 @@ describe('production Card update audit', () => {
     const report = auditProductionUpdate(input())
 
     expect(report.chronology).toMatchObject({
-      products: 36,
+      products: 37,
       missingProductReleaseDates: [],
       intentionallyNoSingleReleaseDate: ['PRカード'],
-      multipleNonParallelCards: 107,
+      multipleNonParallelCards: 111,
       ambiguousCards: [],
       fallbackCount: 67,
     })

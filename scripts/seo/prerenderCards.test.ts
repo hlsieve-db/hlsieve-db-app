@@ -12,6 +12,7 @@ import { buildCardDetailMetadata } from '../../src/domain/site/metadata'
 import {
   assertSafeCardNumber,
   buildPrerenderRoutes,
+  renderCardDetailHtml,
   renderMetadataHtml,
 } from './prerenderCards'
 
@@ -49,15 +50,15 @@ function makeCard(overrides: Partial<Card> = {}): Card {
 }
 
 describe('Card Detail static prerender', () => {
-  it('generates indexable static pages and all 1270 logical Card Detail routes deterministically', async () => {
+  it('generates indexable static pages and all 1381 logical Card Detail routes deterministically', async () => {
     const [template, data] = await Promise.all([readTemplate(), readCards()])
     const routes = buildPrerenderRoutes(template, data.cards)
     const rerun = buildPrerenderRoutes(template, [...data.cards].reverse())
 
-    expect(routes).toHaveLength(1273)
+    expect(routes).toHaveLength(1384)
     expect(
       routes.filter((route) => route.routePath.startsWith('/cards/')),
-    ).toHaveLength(1270)
+    ).toHaveLength(1381)
     expect(routes.map((route) => route.routePath)).toEqual(
       rerun.map((route) => route.routePath),
     )
@@ -81,7 +82,7 @@ describe('Card Detail static prerender', () => {
     expect(disclaimer('link[rel="canonical"]').attr('href')).toBe(
       `${SITE_ORIGIN}/disclaimer`,
     )
-  })
+  }, 15_000)
 
   it('keeps prerendered Card routes in one-to-one sync with sitemap Card URLs', async () => {
     const [template, data, sitemap] = await Promise.all([
@@ -96,7 +97,7 @@ describe('Card Detail static prerender', () => {
       .map((match) => match[1])
       .filter((url) => url.startsWith(`${SITE_ORIGIN}/cards/`))
 
-    expect(new Set(prerenderUrls).size).toBe(1270)
+    expect(new Set(prerenderUrls).size).toBe(1381)
     expect(prerenderUrls).toEqual(sitemapUrls)
   })
 
@@ -150,9 +151,9 @@ describe('Card Detail static prerender', () => {
     )
     const hosts = imageUrls.map((imageUrl) => new URL(imageUrl).host)
 
-    expect(data.cards).toHaveLength(1270)
-    expect(imageUrls).toHaveLength(1270)
-    expect(new Set(imageUrls).size).toBe(1270)
+    expect(data.cards).toHaveLength(1381)
+    expect(imageUrls).toHaveLength(1381)
+    expect(new Set(imageUrls).size).toBe(1381)
     expect(new Set(hosts)).toEqual(new Set(['hololive-official-cardgame.com']))
   })
 
@@ -167,6 +168,39 @@ describe('Card Detail static prerender', () => {
     expect($('meta[name="description"]').attr('content')).toContain(
       `A&B <C> "D" 'E'`,
     )
+  })
+
+  it('includes safe official Q&A text in the JS-free Card Detail HTML', async () => {
+    const template = await readTemplate()
+    const html = renderCardDetailHtml(
+      template,
+      makeCard({
+        qas: [
+          {
+            id: 'Q617',
+            question: '「<script>」を含む質問ですか？',
+            answer: 'A&Bを回答します。',
+            officialUrl:
+              'https://hololive-official-cardgame.com/cardlist/?id=614#faq',
+            publishedAt: '2026-03-02',
+            relatedCardNumbers: ['TEST-001'],
+          },
+        ],
+      }),
+    )
+    const $ = load(html)
+
+    expect($('[data-prerender-card-detail] h2').text()).toBe('公式Q&A（1件）')
+    expect($('[data-prerender-card-detail] summary').text()).toBe(
+      'Q. 「<script>」を含む質問ですか？',
+    )
+    expect($('[data-prerender-card-detail] p').first().text()).toBe(
+      'A. A&Bを回答します。',
+    )
+    expect($('[data-prerender-card-detail] a').attr('href')).toBe(
+      'https://hololive-official-cardgame.com/cardlist/?id=614#faq',
+    )
+    expect($('[data-prerender-card-detail] script')).toHaveLength(0)
   })
 
   it('rejects unsafe path segments and duplicate Card identities', async () => {

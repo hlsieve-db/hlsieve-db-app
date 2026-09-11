@@ -147,10 +147,42 @@ function isArt(value: unknown): boolean {
 function isQa(value: unknown): boolean {
   return (
     isRecord(value) &&
-    hasOnlyKeys(value, new Set(['question', 'answer'])) &&
+    hasOnlyKeys(
+      value,
+      new Set([
+        'id',
+        'question',
+        'answer',
+        'officialUrl',
+        'publishedAt',
+        'relatedCardNumbers',
+      ]),
+    ) &&
+    typeof value.id === 'string' &&
+    /^Q[1-9]\d*$/.test(value.id) &&
     typeof value.question === 'string' &&
-    typeof value.answer === 'string'
+    value.question.length > 0 &&
+    typeof value.answer === 'string' &&
+    value.answer.length > 0 &&
+    typeof value.officialUrl === 'string' &&
+    isOfficialQaUrl(value.officialUrl) &&
+    isOptionalString(value.publishedAt) &&
+    isStringArray(value.relatedCardNumbers) &&
+    value.relatedCardNumbers.length > 0
   )
+}
+
+function isOfficialQaUrl(value: string): boolean {
+  try {
+    const url = new URL(value)
+    return (
+      url.protocol === 'https:' &&
+      url.host === 'hololive-official-cardgame.com' &&
+      url.hash === '#faq'
+    )
+  } catch {
+    return false
+  }
 }
 
 function isPublicCard(value: unknown): value is Card {
