@@ -417,7 +417,7 @@ function buildReport(
     chronology,
     images,
     seo: {
-      expectedSitemapUrls: candidateCards.cards.length + 1,
+      expectedSitemapUrls: candidateCards.cards.length + 2,
       actualSitemapUrls,
       sitemapMatches: input.candidateSitemap === expectedSitemap,
     },
@@ -581,7 +581,7 @@ export function auditProductionUpdate(
     addMessage(
       blocks,
       'SITEMAP_MISMATCH',
-      'Candidate sitemap does not exactly match logical Cards plus /cards.',
+      'Candidate sitemap does not exactly match logical Cards plus /cards and /updates.',
     )
   }
   if (preliminary.images.missing.length > 0) {

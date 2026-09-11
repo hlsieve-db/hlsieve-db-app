@@ -2,6 +2,8 @@ import { readFile } from 'node:fs/promises'
 
 import { validateCardPrintingsSnapshotText } from '../publish/validateCardPrintingsSnapshot'
 import { validateCardsSnapshotText } from '../publish/validateCardsSnapshot'
+import { CARD_DATA_UPDATE_HISTORY } from '../../../src/domain/updates/history'
+import { hasReviewedHistoryEntry } from './buildHistoryCandidate'
 import { UPDATE_PATHS } from './paths'
 import { publishPreparedFiles } from './publishPreparedFiles'
 import { writeUpdateReports } from './report'
@@ -17,6 +19,11 @@ try {
   if (report.status !== 'safe') {
     console.error(`PUBLISH_BLOCKED: audit status is ${report.status}.`)
     process.exitCode = report.exitCode
+  } else if (!hasReviewedHistoryEntry(report, CARD_DATA_UPDATE_HISTORY)) {
+    console.error(
+      'PUBLISH_BLOCKED: add a reviewed history entry for the candidate cardsDataVersion.',
+    )
+    process.exitCode = 3
   } else {
     const cardsText = await readFile(UPDATE_PATHS.candidateCards, 'utf8')
     const printingsText = await readFile(

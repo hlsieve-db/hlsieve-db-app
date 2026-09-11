@@ -49,15 +49,15 @@ function makeCard(overrides: Partial<Card> = {}): Card {
 }
 
 describe('Card Detail static prerender', () => {
-  it('generates /cards and all 1270 logical Card Detail routes deterministically', async () => {
+  it('generates indexable static pages and all 1270 logical Card Detail routes deterministically', async () => {
     const [template, data] = await Promise.all([readTemplate(), readCards()])
     const routes = buildPrerenderRoutes(template, data.cards)
     const rerun = buildPrerenderRoutes(template, [...data.cards].reverse())
 
-    expect(routes).toHaveLength(1271)
-    expect(routes.filter((route) => route.routePath !== '/cards')).toHaveLength(
-      1270,
-    )
+    expect(routes).toHaveLength(1273)
+    expect(
+      routes.filter((route) => route.routePath.startsWith('/cards/')),
+    ).toHaveLength(1270)
     expect(routes.map((route) => route.routePath)).toEqual(
       rerun.map((route) => route.routePath),
     )
@@ -65,6 +65,22 @@ describe('Card Detail static prerender', () => {
       rerun.map((route) => route.html),
     )
     expect(routes[0].outputPath).toBe('cards.html')
+    expect(routes[1].outputPath).toBe('updates.html')
+    const updates = load(routes[1].html)
+    expect(updates('title').text()).toBe('更新履歴 | HLSieve DB')
+    expect(updates('meta[name="robots"]').attr('content')).toBe('index,follow')
+    expect(updates('link[rel="canonical"]').attr('href')).toBe(
+      `${SITE_ORIGIN}/updates`,
+    )
+    expect(routes[2].outputPath).toBe('disclaimer.html')
+    const disclaimer = load(routes[2].html)
+    expect(disclaimer('title').text()).toBe('免責事項・利用条件 | HLSieve DB')
+    expect(disclaimer('meta[name="robots"]').attr('content')).toBe(
+      'noindex,follow',
+    )
+    expect(disclaimer('link[rel="canonical"]').attr('href')).toBe(
+      `${SITE_ORIGIN}/disclaimer`,
+    )
   })
 
   it('keeps prerendered Card routes in one-to-one sync with sitemap Card URLs', async () => {
@@ -74,11 +90,11 @@ describe('Card Detail static prerender', () => {
       readFile(resolve('public', 'sitemap.xml'), 'utf8'),
     ])
     const prerenderUrls = buildPrerenderRoutes(template, data.cards)
-      .filter((route) => route.routePath !== '/cards')
+      .filter((route) => route.routePath.startsWith('/cards/'))
       .map((route) => new URL(route.routePath, SITE_ORIGIN).toString())
     const sitemapUrls = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)]
       .map((match) => match[1])
-      .filter((url) => url !== `${SITE_ORIGIN}/cards`)
+      .filter((url) => url.startsWith(`${SITE_ORIGIN}/cards/`))
 
     expect(new Set(prerenderUrls).size).toBe(1270)
     expect(prerenderUrls).toEqual(sitemapUrls)

@@ -6,7 +6,9 @@ import { load } from 'cheerio'
 import type { Card, CardsDataFile } from '../../src/domain/cards/types'
 import {
   buildCardDetailMetadata,
+  DISCLAIMER_METADATA,
   resolvePageMetadata,
+  UPDATE_HISTORY_METADATA,
   type PageMetadata,
 } from '../../src/domain/site/metadata'
 import { DEFAULT_DOCUMENT_TITLE } from '../../src/domain/site/constants'
@@ -116,6 +118,16 @@ export function buildPrerenderRoutes(
         title: DEFAULT_DOCUMENT_TITLE,
         canonicalPath: '/cards',
       }),
+    },
+    {
+      routePath: '/updates',
+      outputPath: 'updates.html',
+      html: renderMetadataHtml(template, UPDATE_HISTORY_METADATA),
+    },
+    {
+      routePath: '/disclaimer',
+      outputPath: 'disclaimer.html',
+      html: renderMetadataHtml(template, DISCLAIMER_METADATA),
     },
   ]
 

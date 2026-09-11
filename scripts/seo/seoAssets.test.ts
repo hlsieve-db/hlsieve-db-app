@@ -24,10 +24,11 @@ describe('production SEO assets', () => {
 
     expect(cards.cards).toHaveLength(1270)
     expect(sitemap).toBe(expected)
-    expect(locations).toHaveLength(1271)
-    expect(new Set(locations)).toHaveProperty('size', 1271)
+    expect(locations).toHaveLength(1272)
+    expect(new Set(locations)).toHaveProperty('size', 1272)
     expect(locations[0]).toBe(`${SITE_ORIGIN}/cards`)
-    expect(locations.slice(1)).toEqual(
+    expect(locations[1]).toBe(`${SITE_ORIGIN}/updates`)
+    expect(locations.slice(2)).toEqual(
       cards.cards
         .map((card) => `${SITE_ORIGIN}/cards/${card.cardNumber}`)
         .sort((left, right) => left.localeCompare(right, 'en')),
@@ -43,6 +44,7 @@ describe('production SEO assets', () => {
     expect(locations.every((location) => location.search === '')).toBe(true)
     expect(sitemap).not.toContain('/decks')
     expect(sitemap).not.toContain('/deck/share')
+    expect(sitemap).not.toContain('/disclaimer')
     expect(sitemap).not.toContain('printing=')
     expect(sitemap).not.toContain('<lastmod>')
   })

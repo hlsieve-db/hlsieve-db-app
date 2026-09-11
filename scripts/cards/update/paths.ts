@@ -14,4 +14,5 @@ export const UPDATE_PATHS = {
   detailsCache: resolve('.cache/cards/details'),
   reportJson: resolve('.cache/reports/card-update.json'),
   reportMarkdown: resolve('.cache/reports/card-update.md'),
+  historyCandidate: resolve('.cache/reports/card-update-entry.candidate.json'),
 } as const

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import indexHtml from '../index.html?raw'
@@ -81,6 +81,35 @@ describe('App', () => {
     expect(
       screen.getByText('HLSieve DBは非公式のファンメイドツールです。'),
     ).toBeVisible()
+    expect(
+      screen.getByRole('link', { name: '免責事項・利用条件' }),
+    ).toHaveAttribute('href', '/disclaimer')
+  })
+
+  it('routes to updates and cleans disclaimer robots metadata on navigation', () => {
+    render(
+      <MemoryRouter initialEntries={['/updates']}>
+        <App />
+      </MemoryRouter>,
+    )
+    expect(screen.getByRole('heading', { name: '更新履歴' })).toBeVisible()
+    expect(document.title).toBe('更新履歴 | HLSieve DB')
+
+    fireEvent.click(screen.getByRole('link', { name: '免責事項・利用条件' }))
+    expect(
+      screen.getByRole('heading', { name: '免責事項・利用条件' }),
+    ).toBeVisible()
+    expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute(
+      'content',
+      'noindex,follow',
+    )
+
+    fireEvent.click(screen.getByRole('link', { name: 'Cards' }))
+    expect(screen.getByRole('heading', { name: 'カード検索' })).toBeVisible()
+    expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute(
+      'content',
+      'index,follow',
+    )
   })
 
   it('canonicalizes parameterized card searches to the Cards route', () => {

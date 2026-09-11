@@ -10,6 +10,7 @@ import {
 import { useLocation, useNavigate } from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
+import { LatestUpdateNotice } from '../components/LatestUpdateNotice'
 import { DeckTargetSelector } from '../components/decks/DeckTargetSelector'
 import { CardSearchFilters } from '../components/search/CardSearchFilters'
 import { CardSearchResults } from '../components/search/CardSearchResults'
@@ -30,6 +31,8 @@ import {
 import { useSavedDeckQuickEdit } from '../hooks/useSavedDeckQuickEdit'
 import { useDocumentMetadata } from '../hooks/useDocumentMetadata'
 import { DEFAULT_DOCUMENT_TITLE } from '../domain/site/constants'
+import { CARD_DATA_UPDATE_HISTORY } from '../domain/updates/history'
+import type { CardDataUpdateEntry } from '../domain/updates/types'
 
 type CardDataState =
   | { status: 'loading' }
@@ -39,6 +42,7 @@ type CardDataState =
 type CardSearchPageProps = {
   loadCards?: () => Promise<CardsDataFile>
   repository?: DeckRepository
+  updateHistory?: readonly CardDataUpdateEntry[]
 }
 
 function searchString(params: URLSearchParams): string {
@@ -49,6 +53,7 @@ function searchString(params: URLSearchParams): string {
 export function CardSearchPage({
   loadCards = loadCardsData,
   repository = deckRepository,
+  updateHistory = CARD_DATA_UPDATE_HISTORY,
 }: CardSearchPageProps) {
   const location = useLocation()
   const navigate = useNavigate()
@@ -169,6 +174,8 @@ export function CardSearchPage({
         <h1>カード検索</h1>
         <p>カード名、能力、Q&amp;Aから公式カードを探せます。</p>
       </header>
+
+      <LatestUpdateNotice entries={updateHistory} />
 
       <section className="search-panel" aria-label="カード検索条件">
         <label className="search-field" htmlFor="card-search-query">

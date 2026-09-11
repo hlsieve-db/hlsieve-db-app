@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -56,6 +62,8 @@ describe('AppNavigation theme control', () => {
     '/decks',
     '/decks/deck-1',
     '/deck/share',
+    '/updates',
+    '/disclaimer',
     '/unknown',
   ])(
     'shows the visual subtitle without changing brand identity on %s',
@@ -158,5 +166,29 @@ describe('AppNavigation theme control', () => {
       'aria-current',
       'page',
     )
+  })
+
+  it('orders Cards, Decks, and update history before the theme control', () => {
+    mockColorScheme(false)
+    const { container } = render(
+      <MemoryRouter initialEntries={['/updates']}>
+        <AppNavigation />
+      </MemoryRouter>,
+    )
+    const navigation = screen.getByRole('navigation')
+    expect(
+      within(navigation)
+        .getAllByRole('link')
+        .map((link) => link.textContent),
+    ).toEqual(['Cards', 'Decks', '更新履歴'])
+    expect(screen.getByRole('link', { name: '更新履歴' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+    expect(
+      navigation.compareDocumentPosition(
+        container.querySelector('.theme-control')!,
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
   })
 })

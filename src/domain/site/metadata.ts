@@ -29,6 +29,22 @@ export type ResolvedPageMetadata = {
   imageUrl: string
 }
 
+export const UPDATE_HISTORY_METADATA: PageMetadata = {
+  title: '更新履歴 | HLSieve DB',
+  description:
+    'HLSieve DBのカードデータ追加・修正履歴を確認できます。新カードや版情報、カード情報の更新内容をお知らせします。',
+  canonicalPath: '/updates',
+  robots: 'index,follow',
+}
+
+export const DISCLAIMER_METADATA: PageMetadata = {
+  title: '免責事項・利用条件 | HLSieve DB',
+  description:
+    'HLSieve DBの非公式サービスとしての免責事項、権利帰属および利用条件をご案内します。',
+  canonicalPath: '/disclaimer',
+  robots: 'noindex,follow',
+}
+
 export function buildCardDetailMetadata(card: Card): PageMetadata {
   return {
     title: `${card.name} (${card.cardNumber}) | ${SITE_NAME}`,

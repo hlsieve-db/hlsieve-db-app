@@ -16,6 +16,10 @@ import { buildCardsDataFile } from '../generate/buildCardsDataFile'
 import { buildDataVersion } from '../generate/buildDataVersion'
 import { serializeDataFile } from '../generate/serializeDataFile'
 import { auditProductionUpdate } from './auditProductionUpdate'
+import {
+  buildHistoryCandidate,
+  hasReviewedHistoryEntry,
+} from './buildHistoryCandidate'
 import { renderUpdateReportMarkdown, writeUpdateReports } from './report'
 import type { UpdateAuditInput, UpdatePreparationHealth } from './types'
 import type { DiscoveryResult } from '../discovery/types'
@@ -364,5 +368,44 @@ describe('production Card update audit', () => {
     } finally {
       await rm(directory, { recursive: true, force: true })
     }
+  })
+
+  it('builds review-only user history candidates for additive and correction updates', () => {
+    const additiveData = additiveCandidate()
+    const additiveReport = auditProductionUpdate(
+      input(additiveData.cards, additiveData.printings),
+    )
+    expect(buildHistoryCandidate(additiveReport)).toMatchObject({
+      addedCards: 1,
+      addedPrintings: 1,
+      changedCards: 0,
+      summary: 'カードデータを1件追加しました',
+    })
+    expect(hasReviewedHistoryEntry(additiveReport, [])).toBe(false)
+    expect(
+      hasReviewedHistoryEntry(additiveReport, [
+        buildHistoryCandidate(additiveReport),
+      ]),
+    ).toBe(true)
+
+    const original = baselineCards.cards[0]
+    const cards = buildCards(
+      baselineCards.cards.map((card) =>
+        card.cardNumber === original.cardNumber
+          ? { ...card, name: `${card.name} 修正` }
+          : card,
+      ),
+    )
+    const correctionReport = auditProductionUpdate(
+      input(
+        cards,
+        buildPrintings(cards, structuredClone(baselinePrintings.cards)),
+      ),
+    )
+    expect(buildHistoryCandidate(correctionReport)).toMatchObject({
+      addedCards: 0,
+      changedCards: 1,
+      summary: 'カード情報を1件修正しました',
+    })
   })
 })
