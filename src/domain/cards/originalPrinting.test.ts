@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
 import type { CardPrintingGroupPublic, CardPrintingPublic } from './types'
-import { getOriginalNonParallelImageUrl } from './originalPrinting'
+import {
+  getOriginalNonParallelImageUrl,
+  hasNoSingleProductReleaseDate,
+  PRODUCTS_WITHOUT_SINGLE_RELEASE_DATE,
+  PRODUCT_RELEASE_DATES,
+} from './originalPrinting'
 
 function printing(
   officialId: string,
@@ -26,6 +31,22 @@ function group(printings: CardPrintingPublic[]): CardPrintingGroupPublic {
 }
 
 describe('getOriginalNonParallelImageUrl', () => {
+  it('distinguishes the PR umbrella category from an unknown product date', () => {
+    expect(PRODUCTS_WITHOUT_SINGLE_RELEASE_DATE.PRカード).toMatchObject({
+      noSingleReleaseDate: true,
+      reason: expect.any(String),
+      sources: expect.arrayContaining([
+        'https://hololive-official-cardgame.com/cardlist/',
+      ]),
+    })
+    expect(hasNoSingleProductReleaseDate('PRカード')).toBe(true)
+    expect(hasNoSingleProductReleaseDate('未登録の商品')).toBe(false)
+    expect(PRODUCT_RELEASE_DATES).not.toHaveProperty('PRカード')
+    expect(
+      PRODUCT_RELEASE_DATES['ブースターパック「ブルーミングレディアンス」'],
+    ).toBe('2024-09-20')
+  })
+
   it('uses the only non-parallel printing', () => {
     const value = group([
       printing('10', 'https://img.example/only.png', ['PRカード']),
@@ -39,6 +60,12 @@ describe('getOriginalNonParallelImageUrl', () => {
   it.each([
     {
       cardNumber: 'hBP01-021',
+      promo: printing(
+        '189',
+        'https://img.example/hbp01-021-promo.png',
+        ['PRカード'],
+        true,
+      ),
       original: printing('53', 'https://img.example/hbp01-021.png', [
         'ブースターパック「ブルーミングレディアンス」',
       ]),
@@ -48,6 +75,12 @@ describe('getOriginalNonParallelImageUrl', () => {
     },
     {
       cardNumber: 'hBP01-024',
+      promo: printing(
+        '177',
+        'https://img.example/hbp01-024-promo.png',
+        ['PRカード'],
+        true,
+      ),
       original: printing('57', 'https://img.example/hbp01-024.png', [
         'ブースターパック「ブルーミングレディアンス」',
       ]),
@@ -55,15 +88,30 @@ describe('getOriginalNonParallelImageUrl', () => {
         'ブースターパック「ディーヴァフィーバー」',
       ]),
     },
+    {
+      cardNumber: 'hBP01-026',
+      promo: printing(
+        '206',
+        'https://img.example/hbp01-026-promo.png',
+        ['PRカード'],
+        true,
+      ),
+      original: printing('59', 'https://img.example/hbp01-026.png', [
+        'ブースターパック「ブルーミングレディアンス」',
+      ]),
+      reprint: printing('2511', 'https://img.example/hbp01-026-reprint.png', [
+        'エクストラブースター サマー・ホログラム',
+      ]),
+    },
   ])(
-    'selects the dated original for the real reprint $cardNumber regardless of array order',
-    ({ original, reprint }) => {
-      expect(getOriginalNonParallelImageUrl(group([reprint, original]))).toBe(
-        original.imageUrl,
-      )
-      expect(getOriginalNonParallelImageUrl(group([original, reprint]))).toBe(
-        original.imageUrl,
-      )
+    'selects the dated original for the real reprint $cardNumber without treating its PR parallel as a chronology source',
+    ({ original, promo, reprint }) => {
+      expect(
+        getOriginalNonParallelImageUrl(group([reprint, promo, original])),
+      ).toBe(original.imageUrl)
+      expect(
+        getOriginalNonParallelImageUrl(group([original, promo, reprint])),
+      ).toBe(original.imageUrl)
     },
   )
 
@@ -125,5 +173,21 @@ describe('getOriginalNonParallelImageUrl', () => {
       fallback,
     )
     expect(getOriginalNonParallelImageUrl(ambiguous, fallback)).toBe(fallback)
+  })
+
+  it('falls back when multiple PR-only normal printings have no individual dates', () => {
+    const fallback = 'https://img.example/fallback.png'
+    const value = group([
+      printing('50', 'https://img.example/promo-one.png', ['PRカード']),
+      printing('51', 'https://img.example/promo-two.png', ['PRカード']),
+    ])
+
+    expect(getOriginalNonParallelImageUrl(value, fallback)).toBe(fallback)
+    expect(
+      getOriginalNonParallelImageUrl(
+        group([...value.printings].reverse()),
+        fallback,
+      ),
+    ).toBe(fallback)
   })
 })

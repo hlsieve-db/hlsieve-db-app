@@ -1,7 +1,10 @@
 import { createHash } from 'node:crypto'
 
 import { EFFECT_TAG_LABELS } from '../../../src/domain/cards/constants'
-import { PRODUCT_RELEASE_DATES } from '../../../src/domain/cards/originalPrinting'
+import {
+  hasNoSingleProductReleaseDate,
+  PRODUCT_RELEASE_DATES,
+} from '../../../src/domain/cards/originalPrinting'
 import type {
   Card,
   CardPrintingPublic,
@@ -152,8 +155,11 @@ function chronologyAudit(
       (product) =>
         !(
           product in (PRODUCT_RELEASE_DATES as Readonly<Record<string, string>>)
-        ),
+        ) && !hasNoSingleProductReleaseDate(product),
     ),
+  )
+  const intentionallyNoSingleReleaseDate = new Set(
+    [...products].filter(hasNoSingleProductReleaseDate),
   )
   const ambiguousCards: string[] = []
   let multipleNonParallelCards = 0
@@ -196,6 +202,7 @@ function chronologyAudit(
       [...products].filter((product) => !oldProducts.has(product)),
     ),
     missingProductReleaseDates: sorted(missingDates),
+    intentionallyNoSingleReleaseDate: sorted(intentionallyNoSingleReleaseDate),
     multipleNonParallelCards,
     ambiguousCards: sorted(ambiguousCards),
     fallbackCount,

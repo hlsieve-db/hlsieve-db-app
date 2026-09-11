@@ -89,6 +89,7 @@ export type UpdateAuditReport = {
     products: number
     newProducts: string[]
     missingProductReleaseDates: string[]
+    intentionallyNoSingleReleaseDate: string[]
     multipleNonParallelCards: number
     ambiguousCards: string[]
     fallbackCount: number

@@ -41,6 +41,34 @@ export const PRODUCT_RELEASE_DATES = {
   'ライブスタートデッキ 白上フブキ': '2026-04-24',
 } as const satisfies Readonly<Record<string, string>>
 
+export const PRODUCTS_WITHOUT_SINGLE_RELEASE_DATE = {
+  PRカード: {
+    noSingleReleaseDate: true,
+    reason:
+      'PRカード is an umbrella category whose cards become available on their individual distribution start dates.',
+    sources: [
+      'https://hololive-official-cardgame.com/cardlist/',
+      'https://hololive-official-cardgame.com/wp-content/themes/tcg/assets/img/rule/floor_app_ver1-2-11.pdf',
+    ],
+  },
+} as const satisfies Readonly<
+  Record<
+    string,
+    {
+      noSingleReleaseDate: true
+      reason: string
+      sources: readonly string[]
+    }
+  >
+>
+
+export function hasNoSingleProductReleaseDate(product: string): boolean {
+  return Object.prototype.hasOwnProperty.call(
+    PRODUCTS_WITHOUT_SINGLE_RELEASE_DATE,
+    product,
+  )
+}
+
 function getPrintingReleaseDate(
   printing: CardPrintingPublic,
 ): string | undefined {

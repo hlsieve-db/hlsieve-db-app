@@ -188,6 +188,20 @@ describe('production Card update audit', () => {
     expect(report.summary.printings.delta).toBe(1)
   }, 15_000)
 
+  it('reports PRカード as intentionally without a single date, not unknown', () => {
+    const report = auditProductionUpdate(input())
+
+    expect(report.chronology).toMatchObject({
+      products: 36,
+      missingProductReleaseDates: [],
+      intentionallyNoSingleReleaseDate: ['PRカード'],
+      multipleNonParallelCards: 107,
+      ambiguousCards: [],
+      fallbackCount: 67,
+    })
+    expect(report.status).toBe('safe')
+  }, 15_000)
+
   it('audits the confirmed hBP07-076 Buzz correction as the only semantic change', () => {
     const original = baselineCards.cards.find(
       (card) => card.cardNumber === 'hBP07-076',
@@ -384,6 +398,12 @@ describe('production Card update audit', () => {
     const report = auditProductionUpdate(input(baselineCards, printings))
     expect(report.status).toBe('review_required')
     expect(report.chronology.ambiguousCards).toContain(cardNumber)
+    expect(report.chronology.missingProductReleaseDates).toContain(
+      '未登録の商品',
+    )
+    expect(report.chronology.intentionallyNoSingleReleaseDate).toEqual([
+      'PRカード',
+    ])
     expect(report.warnings.map((item) => item.code)).toContain(
       'CHRONOLOGY_REVIEW_REQUIRED',
     )
