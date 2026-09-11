@@ -1,22 +1,8 @@
 import { useEffect } from 'react'
 
-import {
-  DEFAULT_META_DESCRIPTION,
-  DEFAULT_OG_IMAGE_URL,
-  SITE_NAME,
-  SITE_ORIGIN,
-} from '../domain/site/constants'
+import { resolvePageMetadata, type PageMetadata } from '../domain/site/metadata'
 
-export type RobotsDirective = 'index,follow' | 'noindex,follow' | 'noindex'
-
-export type DocumentMetadata = {
-  title: string
-  description?: string
-  canonicalPath?: string
-  robots?: RobotsDirective
-  ogType?: 'website'
-  imageUrl?: string
-}
+export type DocumentMetadata = PageMetadata
 
 type HeadMutation = () => void
 
@@ -86,27 +72,28 @@ function setCanonicalLink(
   })
 }
 
-export function useDocumentMetadata({
-  title,
-  description = DEFAULT_META_DESCRIPTION,
-  canonicalPath,
-  robots = 'index,follow',
-  ogType = 'website',
-  imageUrl = DEFAULT_OG_IMAGE_URL,
-}: DocumentMetadata) {
+export function useDocumentMetadata(metadata: DocumentMetadata) {
+  const resolved = resolvePageMetadata(metadata)
+  const {
+    title,
+    description,
+    canonicalUrl,
+    robots,
+    ogType,
+    siteName,
+    socialUrl,
+    imageUrl,
+  } = resolved
+
   useEffect(() => {
     const previousTitle = document.title
     const mutations: HeadMutation[] = []
-    const canonicalUrl = canonicalPath
-      ? new URL(canonicalPath, SITE_ORIGIN).toString()
-      : undefined
-    const socialUrl = canonicalUrl ?? SITE_ORIGIN
 
     document.title = title
     setMetaContent('name', 'description', description, mutations)
     setMetaContent('name', 'robots', robots, mutations)
     setMetaContent('property', 'og:type', ogType, mutations)
-    setMetaContent('property', 'og:site_name', SITE_NAME, mutations)
+    setMetaContent('property', 'og:site_name', siteName, mutations)
     setMetaContent('property', 'og:title', title, mutations)
     setMetaContent('property', 'og:description', description, mutations)
     setMetaContent('property', 'og:url', socialUrl, mutations)
@@ -121,5 +108,14 @@ export function useDocumentMetadata({
       document.title = previousTitle
       for (const restore of mutations.reverse()) restore()
     }
-  }, [canonicalPath, description, imageUrl, ogType, robots, title])
+  }, [
+    canonicalUrl,
+    description,
+    imageUrl,
+    ogType,
+    robots,
+    siteName,
+    socialUrl,
+    title,
+  ])
 }

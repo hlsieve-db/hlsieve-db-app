@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && tsx scripts/seo/runPrerender.ts",
     "cards:audit": "tsx scripts/cards/audit/runAudit.ts",
     "cards:discover": "tsx scripts/cards/discovery/runDiscovery.ts",
     "cards:fetch-details": "tsx scripts/cards/detailFetch/runDetailFetch.ts",
