@@ -133,9 +133,9 @@ describe('card pipeline dry-run audit', () => {
       cardsDataVersion: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
     })
     expect(result.report.semanticOverrides).toMatchObject({
-      configured: 2,
+      configured: 3,
       applied: 0,
-      missingTargets: 2,
+      missingTargets: 3,
       applications: [],
       dataVersionBefore: result.report.output?.cardsDataVersion,
       dataVersionAfter: result.report.output?.cardsDataVersion,
@@ -280,9 +280,9 @@ describe('card pipeline dry-run audit', () => {
 
     expect(result.report.isPublishable).toBe(true)
     expect(result.report.semanticOverrides).toMatchObject({
-      configured: 2,
+      configured: 3,
       applied: 1,
-      missingTargets: 1,
+      missingTargets: 2,
       applications: [
         {
           overrideId: 'confirmed-buzz-hbp07-019',

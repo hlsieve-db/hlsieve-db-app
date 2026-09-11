@@ -65,16 +65,12 @@ function apply(cards: readonly MergedCardCandidate[], data?: unknown) {
 }
 
 describe('Buzz semantic override configuration', () => {
-  it('contains only the two independently confirmed cards', () => {
+  it('contains only the three independently confirmed cards', () => {
     expect(BUZZ_SEMANTIC_OVERRIDE_DATA).toEqual([
       expect.objectContaining({ cardNumber: 'hBP07-019', isBuzz: true }),
       expect.objectContaining({ cardNumber: 'hBP07-048', isBuzz: true }),
+      expect.objectContaining({ cardNumber: 'hBP07-076', isBuzz: true }),
     ])
-    expect(BUZZ_SEMANTIC_OVERRIDE_DATA).not.toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ cardNumber: 'hBP07-076' }),
-      ]),
-    )
   })
 
   it('rejects duplicate targets instead of applying last-wins', () => {
@@ -126,30 +122,31 @@ describe('Buzz semantic override configuration', () => {
 })
 
 describe('Buzz semantic override application', () => {
-  it.each(['hBP07-019', 'hBP07-048'])('%s changes false to true', (number) => {
-    const input = card(number)
-    const result = apply([input])
-    expect(result.value[0]?.isBuzz).toBe(true)
-    expect(result.value[0]).not.toBe(input)
-    expect(input.isBuzz).toBe(false)
-    expect(result.applications).toEqual([
-      expect.objectContaining({
-        cardNumber: number,
-        field: 'isBuzz',
-        before: false,
-        after: true,
-      }),
-    ])
-  })
+  it.each(['hBP07-019', 'hBP07-048', 'hBP07-076'])(
+    '%s changes false to true',
+    (number) => {
+      const input = card(number)
+      const result = apply([input])
+      expect(result.value[0]?.isBuzz).toBe(true)
+      expect(result.value[0]).not.toBe(input)
+      expect(input.isBuzz).toBe(false)
+      expect(result.applications).toEqual([
+        expect.objectContaining({
+          cardNumber: number,
+          field: 'isBuzz',
+          before: false,
+          after: true,
+        }),
+      ])
+    },
+  )
 
-  it('does not infer an override for hBP07-076 or an unrelated card', () => {
-    const questionable = card('hBP07-076')
+  it('does not infer an override for an unrelated card', () => {
     const unrelated = card('hOTHER-001', { conflicts: [] })
-    const result = apply([questionable, unrelated])
-    expect(result.value).toEqual([questionable, unrelated])
-    expect(result.value[0]).toBe(questionable)
-    expect(result.value[1]).toBe(unrelated)
-    expect(questionable.isBuzz).toBe(false)
+    const result = apply([unrelated])
+    expect(result.value).toEqual([unrelated])
+    expect(result.value[0]).toBe(unrelated)
+    expect(unrelated.isBuzz).toBe(false)
   })
 
   it('preserves printing semantics, conflicts, canonical identity, and URLs', () => {
@@ -168,7 +165,7 @@ describe('Buzz semantic override application', () => {
   })
 
   it('is deterministic regardless of override configuration order', () => {
-    const cards = [card('hBP07-019'), card('hBP07-048')]
+    const cards = [card('hBP07-019'), card('hBP07-048'), card('hBP07-076')]
     const overrides = BUZZ_SEMANTIC_OVERRIDE_DATA as unknown[]
     expect(apply(cards, overrides).value).toEqual(
       apply(cards, [...overrides].reverse()).value,

@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
 
 import type { Card, CardsDataFile } from '../../../src/domain/cards/types'
+import { searchCards } from '../../../src/domain/search/searchCards'
 import { matchesSecondTurnOne } from '../derive/effectTextRules'
 import { validateCardPrintingsSnapshotText } from './validateCardPrintingsSnapshot'
 import { validateCardsSnapshotText } from './validateCardsSnapshot'
@@ -54,7 +55,14 @@ describe('production card printing snapshot', () => {
     }
     expect(isBuzz(cardsValidation.value, 'hBP07-019')).toBe(true)
     expect(isBuzz(cardsValidation.value, 'hBP07-048')).toBe(true)
-    expect(isBuzz(cardsValidation.value, 'hBP07-076')).toBe(false)
+    expect(isBuzz(cardsValidation.value, 'hBP07-076')).toBe(true)
+    const buzzResults = searchCards(cardsValidation.value.cards, {
+      query: '',
+      bloom: ['buzz'],
+    })
+    expect(buzzResults.map((card) => card.cardNumber)).toEqual(
+      expect.arrayContaining(['hBP07-019', 'hBP07-048', 'hBP07-076']),
+    )
 
     const secondTurnOneCards = cardsValidation.value.cards.filter((card) =>
       card.effectTags.includes('second_turn_one'),

@@ -80,8 +80,10 @@ export type UpdateAuditReport = {
   }
   effectTags: Record<EffectTag, { old: number; next: number; delta: number }>
   buzz: {
-    confirmedOverrides: Record<'hBP07-019' | 'hBP07-048', boolean | undefined>
-    pending: { cardNumber: 'hBP07-076'; isBuzz: boolean | undefined }
+    confirmedOverrides: Record<
+      'hBP07-019' | 'hBP07-048' | 'hBP07-076',
+      boolean | undefined
+    >
   }
   chronology: {
     products: number

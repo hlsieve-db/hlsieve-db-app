@@ -1,8 +1,8 @@
 {
   "format": "holocard-cards",
   "formatVersion": 1,
-  "dataVersion": "sha256:2a2a581995f0fe68d4d827c0122ab37f83d326c6490d30099346bea0df7739cf",
-  "generatedAt": "2026-09-04T12:10:56.717Z",
+  "dataVersion": "sha256:91388bb696beb83acb2371b130e07792bbfd7f743322b489b9b7345eda585ad8",
+  "generatedAt": "2026-09-11T08:10:47.981Z",
   "cards": [
     {
       "cardNumber": "hBD24-001",
@@ -47897,7 +47897,7 @@
         "purple"
       ],
       "bloomLevel": "first",
-      "isBuzz": false,
+      "isBuzz": true,
       "hp": 260,
       "tags": [
         "#EN",

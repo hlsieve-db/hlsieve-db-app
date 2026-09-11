@@ -158,7 +158,7 @@ describe('production Card update audit', () => {
       pagination: {
         currentPage: 1,
         maxPage: 3,
-        fetchedPages: [2, 3],
+        fetchedPages: [1, 2, 3],
         pageEntryCounts: [15, 15, 0],
       },
       isComplete: true,
@@ -172,7 +172,7 @@ describe('production Card update audit', () => {
       },
     } as unknown as DiscoveryResult
     expect(hasCompletePageCoverage(discovery)).toBe(true)
-    discovery.pages.all!.pagination!.fetchedPages = [2]
+    discovery.pages.all!.pagination!.fetchedPages = [1, 2]
     expect(hasCompletePageCoverage(discovery)).toBe(false)
   })
 
@@ -186,7 +186,67 @@ describe('production Card update audit', () => {
     expect(report.cards.added).toContain('hTEST-001')
     expect(report.summary.logicalCards.delta).toBe(1)
     expect(report.summary.printings.delta).toBe(1)
-  })
+  }, 15_000)
+
+  it('audits the confirmed hBP07-076 Buzz correction as the only semantic change', () => {
+    const original = baselineCards.cards.find(
+      (card) => card.cardNumber === 'hBP07-076',
+    )!
+    const oldCards = buildCards(
+      baselineCards.cards.map((card) =>
+        card.cardNumber === original.cardNumber
+          ? { ...card, isBuzz: false }
+          : card,
+      ),
+    )
+    const nextCards = buildCards(
+      oldCards.cards.map((card) =>
+        card.cardNumber === original.cardNumber
+          ? { ...card, isBuzz: true }
+          : card,
+      ),
+    )
+    const groups = structuredClone(baselinePrintings.cards)
+    const report = auditProductionUpdate({
+      ...input(nextCards, buildPrintings(nextCards, groups)),
+      baselineCardsText: serialize(oldCards),
+      baselinePrintingsText: serialize(buildPrintings(oldCards, groups)),
+    })
+
+    expect(report.status).toBe('safe')
+    expect(report.cards.changed).toEqual([
+      {
+        cardNumber: 'hBP07-076',
+        fields: [{ field: 'isBuzz', before: false, after: true }],
+      },
+    ])
+    expect(report.cards.semanticDeltaByField).toEqual({ isBuzz: 1 })
+    expect(report.buzz.confirmedOverrides['hBP07-076']).toBe(true)
+  }, 15_000)
+
+  it('blocks a confirmed Buzz classification regression after publication', () => {
+    const oldCards = buildCards(
+      baselineCards.cards.map((card) =>
+        card.cardNumber === 'hBP07-076' ? { ...card, isBuzz: true } : card,
+      ),
+    )
+    const nextCards = buildCards(
+      oldCards.cards.map((card) =>
+        card.cardNumber === 'hBP07-076' ? { ...card, isBuzz: false } : card,
+      ),
+    )
+    const groups = structuredClone(baselinePrintings.cards)
+    const report = auditProductionUpdate({
+      ...input(nextCards, buildPrintings(nextCards, groups)),
+      baselineCardsText: serialize(oldCards),
+      baselinePrintingsText: serialize(buildPrintings(oldCards, groups)),
+    })
+
+    expect(report.status).toBe('blocked')
+    expect(report.blocks).toContainEqual(
+      expect.objectContaining({ code: 'BUZZ_OVERRIDE_REGRESSION' }),
+    )
+  }, 15_000)
 
   it('blocks incomplete Discovery and maps it to exit 3', () => {
     const report = auditProductionUpdate(

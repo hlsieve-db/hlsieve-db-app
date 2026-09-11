@@ -408,10 +408,7 @@ function buildReport(
       confirmedOverrides: {
         'hBP07-019': nextCards.get('hBP07-019')?.isBuzz,
         'hBP07-048': nextCards.get('hBP07-048')?.isBuzz,
-      },
-      pending: {
-        cardNumber: 'hBP07-076',
-        isBuzz: nextCards.get('hBP07-076')?.isBuzz,
+        'hBP07-076': nextCards.get('hBP07-076')?.isBuzz,
       },
     },
     chronology,
@@ -646,9 +643,9 @@ export function auditProductionUpdate(
   const baselineByNumber = new Map(
     baselineCards.cards.map((card) => [card.cardNumber, card]),
   )
-  for (const cardNumber of ['hBP07-019', 'hBP07-048'] as const) {
+  for (const cardNumber of ['hBP07-019', 'hBP07-048', 'hBP07-076'] as const) {
     if (
-      baselineByNumber.has(cardNumber) &&
+      baselineByNumber.get(cardNumber)?.isBuzz === true &&
       preliminary.buzz.confirmedOverrides[cardNumber] !== true
     ) {
       addMessage(

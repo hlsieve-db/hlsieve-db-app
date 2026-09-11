@@ -218,6 +218,32 @@ describe('CardDetailPage route and loader states', () => {
 })
 
 describe('CardDetailPage public card information', () => {
+  it('renders the confirmed hBP07-076 classification as Buzz', async () => {
+    renderDetail({
+      loadCards: async () =>
+        dataFile([
+          card({
+            cardNumber: 'hBP07-076',
+            name: 'ネリッサ・レイヴンクロフト',
+            bloomLevel: 'first',
+            isBuzz: true,
+          }),
+        ]),
+      loadPrintings: async () => printingsData('hBP07-076'),
+      path: '/cards/hBP07-076',
+    })
+
+    expect(
+      await screen.findByRole('heading', {
+        name: 'ネリッサ・レイヴンクロフト',
+      }),
+    ).toBeVisible()
+    expect(screen.getByText('hBP07-076')).toBeVisible()
+    expect(screen.getByText('Buzzホロメン')).toBeVisible()
+    expect(screen.getByRole('img')).toBeVisible()
+    expect(screen.getByRole('heading', { name: '版情報' })).toBeVisible()
+  })
+
   it('renders primary fields, gameplay text, Q&A, and official URL', async () => {
     renderDetail()
 

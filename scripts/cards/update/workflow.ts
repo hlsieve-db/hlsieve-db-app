@@ -21,8 +21,8 @@ export function hasCompletePageCoverage(discovery: DiscoveryResult): boolean {
     const page = discovery.pages[mode]
     if (!page?.isComplete || !page.pagination) return false
     const expected = Array.from(
-      { length: Math.max(0, page.pagination.maxPage - 1) },
-      (_, index) => index + 2,
+      { length: page.pagination.maxPage },
+      (_, index) => index + 1,
     )
     return (
       page.pagination.currentPage === 1 &&

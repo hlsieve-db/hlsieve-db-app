@@ -20,8 +20,20 @@ const entry = (
 })
 
 describe('Card data update history', () => {
-  it('starts empty rather than inventing an initial publication date', () => {
-    expect(CARD_DATA_UPDATE_HISTORY).toEqual([])
+  it('records the reviewed hBP07-076 correction against published versions', () => {
+    expect(CARD_DATA_UPDATE_HISTORY).toEqual([
+      expect.objectContaining({
+        id: 'card-data-2026-09-11',
+        publishedAt: '2026-09-11',
+        cardsDataVersion:
+          'sha256:91388bb696beb83acb2371b130e07792bbfd7f743322b489b9b7345eda585ad8',
+        printingsDataVersion:
+          'sha256:6dc8dcce77d980ca8f6aadf885d5295f9e058f8eebfea6712eed82c5a0ca630b',
+        summary: 'カード情報を修正しました',
+        changedCards: 1,
+        notes: ['hBP07-076のBuzz分類を修正しました。'],
+      }),
+    ])
   })
 
   it('returns a latest-first copy without mutating source history', () => {
