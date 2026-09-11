@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest'
 
 import type { Card } from '../cards/types'
 import { SITE_ORIGIN } from './constants'
-import { buildCardDetailMetadata, resolvePageMetadata } from './metadata'
+import {
+  buildCardDetailMetadata,
+  PROBABILITY_METADATA,
+  resolvePageMetadata,
+} from './metadata'
 
 function makeCard(overrides: Partial<Card> = {}): Card {
   return {
@@ -38,6 +42,16 @@ describe('site metadata', () => {
     expect(metadata.description).toContain('非公式')
     expect(metadata.robots).toBe('index,follow')
     expect(metadata.imageUrl).toBe(`${SITE_ORIGIN}/og-image.png`)
+  })
+
+  it('defines indexable metadata for the probability utility', () => {
+    const metadata = resolvePageMetadata(PROBABILITY_METADATA)
+
+    expect(metadata.title).toBe('確率計算 | HLSieve DB')
+    expect(metadata.description).toContain('現在の山札枚数')
+    expect(metadata.canonicalUrl).toBe(`${SITE_ORIGIN}/probability`)
+    expect(metadata.socialUrl).toBe(`${SITE_ORIGIN}/probability`)
+    expect(metadata.robots).toBe('index,follow')
   })
 
   it('builds Card Detail metadata with the logical representative image once', () => {

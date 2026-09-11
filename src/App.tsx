@@ -5,6 +5,7 @@ import { CardSearchPage } from './pages/CardSearchPage'
 import { DeckEditPage } from './pages/DeckEditPage'
 import { DisclaimerPage } from './pages/DisclaimerPage'
 import { NotFoundPage } from './pages/NotFoundPage'
+import { ProbabilityPage } from './pages/ProbabilityPage'
 import { SavedDecksPage } from './pages/SavedDecksPage'
 import { SharedDeckPage } from './pages/SharedDeckPage'
 import { UpdateHistoryPage } from './pages/UpdateHistoryPage'
@@ -20,6 +21,7 @@ function App() {
         <Route path="/decks" element={<SavedDecksPage />} />
         <Route path="/decks/:deckId" element={<DeckEditPage />} />
         <Route path="/updates" element={<UpdateHistoryPage />} />
+        <Route path="/probability" element={<ProbabilityPage />} />
         <Route path="/disclaimer" element={<DisclaimerPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

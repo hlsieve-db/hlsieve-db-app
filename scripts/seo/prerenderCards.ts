@@ -7,6 +7,7 @@ import type { Card, CardsDataFile } from '../../src/domain/cards/types'
 import {
   buildCardDetailMetadata,
   DISCLAIMER_METADATA,
+  PROBABILITY_METADATA,
   resolvePageMetadata,
   UPDATE_HISTORY_METADATA,
   type PageMetadata,
@@ -145,6 +146,11 @@ export function buildPrerenderRoutes(
         title: DEFAULT_DOCUMENT_TITLE,
         canonicalPath: '/cards',
       }),
+    },
+    {
+      routePath: '/probability',
+      outputPath: 'probability.html',
+      html: renderMetadataHtml(template, PROBABILITY_METADATA),
     },
     {
       routePath: '/updates',

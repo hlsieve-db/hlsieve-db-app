@@ -37,6 +37,14 @@ export const UPDATE_HISTORY_METADATA: PageMetadata = {
   robots: 'index,follow',
 }
 
+export const PROBABILITY_METADATA: PageMetadata = {
+  title: '確率計算 | HLSieve DB',
+  description:
+    '現在の山札枚数、対象カード枚数、見る枚数から、対象カードを1枚以上引く確率を計算できます。',
+  canonicalPath: '/probability',
+  robots: 'index,follow',
+}
+
 export const DISCLAIMER_METADATA: PageMetadata = {
   title: '免責事項・利用条件 | HLSieve DB',
   description:

@@ -119,7 +119,7 @@ body {
 
 body {
   margin: 0;
-  min-width: 320px;
+  min-width: 0;
   min-height: 100vh;
 }
 
@@ -1635,6 +1635,96 @@ summary:focus-visible {
   border-radius: 18px;
   background: var(--color-surface);
   box-shadow: var(--shadow-card);
+}
+
+.probability-calculator {
+  display: grid;
+  gap: 24px;
+  width: min(680px, 100%);
+  margin: 0 auto;
+  padding: clamp(18px, 5vw, 34px);
+}
+
+.probability-calculator > h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.probability-calculator__inputs {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+}
+
+.probability-calculator__inputs label {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  min-width: 0;
+  font-weight: 800;
+}
+
+.probability-calculator__inputs input {
+  width: 100%;
+  min-width: 0;
+  min-height: 52px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 10px;
+  color: var(--color-text);
+  background: var(--color-surface-soft);
+  font-size: 1.25rem;
+  font-weight: 750;
+}
+
+.probability-calculator__inputs small {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.55;
+}
+
+.probability-calculator__errors {
+  padding: 14px 16px;
+  border: 1px solid var(--color-danger-border);
+  border-radius: 12px;
+  color: var(--color-danger-text-soft);
+  background: var(--color-danger-surface);
+  overflow-wrap: anywhere;
+}
+
+.probability-calculator__errors p {
+  margin: 0;
+}
+
+.probability-calculator__errors p + p {
+  margin-top: 8px;
+}
+
+.probability-calculator__result {
+  padding-top: 22px;
+  border-top: 1px solid var(--color-border);
+  text-align: center;
+}
+
+.probability-calculator__result h2 {
+  margin: 0 0 12px;
+  font-size: 1rem;
+}
+
+.probability-calculator__result output {
+  display: block;
+  color: var(--color-accent-strong);
+  font-size: clamp(3rem, 18vw, 5rem);
+  font-weight: 900;
+  line-height: 1;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 700px) {
+  .probability-calculator__inputs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 .update-history-list {

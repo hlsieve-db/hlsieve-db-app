@@ -124,6 +124,18 @@ describe('App', () => {
     ).toHaveAttribute('href', 'https://hlsieve.com/cards')
   })
 
+  it('routes to the standalone probability calculator', () => {
+    render(
+      <MemoryRouter initialEntries={['/probability']}>
+        <App />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByRole('heading', { name: '確率計算' })).toBeVisible()
+    expect(screen.getByLabelText(/現在の山札枚数/)).toHaveValue(50)
+    expect(document.title).toBe('確率計算 | HLSieve DB')
+  })
+
   it('renders a branded Not Found page with navigation', () => {
     render(
       <MemoryRouter initialEntries={['/this-does-not-exist']}>

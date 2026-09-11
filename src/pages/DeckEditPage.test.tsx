@@ -237,6 +237,17 @@ describe('DeckEditPage loading', () => {
 })
 
 describe('DeckEditPage editor operations', () => {
+  it('does not retain the old Deck-linked probability calculator', async () => {
+    renderPage()
+
+    expect(
+      await screen.findByRole('heading', { name: 'テストデッキ' }),
+    ).toBeVisible()
+    expect(
+      screen.queryByRole('button', { name: '確率計算' }),
+    ).not.toBeInTheDocument()
+  })
+
   it('shows card data loading without blocking the editor', async () => {
     renderPage({ loadCards: () => new Promise(() => undefined) })
 

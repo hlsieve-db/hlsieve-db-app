@@ -25,4 +25,19 @@ describe('responsive content and navigation layout', () => {
     )
     expect(css).toMatch(/\.legal-content\s*{[^}]*overflow-wrap: anywhere/s)
   })
+
+  it('keeps the probability calculator mobile-first without fixed overflow', async () => {
+    const css = await readFile('src/styles/global.css', 'utf8')
+
+    expect(css).toMatch(
+      /\.probability-calculator__inputs\s*{[^}]*grid-template-columns: minmax\(0, 1fr\)/s,
+    )
+    expect(css).toMatch(
+      /\.probability-calculator__inputs input\s*{[^}]*width: 100%[^}]*min-width: 0/s,
+    )
+    expect(css).toMatch(
+      /\.probability-calculator__errors\s*{[^}]*overflow-wrap: anywhere/s,
+    )
+    expect(css).toMatch(/body\s*{[^}]*min-width: 0/s)
+  })
 })

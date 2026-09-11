@@ -22,5 +22,5 @@ await writeFile(
 )
 
 console.log(
-  `Generated ${sitemapPath} with ${cardsData.cards.length + 2} URLs and ${robotsPath}.`,
+  `Generated ${sitemapPath} with ${cardsData.cards.length + 3} URLs and ${robotsPath}.`,
 )
