@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://hlsieve-db.pages.dev/sitemap.xml
+Sitemap: https://hlsieve.com/sitemap.xml

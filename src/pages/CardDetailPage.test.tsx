@@ -279,7 +279,7 @@ describe('CardDetailPage public card information', () => {
     )
     expect(
       document.head.querySelector('link[rel="canonical"]'),
-    ).toHaveAttribute('href', 'https://hlsieve-db.pages.dev/cards/TEST-001')
+    ).toHaveAttribute('href', 'https://hlsieve.com/cards/TEST-001')
   })
 
   it('omits absent optional fields, Q&A, and official URL', async () => {

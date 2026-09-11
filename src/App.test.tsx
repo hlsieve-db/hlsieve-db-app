@@ -50,7 +50,7 @@ describe('App', () => {
     ).toBe('/favicon.svg')
     expect(
       document.querySelector('link[rel="canonical"]')?.getAttribute('href'),
-    ).toBe('https://hlsieve-db.pages.dev/cards')
+    ).toBe('https://hlsieve.com/cards')
     expect(
       document
         .querySelector('meta[property="og:title"]')
@@ -60,7 +60,7 @@ describe('App', () => {
       document
         .querySelector('meta[property="og:url"]')
         ?.getAttribute('content'),
-    ).toBe('https://hlsieve-db.pages.dev/cards')
+    ).toBe('https://hlsieve.com/cards')
     expect(
       document
         .querySelector('meta[name="twitter:card"]')
@@ -92,7 +92,7 @@ describe('App', () => {
 
     expect(
       document.head.querySelector('link[rel="canonical"]'),
-    ).toHaveAttribute('href', 'https://hlsieve-db.pages.dev/cards')
+    ).toHaveAttribute('href', 'https://hlsieve.com/cards')
   })
 
   it('renders a branded Not Found page with navigation', () => {
