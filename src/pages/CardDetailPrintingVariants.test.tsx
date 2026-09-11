@@ -243,6 +243,12 @@ describe('Card Detail printing variants', () => {
     expect(
       document.head.querySelector('link[rel="canonical"]'),
     ).toHaveAttribute('href', 'https://hlsieve.com/cards/TEST-001')
+    expect(
+      document.head.querySelector('meta[property="og:image"]'),
+    ).toHaveAttribute('content', 'https://example.com/default.png')
+    expect(
+      document.head.querySelector('meta[name="twitter:image"]'),
+    ).toHaveAttribute('content', 'https://example.com/default.png')
   })
 
   it('supports valid direct links and browser Back/Forward selection history', async () => {

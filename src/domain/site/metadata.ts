@@ -35,6 +35,7 @@ export function buildCardDetailMetadata(card: Card): PageMetadata {
     description: `${card.name}（${card.cardNumber}）の${CARD_TYPE_LABELS[card.cardType]}カード情報、能力、アーツ、収録情報を確認できます。HLSieve DBはホロライブOCGの非公式カード検索DBです。`,
     canonicalPath: `/cards/${encodeURIComponent(card.cardNumber)}`,
     robots: 'index,follow',
+    imageUrl: card.imageUrl?.trim() || undefined,
   }
 }
 

@@ -40,16 +40,35 @@ describe('site metadata', () => {
     expect(metadata.imageUrl).toBe(`${SITE_ORIGIN}/og-image.png`)
   })
 
-  it('builds the Card Detail title, description, and canonical path once', () => {
+  it('builds Card Detail metadata with the logical representative image once', () => {
+    const imageUrl =
+      'https://hololive-official-cardgame.com/wp-content/images/cardlist/hEB01/hBP03-050_R_02.png'
     const metadata = buildCardDetailMetadata(
-      makeCard({ cardNumber: 'hBP03-050', name: 'FUWAMOCO' }),
+      makeCard({
+        cardNumber: 'hBP03-050',
+        name: 'FUWAMOCO',
+        imageUrl,
+      }),
     )
+    const resolved = resolvePageMetadata(metadata)
 
     expect(metadata.title).toBe('FUWAMOCO (hBP03-050) | HLSieve DB')
     expect(metadata.description).toContain('FUWAMOCO（hBP03-050）')
     expect(metadata.description).toContain('ホロメンカード情報')
     expect(metadata.canonicalPath).toBe('/cards/hBP03-050')
+    expect(resolved.imageUrl).toBe(imageUrl)
   })
+
+  it.each([undefined, '', '   '])(
+    'falls back to the site OGP image when Card imageUrl is %j',
+    (imageUrl) => {
+      const resolved = resolvePageMetadata(
+        buildCardDetailMetadata(makeCard({ imageUrl })),
+      )
+
+      expect(resolved.imageUrl).toBe(`${SITE_ORIGIN}/og-image.png`)
+    },
+  )
 
   it('preserves special characters for the HTML layer to escape', () => {
     const metadata = buildCardDetailMetadata(

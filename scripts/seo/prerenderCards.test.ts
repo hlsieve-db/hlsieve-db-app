@@ -117,8 +117,27 @@ describe('Card Detail static prerender', () => {
       expect($('meta[name="twitter:title"]').attr('content')).toBe(
         expected.title,
       )
+      expect($('meta[property="og:image"]').attr('content')).toBe(
+        card?.imageUrl,
+      )
+      expect($('meta[name="twitter:image"]').attr('content')).toBe(
+        card?.imageUrl,
+      )
       expect($('meta[name="robots"]').attr('content')).toBe('index,follow')
     }
+  })
+
+  it('audits one unique official representative image for every logical Card', async () => {
+    const data = await readCards()
+    const imageUrls = data.cards.flatMap((card) =>
+      card.imageUrl ? [card.imageUrl] : [],
+    )
+    const hosts = imageUrls.map((imageUrl) => new URL(imageUrl).host)
+
+    expect(data.cards).toHaveLength(1270)
+    expect(imageUrls).toHaveLength(1270)
+    expect(new Set(imageUrls).size).toBe(1270)
+    expect(new Set(hosts)).toEqual(new Set(['hololive-official-cardgame.com']))
   })
 
   it('HTML-escapes card metadata without changing its decoded meaning', async () => {

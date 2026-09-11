@@ -280,6 +280,12 @@ describe('CardDetailPage public card information', () => {
     expect(
       document.head.querySelector('link[rel="canonical"]'),
     ).toHaveAttribute('href', 'https://hlsieve.com/cards/TEST-001')
+    expect(
+      document.head.querySelector('meta[property="og:image"]'),
+    ).toHaveAttribute('content', 'https://example.com/test.png')
+    expect(
+      document.head.querySelector('meta[name="twitter:image"]'),
+    ).toHaveAttribute('content', 'https://example.com/test.png')
   })
 
   it('omits absent optional fields, Q&A, and official URL', async () => {
@@ -313,6 +319,9 @@ describe('CardDetailPage public card information', () => {
     })
 
     await screen.findByRole('heading', { name: 'テストホロメン' })
+    expect(
+      document.head.querySelector('meta[property="og:image"]'),
+    ).toHaveAttribute('content', 'https://hlsieve.com/og-image.png')
     expect(screen.getByText('画像なし')).toBeVisible()
     expect(
       screen.queryByRole('heading', { name: /^Q&A/ }),
