@@ -7,6 +7,7 @@ import type { Deck } from '../domain/decks/types'
 import { encodeDeckSharePayload } from '../domain/share/deckShareCodec'
 import type { SharedDeckPayloadV1 } from '../domain/share/types'
 import type { DeckRepository } from '../repositories/deckRepository'
+import { SavedDecksPage } from './SavedDecksPage'
 import { SharedDeckPage } from './SharedDeckPage'
 
 function card(
@@ -157,7 +158,15 @@ describe('SharedDeckPage preview', () => {
     expect(screen.getByText('共有推し')).toBeVisible()
     expect(screen.getByText('共有メイン')).toBeVisible()
     expect(screen.getByText('共有エール')).toBeVisible()
-    expect(screen.getByText('推しホロメン / 推しホロメン')).toBeVisible()
+    expect(
+      screen.getByRole('heading', { name: '推しホロメン1枚' }),
+    ).toBeVisible()
+    expect(
+      screen.getByRole('heading', { name: 'メインデッキ50枚' }),
+    ).toBeVisible()
+    expect(
+      screen.getByRole('heading', { name: 'エールデッキ20枚' }),
+    ).toBeVisible()
     expect(document.title).toBe('共有テストデッキ | HLSieve DB')
     expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute(
       'content',
@@ -263,6 +272,22 @@ describe('SharedDeckPage preview', () => {
 })
 
 describe('SharedDeckPage import', () => {
+  it('requires an explicit action and presents the import after the preview', async () => {
+    const saveDeck = vi.fn(async () => undefined)
+    renderPage({ deckRepository: repository({ saveDeck }) })
+
+    const entries = await screen.findByRole('heading', { name: 'カード構成' })
+    const importButton = screen.getByRole('button', {
+      name: '自分のデッキに追加',
+    })
+    expect(saveDeck).not.toHaveBeenCalled()
+    expect(
+      entries.compareDocumentPosition(importButton) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    expect(importButton).toHaveClass('button')
+  })
+
   it('saves a fresh deck and redirects to its editor', async () => {
     const saveDeck = vi.fn(async () => undefined)
     const createLocalDeck = vi.fn((): Deck => ({
@@ -275,7 +300,7 @@ describe('SharedDeckPage import', () => {
     renderPage({ deckRepository: repository({ saveDeck }), createLocalDeck })
 
     fireEvent.click(
-      await screen.findByRole('button', { name: 'このデッキを保存' }),
+      await screen.findByRole('button', { name: '自分のデッキに追加' }),
     )
     expect(await screen.findByText('Imported editor')).toBeVisible()
     expect(createLocalDeck).toHaveBeenCalledWith(payload())
@@ -306,7 +331,7 @@ describe('SharedDeckPage import', () => {
     for (let importNumber = 0; importNumber < 2; importNumber += 1) {
       const page = renderPage({ createLocalDeck })
       fireEvent.click(
-        await screen.findByRole('button', { name: 'このデッキを保存' }),
+        await screen.findByRole('button', { name: '自分のデッキに追加' }),
       )
       await screen.findByText('Imported editor')
       page.unmount()
@@ -330,7 +355,7 @@ describe('SharedDeckPage import', () => {
     renderPage({ deckRepository: repository({ saveDeck }), createLocalDeck })
 
     const save = await screen.findByRole('button', {
-      name: 'このデッキを保存',
+      name: '自分のデッキに追加',
     })
     fireEvent.click(save)
     expect(await screen.findByRole('alert')).toHaveTextContent(
@@ -342,5 +367,73 @@ describe('SharedDeckPage import', () => {
     expect(createLocalDeck).toHaveBeenCalledTimes(1)
     expect(saveDeck).toHaveBeenCalledTimes(2)
     expect(saveDeck.mock.calls[0]?.[0]).toBe(saveDeck.mock.calls[1]?.[0])
+  })
+
+  it('preserves unknown entries when importing', async () => {
+    const saveDeck = vi.fn(async () => undefined)
+    const sharedPayload = payload({
+      entries: [{ cardNumber: 'UNKNOWN-001', quantity: 3 }],
+    })
+    renderPage({
+      path: `/deck/share?d=${encode(sharedPayload)}`,
+      deckRepository: repository({ saveDeck }),
+    })
+
+    expect(
+      await screen.findByRole('heading', { name: '未確認カード3枚' }),
+    ).toBeVisible()
+    fireEvent.click(screen.getByRole('button', { name: '自分のデッキに追加' }))
+    await screen.findByText('Imported editor')
+    expect(saveDeck).toHaveBeenCalledWith(
+      expect.objectContaining({ entries: sharedPayload.entries }),
+    )
+  })
+
+  it('keeps an existing same-name deck and adds a separately identified deck', async () => {
+    const existing = {
+      id: 'existing-id',
+      name: payload().name,
+      entries: [{ cardNumber: 'MAIN-001', quantity: 1 }],
+      createdAt: '2026-09-08T00:00:00.000Z',
+      updatedAt: '2026-09-08T00:00:00.000Z',
+    }
+    const records = new Map<string, Deck>([[existing.id, existing]])
+    const deckRepository = repository({
+      listDecks: vi.fn(async () => [...records.values()]),
+      getDeck: vi.fn(async (id) => records.get(id)),
+      saveDeck: vi.fn(async (deck) => {
+        records.set(deck.id, deck)
+      }),
+    })
+    const imported: Deck = {
+      id: 'imported-id',
+      name: payload().name,
+      entries: payload().entries.map((entry) => ({ ...entry })),
+      createdAt: '2026-09-09T11:00:00.000Z',
+      updatedAt: '2026-09-09T11:00:00.000Z',
+    }
+    const page = renderPage({
+      deckRepository,
+      createLocalDeck: () => imported,
+    })
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: '自分のデッキに追加' }),
+    )
+    await screen.findByText('Imported editor')
+    page.unmount()
+
+    expect(await deckRepository.listDecks()).toEqual([existing, imported])
+    expect(await deckRepository.getDeck(existing.id)).toBe(existing)
+    expect(await deckRepository.getDeck(imported.id)).toBe(imported)
+
+    render(
+      <MemoryRouter initialEntries={['/decks']}>
+        <SavedDecksPage repository={deckRepository} />
+      </MemoryRouter>,
+    )
+    expect(
+      await screen.findAllByRole('heading', { name: payload().name }),
+    ).toHaveLength(2)
   })
 })

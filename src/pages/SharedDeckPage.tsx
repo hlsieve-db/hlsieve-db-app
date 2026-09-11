@@ -7,7 +7,7 @@ import { DECK_ZONE_LABELS } from '../components/decks/constants'
 import { CARD_TYPE_LABELS } from '../domain/cards/constants'
 import type { Card, CardsDataFile } from '../domain/cards/types'
 import { getDeckZone, validateDeckLegality } from '../domain/decks/legality'
-import type { Deck } from '../domain/decks/types'
+import type { Deck, DeckEntry, DeckZone } from '../domain/decks/types'
 import {
   createDeckFromSharedPayload,
   decodeDeckSharePayload,
@@ -37,6 +37,12 @@ type SharedDeckPageProps = {
   repository?: DeckRepository
   loadCards?: () => Promise<CardsDataFile>
   createLocalDeck?: (payload: SharedDeckPayloadV1) => Deck
+}
+
+type SharedDeckEntryGroup = {
+  key: DeckZone | 'unknown'
+  label: string
+  entries: DeckEntry[]
 }
 
 function decodeErrorMessage(code: DeckShareDecodeErrorCode): string {
@@ -151,6 +157,27 @@ export function SharedDeckPage({
     [activeCardsState, previewDeck],
   )
 
+  const entryGroups = useMemo<SharedDeckEntryGroup[]>(() => {
+    if (!previewDeck || activeCardsState.status !== 'loaded') return []
+    const groupedEntries: Record<DeckZone | 'unknown', DeckEntry[]> = {
+      oshi: [],
+      main: [],
+      cheer: [],
+      unknown: [],
+    }
+    for (const entry of previewDeck.entries) {
+      const card = cardsByNumber.get(entry.cardNumber)
+      groupedEntries[card ? getDeckZone(card) : 'unknown'].push(entry)
+    }
+    return (['oshi', 'main', 'cheer', 'unknown'] as const)
+      .filter((key) => groupedEntries[key].length > 0)
+      .map((key) => ({
+        key,
+        label: DECK_ZONE_LABELS[key],
+        entries: groupedEntries[key],
+      }))
+  }, [activeCardsState.status, cardsByNumber, previewDeck])
+
   const retryCards = () => {
     setCardsState({ source, status: 'loading' })
     setCardsLoadAttempt((attempt) => attempt + 1)
@@ -229,39 +256,65 @@ export function SharedDeckPage({
                 {previewDeck.entries.length === 0 ? (
                   <p>カードが含まれていません。</p>
                 ) : (
-                  <ul className="shared-deck-entries">
-                    {previewDeck.entries.map((entry) => {
-                      const card = cardsByNumber.get(entry.cardNumber)
-                      const zone = card ? getDeckZone(card) : 'unknown'
-                      return (
-                        <li key={entry.cardNumber}>
-                          <SharedDeckCardImage card={card} />
-                          <div>
-                            <h3>{card?.name ?? entry.cardNumber}</h3>
-                            <p>{entry.cardNumber}</p>
-                            <p>
-                              {card
-                                ? `${CARD_TYPE_LABELS[card.cardType]} / ${DECK_ZONE_LABELS[zone]}`
-                                : DECK_ZONE_LABELS.unknown}
-                            </p>
-                            {!card && (
-                              <p className="deck-entry__warning" role="alert">
-                                現在のカードデータに存在しないカードです
-                              </p>
+                  <div className="shared-deck-zones">
+                    {entryGroups.map((group) => (
+                      <section
+                        className="shared-deck-zone"
+                        aria-labelledby={`shared-deck-zone-${group.key}`}
+                        key={group.key}
+                      >
+                        <h3 id={`shared-deck-zone-${group.key}`}>
+                          {group.label}
+                          <span>
+                            {group.entries.reduce(
+                              (total, entry) => total + entry.quantity,
+                              0,
                             )}
-                          </div>
-                          <strong>{entry.quantity}枚</strong>
-                        </li>
-                      )
-                    })}
-                  </ul>
+                            枚
+                          </span>
+                        </h3>
+                        <ul className="shared-deck-entries">
+                          {group.entries.map((entry) => {
+                            const card = cardsByNumber.get(entry.cardNumber)
+                            return (
+                              <li key={entry.cardNumber}>
+                                <SharedDeckCardImage card={card} />
+                                <div>
+                                  <h4>{card?.name ?? entry.cardNumber}</h4>
+                                  <p>{entry.cardNumber}</p>
+                                  <p>
+                                    {card
+                                      ? CARD_TYPE_LABELS[card.cardType]
+                                      : DECK_ZONE_LABELS.unknown}
+                                  </p>
+                                  {!card && (
+                                    <p
+                                      className="deck-entry__warning"
+                                      role="alert"
+                                    >
+                                      現在のカードデータに存在しないカードです
+                                    </p>
+                                  )}
+                                </div>
+                                <strong>{entry.quantity}枚</strong>
+                              </li>
+                            )
+                          })}
+                        </ul>
+                      </section>
+                    ))}
+                  </div>
                 )}
               </section>
 
               <section
                 className="shared-deck-import"
-                aria-label="共有デッキの保存"
+                aria-label="共有デッキのインポート"
               >
+                <h2>このデッキを使う</h2>
+                <p>
+                  同じ名前のデッキがあっても、新しいローカルデッキとして追加します。
+                </p>
                 <button
                   type="button"
                   className="button"
@@ -269,8 +322,8 @@ export function SharedDeckPage({
                   onClick={() => void importDeck(decoded.value)}
                 >
                   {activeImportState === 'saving'
-                    ? '保存中…'
-                    : 'このデッキを保存'}
+                    ? '追加中…'
+                    : '自分のデッキに追加'}
                 </button>
                 {activeImportState === 'error' && (
                   <p role="alert">
