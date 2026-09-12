@@ -3,9 +3,17 @@ import { useEffect, useMemo, useState } from 'react'
 import { AppNavigation } from '../components/AppNavigation'
 import { OshiCombobox } from '../components/tournament/OshiCombobox'
 import { RoundEditor } from '../components/tournament/RoundEditor'
+import {
+  TournamentReportImageDialog,
+  type TournamentReportImagePreview,
+} from '../components/tournament/TournamentReportImageDialog'
 import type { Card, CardsDataFile } from '../domain/cards/types'
 import { TOURNAMENT_REPORT_METADATA } from '../domain/site/metadata'
 import { formatTournamentReportText } from '../domain/tournamentReport/formatText'
+import {
+  generateTournamentReportImages,
+  type TournamentReportImageFile,
+} from '../domain/tournamentReport/renderImage'
 import {
   formatOshiLabel,
   getOshiCandidates,
@@ -37,6 +45,13 @@ type CardDataState =
 type TournamentReportPageProps = {
   loadCards?: () => Promise<CardsDataFile>
   writeClipboard?: (text: string) => Promise<void>
+  generateImages?: (
+    report: TournamentReport,
+    oshiCards: readonly Card[],
+  ) => Promise<TournamentReportImageFile[]>
+  createObjectUrl?: (blob: Blob) => string
+  revokeObjectUrl?: (url: string) => void
+  downloadFile?: (url: string, fileName: string) => void
 }
 
 const PLAY_ORDER_LABELS = {
@@ -60,6 +75,27 @@ async function writeClipboardText(text: string): Promise<void> {
     throw new Error('Clipboard API is unavailable.')
   }
   await navigator.clipboard.writeText(text)
+}
+
+function createImageObjectUrl(blob: Blob): string {
+  return URL.createObjectURL(blob)
+}
+
+function revokeImageObjectUrl(url: string): void {
+  URL.revokeObjectURL(url)
+}
+
+function downloadImageFile(url: string, fileName: string): void {
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = fileName
+  anchor.hidden = true
+  document.body.append(anchor)
+  try {
+    anchor.click()
+  } finally {
+    anchor.remove()
+  }
 }
 
 function RoundPreview({
@@ -105,6 +141,10 @@ function RoundPreview({
 export function TournamentReportPage({
   loadCards = loadCardsData,
   writeClipboard = writeClipboardText,
+  generateImages = generateTournamentReportImages,
+  createObjectUrl = createImageObjectUrl,
+  revokeObjectUrl = revokeImageObjectUrl,
+  downloadFile = downloadImageFile,
 }: TournamentReportPageProps) {
   useDocumentMetadata(TOURNAMENT_REPORT_METADATA)
   const [report, setReport] = useState<TournamentReport>(() =>
@@ -115,6 +155,12 @@ export function TournamentReportPage({
   const [copyFeedback, setCopyFeedback] = useState<
     'idle' | 'success' | 'error'
   >('idle')
+  const [imageStatus, setImageStatus] = useState<
+    'idle' | 'generating' | 'error'
+  >('idle')
+  const [imagePreviews, setImagePreviews] = useState<
+    TournamentReportImagePreview[] | undefined
+  >()
 
   useEffect(() => {
     let active = true
@@ -135,6 +181,13 @@ export function TournamentReportPage({
       active = false
     }
   }, [loadCards])
+
+  useEffect(
+    () => () => {
+      imagePreviews?.forEach((image) => revokeObjectUrl(image.url))
+    },
+    [imagePreviews, revokeObjectUrl],
+  )
 
   const oshiCards = useMemo(
     () => (cardData.status === 'loaded' ? cardData.cards : []),
@@ -161,6 +214,33 @@ export function TournamentReportPage({
       setCopyFeedback('success')
     } catch {
       setCopyFeedback('error')
+    }
+  }
+
+  const createReportImages = async () => {
+    if (!reportText || imageStatus === 'generating') return
+    setImageStatus('generating')
+    try {
+      const files = await generateImages(report, oshiCards)
+      if (files.length === 0) throw new Error('No image pages were generated.')
+      const createdPreviews: TournamentReportImagePreview[] = []
+      try {
+        files.forEach((file) => {
+          createdPreviews.push({
+            url: createObjectUrl(file.blob),
+            fileName: file.fileName,
+            pageNumber: file.page.pageNumber,
+            totalPages: file.page.totalPages,
+          })
+        })
+      } catch (error) {
+        createdPreviews.forEach((image) => revokeObjectUrl(image.url))
+        throw error
+      }
+      setImagePreviews(createdPreviews)
+      setImageStatus('idle')
+    } catch {
+      setImageStatus('error')
     }
   }
 
@@ -486,6 +566,25 @@ export function TournamentReportPage({
               {copyFeedback === 'success' && 'コピーしました'}
               {copyFeedback === 'error' && 'コピーできませんでした'}
             </p>
+
+            <button
+              className="button"
+              type="button"
+              disabled={!reportText || imageStatus === 'generating'}
+              onClick={() => void createReportImages()}
+            >
+              {imageStatus === 'generating'
+                ? '画像を作成しています…'
+                : '大会結果を画像にする'}
+            </button>
+            <p className="report-image-export-notice">
+              ※現在、カード画像は出力画像に含まれません。推しホロメン名・対戦結果などの情報のみ画像化されます。
+            </p>
+            {imageStatus === 'error' && (
+              <p className="report-image-export-error" role="alert">
+                画像を作成できませんでした。もう一度お試しください。
+              </p>
+            )}
           </div>
 
           {validationErrors.length > 0 && (
@@ -500,6 +599,14 @@ export function TournamentReportPage({
           )}
         </aside>
       </div>
+
+      {imagePreviews && (
+        <TournamentReportImageDialog
+          images={imagePreviews}
+          onClose={() => setImagePreviews(undefined)}
+          onSave={(image) => downloadFile(image.url, image.fileName)}
+        />
+      )}
     </main>
   )
 }

@@ -10,6 +10,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import type { Card, CardsDataFile } from '../domain/cards/types'
 import { SITE_ORIGIN } from '../domain/site/constants'
+import type { TournamentReportImageFile } from '../domain/tournamentReport/renderImage'
 import { TournamentReportPage } from './TournamentReportPage'
 
 function makeCard(overrides: Partial<Card> = {}): Card {
@@ -55,15 +56,44 @@ const cardData: CardsDataFile = {
   cards,
 }
 
-function renderPage(writeClipboard?: (text: string) => Promise<void>) {
+type ImageTestOptions = {
+  generateImages?: () => Promise<TournamentReportImageFile[]>
+  createObjectUrl?: (blob: Blob) => string
+  revokeObjectUrl?: (url: string) => void
+  downloadFile?: (url: string, fileName: string) => void
+}
+
+function renderPage(
+  writeClipboard?: (text: string) => Promise<void>,
+  imageOptions: ImageTestOptions = {},
+) {
   return render(
     <MemoryRouter initialEntries={['/tournament-report']}>
       <TournamentReportPage
         loadCards={vi.fn(async () => cardData)}
         writeClipboard={writeClipboard}
+        {...imageOptions}
       />
     </MemoryRouter>,
   )
+}
+
+function makeImageFile(
+  pageNumber = 1,
+  totalPages = 1,
+): TournamentReportImageFile {
+  return {
+    blob: new Blob(['png'], { type: 'image/png' }),
+    fileName: `hlsieve-大会${totalPages > 1 ? `-${pageNumber}` : ''}.png`,
+    width: 1600,
+    height: 900,
+    page: {
+      pageNumber,
+      totalPages,
+      tournamentName: '大会',
+      sections: [],
+    },
+  }
 }
 
 async function selectOshi(label: string, query: string, optionName: RegExp) {
@@ -343,5 +373,162 @@ describe('TournamentReportPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'コピーできませんでした',
     )
+  })
+
+  it('shows the image export control and card-image exclusion notice', () => {
+    renderPage()
+
+    expect(
+      screen.getByRole('button', { name: '大会結果を画像にする' }),
+    ).toBeDisabled()
+    expect(
+      screen.getByText(/現在、カード画像は出力画像に含まれません/),
+    ).toBeVisible()
+    expect(
+      screen.getByRole('button', { name: 'テキストをコピー' }),
+    ).toBeVisible()
+  })
+
+  it('generates a preview, saves it, closes it, and revokes its object URL', async () => {
+    const generateImages = vi.fn(async () => [makeImageFile()])
+    const createObjectUrl = vi.fn(() => 'blob:report-page-1')
+    const revokeObjectUrl = vi.fn()
+    const downloadFile = vi.fn()
+    renderPage(undefined, {
+      generateImages,
+      createObjectUrl,
+      revokeObjectUrl,
+      downloadFile,
+    })
+    fireEvent.change(screen.getByLabelText('大会名（必須）'), {
+      target: { value: '大会' },
+    })
+    const exportButton = screen.getByRole('button', {
+      name: '大会結果を画像にする',
+    })
+    expect(exportButton).toBeEnabled()
+    fireEvent.click(exportButton)
+
+    const dialog = await screen.findByRole('dialog', { name: '大会結果画像' })
+    expect(generateImages).toHaveBeenCalledTimes(1)
+    expect(createObjectUrl).toHaveBeenCalledTimes(1)
+    expect(
+      within(dialog).getByRole('img', { name: '大会結果画像 1 / 1' }),
+    ).toHaveAttribute('src', 'blob:report-page-1')
+    expect(
+      within(dialog).getByRole('button', {
+        name: '1ページ目の大会結果画像を保存',
+      }),
+    ).toBeVisible()
+    fireEvent.click(
+      within(dialog).getByRole('button', {
+        name: '1ページ目の大会結果画像を保存',
+      }),
+    )
+    expect(downloadFile).toHaveBeenCalledWith(
+      'blob:report-page-1',
+      'hlsieve-大会.png',
+    )
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: '画像プレビューを閉じる' }),
+    )
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    await waitFor(() =>
+      expect(revokeObjectUrl).toHaveBeenCalledWith('blob:report-page-1'),
+    )
+  })
+
+  it('navigates and saves individual pages in a multi-page preview', async () => {
+    const downloadFile = vi.fn()
+    renderPage(undefined, {
+      generateImages: vi.fn(async () => [
+        makeImageFile(1, 2),
+        makeImageFile(2, 2),
+      ]),
+      createObjectUrl: vi
+        .fn()
+        .mockReturnValueOnce('blob:page-1')
+        .mockReturnValueOnce('blob:page-2'),
+      revokeObjectUrl: vi.fn(),
+      downloadFile,
+    })
+    fireEvent.change(screen.getByLabelText('順位'), {
+      target: { value: '優勝' },
+    })
+    fireEvent.click(
+      screen.getByRole('button', { name: '大会結果を画像にする' }),
+    )
+
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText('1 / 2')).toBeVisible()
+    expect(
+      within(dialog).getByRole('button', { name: '前の画像' }),
+    ).toBeDisabled()
+    fireEvent.click(within(dialog).getByRole('button', { name: '次の画像' }))
+    expect(within(dialog).getByText('2 / 2')).toBeVisible()
+    expect(
+      within(dialog).getByRole('img', { name: '大会結果画像 2 / 2' }),
+    ).toHaveAttribute('src', 'blob:page-2')
+    fireEvent.click(
+      within(dialog).getByRole('button', {
+        name: '2ページ目の大会結果画像を保存',
+      }),
+    )
+    expect(downloadFile).toHaveBeenCalledWith(
+      'blob:page-2',
+      'hlsieve-大会-2.png',
+    )
+  })
+
+  it('announces image generation failures without opening an empty preview', async () => {
+    renderPage(undefined, {
+      generateImages: vi.fn(async () => Promise.reject(new Error('failed'))),
+    })
+    fireEvent.change(screen.getByLabelText('大会名（必須）'), {
+      target: { value: '大会' },
+    })
+    fireEvent.click(
+      screen.getByRole('button', { name: '大会結果を画像にする' }),
+    )
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '画像を作成できませんでした',
+    )
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('closes the image preview with Escape and restores focus', async () => {
+    renderPage(undefined, {
+      generateImages: vi.fn(async () => [makeImageFile()]),
+      createObjectUrl: vi.fn(() => 'blob:page-1'),
+      revokeObjectUrl: vi.fn(),
+    })
+    fireEvent.change(screen.getByLabelText('大会名（必須）'), {
+      target: { value: '大会' },
+    })
+    const exportButton = screen.getByRole('button', {
+      name: '大会結果を画像にする',
+    })
+    exportButton.focus()
+    fireEvent.click(exportButton)
+    expect(await screen.findByRole('dialog')).toBeVisible()
+    expect(
+      screen.getByRole('button', { name: '画像プレビューを閉じる' }),
+    ).toHaveFocus()
+
+    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true })
+    expect(
+      screen.getByRole('button', {
+        name: '1ページ目の大会結果画像を保存',
+      }),
+    ).toHaveFocus()
+    fireEvent.keyDown(document, { key: 'Tab' })
+    expect(
+      screen.getByRole('button', { name: '画像プレビューを閉じる' }),
+    ).toHaveFocus()
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(exportButton).toHaveFocus()
   })
 })
