@@ -204,6 +204,26 @@ describe('App', () => {
     )
   })
 
+  it('routes to local tournament statistics with noindex metadata', async () => {
+    render(
+      <MemoryRouter initialEntries={['/tournament-stats']}>
+        <App />
+      </MemoryRouter>,
+    )
+    expect(screen.getByRole('heading', { name: '大会戦績統計' })).toBeVisible()
+    expect(
+      await screen.findByText('保存された大会戦績がありません。'),
+    ).toBeVisible()
+    expect(document.title).toBe('大会戦績統計 | HLSieve DB')
+    expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute(
+      'content',
+      'noindex,follow',
+    )
+    expect(
+      document.head.querySelector('link[rel="canonical"]'),
+    ).toHaveAttribute('href', `${SITE_ORIGIN}/tournament-stats`)
+  })
+
   it('renders a branded Not Found page with navigation', () => {
     render(
       <MemoryRouter initialEntries={['/this-does-not-exist']}>

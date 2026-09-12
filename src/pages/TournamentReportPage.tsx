@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
+import { TournamentLocalNavigation } from '../components/TournamentLocalNavigation'
 import { OshiCombobox } from '../components/tournament/OshiCombobox'
 import { RoundEditor } from '../components/tournament/RoundEditor'
 import {
@@ -463,6 +464,7 @@ export function TournamentReportPage({
           大会情報と各対戦結果を入力して、SNS投稿用のレポートをまとめられます。
         </p>
       </header>
+      <TournamentLocalNavigation />
 
       <div className="tournament-report-storage-actions">
         <button

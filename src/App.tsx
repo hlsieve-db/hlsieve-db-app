@@ -12,6 +12,7 @@ import { SharedDeckPage } from './pages/SharedDeckPage'
 import { SwissPage } from './pages/SwissPage'
 import { TournamentReportPage } from './pages/TournamentReportPage'
 import { TournamentHistoryPage } from './pages/TournamentHistoryPage'
+import { TournamentStatsPage } from './pages/TournamentStatsPage'
 import { UpdateHistoryPage } from './pages/UpdateHistoryPage'
 
 function App() {
@@ -30,6 +31,7 @@ function App() {
         <Route path="/swiss" element={<SwissPage />} />
         <Route path="/tournament-report" element={<TournamentReportPage />} />
         <Route path="/tournament-history" element={<TournamentHistoryPage />} />
+        <Route path="/tournament-stats" element={<TournamentStatsPage />} />
         <Route path="/disclaimer" element={<DisclaimerPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

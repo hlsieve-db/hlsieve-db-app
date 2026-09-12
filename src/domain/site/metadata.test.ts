@@ -10,6 +10,7 @@ import {
   SWISS_METADATA,
   TOURNAMENT_REPORT_METADATA,
   TOURNAMENT_HISTORY_METADATA,
+  TOURNAMENT_STATS_METADATA,
 } from './metadata'
 
 function makeCard(overrides: Partial<Card> = {}): Card {
@@ -95,6 +96,13 @@ describe('site metadata', () => {
     const metadata = resolvePageMetadata(TOURNAMENT_HISTORY_METADATA)
     expect(metadata.title).toBe('大会戦績履歴 | HLSieve DB')
     expect(metadata.canonicalUrl).toBe(`${SITE_ORIGIN}/tournament-history`)
+    expect(metadata.robots).toBe('noindex,follow')
+  })
+
+  it('keeps local tournament statistics out of search indexes', () => {
+    const metadata = resolvePageMetadata(TOURNAMENT_STATS_METADATA)
+    expect(metadata.title).toBe('大会戦績統計 | HLSieve DB')
+    expect(metadata.canonicalUrl).toBe(`${SITE_ORIGIN}/tournament-stats`)
     expect(metadata.robots).toBe('noindex,follow')
   })
 

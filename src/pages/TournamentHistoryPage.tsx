@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
+import { TournamentLocalNavigation } from '../components/TournamentLocalNavigation'
 import type { Card, CardsDataFile } from '../domain/cards/types'
 import { TOURNAMENT_HISTORY_METADATA } from '../domain/site/metadata'
 import {
@@ -90,6 +91,7 @@ export function TournamentHistoryPage({
         <h1>大会戦績履歴</h1>
         <p>この端末に保存した大会戦績を開き、編集や再出力ができます。</p>
       </header>
+      <TournamentLocalNavigation />
 
       <div className="tournament-history__actions">
         <Link className="button" to="/tournament-report">

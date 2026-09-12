@@ -13,6 +13,7 @@ import {
   SWISS_METADATA,
   TOURNAMENT_REPORT_METADATA,
   TOURNAMENT_HISTORY_METADATA,
+  TOURNAMENT_STATS_METADATA,
   UPDATE_HISTORY_METADATA,
   type PageMetadata,
 } from '../../src/domain/site/metadata'
@@ -175,6 +176,11 @@ export function buildPrerenderRoutes(
       routePath: '/tournament-history',
       outputPath: 'tournament-history.html',
       html: renderMetadataHtml(template, TOURNAMENT_HISTORY_METADATA),
+    },
+    {
+      routePath: '/tournament-stats',
+      outputPath: 'tournament-stats.html',
+      html: renderMetadataHtml(template, TOURNAMENT_STATS_METADATA),
     },
     {
       routePath: '/updates',
