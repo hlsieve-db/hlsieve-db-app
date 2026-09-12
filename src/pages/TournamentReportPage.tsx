@@ -20,6 +20,13 @@ import {
   type TournamentReportImageFile,
 } from '../domain/tournamentReport/renderImage'
 import {
+  buildTournamentShareText,
+  buildTournamentShareTitle,
+  buildTournamentXIntentUrl,
+  shareTournamentReport,
+  type TournamentShareNavigator,
+} from '../domain/tournamentReport/share'
+import {
   formatOshiLabel,
   getOshiCandidates,
 } from '../domain/tournamentReport/oshi'
@@ -58,6 +65,12 @@ type TournamentReportPageProps = {
   createObjectUrl?: (blob: Blob) => string
   revokeObjectUrl?: (url: string) => void
   downloadFile?: (url: string, fileName: string) => void
+  shareNavigator?: TournamentShareNavigator
+  createShareFile?: (
+    parts: BlobPart[],
+    fileName: string,
+    options: FilePropertyBag,
+  ) => File
 }
 
 const PLAY_ORDER_LABELS = {
@@ -112,6 +125,13 @@ function generateImagesForPreset(
   return generateTournamentReportImages(report, oshiCards, { preset })
 }
 
+function getBrowserShareNavigator(): TournamentShareNavigator {
+  return {
+    share: navigator.share?.bind(navigator),
+    canShare: navigator.canShare?.bind(navigator),
+  }
+}
+
 function RoundPreview({
   label,
   round,
@@ -159,6 +179,8 @@ export function TournamentReportPage({
   createObjectUrl = createImageObjectUrl,
   revokeObjectUrl = revokeImageObjectUrl,
   downloadFile = downloadImageFile,
+  shareNavigator,
+  createShareFile,
 }: TournamentReportPageProps) {
   useDocumentMetadata(TOURNAMENT_REPORT_METADATA)
   const [report, setReport] = useState<TournamentReport>(() =>
@@ -178,6 +200,14 @@ export function TournamentReportPage({
   const [imagePreviews, setImagePreviews] = useState<
     TournamentReportImagePreview[] | undefined
   >()
+  const [shareStatus, setShareStatus] = useState<
+    | 'idle'
+    | 'sharing'
+    | 'shared-with-images'
+    | 'shared-text-only'
+    | 'unsupported'
+    | 'error'
+  >('idle')
 
   useEffect(() => {
     let active = true
@@ -223,6 +253,15 @@ export function TournamentReportPage({
     () => formatTournamentReportText(report, oshiCards),
     [oshiCards, report],
   )
+  const shareText = useMemo(
+    () => buildTournamentShareText(report, oshiCards),
+    [oshiCards, report],
+  )
+  const shareTitle = useMemo(() => buildTournamentShareTitle(report), [report])
+  const xIntentUrl = useMemo(
+    () => buildTournamentXIntentUrl(shareText),
+    [shareText],
+  )
 
   const copyReportText = async () => {
     if (!reportText) return
@@ -260,6 +299,43 @@ export function TournamentReportPage({
       setImageStatus('idle')
     } catch {
       setImageStatus('error')
+    }
+  }
+
+  const shareReport = async () => {
+    if (!reportText || shareStatus === 'sharing') return
+    const activeShareNavigator = shareNavigator ?? getBrowserShareNavigator()
+    if (!activeShareNavigator.share) {
+      setShareStatus('unsupported')
+      return
+    }
+    setShareStatus('sharing')
+    let files: TournamentReportImageFile[] = []
+    let imageGenerationFailed = false
+    try {
+      files = await generateImages(report, oshiCards, exportPreset)
+      if (files.length === 0) imageGenerationFailed = true
+    } catch {
+      imageGenerationFailed = true
+    }
+
+    const result = await shareTournamentReport({
+      navigator: activeShareNavigator,
+      title: shareTitle,
+      text: shareText,
+      images: files,
+      createFile: createShareFile,
+    })
+    if (result.status === 'cancelled') {
+      setShareStatus('idle')
+    } else if (result.status === 'unsupported') {
+      setShareStatus('unsupported')
+    } else if (result.status === 'error') {
+      setShareStatus('error')
+    } else if (result.includedImages && !imageGenerationFailed) {
+      setShareStatus('shared-with-images')
+    } else {
+      setShareStatus('shared-text-only')
     }
   }
 
@@ -580,7 +656,13 @@ export function TournamentReportPage({
             <p
               className={`report-copy-control__feedback report-copy-control__feedback--${copyFeedback}`}
               aria-live="polite"
-              role={copyFeedback === 'error' ? 'alert' : 'status'}
+              role={
+                copyFeedback === 'error'
+                  ? 'alert'
+                  : copyFeedback === 'success'
+                    ? 'status'
+                    : undefined
+              }
             >
               {copyFeedback === 'success' && 'コピーしました'}
               {copyFeedback === 'error' && 'コピーできませんでした'}
@@ -628,6 +710,61 @@ export function TournamentReportPage({
                 画像を作成できませんでした。もう一度お試しください。
               </p>
             )}
+
+            <section
+              className="report-share-control"
+              aria-labelledby="report-share-heading"
+            >
+              <h3 id="report-share-heading">共有</h3>
+              <button
+                className="button"
+                type="button"
+                disabled={!reportText || shareStatus === 'sharing'}
+                onClick={() => void shareReport()}
+              >
+                {shareStatus === 'sharing'
+                  ? '共有を準備しています…'
+                  : '共有する'}
+              </button>
+              <a
+                className={`button report-share-control__x${
+                  reportText ? '' : ' report-share-control__x--disabled'
+                }`}
+                href={xIntentUrl}
+                target="_blank"
+                rel="noreferrer"
+                aria-disabled={!reportText}
+                aria-label="Xで投稿"
+                onClick={(event) => {
+                  if (!reportText) event.preventDefault()
+                }}
+              >
+                Xで投稿
+              </a>
+              <p className="report-share-control__notice">
+                画像共有に対応している端末では、選択中サイズの大会結果PNGも共有シートへ渡します。X投稿画面には画像が自動添付されないため、保存した画像を添付してください。
+              </p>
+              <p
+                className={`report-share-control__feedback report-share-control__feedback--${shareStatus}`}
+                aria-live="polite"
+                role={
+                  shareStatus === 'error'
+                    ? 'alert'
+                    : shareStatus !== 'idle' && shareStatus !== 'sharing'
+                      ? 'status'
+                      : undefined
+                }
+              >
+                {shareStatus === 'shared-with-images' &&
+                  '画像を含めて共有シートへ渡しました。'}
+                {shareStatus === 'shared-text-only' &&
+                  'この端末では画像を共有できないため、テキストのみ共有しました。画像は保存して添付してください。'}
+                {shareStatus === 'unsupported' &&
+                  'この端末では共有シートを利用できません。テキストをコピーするか、Xで投稿を利用してください。'}
+                {shareStatus === 'error' &&
+                  '共有できませんでした。テキストをコピーするか、Xで投稿を利用してください。'}
+              </p>
+            </section>
           </div>
 
           {validationErrors.length > 0 && (

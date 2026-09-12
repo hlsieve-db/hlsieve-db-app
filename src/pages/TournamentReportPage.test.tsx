@@ -12,6 +12,7 @@ import type { Card, CardsDataFile } from '../domain/cards/types'
 import { SITE_ORIGIN } from '../domain/site/constants'
 import type { TournamentReportImageFile } from '../domain/tournamentReport/renderImage'
 import type { TournamentExportPreset } from '../domain/tournamentReport/imageReport'
+import type { TournamentShareNavigator } from '../domain/tournamentReport/share'
 import type { TournamentReport } from '../domain/tournamentReport/types'
 import { TournamentReportPage } from './TournamentReportPage'
 
@@ -67,6 +68,12 @@ type ImageTestOptions = {
   createObjectUrl?: (blob: Blob) => string
   revokeObjectUrl?: (url: string) => void
   downloadFile?: (url: string, fileName: string) => void
+  shareNavigator?: TournamentShareNavigator
+  createShareFile?: (
+    parts: BlobPart[],
+    fileName: string,
+    options: FilePropertyBag,
+  ) => File
 }
 
 function renderPage(
@@ -584,5 +591,171 @@ describe('TournamentReportPage', () => {
     fireEvent.keyDown(document, { key: 'Escape' })
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(exportButton).toHaveFocus()
+  })
+
+  it('shows accessible share and X controls disabled for an empty report', () => {
+    renderPage()
+
+    expect(screen.getByRole('heading', { name: '共有' })).toBeVisible()
+    expect(screen.getByRole('button', { name: '共有する' })).toBeDisabled()
+    const xLink = screen.getByRole('link', { name: 'Xで投稿' })
+    expect(xLink).toHaveAttribute('aria-disabled', 'true')
+    expect(xLink).toHaveAttribute(
+      'href',
+      expect.stringContaining('twitter.com'),
+    )
+    expect(
+      screen.getByText(/X投稿画面には画像が自動添付されない/),
+    ).toBeVisible()
+  })
+
+  it('shares the current-preset PNG through Web Share and announces success', async () => {
+    const share = vi.fn(async () => undefined)
+    const canShare = vi.fn(() => true)
+    const generateImages = vi.fn(async () => [makeImageFile()])
+    renderPage(undefined, {
+      generateImages,
+      shareNavigator: { share, canShare },
+    })
+    fireEvent.change(screen.getByLabelText('大会名（必須）'), {
+      target: { value: '共有大会' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '共有する' }))
+
+    await waitFor(() => expect(share).toHaveBeenCalledTimes(1))
+    expect(generateImages).toHaveBeenCalledWith(
+      expect.objectContaining({ tournamentName: '共有大会' }),
+      expect.any(Array),
+      'mobile_4_5',
+    )
+    expect(canShare).toHaveBeenCalledWith({ files: [expect.any(File)] })
+    expect(share).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: '共有大会 | HLSieve DB',
+        text: expect.stringContaining('共有大会'),
+        url: `${SITE_ORIGIN}/tournament-report`,
+        files: [
+          expect.objectContaining({
+            name: 'hlsieve-大会.png',
+            type: 'image/png',
+          }),
+        ],
+      }),
+    )
+    expect(screen.getByRole('status')).toHaveTextContent(
+      '画像を含めて共有シートへ渡しました。',
+    )
+  })
+
+  it('uses the selected 16:9 preset for image sharing', async () => {
+    const generateImages = vi.fn(async () => [
+      makeImageFile(1, 1, 'landscape_16_9'),
+    ])
+    renderPage(undefined, {
+      generateImages,
+      shareNavigator: {
+        share: vi.fn(async () => undefined),
+        canShare: () => true,
+      },
+    })
+    fireEvent.change(screen.getByLabelText('大会名（必須）'), {
+      target: { value: '横長共有' },
+    })
+    fireEvent.click(screen.getByRole('radio', { name: /横長 16:9/ }))
+    fireEvent.click(screen.getByRole('button', { name: '共有する' }))
+
+    await waitFor(() =>
+      expect(generateImages).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.any(Array),
+        'landscape_16_9',
+      ),
+    )
+  })
+
+  it('falls back visibly when Web Share is unsupported', async () => {
+    renderPage(undefined, {
+      generateImages: vi.fn(async () => [makeImageFile()]),
+      shareNavigator: {},
+    })
+    fireEvent.change(screen.getByLabelText('順位'), {
+      target: { value: '優勝' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '共有する' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'この端末では共有シートを利用できません。',
+    )
+    expect(
+      screen.getByRole('button', { name: 'テキストをコピー' }),
+    ).toBeEnabled()
+    expect(screen.getByRole('link', { name: 'Xで投稿' })).toHaveAttribute(
+      'href',
+      expect.stringContaining('https://twitter.com/intent/tweet?'),
+    )
+  })
+
+  it('shares text when PNG generation fails and explains the fallback', async () => {
+    const share = vi.fn(async () => undefined)
+    renderPage(undefined, {
+      generateImages: vi.fn(async () => Promise.reject(new Error('canvas'))),
+      shareNavigator: { share, canShare: () => true },
+    })
+    fireEvent.change(screen.getByLabelText('大会名（必須）'), {
+      target: { value: 'テキスト共有' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '共有する' }))
+
+    await waitFor(() => expect(share).toHaveBeenCalledTimes(1))
+    expect(share).toHaveBeenCalledWith(
+      expect.not.objectContaining({ files: expect.anything() }),
+    )
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'テキストのみ共有しました。',
+    )
+  })
+
+  it('treats share cancellation as quiet and reports other errors', async () => {
+    const cancelled = Object.assign(new Error('cancel'), { name: 'AbortError' })
+    const share = vi
+      .fn()
+      .mockRejectedValueOnce(cancelled)
+      .mockRejectedValueOnce(new Error('denied'))
+    renderPage(undefined, {
+      generateImages: vi.fn(async () => [makeImageFile()]),
+      shareNavigator: { share, canShare: () => true },
+    })
+    fireEvent.change(screen.getByLabelText('順位'), {
+      target: { value: '準優勝' },
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: '共有する' }))
+    await waitFor(() => expect(share).toHaveBeenCalledTimes(1))
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '共有する' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '共有できませんでした。',
+    )
+  })
+
+  it('builds an editable X intent without promising image auto-attachment', () => {
+    renderPage()
+    fireEvent.change(screen.getByLabelText('大会名（必須）'), {
+      target: { value: 'X共有大会' },
+    })
+    const xLink = screen.getByRole('link', { name: 'Xで投稿' })
+    const href = xLink.getAttribute('href')
+    expect(href).toBeTruthy()
+    const intent = new URL(href ?? '')
+    expect(intent.origin + intent.pathname).toBe(
+      'https://twitter.com/intent/tweet',
+    )
+    expect(intent.searchParams.get('text')).toContain('X共有大会')
+    expect(intent.searchParams.get('text')).toContain('HLSieve DB')
+    expect(intent.searchParams.get('url')).toBe(
+      `${SITE_ORIGIN}/tournament-report`,
+    )
+    expect(screen.getByText(/保存した画像を添付してください/)).toBeVisible()
   })
 })

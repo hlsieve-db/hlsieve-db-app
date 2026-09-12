@@ -2290,6 +2290,61 @@ summary:focus-visible {
   text-align: center;
 }
 
+.report-share-control {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  margin-top: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-border);
+}
+
+.report-share-control h3,
+.report-share-control p {
+  margin: 0;
+}
+
+.report-share-control h3 {
+  font-size: 0.92rem;
+}
+
+.report-share-control__x {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.report-share-control__x--disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.report-share-control__notice,
+.report-share-control__feedback {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.report-share-control__feedback {
+  min-height: 1.5em;
+  font-weight: 750;
+  text-align: center;
+}
+
+.report-share-control__feedback--shared-with-images,
+.report-share-control__feedback--shared-text-only {
+  color: var(--color-success-text);
+}
+
+.report-share-control__feedback--unsupported,
+.report-share-control__feedback--error {
+  color: var(--color-danger-text-soft);
+}
+
 .report-image-preset {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
