@@ -5,6 +5,11 @@ import { AppNavigation } from '../components/AppNavigation'
 import { TournamentLocalNavigation } from '../components/TournamentLocalNavigation'
 import type { Card, CardsDataFile } from '../domain/cards/types'
 import { TOURNAMENT_STATS_METADATA } from '../domain/site/metadata'
+import {
+  filterTournamentReportsByDate,
+  localTodayDateOnly,
+  type TournamentStatsDateFilter,
+} from '../domain/tournamentReport/dateFilter'
 import type { SavedTournamentReport } from '../domain/tournamentReport/savedReport'
 import {
   aggregateTournamentStats,
@@ -32,7 +37,10 @@ type LoadState =
 type TournamentStatsPageProps = {
   repository?: TournamentReportRepository
   loadCards?: () => Promise<CardsDataFile>
+  today?: () => string
 }
+
+type DateFilterType = TournamentStatsDateFilter['type']
 
 function StatBlock({ label, stats }: { label: string; stats: MatchStats }) {
   return (
@@ -52,10 +60,14 @@ function StatBlock({ label, stats }: { label: string; stats: MatchStats }) {
 export function TournamentStatsPage({
   repository = tournamentReportRepository,
   loadCards = loadCardsData,
+  today = localTodayDateOnly,
 }: TournamentStatsPageProps) {
   useDocumentMetadata(TOURNAMENT_STATS_METADATA)
   const [state, setState] = useState<LoadState>({ status: 'loading' })
   const [oshiCards, setOshiCards] = useState<Card[]>([])
+  const [dateFilterType, setDateFilterType] = useState<DateFilterType>('all')
+  const [customStartDate, setCustomStartDate] = useState('')
+  const [customEndDate, setCustomEndDate] = useState('')
 
   useEffect(() => {
     let active = true
@@ -80,12 +92,28 @@ export function TournamentStatsPage({
     const card = oshiByNumber.get(cardNumber)
     return card ? formatOshiLabel(card, oshiCards) : '不明な推し'
   }
+  const filtered = useMemo(() => {
+    if (state.status !== 'loaded') return undefined
+    const filter: TournamentStatsDateFilter =
+      dateFilterType === 'custom'
+        ? {
+            type: 'custom',
+            startDate: customStartDate,
+            endDate: customEndDate,
+          }
+        : { type: dateFilterType }
+    return filterTournamentReportsByDate({
+      reports: state.reports,
+      filter,
+      today: today(),
+    })
+  }, [customEndDate, customStartDate, dateFilterType, state, today])
   const stats = useMemo(
     () =>
-      state.status === 'loaded'
-        ? aggregateTournamentStats(state.reports)
-        : undefined,
-    [state],
+      filtered?.error
+        ? undefined
+        : aggregateTournamentStats(filtered?.reports ?? []),
+    [filtered],
   )
 
   return (
@@ -93,7 +121,7 @@ export function TournamentStatsPage({
       <AppNavigation />
       <header className="content-page__header">
         <h1>大会戦績統計</h1>
-        <p>保存されている全大会を集計します。</p>
+        <p>保存済みの大会戦績を期間で絞り込んで集計します。</p>
       </header>
       <TournamentLocalNavigation />
       <p className="content-surface tournament-stats__notice">
@@ -118,124 +146,222 @@ export function TournamentStatsPage({
           </Link>
         </section>
       )}
-      {stats && state.status === 'loaded' && state.reports.length > 0 && (
-        <div className="tournament-stats-sections">
-          <section className="content-surface" aria-labelledby="stats-overall">
-            <h2 id="stats-overall">概要</h2>
-            <div className="tournament-stats-summary">
-              <article>
-                <h3>大会数</h3>
-                <p>{stats.tournamentCount}</p>
-              </article>
-              <article>
-                <h3>総対戦</h3>
-                <p>{stats.overall.matches}</p>
-              </article>
-              <article>
-                <h3>通算戦績</h3>
-                <p>{formatMatchRecord(stats.overall)}</p>
-              </article>
-              <article>
-                <h3>勝率</h3>
-                <p>{formatWinRate(stats.overall.winRate)}</p>
-              </article>
+      {state.status === 'loaded' && state.reports.length > 0 && (
+        <section
+          className="content-surface tournament-stats-filter"
+          aria-labelledby="stats-period"
+        >
+          <fieldset>
+            <legend id="stats-period">期間</legend>
+            <div className="tournament-stats-filter__options">
+              {(
+                [
+                  ['all', '全期間'],
+                  ['last30', '直近30日'],
+                  ['last90', '直近90日'],
+                  ['thisYear', '今年'],
+                  ['custom', '期間指定'],
+                ] as const
+              ).map(([value, label]) => (
+                <label key={value}>
+                  <input
+                    type="radio"
+                    name="tournament-stats-period"
+                    value={value}
+                    checked={dateFilterType === value}
+                    onChange={() => setDateFilterType(value)}
+                  />
+                  <span>{label}</span>
+                </label>
+              ))}
             </div>
-            <p className="tournament-stats__definition">
-              勝率 = WIN ÷ 総対戦数（DRAWも分母に含みます）
-            </p>
-            {stats.overall.matches === 0 && (
-              <p>対戦結果が入力された大会がありません。</p>
-            )}
-          </section>
-
-          <section className="content-surface" aria-labelledby="stats-stage">
-            <h2 id="stats-stage">Swiss / Tournament</h2>
-            <div className="tournament-stat-grid">
-              <StatBlock label="Swiss" stats={stats.swiss} />
-              <StatBlock label="Tournament" stats={stats.tournament} />
+          </fieldset>
+          {dateFilterType === 'custom' && (
+            <div className="tournament-stats-filter__dates">
+              <label>
+                開始日
+                <input
+                  type="date"
+                  value={customStartDate}
+                  onChange={(event) => setCustomStartDate(event.target.value)}
+                />
+              </label>
+              <span aria-hidden="true">～</span>
+              <label>
+                終了日
+                <input
+                  type="date"
+                  value={customEndDate}
+                  onChange={(event) => setCustomEndDate(event.target.value)}
+                />
+              </label>
             </div>
-          </section>
-
-          <section className="content-surface" aria-labelledby="stats-order">
-            <h2 id="stats-order">先攻 / 後攻</h2>
-            <div className="tournament-stat-grid">
-              <StatBlock label="先攻" stats={stats.byPlayOrder.first} />
-              <StatBlock label="後攻" stats={stats.byPlayOrder.second} />
-            </div>
-            <p>手番未入力: {stats.missingCounts.playOrderMatches}戦</p>
-          </section>
-
-          <section
-            className="content-surface"
-            aria-labelledby="stats-initiative"
-          >
-            <h2 id="stats-initiative">手番選択権</h2>
-            <p>⚀○ = choiceを取れた / ⚀× = choiceを取れなかった</p>
-            <div className="tournament-stat-grid">
-              <StatBlock label="⚀○" stats={stats.byInitiative.wonChoice} />
-              <StatBlock label="⚀×" stats={stats.byInitiative.lostChoice} />
-            </div>
-            <p>手番選択権未入力: {stats.missingCounts.initiativeMatches}戦</p>
-          </section>
-
-          <section className="content-surface" aria-labelledby="stats-own-oshi">
-            <h2 id="stats-own-oshi">使用推し別</h2>
-            {stats.byOwnOshi.length === 0 ? (
-              <p>集計できる使用推しがありません。</p>
-            ) : (
-              <ul className="tournament-oshi-stats-list">
-                {sortOshiMatchStats(stats.byOwnOshi, labelFor).map((entry) => (
-                  <li
-                    className="tournament-oshi-stat-card"
-                    key={entry.cardNumber}
-                  >
-                    <h3>{labelFor(entry.cardNumber)}</h3>
-                    <p>
-                      {entry.tournamentCount}大会 / {entry.matches}戦
-                    </p>
-                    <p>
-                      {formatMatchRecord(entry)} / 勝率{' '}
-                      {formatWinRate(entry.winRate)}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <p>使用推し未入力: {stats.missingCounts.ownOshiTournaments}大会</p>
-          </section>
-
-          <section
-            className="content-surface"
-            aria-labelledby="stats-opponent-oshi"
-          >
-            <h2 id="stats-opponent-oshi">対推し別</h2>
-            {stats.byOpponentOshi.length === 0 ? (
-              <p>集計できる対戦相手の推しがありません。</p>
-            ) : (
-              <ul className="tournament-oshi-stats-list">
-                {sortOshiMatchStats(stats.byOpponentOshi, labelFor).map(
-                  (entry) => (
-                    <li
-                      className="tournament-oshi-stat-card"
-                      key={entry.cardNumber}
-                    >
-                      <h3>{labelFor(entry.cardNumber)}</h3>
-                      <p>{entry.matches}戦</p>
-                      <p>
-                        {formatMatchRecord(entry)} / 勝率{' '}
-                        {formatWinRate(entry.winRate)}
-                      </p>
-                    </li>
-                  ),
-                )}
-              </ul>
-            )}
+          )}
+          <p className="tournament-stats-filter__summary" aria-live="polite">
+            集計期間: {filtered?.label}
+          </p>
+          <p>開催日未入力の大会は期間指定時の集計対象外です。</p>
+          {filtered?.missingEventDateCount ? (
             <p>
-              対戦相手の推し未入力: {stats.missingCounts.opponentOshiMatches}戦
+              開催日未入力の大会 {filtered.missingEventDateCount}
+              件は期間集計から除外されています。
             </p>
-          </section>
-        </div>
+          ) : null}
+          {filtered?.error && (
+            <p className="status-message status-message--error" role="alert">
+              {filtered.error}
+            </p>
+          )}
+        </section>
       )}
+      {filtered &&
+        !filtered.error &&
+        state.status === 'loaded' &&
+        state.reports.length > 0 &&
+        filtered.reports.length === 0 && (
+          <section className="content-surface tournament-stats__empty">
+            <h2>選択した期間に大会戦績がありません。</h2>
+            <button
+              className="button"
+              type="button"
+              onClick={() => setDateFilterType('all')}
+            >
+              全期間を見る
+            </button>
+          </section>
+        )}
+      {stats &&
+        state.status === 'loaded' &&
+        state.reports.length > 0 &&
+        filtered?.reports.length !== 0 && (
+          <div className="tournament-stats-sections">
+            <section
+              className="content-surface"
+              aria-labelledby="stats-overall"
+            >
+              <h2 id="stats-overall">概要</h2>
+              <div className="tournament-stats-summary">
+                <article>
+                  <h3>大会数</h3>
+                  <p>{stats.tournamentCount}</p>
+                </article>
+                <article>
+                  <h3>総対戦</h3>
+                  <p>{stats.overall.matches}</p>
+                </article>
+                <article>
+                  <h3>通算戦績</h3>
+                  <p>{formatMatchRecord(stats.overall)}</p>
+                </article>
+                <article>
+                  <h3>勝率</h3>
+                  <p>{formatWinRate(stats.overall.winRate)}</p>
+                </article>
+              </div>
+              <p className="tournament-stats__definition">
+                勝率 = WIN ÷ 総対戦数（DRAWも分母に含みます）
+              </p>
+              {stats.overall.matches === 0 && (
+                <p>対戦結果が入力された大会がありません。</p>
+              )}
+            </section>
+
+            <section className="content-surface" aria-labelledby="stats-stage">
+              <h2 id="stats-stage">Swiss / Tournament</h2>
+              <div className="tournament-stat-grid">
+                <StatBlock label="Swiss" stats={stats.swiss} />
+                <StatBlock label="Tournament" stats={stats.tournament} />
+              </div>
+            </section>
+
+            <section className="content-surface" aria-labelledby="stats-order">
+              <h2 id="stats-order">先攻 / 後攻</h2>
+              <div className="tournament-stat-grid">
+                <StatBlock label="先攻" stats={stats.byPlayOrder.first} />
+                <StatBlock label="後攻" stats={stats.byPlayOrder.second} />
+              </div>
+              <p>手番未入力: {stats.missingCounts.playOrderMatches}戦</p>
+            </section>
+
+            <section
+              className="content-surface"
+              aria-labelledby="stats-initiative"
+            >
+              <h2 id="stats-initiative">手番選択権</h2>
+              <p>⚀○ = choiceを取れた / ⚀× = choiceを取れなかった</p>
+              <div className="tournament-stat-grid">
+                <StatBlock label="⚀○" stats={stats.byInitiative.wonChoice} />
+                <StatBlock label="⚀×" stats={stats.byInitiative.lostChoice} />
+              </div>
+              <p>手番選択権未入力: {stats.missingCounts.initiativeMatches}戦</p>
+            </section>
+
+            <section
+              className="content-surface"
+              aria-labelledby="stats-own-oshi"
+            >
+              <h2 id="stats-own-oshi">使用推し別</h2>
+              {stats.byOwnOshi.length === 0 ? (
+                <p>集計できる使用推しがありません。</p>
+              ) : (
+                <ul className="tournament-oshi-stats-list">
+                  {sortOshiMatchStats(stats.byOwnOshi, labelFor).map(
+                    (entry) => (
+                      <li
+                        className="tournament-oshi-stat-card"
+                        key={entry.cardNumber}
+                      >
+                        <h3>{labelFor(entry.cardNumber)}</h3>
+                        <p>
+                          {entry.tournamentCount}大会 / {entry.matches}戦
+                        </p>
+                        <p>
+                          {formatMatchRecord(entry)} / 勝率{' '}
+                          {formatWinRate(entry.winRate)}
+                        </p>
+                      </li>
+                    ),
+                  )}
+                </ul>
+              )}
+              <p>
+                使用推し未入力: {stats.missingCounts.ownOshiTournaments}大会
+              </p>
+            </section>
+
+            <section
+              className="content-surface"
+              aria-labelledby="stats-opponent-oshi"
+            >
+              <h2 id="stats-opponent-oshi">対推し別</h2>
+              {stats.byOpponentOshi.length === 0 ? (
+                <p>集計できる対戦相手の推しがありません。</p>
+              ) : (
+                <ul className="tournament-oshi-stats-list">
+                  {sortOshiMatchStats(stats.byOpponentOshi, labelFor).map(
+                    (entry) => (
+                      <li
+                        className="tournament-oshi-stat-card"
+                        key={entry.cardNumber}
+                      >
+                        <h3>{labelFor(entry.cardNumber)}</h3>
+                        <p>{entry.matches}戦</p>
+                        <p>
+                          {formatMatchRecord(entry)} / 勝率{' '}
+                          {formatWinRate(entry.winRate)}
+                        </p>
+                      </li>
+                    ),
+                  )}
+                </ul>
+              )}
+              <p>
+                対戦相手の推し未入力: {stats.missingCounts.opponentOshiMatches}
+                戦
+              </p>
+            </section>
+          </div>
+        )}
     </main>
   )
 }

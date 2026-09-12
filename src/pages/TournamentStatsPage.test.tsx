@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -88,6 +88,7 @@ function renderPage(
       <TournamentStatsPage
         repository={repository(result)}
         loadCards={loadCards}
+        today={() => '2026-09-13'}
       />
     </MemoryRouter>,
   )
@@ -150,6 +151,8 @@ describe('TournamentStatsPage', () => {
     expect(screen.getByText('手番未入力: 1戦')).toBeVisible()
     expect(screen.getByText('対戦相手の推し未入力: 2戦')).toBeVisible()
     expect(screen.getByText(/この端末のブラウザ内に保存/)).toBeVisible()
+    expect(screen.getByRole('radio', { name: '全期間' })).toBeChecked()
+    expect(screen.getByText('集計期間: 全期間')).toBeVisible()
   })
 
   it('shows dashes for a saved zero-round report and safely labels unknown Oshi', async () => {
@@ -180,5 +183,87 @@ describe('TournamentStatsPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       '読み込めませんでした',
     )
+  })
+
+  it('filters every statistic by recent periods and reports missing event dates', async () => {
+    const recent = saved()
+    recent.id = 'recent'
+    recent.report.eventDate = '2026-09-13'
+    const old = saved()
+    old.id = 'old'
+    old.report.eventDate = '2026-08-13'
+    const missing = saved()
+    missing.id = 'missing'
+
+    renderPage([recent, old, missing])
+    await screen.findByRole('heading', { name: '概要' })
+
+    fireEvent.click(screen.getByRole('radio', { name: '直近30日' }))
+    expect(screen.getByText('集計期間: 直近30日')).toBeVisible()
+    expect(screen.getByText(/開催日未入力の大会 1件/)).toBeVisible()
+    expect(
+      screen.getByText('1', { selector: '.tournament-stats-summary p' }),
+    ).toBeVisible()
+    expect(screen.getByLabelText('Swiss 戦績 1-0-1')).toBeVisible()
+    expect(screen.getByRole('heading', { name: 'AZKi' })).toBeVisible()
+    expect(screen.getByRole('heading', { name: '宝鐘マリン' })).toBeVisible()
+
+    fireEvent.click(screen.getByRole('radio', { name: '直近90日' }))
+    expect(screen.getByText('集計期間: 直近90日')).toBeVisible()
+    expect(
+      screen.getByText('2', { selector: '.tournament-stats-summary p' }),
+    ).toBeVisible()
+
+    fireEvent.click(screen.getByRole('radio', { name: '今年' }))
+    expect(screen.getByText('集計期間: 今年')).toBeVisible()
+    expect(
+      screen.getByText('2', { selector: '.tournament-stats-summary p' }),
+    ).toBeVisible()
+  })
+
+  it('requires a valid custom range, applies inclusive dates, and resets from no match', async () => {
+    const report = saved()
+    report.report.eventDate = '2026-09-13'
+    renderPage([report])
+    await screen.findByRole('heading', { name: '概要' })
+
+    fireEvent.click(screen.getByRole('radio', { name: '期間指定' }))
+    expect(screen.getByLabelText('開始日')).toBeVisible()
+    expect(screen.getByLabelText('終了日')).toBeVisible()
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      '開始日と終了日を入力してください。',
+    )
+    expect(
+      screen.queryByRole('heading', { name: '概要' }),
+    ).not.toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('開始日'), {
+      target: { value: '2026-09-14' },
+    })
+    fireEvent.change(screen.getByLabelText('終了日'), {
+      target: { value: '2026-09-13' },
+    })
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      '開始日は終了日以前の日付を指定してください。',
+    )
+
+    fireEvent.change(screen.getByLabelText('開始日'), {
+      target: { value: '2026-09-13' },
+    })
+    expect(screen.getByText('集計期間: 2026/09/13 ～ 2026/09/13')).toBeVisible()
+    expect(screen.getByRole('heading', { name: '概要' })).toBeVisible()
+
+    fireEvent.change(screen.getByLabelText('開始日'), {
+      target: { value: '2026-09-14' },
+    })
+    fireEvent.change(screen.getByLabelText('終了日'), {
+      target: { value: '2026-09-14' },
+    })
+    expect(
+      screen.getByText('選択した期間に大会戦績がありません。'),
+    ).toBeVisible()
+    fireEvent.click(screen.getByRole('button', { name: '全期間を見る' }))
+    expect(screen.getByRole('radio', { name: '全期間' })).toBeChecked()
+    expect(screen.getByRole('heading', { name: '概要' })).toBeVisible()
   })
 })
