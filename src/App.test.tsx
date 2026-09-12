@@ -136,6 +136,19 @@ describe('App', () => {
     expect(document.title).toBe('確率計算 | HLSieve DB')
   })
 
+  it('routes to the standalone mulligan calculator', () => {
+    render(
+      <MemoryRouter initialEntries={['/mulligan']}>
+        <App />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByRole('heading', { name: 'マリガン計算' })).toBeVisible()
+    expect(screen.getByLabelText('現在の山札枚数')).toHaveValue(50)
+    expect(screen.getByLabelText('初手枚数')).toHaveValue(7)
+    expect(document.title).toBe('マリガン計算 | HLSieve DB')
+  })
+
   it('routes to the standalone Swiss calculator', () => {
     render(
       <MemoryRouter initialEntries={['/swiss']}>

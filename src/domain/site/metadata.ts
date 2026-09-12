@@ -45,6 +45,14 @@ export const PROBABILITY_METADATA: PageMetadata = {
   robots: 'index,follow',
 }
 
+export const MULLIGAN_METADATA: PageMetadata = {
+  title: 'マリガン計算 | HLSieve DB',
+  description:
+    '山札枚数・対象カード枚数・初手枚数・引き直し枚数から、マリガン後に対象カードを1枚以上引ける確率を計算できます。',
+  canonicalPath: '/mulligan',
+  robots: 'index,follow',
+}
+
 export const SWISS_METADATA: PageMetadata = {
   title: 'スイスドロー計算 | HLSieve DB',
   description:

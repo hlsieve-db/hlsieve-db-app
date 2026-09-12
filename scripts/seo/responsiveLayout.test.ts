@@ -41,6 +41,24 @@ describe('responsive content and navigation layout', () => {
     expect(css).toMatch(/body\s*{[^}]*min-width: 0/s)
   })
 
+  it('keeps the mulligan calculator and navigation within narrow viewports', async () => {
+    const css = await readFile('src/styles/global.css', 'utf8')
+
+    expect(css).toMatch(
+      /\.mulligan-calculator__inputs\s*{[^}]*grid-template-columns: minmax\(0, 1fr\)/s,
+    )
+    expect(css).toMatch(
+      /\.mulligan-calculator__inputs input\s*{[^}]*width: 100%[^}]*min-width: 0/s,
+    )
+    expect(css).toMatch(
+      /\.mulligan-calculator__errors\s*{[^}]*overflow-wrap: anywhere/s,
+    )
+    expect(css).toMatch(
+      /\.mulligan-calculator__explanation\s*{[^}]*overflow-wrap: anywhere/s,
+    )
+    expect(css).toMatch(/\.app-navigation nav\s*{[^}]*flex-wrap: wrap/s)
+  })
+
   it('keeps the Swiss calculator and result table within narrow viewports', async () => {
     const css = await readFile('src/styles/global.css', 'utf8')
 

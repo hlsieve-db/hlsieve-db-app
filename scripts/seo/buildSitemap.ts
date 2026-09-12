@@ -13,6 +13,7 @@ export function buildSitemap(cardNumbers: readonly string[]): string {
   const paths = [
     '/cards',
     '/probability',
+    '/mulligan',
     '/swiss',
     '/tournament-report',
     '/updates',

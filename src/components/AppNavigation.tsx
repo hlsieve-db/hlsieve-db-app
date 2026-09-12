@@ -32,6 +32,7 @@ export function AppNavigation() {
             Decks
           </Link>
           <NavLink to="/probability">確率計算</NavLink>
+          <NavLink to="/mulligan">マリガン計算</NavLink>
           <NavLink to="/swiss">スイス計算</NavLink>
           <NavLink to="/tournament-report">大会戦績</NavLink>
           <NavLink to="/updates">更新履歴</NavLink>

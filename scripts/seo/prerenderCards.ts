@@ -7,6 +7,7 @@ import type { Card, CardsDataFile } from '../../src/domain/cards/types'
 import {
   buildCardDetailMetadata,
   DISCLAIMER_METADATA,
+  MULLIGAN_METADATA,
   PROBABILITY_METADATA,
   resolvePageMetadata,
   SWISS_METADATA,
@@ -153,6 +154,11 @@ export function buildPrerenderRoutes(
       routePath: '/probability',
       outputPath: 'probability.html',
       html: renderMetadataHtml(template, PROBABILITY_METADATA),
+    },
+    {
+      routePath: '/mulligan',
+      outputPath: 'mulligan.html',
+      html: renderMetadataHtml(template, MULLIGAN_METADATA),
     },
     {
       routePath: '/swiss',

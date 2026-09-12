@@ -4,6 +4,7 @@ import type { Card } from '../cards/types'
 import { SITE_ORIGIN } from './constants'
 import {
   buildCardDetailMetadata,
+  MULLIGAN_METADATA,
   PROBABILITY_METADATA,
   resolvePageMetadata,
   SWISS_METADATA,
@@ -53,6 +54,17 @@ describe('site metadata', () => {
     expect(metadata.description).toContain('現在の山札枚数')
     expect(metadata.canonicalUrl).toBe(`${SITE_ORIGIN}/probability`)
     expect(metadata.socialUrl).toBe(`${SITE_ORIGIN}/probability`)
+    expect(metadata.robots).toBe('index,follow')
+  })
+
+  it('defines indexable metadata for the mulligan utility', () => {
+    const metadata = resolvePageMetadata(MULLIGAN_METADATA)
+
+    expect(metadata.title).toBe('マリガン計算 | HLSieve DB')
+    expect(metadata.description).toContain('初手枚数')
+    expect(metadata.description).toContain('引き直し枚数')
+    expect(metadata.canonicalUrl).toBe(`${SITE_ORIGIN}/mulligan`)
+    expect(metadata.socialUrl).toBe(`${SITE_ORIGIN}/mulligan`)
     expect(metadata.robots).toBe('index,follow')
   })
 
