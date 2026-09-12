@@ -69,6 +69,13 @@ export const TOURNAMENT_REPORT_METADATA: PageMetadata = {
   robots: 'index,follow',
 }
 
+export const TOURNAMENT_HISTORY_METADATA: PageMetadata = {
+  title: '大会戦績履歴 | HLSieve DB',
+  description: 'この端末のブラウザ内に保存した大会戦績を確認・再編集できます。',
+  canonicalPath: '/tournament-history',
+  robots: 'noindex,follow',
+}
+
 export const DISCLAIMER_METADATA: PageMetadata = {
   title: '免責事項・利用条件 | HLSieve DB',
   description:

@@ -55,7 +55,7 @@ describe('Card Detail static prerender', () => {
     const routes = buildPrerenderRoutes(template, data.cards)
     const rerun = buildPrerenderRoutes(template, [...data.cards].reverse())
 
-    expect(routes).toHaveLength(1388)
+    expect(routes).toHaveLength(1389)
     expect(
       routes.filter((route) => route.routePath.startsWith('/cards/')),
     ).toHaveLength(1381)
@@ -100,15 +100,24 @@ describe('Card Detail static prerender', () => {
     expect(tournamentReport('link[rel="canonical"]').attr('href')).toBe(
       `${SITE_ORIGIN}/tournament-report`,
     )
-    expect(routes[5].outputPath).toBe('updates.html')
-    const updates = load(routes[5].html)
+    expect(routes[5].outputPath).toBe('tournament-history.html')
+    const tournamentHistory = load(routes[5].html)
+    expect(tournamentHistory('title').text()).toBe('大会戦績履歴 | HLSieve DB')
+    expect(tournamentHistory('meta[name="robots"]').attr('content')).toBe(
+      'noindex,follow',
+    )
+    expect(tournamentHistory('link[rel="canonical"]').attr('href')).toBe(
+      `${SITE_ORIGIN}/tournament-history`,
+    )
+    expect(routes[6].outputPath).toBe('updates.html')
+    const updates = load(routes[6].html)
     expect(updates('title').text()).toBe('更新履歴 | HLSieve DB')
     expect(updates('meta[name="robots"]').attr('content')).toBe('index,follow')
     expect(updates('link[rel="canonical"]').attr('href')).toBe(
       `${SITE_ORIGIN}/updates`,
     )
-    expect(routes[6].outputPath).toBe('disclaimer.html')
-    const disclaimer = load(routes[6].html)
+    expect(routes[7].outputPath).toBe('disclaimer.html')
+    const disclaimer = load(routes[7].html)
     expect(disclaimer('title').text()).toBe('免責事項・利用条件 | HLSieve DB')
     expect(disclaimer('meta[name="robots"]').attr('content')).toBe(
       'noindex,follow',

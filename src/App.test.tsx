@@ -18,6 +18,16 @@ vi.mock('./repositories/deckRepository', () => ({
   },
 }))
 
+vi.mock('./repositories/tournamentReportRepository', () => ({
+  tournamentReportRepository: {
+    listReports: vi.fn(async () => []),
+    getReport: vi.fn(async () => undefined),
+    createReport: vi.fn(),
+    updateReport: vi.fn(),
+    deleteReport: vi.fn(),
+  },
+}))
+
 describe('App', () => {
   it('正式名称とカード検索画面の見出しを表示する', () => {
     render(
@@ -175,6 +185,23 @@ describe('App', () => {
     ).toBeVisible()
     expect(screen.getByLabelText('大会名（必須）')).toBeVisible()
     expect(document.title).toBe('大会戦績レポート | HLSieve DB')
+  })
+
+  it('routes to the local tournament history with noindex metadata', async () => {
+    render(
+      <MemoryRouter initialEntries={['/tournament-history']}>
+        <App />
+      </MemoryRouter>,
+    )
+    expect(screen.getByRole('heading', { name: '大会戦績履歴' })).toBeVisible()
+    expect(
+      await screen.findByText('保存された大会戦績はありません。'),
+    ).toBeVisible()
+    expect(document.title).toBe('大会戦績履歴 | HLSieve DB')
+    expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute(
+      'content',
+      'noindex,follow',
+    )
   })
 
   it('renders a branded Not Found page with navigation', () => {

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
 import { OshiCombobox } from '../components/tournament/OshiCombobox'
@@ -48,6 +49,10 @@ import type {
 } from '../domain/tournamentReport/types'
 import { useDocumentMetadata } from '../hooks/useDocumentMetadata'
 import { loadCardsData } from '../repositories/loadCardsData'
+import {
+  tournamentReportRepository,
+  type TournamentReportRepository,
+} from '../repositories/tournamentReportRepository'
 
 type CardDataState =
   | { status: 'loading' }
@@ -71,6 +76,7 @@ type TournamentReportPageProps = {
     fileName: string,
     options: FilePropertyBag,
   ) => File
+  repository?: TournamentReportRepository
 }
 
 const PLAY_ORDER_LABELS = {
@@ -181,8 +187,11 @@ export function TournamentReportPage({
   downloadFile = downloadImageFile,
   shareNavigator,
   createShareFile,
+  repository = tournamentReportRepository,
 }: TournamentReportPageProps) {
   useDocumentMetadata(TOURNAMENT_REPORT_METADATA)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const requestedReportId = searchParams.get('id')?.trim() || undefined
   const [report, setReport] = useState<TournamentReport>(() =>
     createDefaultTournamentReport(),
   )
@@ -208,6 +217,46 @@ export function TournamentReportPage({
     | 'unsupported'
     | 'error'
   >('idle')
+  const [savedReportId, setSavedReportId] = useState<string>()
+  const [savedLoadStatus, setSavedLoadStatus] = useState<
+    'ready' | 'loading' | 'not-found' | 'error'
+  >(requestedReportId ? 'loading' : 'ready')
+  const [saveStatus, setSaveStatus] = useState<
+    'idle' | 'saving' | 'saved' | 'error'
+  >('idle')
+  const [savedSnapshot, setSavedSnapshot] = useState<string>()
+
+  useEffect(() => {
+    let active = true
+    if (!requestedReportId) {
+      return () => {
+        active = false
+      }
+    }
+    void repository.getReport(requestedReportId).then(
+      (saved) => {
+        if (!active) return
+        if (!saved) {
+          setSavedReportId(undefined)
+          setSavedLoadStatus('not-found')
+          return
+        }
+        setReport(saved.report)
+        setParticipantDraft(
+          saved.report.participantCount === undefined
+            ? ''
+            : String(saved.report.participantCount),
+        )
+        setSavedReportId(saved.id)
+        setSavedSnapshot(JSON.stringify(saved.report))
+        setSavedLoadStatus('ready')
+      },
+      () => active && setSavedLoadStatus('error'),
+    )
+    return () => {
+      active = false
+    }
+  }, [repository, requestedReportId])
 
   useEffect(() => {
     let active = true
@@ -339,6 +388,33 @@ export function TournamentReportPage({
     }
   }
 
+  const saveReport = async () => {
+    if (saveStatus === 'saving' || savedLoadStatus !== 'ready') return
+    setSaveStatus('saving')
+    try {
+      const saved = savedReportId
+        ? await repository.updateReport(savedReportId, report)
+        : await repository.createReport(report)
+      setSavedReportId(saved.id)
+      setSavedSnapshot(JSON.stringify(saved.report))
+      setSaveStatus('saved')
+      if (!requestedReportId) {
+        setSearchParams({ id: saved.id }, { replace: true })
+      }
+    } catch {
+      setSaveStatus('error')
+    }
+  }
+
+  const startNewReport = () => {
+    setReport(createDefaultTournamentReport())
+    setParticipantDraft('')
+    setSavedReportId(undefined)
+    setSavedSnapshot(undefined)
+    setSavedLoadStatus('ready')
+    setSaveStatus('idle')
+  }
+
   const updateRound = (
     section: 'swissRounds' | 'tournamentRounds',
     index: number,
@@ -387,6 +463,66 @@ export function TournamentReportPage({
           大会情報と各対戦結果を入力して、SNS投稿用のレポートをまとめられます。
         </p>
       </header>
+
+      <div className="tournament-report-storage-actions">
+        <button
+          className="button"
+          type="button"
+          disabled={saveStatus === 'saving' || savedLoadStatus !== 'ready'}
+          onClick={() => void saveReport()}
+        >
+          {saveStatus === 'saving'
+            ? '保存しています…'
+            : savedReportId
+              ? '変更を保存'
+              : '保存'}
+        </button>
+        <Link className="button button--secondary" to="/tournament-history">
+          大会戦績履歴
+        </Link>
+        {savedReportId && (
+          <Link
+            className="button button--secondary"
+            to="/tournament-report"
+            onClick={startNewReport}
+          >
+            新しい大会戦績を作成
+          </Link>
+        )}
+      </div>
+      <p className="tournament-report-storage-notice">
+        大会戦績はこの端末のブラウザ内に保存されます。自動保存やクラウド同期は行いません。
+      </p>
+      {savedLoadStatus === 'loading' && (
+        <p className="status-message" role="status">
+          大会戦績を読み込んでいます…
+        </p>
+      )}
+      {savedLoadStatus === 'not-found' && (
+        <p className="status-message status-message--error" role="alert">
+          大会戦績が見つかりません。
+        </p>
+      )}
+      {savedLoadStatus === 'error' && (
+        <p className="status-message status-message--error" role="alert">
+          大会戦績を読み込めませんでした。
+        </p>
+      )}
+      {saveStatus === 'saved' && savedSnapshot === JSON.stringify(report) && (
+        <p className="status-message" role="status" aria-live="polite">
+          大会戦績を保存しました。
+        </p>
+      )}
+      {savedReportId && savedSnapshot !== JSON.stringify(report) && (
+        <p className="status-message" role="status" aria-live="polite">
+          未保存の変更があります。
+        </p>
+      )}
+      {saveStatus === 'error' && (
+        <p className="status-message status-message--error" role="alert">
+          大会戦績を保存できませんでした。
+        </p>
+      )}
 
       <div className="tournament-report-layout">
         <div className="tournament-report-form">
@@ -477,6 +613,13 @@ export function TournamentReportPage({
                 推しホロメン候補 {oshiCards.length}件
               </p>
             )}
+            {cardData.status === 'loaded' &&
+              report.selfOshiCardNumber &&
+              !selfOshi && (
+                <p className="report-load-error">
+                  保存された推しは現在のカードデータでは確認できません。記録は保持されています。
+                </p>
+              )}
             {cardData.status === 'error' && (
               <p className="report-load-error" role="alert">
                 カードデータを読み込めませんでした。

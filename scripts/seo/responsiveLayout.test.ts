@@ -99,4 +99,15 @@ describe('responsive content and navigation layout', () => {
       /@media \(min-width: 1000px\)[\s\S]*\.tournament-report-layout\s*{[^}]*grid-template-columns:/s,
     )
   })
+
+  it('wraps local tournament history content and actions on narrow screens', async () => {
+    const css = await readFile('src/styles/global.css', 'utf8')
+    expect(css).toMatch(/\.tournament-history-card\s*{[^}]*min-width: 0/s)
+    expect(css).toMatch(
+      /\.tournament-history-card__body h2,[\s\S]*overflow-wrap: anywhere/s,
+    )
+    expect(css).toMatch(
+      /\.tournament-history-card__actions\s*{[^}]*flex-wrap: wrap/s,
+    )
+  })
 })

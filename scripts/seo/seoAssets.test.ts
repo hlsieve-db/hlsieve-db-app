@@ -49,6 +49,7 @@ describe('production SEO assets', () => {
     expect(sitemap).not.toContain('/decks')
     expect(sitemap).not.toContain('/deck/share')
     expect(sitemap).not.toContain('/disclaimer')
+    expect(sitemap).not.toContain('/tournament-history')
     expect(sitemap).not.toContain('printing=')
     expect(sitemap).not.toContain('<lastmod>')
   })
