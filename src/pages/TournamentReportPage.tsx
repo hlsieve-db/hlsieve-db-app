@@ -11,6 +11,11 @@ import type { Card, CardsDataFile } from '../domain/cards/types'
 import { TOURNAMENT_REPORT_METADATA } from '../domain/site/metadata'
 import { formatTournamentReportText } from '../domain/tournamentReport/formatText'
 import {
+  DEFAULT_TOURNAMENT_EXPORT_PRESET,
+  TOURNAMENT_EXPORT_PRESETS,
+  type TournamentExportPreset,
+} from '../domain/tournamentReport/imageReport'
+import {
   generateTournamentReportImages,
   type TournamentReportImageFile,
 } from '../domain/tournamentReport/renderImage'
@@ -48,6 +53,7 @@ type TournamentReportPageProps = {
   generateImages?: (
     report: TournamentReport,
     oshiCards: readonly Card[],
+    preset: TournamentExportPreset,
   ) => Promise<TournamentReportImageFile[]>
   createObjectUrl?: (blob: Blob) => string
   revokeObjectUrl?: (url: string) => void
@@ -98,6 +104,14 @@ function downloadImageFile(url: string, fileName: string): void {
   }
 }
 
+function generateImagesForPreset(
+  report: TournamentReport,
+  oshiCards: readonly Card[],
+  preset: TournamentExportPreset,
+): Promise<TournamentReportImageFile[]> {
+  return generateTournamentReportImages(report, oshiCards, { preset })
+}
+
 function RoundPreview({
   label,
   round,
@@ -141,7 +155,7 @@ function RoundPreview({
 export function TournamentReportPage({
   loadCards = loadCardsData,
   writeClipboard = writeClipboardText,
-  generateImages = generateTournamentReportImages,
+  generateImages = generateImagesForPreset,
   createObjectUrl = createImageObjectUrl,
   revokeObjectUrl = revokeImageObjectUrl,
   downloadFile = downloadImageFile,
@@ -158,6 +172,9 @@ export function TournamentReportPage({
   const [imageStatus, setImageStatus] = useState<
     'idle' | 'generating' | 'error'
   >('idle')
+  const [exportPreset, setExportPreset] = useState<TournamentExportPreset>(
+    DEFAULT_TOURNAMENT_EXPORT_PRESET,
+  )
   const [imagePreviews, setImagePreviews] = useState<
     TournamentReportImagePreview[] | undefined
   >()
@@ -221,7 +238,7 @@ export function TournamentReportPage({
     if (!reportText || imageStatus === 'generating') return
     setImageStatus('generating')
     try {
-      const files = await generateImages(report, oshiCards)
+      const files = await generateImages(report, oshiCards, exportPreset)
       if (files.length === 0) throw new Error('No image pages were generated.')
       const createdPreviews: TournamentReportImagePreview[] = []
       try {
@@ -231,6 +248,8 @@ export function TournamentReportPage({
             fileName: file.fileName,
             pageNumber: file.page.pageNumber,
             totalPages: file.page.totalPages,
+            width: file.width,
+            height: file.height,
           })
         })
       } catch (error) {
@@ -566,6 +585,30 @@ export function TournamentReportPage({
               {copyFeedback === 'success' && 'コピーしました'}
               {copyFeedback === 'error' && 'コピーできませんでした'}
             </p>
+
+            <fieldset className="report-image-preset">
+              <legend>画像サイズ</legend>
+              {(
+                Object.entries(TOURNAMENT_EXPORT_PRESETS) as [
+                  TournamentExportPreset,
+                  (typeof TOURNAMENT_EXPORT_PRESETS)[TournamentExportPreset],
+                ][]
+              ).map(([preset, config]) => (
+                <label key={preset}>
+                  <input
+                    type="radio"
+                    name="tournament-export-preset"
+                    value={preset}
+                    checked={exportPreset === preset}
+                    onChange={() => setExportPreset(preset)}
+                  />
+                  <span>
+                    <strong>{config.label}</strong>
+                    <small>{config.dimensionsLabel}</small>
+                  </span>
+                </label>
+              ))}
+            </fieldset>
 
             <button
               className="button"

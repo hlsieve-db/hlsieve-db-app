@@ -7,9 +7,36 @@ import {
 } from './report'
 import type { TournamentReport, TournamentRound } from './types'
 
-export const TOURNAMENT_REPORT_IMAGE_WIDTH = 1600
-export const TOURNAMENT_REPORT_IMAGE_HEIGHT = 900
-export const TOURNAMENT_REPORT_ROWS_PER_PAGE = 9
+export type TournamentExportPreset = 'mobile_4_5' | 'landscape_16_9'
+
+export const DEFAULT_TOURNAMENT_EXPORT_PRESET: TournamentExportPreset =
+  'mobile_4_5'
+
+export const TOURNAMENT_EXPORT_PRESETS = {
+  mobile_4_5: {
+    label: 'スマホ向け 4:5',
+    dimensionsLabel: '1080×1350',
+    width: 1080,
+    height: 1350,
+    rowsPerPage: 9,
+  },
+  landscape_16_9: {
+    label: '横長 16:9',
+    dimensionsLabel: '1600×900',
+    width: 1600,
+    height: 900,
+    rowsPerPage: 9,
+  },
+} as const satisfies Record<
+  TournamentExportPreset,
+  {
+    label: string
+    dimensionsLabel: string
+    width: number
+    height: number
+    rowsPerPage: number
+  }
+>
 
 export type TournamentReportImageRound = {
   label: string
@@ -27,6 +54,7 @@ export type TournamentReportImageSection = {
 }
 
 export type TournamentReportImagePage = {
+  preset: TournamentExportPreset
   pageNumber: number
   totalPages: number
   tournamentName: string
@@ -116,6 +144,7 @@ function groupPageSections(
 export function buildTournamentReportImagePages(
   report: TournamentReport,
   oshiCards: readonly Card[],
+  preset: TournamentExportPreset = DEFAULT_TOURNAMENT_EXPORT_PRESET,
 ): TournamentReportImagePage[] {
   if (!formatTournamentReportText(report, oshiCards)) return []
 
@@ -132,18 +161,13 @@ export function buildTournamentReportImagePages(
     })),
   ].filter(({ round }) => isNonEmptyRound(round))
   const chunks: IndexedRound[][] = []
+  const { rowsPerPage } = TOURNAMENT_EXPORT_PRESETS[preset]
 
   if (indexedRounds.length === 0) {
     chunks.push([])
   } else {
-    for (
-      let offset = 0;
-      offset < indexedRounds.length;
-      offset += TOURNAMENT_REPORT_ROWS_PER_PAGE
-    ) {
-      chunks.push(
-        indexedRounds.slice(offset, offset + TOURNAMENT_REPORT_ROWS_PER_PAGE),
-      )
+    for (let offset = 0; offset < indexedRounds.length; offset += rowsPerPage) {
+      chunks.push(indexedRounds.slice(offset, offset + rowsPerPage))
     }
   }
 
@@ -151,6 +175,7 @@ export function buildTournamentReportImagePages(
     (card) => card.cardNumber === report.selfOshiCardNumber,
   )
   return chunks.map((rounds, index) => ({
+    preset,
     pageNumber: index + 1,
     totalPages: chunks.length,
     tournamentName: report.tournamentName.trim() || '大会戦績レポート',

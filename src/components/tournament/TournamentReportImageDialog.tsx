@@ -5,6 +5,8 @@ export type TournamentReportImagePreview = {
   fileName: string
   pageNumber: number
   totalPages: number
+  width: number
+  height: number
 }
 
 type TournamentReportImageDialogProps = {
@@ -86,6 +88,8 @@ export function TournamentReportImageDialog({
           <img
             src={image.url}
             alt={`大会結果画像 ${image.pageNumber} / ${image.totalPages}`}
+            width={image.width}
+            height={image.height}
           />
         </div>
 

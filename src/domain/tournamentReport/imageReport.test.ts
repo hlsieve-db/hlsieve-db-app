@@ -4,8 +4,9 @@ import type { Card } from '../cards/types'
 import {
   buildTournamentReportImageFileName,
   buildTournamentReportImagePages,
+  DEFAULT_TOURNAMENT_EXPORT_PRESET,
   sanitizeTournamentReportFileName,
-  TOURNAMENT_REPORT_ROWS_PER_PAGE,
+  TOURNAMENT_EXPORT_PRESETS,
 } from './imageReport'
 import { createDefaultTournamentReport } from './report'
 import type { TournamentReport, TournamentRound } from './types'
@@ -85,6 +86,7 @@ describe('buildTournamentReportImagePages', () => {
 
     expect(pages).toHaveLength(1)
     expect(pages[0]).toMatchObject({
+      preset: 'mobile_4_5',
       tournamentName: 'ホロカ大会',
       placement: '優勝',
       selfOshi: '宝鐘マリン 【赤】',
@@ -173,7 +175,7 @@ describe('buildTournamentReportImagePages', () => {
           page.sections.reduce(
             (count, section) => count + section.rounds.length,
             0,
-          ) <= TOURNAMENT_REPORT_ROWS_PER_PAGE,
+          ) <= TOURNAMENT_EXPORT_PRESETS.mobile_4_5.rowsPerPage,
       ),
     ).toBe(true)
     expect(pages[1]).toMatchObject({
@@ -186,6 +188,27 @@ describe('buildTournamentReportImagePages', () => {
       'Swiss',
       'Tournament',
     ])
+  })
+
+  it('defaults to 4:5 and preserves the selectable 16:9 pagination', () => {
+    expect(DEFAULT_TOURNAMENT_EXPORT_PRESET).toBe('mobile_4_5')
+    expect(TOURNAMENT_EXPORT_PRESETS.mobile_4_5).toMatchObject({
+      width: 1080,
+      height: 1350,
+    })
+    const landscapePages = buildTournamentReportImagePages(
+      makeReport({
+        tournamentName: '横長大会',
+        swissRounds: rounds(10),
+        tournamentRounds: rounds(4),
+      }),
+      cards,
+      'landscape_16_9',
+    )
+    expect(landscapePages).toHaveLength(2)
+    expect(
+      landscapePages.every((page) => page.preset === 'landscape_16_9'),
+    ).toBe(true)
   })
 
   it('omits empty rounds but retains partially populated rounds and numbering', () => {

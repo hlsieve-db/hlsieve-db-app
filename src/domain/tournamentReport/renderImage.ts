@@ -2,8 +2,9 @@ import type { Card } from '../cards/types'
 import {
   buildTournamentReportImageFileName,
   buildTournamentReportImagePages,
-  TOURNAMENT_REPORT_IMAGE_HEIGHT,
-  TOURNAMENT_REPORT_IMAGE_WIDTH,
+  DEFAULT_TOURNAMENT_EXPORT_PRESET,
+  TOURNAMENT_EXPORT_PRESETS,
+  type TournamentExportPreset,
   type TournamentReportImagePage,
 } from './imageReport'
 import type { TournamentReport } from './types'
@@ -26,6 +27,76 @@ const EXPORT_COLORS = {
   loss: '#b42318',
 } as const
 
+type TournamentReportRenderLayout = {
+  width: number
+  height: number
+  headerHeight: number
+  contentTop: number
+  contentX: number
+  contentWidth: number
+  sectionHeaderHeight: number
+  sectionGap: number
+  rowHeight: number
+  rowSurfaceHeight: number
+  footerBrandY: number
+  footerUrlY: number
+  footerNoticeY: number
+  titleSize: number
+  titleMinimumSize: number
+  titleMaximumWidth: number
+  contextSize: number
+  sectionTitleSize: number
+  rowLayout: 'stacked' | 'single-line'
+}
+
+const RENDER_LAYOUTS: Record<
+  TournamentExportPreset,
+  TournamentReportRenderLayout
+> = {
+  mobile_4_5: {
+    width: TOURNAMENT_EXPORT_PRESETS.mobile_4_5.width,
+    height: TOURNAMENT_EXPORT_PRESETS.mobile_4_5.height,
+    headerHeight: 280,
+    contentTop: 304,
+    contentX: 48,
+    contentWidth: 984,
+    sectionHeaderHeight: 48,
+    sectionGap: 10,
+    rowHeight: 84,
+    rowSurfaceHeight: 80,
+    footerBrandY: 1296,
+    footerUrlY: 1326,
+    footerNoticeY: 1320,
+    titleSize: 54,
+    titleMinimumSize: 36,
+    titleMaximumWidth: 900,
+    contextSize: 25,
+    sectionTitleSize: 30,
+    rowLayout: 'stacked',
+  },
+  landscape_16_9: {
+    width: TOURNAMENT_EXPORT_PRESETS.landscape_16_9.width,
+    height: TOURNAMENT_EXPORT_PRESETS.landscape_16_9.height,
+    headerHeight: 224,
+    contentTop: 248,
+    contentX: 64,
+    contentWidth: 1472,
+    sectionHeaderHeight: 42,
+    sectionGap: 8,
+    rowHeight: 54,
+    rowSurfaceHeight: 50,
+    footerBrandY: 850,
+    footerUrlY: 876,
+    footerNoticeY: 864,
+    titleSize: 58,
+    titleMinimumSize: 34,
+    titleMaximumWidth: 1260,
+    contextSize: 26,
+    sectionTitleSize: 28,
+    rowLayout: 'single-line',
+  },
+}
+
 export type TournamentReportImageFile = {
   blob: Blob
   fileName: string
@@ -38,6 +109,11 @@ export type TournamentReportCanvasFactory = (
   width: number,
   height: number,
 ) => HTMLCanvasElement
+
+export type GenerateTournamentReportImagesOptions = {
+  preset?: TournamentExportPreset
+  createCanvas?: TournamentReportCanvasFactory
+}
 
 function defaultCanvasFactory(
   width: number,
@@ -128,26 +204,40 @@ function resultColor(result: string): string {
 function drawHeader(
   context: CanvasRenderingContext2D,
   page: TournamentReportImagePage,
+  layout: TournamentReportRenderLayout,
 ): void {
   context.fillStyle = EXPORT_COLORS.header
-  context.fillRect(0, 0, TOURNAMENT_REPORT_IMAGE_WIDTH, 224)
+  context.fillRect(0, 0, layout.width, layout.headerHeight)
   context.fillStyle = EXPORT_COLORS.accent
-  context.fillRect(0, 0, TOURNAMENT_REPORT_IMAGE_WIDTH, 12)
-
+  context.fillRect(0, 0, layout.width, 12)
   context.fillStyle = '#8de0dc'
   setFont(context, 24, 800)
-  context.fillText('TOURNAMENT REPORT', 64, 54)
+  context.fillText('TOURNAMENT REPORT', layout.contentX, 54)
 
   context.fillStyle = '#ffffff'
-  const titleSize = fitFontSize(context, page.tournamentName, 1260, 58, 34, 900)
+  const titleSize = fitFontSize(
+    context,
+    page.tournamentName,
+    layout.titleMaximumWidth,
+    layout.titleSize,
+    layout.titleMinimumSize,
+    900,
+  )
   setFont(context, titleSize, 900)
   const titleLines =
-    context.measureText(page.tournamentName).width <= 1260
+    context.measureText(page.tournamentName).width <= layout.titleMaximumWidth
       ? [page.tournamentName]
-      : wrapText(context, page.tournamentName, 1260, 2)
-  const titleStartY = titleLines.length === 1 ? 122 : 96
+      : wrapText(context, page.tournamentName, layout.titleMaximumWidth, 2)
+  const isMobile = layout.rowLayout === 'stacked'
+  const titleStartY =
+    titleLines.length === 1 ? (isMobile ? 138 : 122) : isMobile ? 108 : 96
+  const titleLineHeight = isMobile ? 48 : 42
   titleLines.forEach((line, index) => {
-    context.fillText(line, 64, titleStartY + index * 42)
+    context.fillText(
+      line,
+      layout.contentX,
+      titleStartY + index * titleLineHeight,
+    )
   })
 
   const contextParts = [
@@ -157,99 +247,168 @@ function drawHeader(
     page.eventDate ? `開催日：${page.eventDate}` : undefined,
   ].filter((value): value is string => value !== undefined)
   context.fillStyle = '#dce8f5'
-  setFont(context, 26, 700)
+  setFont(context, layout.contextSize, 700)
+  const contextY =
+    titleLines.length === 1 ? (isMobile ? 224 : 184) : isMobile ? 246 : 196
   context.fillText(
-    ellipsize(context, contextParts.join('  ｜  '), 1430),
-    64,
-    titleLines.length === 1 ? 184 : 196,
+    ellipsize(context, contextParts.join('  ｜  '), layout.contentWidth),
+    layout.contentX,
+    contextY,
   )
 
   if (page.totalPages > 1) {
     context.fillStyle = '#ffffff'
-    setFont(context, 26, 800)
+    setFont(context, 24, 800)
     context.textAlign = 'right'
     context.fillText(
       `${page.pageNumber} / ${page.totalPages}`,
-      TOURNAMENT_REPORT_IMAGE_WIDTH - 64,
+      layout.width - layout.contentX,
       54,
     )
     context.textAlign = 'left'
   }
 }
 
+function drawStackedRound(
+  context: CanvasRenderingContext2D,
+  round: TournamentReportImagePage['sections'][number]['rounds'][number],
+  x: number,
+  y: number,
+  width: number,
+): void {
+  setFont(context, 29, 800)
+  context.fillStyle = EXPORT_COLORS.accent
+  context.fillText(round.label, x + 20, y + 32)
+  context.fillStyle = EXPORT_COLORS.text
+  setFont(context, 28, 750)
+  context.fillText(
+    ellipsize(context, round.opponent, width - 130),
+    x + 110,
+    y + 32,
+  )
+  setFont(context, 25, 750)
+  context.fillStyle = EXPORT_COLORS.text
+  context.fillText(round.playOrder, x + 110, y + 68)
+  context.fillText(round.initiative, x + 310, y + 68)
+  context.fillStyle = resultColor(round.result)
+  setFont(context, 26, 900)
+  context.fillText(round.result, x + 520, y + 68)
+}
+
+function drawSingleLineRound(
+  context: CanvasRenderingContext2D,
+  round: TournamentReportImagePage['sections'][number]['rounds'][number],
+  x: number,
+  y: number,
+): void {
+  setFont(context, 25, 800)
+  context.fillStyle = EXPORT_COLORS.accent
+  context.fillText(round.label, x + 20, y + 34)
+  context.fillStyle = EXPORT_COLORS.text
+  setFont(context, 25, 700)
+  context.fillText(ellipsize(context, round.opponent, 620), x + 126, y + 34)
+  context.fillText(round.playOrder, x + 786, y + 34)
+  context.fillText(round.initiative, x + 966, y + 34)
+  context.fillStyle = resultColor(round.result)
+  setFont(context, 25, 900)
+  context.fillText(round.result, x + 1166, y + 34)
+}
+
 function drawSection(
   context: CanvasRenderingContext2D,
   section: TournamentReportImagePage['sections'][number],
   startY: number,
+  layout: TournamentReportRenderLayout,
 ): number {
   context.fillStyle = EXPORT_COLORS.accentSoft
-  context.fillRect(64, startY, 1472, 42)
+  context.fillRect(
+    layout.contentX,
+    startY,
+    layout.contentWidth,
+    layout.sectionHeaderHeight,
+  )
   context.fillStyle = EXPORT_COLORS.text
-  setFont(context, 28, 900)
-  context.fillText(section.heading, 84, startY + 31)
+  setFont(context, layout.sectionTitleSize, 900)
+  context.fillText(
+    section.heading,
+    layout.contentX + 20,
+    startY + layout.sectionHeaderHeight - 11,
+  )
   if (section.summary) {
     context.fillStyle = EXPORT_COLORS.accent
     context.textAlign = 'right'
-    context.fillText(section.summary, 1512, startY + 31)
+    context.fillText(
+      section.summary,
+      layout.contentX + layout.contentWidth - 24,
+      startY + layout.sectionHeaderHeight - 11,
+    )
     context.textAlign = 'left'
   }
 
-  let y = startY + 48
+  let y = startY + layout.sectionHeaderHeight + 6
   section.rounds.forEach((round, index) => {
     context.fillStyle =
       index % 2 === 0 ? EXPORT_COLORS.surface : EXPORT_COLORS.stripe
-    context.fillRect(64, y, 1472, 50)
+    context.fillRect(
+      layout.contentX,
+      y,
+      layout.contentWidth,
+      layout.rowSurfaceHeight,
+    )
     context.fillStyle = EXPORT_COLORS.border
-    context.fillRect(64, y + 49, 1472, 1)
-
-    setFont(context, 25, 800)
-    context.fillStyle = EXPORT_COLORS.accent
-    context.fillText(round.label, 84, y + 34)
-
-    context.fillStyle = EXPORT_COLORS.text
-    setFont(context, 25, 700)
-    context.fillText(ellipsize(context, round.opponent, 620), 190, y + 34)
-    context.fillText(round.playOrder, 850, y + 34)
-    context.fillText(round.initiative, 1030, y + 34)
-
-    context.fillStyle = resultColor(round.result)
-    setFont(context, 25, 900)
-    context.fillText(round.result, 1230, y + 34)
-    y += 54
+    context.fillRect(
+      layout.contentX,
+      y + layout.rowSurfaceHeight - 1,
+      layout.contentWidth,
+      1,
+    )
+    if (layout.rowLayout === 'stacked') {
+      drawStackedRound(context, round, layout.contentX, y, layout.contentWidth)
+    } else {
+      drawSingleLineRound(context, round, layout.contentX, y)
+    }
+    y += layout.rowHeight
   })
-  return y + 8
+  return y + layout.sectionGap
 }
 
 export function drawTournamentReportImagePage(
   context: CanvasRenderingContext2D,
   page: TournamentReportImagePage,
 ): void {
+  const layout = RENDER_LAYOUTS[page.preset]
   context.textBaseline = 'alphabetic'
   context.textAlign = 'left'
   context.fillStyle = EXPORT_COLORS.background
-  context.fillRect(
-    0,
-    0,
-    TOURNAMENT_REPORT_IMAGE_WIDTH,
-    TOURNAMENT_REPORT_IMAGE_HEIGHT,
-  )
-  drawHeader(context, page)
-
-  let y = 248
+  context.fillRect(0, 0, layout.width, layout.height)
+  drawHeader(context, page, layout)
+  let y = layout.contentTop
   page.sections.forEach((section) => {
-    y = drawSection(context, section, y)
+    y = drawSection(context, section, y, layout)
   })
 
   context.fillStyle = EXPORT_COLORS.muted
   setFont(context, 20, 700)
-  context.fillText('非公式ファンメイドツール', 64, 864)
+  context.fillText(
+    '非公式ファンメイドツール',
+    layout.contentX,
+    layout.footerNoticeY,
+  )
   context.textAlign = 'right'
   context.fillStyle = EXPORT_COLORS.text
   setFont(context, 24, 900)
-  context.fillText('HLSieve DB', 1536, 850)
+  context.fillText(
+    'HLSieve DB',
+    layout.width - layout.contentX,
+    layout.footerBrandY,
+  )
   context.fillStyle = EXPORT_COLORS.muted
   setFont(context, 18, 700)
-  context.fillText('hlsieve.com', 1536, 876)
+  context.fillText(
+    'hlsieve.com',
+    layout.width - layout.contentX,
+    layout.footerUrlY,
+  )
   context.textAlign = 'left'
 }
 
@@ -268,17 +427,17 @@ function canvasToPngBlob(canvas: HTMLCanvasElement): Promise<Blob> {
 export async function generateTournamentReportImages(
   report: TournamentReport,
   oshiCards: readonly Card[],
-  createCanvas: TournamentReportCanvasFactory = defaultCanvasFactory,
+  options: GenerateTournamentReportImagesOptions = {},
 ): Promise<TournamentReportImageFile[]> {
-  const pages = buildTournamentReportImagePages(report, oshiCards)
+  const preset = options.preset ?? DEFAULT_TOURNAMENT_EXPORT_PRESET
+  const createCanvas = options.createCanvas ?? defaultCanvasFactory
+  const pages = buildTournamentReportImagePages(report, oshiCards, preset)
+  const layout = RENDER_LAYOUTS[preset]
   const files: TournamentReportImageFile[] = []
   for (const page of pages) {
-    const canvas = createCanvas(
-      TOURNAMENT_REPORT_IMAGE_WIDTH,
-      TOURNAMENT_REPORT_IMAGE_HEIGHT,
-    )
-    canvas.width = TOURNAMENT_REPORT_IMAGE_WIDTH
-    canvas.height = TOURNAMENT_REPORT_IMAGE_HEIGHT
+    const canvas = createCanvas(layout.width, layout.height)
+    canvas.width = layout.width
+    canvas.height = layout.height
     const context = canvas.getContext('2d')
     if (!context) throw new Error('Canvas 2D context is unavailable.')
     drawTournamentReportImagePage(context, page)
@@ -291,8 +450,8 @@ export async function generateTournamentReportImages(
         page.totalPages,
       ),
       page,
-      width: TOURNAMENT_REPORT_IMAGE_WIDTH,
-      height: TOURNAMENT_REPORT_IMAGE_HEIGHT,
+      width: layout.width,
+      height: layout.height,
     })
   }
   return files

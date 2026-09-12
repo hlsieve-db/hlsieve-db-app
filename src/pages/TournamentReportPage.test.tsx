@@ -11,6 +11,8 @@ import { describe, expect, it, vi } from 'vitest'
 import type { Card, CardsDataFile } from '../domain/cards/types'
 import { SITE_ORIGIN } from '../domain/site/constants'
 import type { TournamentReportImageFile } from '../domain/tournamentReport/renderImage'
+import type { TournamentExportPreset } from '../domain/tournamentReport/imageReport'
+import type { TournamentReport } from '../domain/tournamentReport/types'
 import { TournamentReportPage } from './TournamentReportPage'
 
 function makeCard(overrides: Partial<Card> = {}): Card {
@@ -57,7 +59,11 @@ const cardData: CardsDataFile = {
 }
 
 type ImageTestOptions = {
-  generateImages?: () => Promise<TournamentReportImageFile[]>
+  generateImages?: (
+    report: TournamentReport,
+    oshiCards: readonly Card[],
+    preset: TournamentExportPreset,
+  ) => Promise<TournamentReportImageFile[]>
   createObjectUrl?: (blob: Blob) => string
   revokeObjectUrl?: (url: string) => void
   downloadFile?: (url: string, fileName: string) => void
@@ -81,13 +87,16 @@ function renderPage(
 function makeImageFile(
   pageNumber = 1,
   totalPages = 1,
+  preset: TournamentExportPreset = 'mobile_4_5',
 ): TournamentReportImageFile {
+  const isMobile = preset === 'mobile_4_5'
   return {
     blob: new Blob(['png'], { type: 'image/png' }),
     fileName: `hlsieve-大会${totalPages > 1 ? `-${pageNumber}` : ''}.png`,
-    width: 1600,
-    height: 900,
+    width: isMobile ? 1080 : 1600,
+    height: isMobile ? 1350 : 900,
     page: {
+      preset,
       pageNumber,
       totalPages,
       tournamentName: '大会',
@@ -378,6 +387,10 @@ describe('TournamentReportPage', () => {
   it('shows the image export control and card-image exclusion notice', () => {
     renderPage()
 
+    expect(screen.getByRole('radio', { name: /スマホ向け 4:5/ })).toBeChecked()
+    expect(screen.getByRole('radio', { name: /横長 16:9/ })).not.toBeChecked()
+    expect(screen.getByText('1080×1350')).toBeVisible()
+    expect(screen.getByText('1600×900')).toBeVisible()
     expect(
       screen.getByRole('button', { name: '大会結果を画像にする' }),
     ).toBeDisabled()
@@ -410,11 +423,21 @@ describe('TournamentReportPage', () => {
     fireEvent.click(exportButton)
 
     const dialog = await screen.findByRole('dialog', { name: '大会結果画像' })
-    expect(generateImages).toHaveBeenCalledTimes(1)
+    expect(generateImages).toHaveBeenCalledWith(
+      expect.objectContaining({ tournamentName: '大会' }),
+      expect.any(Array),
+      'mobile_4_5',
+    )
     expect(createObjectUrl).toHaveBeenCalledTimes(1)
     expect(
       within(dialog).getByRole('img', { name: '大会結果画像 1 / 1' }),
     ).toHaveAttribute('src', 'blob:report-page-1')
+    expect(
+      within(dialog).getByRole('img', { name: '大会結果画像 1 / 1' }),
+    ).toHaveAttribute('width', '1080')
+    expect(
+      within(dialog).getByRole('img', { name: '大会結果画像 1 / 1' }),
+    ).toHaveAttribute('height', '1350')
     expect(
       within(dialog).getByRole('button', {
         name: '1ページ目の大会結果画像を保存',
@@ -436,6 +459,37 @@ describe('TournamentReportPage', () => {
     await waitFor(() =>
       expect(revokeObjectUrl).toHaveBeenCalledWith('blob:report-page-1'),
     )
+  })
+
+  it('switches to 16:9 for one export and returns to 4:5 on remount', async () => {
+    const generateImages = vi.fn(async () => [
+      makeImageFile(1, 1, 'landscape_16_9'),
+    ])
+    const { unmount } = renderPage(undefined, {
+      generateImages,
+      createObjectUrl: vi.fn(() => 'blob:landscape'),
+      revokeObjectUrl: vi.fn(),
+    })
+    fireEvent.click(screen.getByRole('radio', { name: /横長 16:9/ }))
+    fireEvent.change(screen.getByLabelText('大会名（必須）'), {
+      target: { value: '横長大会' },
+    })
+    fireEvent.click(
+      screen.getByRole('button', { name: '大会結果を画像にする' }),
+    )
+
+    const image = await screen.findByRole('img', { name: '大会結果画像 1 / 1' })
+    expect(generateImages).toHaveBeenCalledWith(
+      expect.objectContaining({ tournamentName: '横長大会' }),
+      expect.any(Array),
+      'landscape_16_9',
+    )
+    expect(image).toHaveAttribute('width', '1600')
+    expect(image).toHaveAttribute('height', '900')
+
+    unmount()
+    renderPage()
+    expect(screen.getByRole('radio', { name: /スマホ向け 4:5/ })).toBeChecked()
   })
 
   it('navigates and saves individual pages in a multi-page preview', async () => {

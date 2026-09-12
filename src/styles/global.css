@@ -2290,6 +2290,64 @@ summary:focus-visible {
   text-align: center;
 }
 
+.report-image-preset {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.report-image-preset legend {
+  width: 100%;
+  margin-bottom: 7px;
+  color: var(--color-text);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.report-image-preset label {
+  min-width: 0;
+}
+
+.report-image-preset input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.report-image-preset span {
+  display: grid;
+  min-height: 58px;
+  gap: 2px;
+  padding: 9px 10px;
+  place-items: center;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 10px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  text-align: center;
+}
+
+.report-image-preset small {
+  color: var(--color-muted);
+  font-size: 0.72rem;
+}
+
+.report-image-preset input:checked + span {
+  border-color: var(--color-accent-border);
+  color: var(--color-accent-strong);
+  background: var(--color-accent-selected);
+  box-shadow: var(--shadow-selected);
+}
+
+.report-image-preset input:focus-visible + span {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
 .report-image-dialog-backdrop {
   position: fixed;
   z-index: 100;
@@ -2353,7 +2411,7 @@ summary:focus-visible {
   display: block;
   width: 100%;
   height: auto;
-  aspect-ratio: 16 / 9;
+  max-height: min(68dvh, 760px);
   object-fit: contain;
 }
 
