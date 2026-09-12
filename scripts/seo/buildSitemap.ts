@@ -14,6 +14,7 @@ export function buildSitemap(cardNumbers: readonly string[]): string {
     '/cards',
     '/probability',
     '/swiss',
+    '/tournament-report',
     '/updates',
     ...[...new Set(cardNumbers)]
       .sort((left, right) => left.localeCompare(right, 'en'))

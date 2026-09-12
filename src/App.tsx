@@ -9,6 +9,7 @@ import { ProbabilityPage } from './pages/ProbabilityPage'
 import { SavedDecksPage } from './pages/SavedDecksPage'
 import { SharedDeckPage } from './pages/SharedDeckPage'
 import { SwissPage } from './pages/SwissPage'
+import { TournamentReportPage } from './pages/TournamentReportPage'
 import { UpdateHistoryPage } from './pages/UpdateHistoryPage'
 
 function App() {
@@ -24,6 +25,7 @@ function App() {
         <Route path="/updates" element={<UpdateHistoryPage />} />
         <Route path="/probability" element={<ProbabilityPage />} />
         <Route path="/swiss" element={<SwissPage />} />
+        <Route path="/tournament-report" element={<TournamentReportPage />} />
         <Route path="/disclaimer" element={<DisclaimerPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

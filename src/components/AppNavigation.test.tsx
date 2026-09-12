@@ -64,6 +64,7 @@ describe('AppNavigation theme control', () => {
     '/deck/share',
     '/probability',
     '/swiss',
+    '/tournament-report',
     '/updates',
     '/disclaimer',
     '/unknown',
@@ -182,7 +183,14 @@ describe('AppNavigation theme control', () => {
       within(navigation)
         .getAllByRole('link')
         .map((link) => link.textContent),
-    ).toEqual(['Cards', 'Decks', '確率計算', 'スイス計算', '更新履歴'])
+    ).toEqual([
+      'Cards',
+      'Decks',
+      '確率計算',
+      'スイス計算',
+      '大会戦績',
+      '更新履歴',
+    ])
     expect(screen.getByRole('link', { name: '更新履歴' })).toHaveAttribute(
       'aria-current',
       'page',

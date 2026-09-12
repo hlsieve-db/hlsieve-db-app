@@ -150,6 +150,20 @@ describe('App', () => {
     expect(document.title).toBe('スイスドロー計算 | HLSieve DB')
   })
 
+  it('routes to the tournament report builder', () => {
+    render(
+      <MemoryRouter initialEntries={['/tournament-report']}>
+        <App />
+      </MemoryRouter>,
+    )
+
+    expect(
+      screen.getByRole('heading', { name: '大会戦績レポート' }),
+    ).toBeVisible()
+    expect(screen.getByLabelText('大会名（必須）')).toBeVisible()
+    expect(document.title).toBe('大会戦績レポート | HLSieve DB')
+  })
+
   it('renders a branded Not Found page with navigation', () => {
     render(
       <MemoryRouter initialEntries={['/this-does-not-exist']}>

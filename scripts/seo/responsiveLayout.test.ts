@@ -60,4 +60,25 @@ describe('responsive content and navigation layout', () => {
       /\.swiss-calculator__note\s*{[^}]*overflow-wrap: anywhere/s,
     )
   })
+
+  it('stacks the tournament report builder and round controls on mobile', async () => {
+    const css = await readFile('src/styles/global.css', 'utf8')
+
+    expect(css).toMatch(
+      /\.tournament-report-layout\s*{[^}]*grid-template-columns: minmax\(0, 1fr\)/s,
+    )
+    expect(css).toMatch(
+      /\.report-basic-fields\s*{[^}]*grid-template-columns: minmax\(0, 1fr\)/s,
+    )
+    expect(css).toMatch(/\.tournament-round\s*{[^}]*min-width: 0/s)
+    expect(css).toMatch(
+      /\.tournament-round__choice\s*{[^}]*flex-wrap: wrap[^}]*min-width: 0/s,
+    )
+    expect(css).toMatch(
+      /\.report-preview\s*{[^}]*min-width: 0[^}]*overflow: hidden/s,
+    )
+    expect(css).toMatch(
+      /@media \(min-width: 1000px\)[\s\S]*\.tournament-report-layout\s*{[^}]*grid-template-columns:/s,
+    )
+  })
 })

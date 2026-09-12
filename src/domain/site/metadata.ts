@@ -53,6 +53,14 @@ export const SWISS_METADATA: PageMetadata = {
   robots: 'index,follow',
 }
 
+export const TOURNAMENT_REPORT_METADATA: PageMetadata = {
+  title: '大会戦績レポート | HLSieve DB',
+  description:
+    '大会名・順位・使用推しホロメン・各対戦結果を入力して、SNS投稿用の大会戦績をまとめられるツールです。',
+  canonicalPath: '/tournament-report',
+  robots: 'index,follow',
+}
+
 export const DISCLAIMER_METADATA: PageMetadata = {
   title: '免責事項・利用条件 | HLSieve DB',
   description:

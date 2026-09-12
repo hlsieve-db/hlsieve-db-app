@@ -7,6 +7,7 @@ import {
   PROBABILITY_METADATA,
   resolvePageMetadata,
   SWISS_METADATA,
+  TOURNAMENT_REPORT_METADATA,
 } from './metadata'
 
 function makeCard(overrides: Partial<Card> = {}): Card {
@@ -63,6 +64,17 @@ describe('site metadata', () => {
     expect(metadata.description).toContain('スイス回戦数')
     expect(metadata.canonicalUrl).toBe(`${SITE_ORIGIN}/swiss`)
     expect(metadata.socialUrl).toBe(`${SITE_ORIGIN}/swiss`)
+    expect(metadata.robots).toBe('index,follow')
+  })
+
+  it('defines indexable metadata for the tournament report builder', () => {
+    const metadata = resolvePageMetadata(TOURNAMENT_REPORT_METADATA)
+
+    expect(metadata.title).toBe('大会戦績レポート | HLSieve DB')
+    expect(metadata.description).toContain('大会名')
+    expect(metadata.description).toContain('使用推しホロメン')
+    expect(metadata.canonicalUrl).toBe(`${SITE_ORIGIN}/tournament-report`)
+    expect(metadata.socialUrl).toBe(`${SITE_ORIGIN}/tournament-report`)
     expect(metadata.robots).toBe('index,follow')
   })
 
