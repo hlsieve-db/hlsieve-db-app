@@ -136,6 +136,20 @@ describe('App', () => {
     expect(document.title).toBe('確率計算 | HLSieve DB')
   })
 
+  it('routes to the standalone Swiss calculator', () => {
+    render(
+      <MemoryRouter initialEntries={['/swiss']}>
+        <App />
+      </MemoryRouter>,
+    )
+
+    expect(
+      screen.getByRole('heading', { name: 'スイスドロー計算' }),
+    ).toBeVisible()
+    expect(screen.getByLabelText('参加人数')).toHaveValue(64)
+    expect(document.title).toBe('スイスドロー計算 | HLSieve DB')
+  })
+
   it('renders a branded Not Found page with navigation', () => {
     render(
       <MemoryRouter initialEntries={['/this-does-not-exist']}>

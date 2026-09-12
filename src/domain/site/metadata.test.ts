@@ -6,6 +6,7 @@ import {
   buildCardDetailMetadata,
   PROBABILITY_METADATA,
   resolvePageMetadata,
+  SWISS_METADATA,
 } from './metadata'
 
 function makeCard(overrides: Partial<Card> = {}): Card {
@@ -51,6 +52,17 @@ describe('site metadata', () => {
     expect(metadata.description).toContain('現在の山札枚数')
     expect(metadata.canonicalUrl).toBe(`${SITE_ORIGIN}/probability`)
     expect(metadata.socialUrl).toBe(`${SITE_ORIGIN}/probability`)
+    expect(metadata.robots).toBe('index,follow')
+  })
+
+  it('defines indexable metadata for the Swiss utility', () => {
+    const metadata = resolvePageMetadata(SWISS_METADATA)
+
+    expect(metadata.title).toBe('スイスドロー計算 | HLSieve DB')
+    expect(metadata.description).toContain('大会参加人数')
+    expect(metadata.description).toContain('スイス回戦数')
+    expect(metadata.canonicalUrl).toBe(`${SITE_ORIGIN}/swiss`)
+    expect(metadata.socialUrl).toBe(`${SITE_ORIGIN}/swiss`)
     expect(metadata.robots).toBe('index,follow')
   })
 

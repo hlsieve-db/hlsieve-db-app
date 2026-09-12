@@ -40,4 +40,24 @@ describe('responsive content and navigation layout', () => {
     )
     expect(css).toMatch(/body\s*{[^}]*min-width: 0/s)
   })
+
+  it('keeps the Swiss calculator and result table within narrow viewports', async () => {
+    const css = await readFile('src/styles/global.css', 'utf8')
+
+    expect(css).toMatch(
+      /\.swiss-calculator__inputs\s*{[^}]*grid-template-columns: minmax\(0, 1fr\)/s,
+    )
+    expect(css).toMatch(
+      /\.swiss-calculator__inputs input\s*{[^}]*width: 100%[^}]*min-width: 0/s,
+    )
+    expect(css).toMatch(
+      /\.swiss-calculator__table-wrap\s*{[^}]*min-width: 0[^}]*overflow-x: hidden/s,
+    )
+    expect(css).toMatch(
+      /\.swiss-calculator table\s*{[^}]*width: 100%[^}]*table-layout: fixed/s,
+    )
+    expect(css).toMatch(
+      /\.swiss-calculator__note\s*{[^}]*overflow-wrap: anywhere/s,
+    )
+  })
 })

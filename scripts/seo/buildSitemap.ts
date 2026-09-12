@@ -13,6 +13,7 @@ export function buildSitemap(cardNumbers: readonly string[]): string {
   const paths = [
     '/cards',
     '/probability',
+    '/swiss',
     '/updates',
     ...[...new Set(cardNumbers)]
       .sort((left, right) => left.localeCompare(right, 'en'))

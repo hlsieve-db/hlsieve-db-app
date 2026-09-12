@@ -63,6 +63,7 @@ describe('AppNavigation theme control', () => {
     '/decks/deck-1',
     '/deck/share',
     '/probability',
+    '/swiss',
     '/updates',
     '/disclaimer',
     '/unknown',
@@ -169,7 +170,7 @@ describe('AppNavigation theme control', () => {
     )
   })
 
-  it('orders Cards, Decks, probability, and update history before the theme control', () => {
+  it('orders primary routes and calculators before the theme control', () => {
     mockColorScheme(false)
     const { container } = render(
       <MemoryRouter initialEntries={['/updates']}>
@@ -181,7 +182,7 @@ describe('AppNavigation theme control', () => {
       within(navigation)
         .getAllByRole('link')
         .map((link) => link.textContent),
-    ).toEqual(['Cards', 'Decks', '確率計算', '更新履歴'])
+    ).toEqual(['Cards', 'Decks', '確率計算', 'スイス計算', '更新履歴'])
     expect(screen.getByRole('link', { name: '更新履歴' })).toHaveAttribute(
       'aria-current',
       'page',

@@ -8,6 +8,7 @@ import { NotFoundPage } from './pages/NotFoundPage'
 import { ProbabilityPage } from './pages/ProbabilityPage'
 import { SavedDecksPage } from './pages/SavedDecksPage'
 import { SharedDeckPage } from './pages/SharedDeckPage'
+import { SwissPage } from './pages/SwissPage'
 import { UpdateHistoryPage } from './pages/UpdateHistoryPage'
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
         <Route path="/decks/:deckId" element={<DeckEditPage />} />
         <Route path="/updates" element={<UpdateHistoryPage />} />
         <Route path="/probability" element={<ProbabilityPage />} />
+        <Route path="/swiss" element={<SwissPage />} />
         <Route path="/disclaimer" element={<DisclaimerPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

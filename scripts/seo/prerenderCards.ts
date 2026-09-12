@@ -9,6 +9,7 @@ import {
   DISCLAIMER_METADATA,
   PROBABILITY_METADATA,
   resolvePageMetadata,
+  SWISS_METADATA,
   UPDATE_HISTORY_METADATA,
   type PageMetadata,
 } from '../../src/domain/site/metadata'
@@ -151,6 +152,11 @@ export function buildPrerenderRoutes(
       routePath: '/probability',
       outputPath: 'probability.html',
       html: renderMetadataHtml(template, PROBABILITY_METADATA),
+    },
+    {
+      routePath: '/swiss',
+      outputPath: 'swiss.html',
+      html: renderMetadataHtml(template, SWISS_METADATA),
     },
     {
       routePath: '/updates',

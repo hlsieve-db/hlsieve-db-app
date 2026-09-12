@@ -45,6 +45,14 @@ export const PROBABILITY_METADATA: PageMetadata = {
   robots: 'index,follow',
 }
 
+export const SWISS_METADATA: PageMetadata = {
+  title: 'スイスドロー計算 | HLSieve DB',
+  description:
+    '大会参加人数とスイス回戦数から、全勝・1敗など各勝敗数の理論人数と割合を計算できます。',
+  canonicalPath: '/swiss',
+  robots: 'index,follow',
+}
+
 export const DISCLAIMER_METADATA: PageMetadata = {
   title: '免責事項・利用条件 | HLSieve DB',
   description:
