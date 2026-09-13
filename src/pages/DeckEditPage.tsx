@@ -23,6 +23,7 @@ import {
   removeCardFromDeck,
   renameDeck,
 } from '../domain/decks/deck'
+import { formatDeckAsText } from '../domain/decks/formatText'
 import { getDeckZone, validateDeckLegality } from '../domain/decks/legality'
 import type { Deck, DeckEntry } from '../domain/decks/types'
 import { DEFAULT_CARD_PAGE_SIZE } from '../domain/search/constants'
@@ -58,6 +59,7 @@ type PrintingLoadState =
   | { status: 'error' }
 
 type CopyResult = { status: 'copied' | 'error'; url: string }
+type DeckTextCopyStatus = 'copied' | 'error'
 
 type DeckEditPageProps = {
   repository?: DeckRepository
@@ -137,6 +139,8 @@ function DeckEditor({
   )
   const [isShareLinkVisible, setIsShareLinkVisible] = useState(false)
   const [copyResult, setCopyResult] = useState<CopyResult>()
+  const [deckTextCopyStatus, setDeckTextCopyStatus] =
+    useState<DeckTextCopyStatus>()
   const deckRef = useRef(initialDeck)
 
   useDocumentMetadata({
@@ -240,6 +244,14 @@ function DeckEditor({
     }
   }, [deck, isShareLinkVisible])
 
+  const deckText = useMemo(
+    () =>
+      cardsState.status === 'loaded'
+        ? formatDeckAsText({ deck, cards: cardsState.data.cards })
+        : undefined,
+    [cardsState, deck],
+  )
+
   const entryGroups = useMemo<DeckEntryGroup[]>(() => {
     if (cardsState.status !== 'loaded') {
       return deck.entries.length
@@ -310,6 +322,17 @@ function DeckEditor({
       setCopyResult({ status: 'copied', url: shareLink.value })
     } catch {
       setCopyResult({ status: 'error', url: shareLink.value })
+    }
+  }
+
+  const copyDeckText = async () => {
+    if (!deckText || deck.entries.length === 0) return
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error('Unavailable')
+      await navigator.clipboard.writeText(deckText)
+      setDeckTextCopyStatus('copied')
+    } catch {
+      setDeckTextCopyStatus('error')
     }
   }
 
@@ -402,6 +425,43 @@ function DeckEditor({
           {shareLink?.ok === false && (
             <p role="alert">
               現在のデッキから共有リンクを作成できませんでした。
+            </p>
+          )}
+        </section>
+        <section
+          className="deck-text-export"
+          aria-labelledby="deck-text-export-heading"
+        >
+          <h2 id="deck-text-export-heading">デッキリスト</h2>
+          <p>SNSやメモへ貼り付けやすいテキスト形式でコピーします。</p>
+          <button
+            type="button"
+            className="button button--secondary"
+            aria-label="デッキリストをテキストでコピー"
+            disabled={deck.entries.length === 0 || !deckText}
+            onClick={() => void copyDeckText()}
+          >
+            テキストをコピー
+          </button>
+          {deck.entries.length === 0 && <p>デッキにカードがありません。</p>}
+          {deck.entries.length > 0 && cardsState.status === 'loading' && (
+            <p>カードデータを読み込んでいます…</p>
+          )}
+          {deck.entries.length > 0 && cardsState.status === 'error' && (
+            <p role="alert">カードデータの読み込み後にコピーできます。</p>
+          )}
+          {deckTextCopyStatus === 'copied' && (
+            <p
+              className="deck-text-export__status"
+              role="status"
+              aria-live="polite"
+            >
+              デッキリストをコピーしました。
+            </p>
+          )}
+          {deckTextCopyStatus === 'error' && (
+            <p className="deck-text-export__status" role="alert">
+              コピーできませんでした。
             </p>
           )}
         </section>

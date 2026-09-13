@@ -1448,6 +1448,30 @@ summary:focus-visible {
   min-height: 1.4em;
 }
 
+.deck-text-export {
+  display: grid;
+  gap: 10px;
+  max-width: 800px;
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--color-border);
+}
+
+.deck-text-export h2,
+.deck-text-export p {
+  margin: 0;
+}
+
+.deck-text-export > .button {
+  justify-self: start;
+}
+
+.deck-text-export__status {
+  min-height: 1.4em;
+  color: var(--color-muted);
+  font-size: 0.84rem;
+}
+
 .shared-deck-heading {
   margin-bottom: 20px;
 }
@@ -3437,6 +3461,7 @@ summary:focus-visible {
   .deck-page__actions .button,
   .deck-rename .button,
   .deck-share > .button,
+  .deck-text-export > .button,
   .deck-share__link .button,
   .shared-deck-import .button {
     width: 100%;

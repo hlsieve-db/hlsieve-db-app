@@ -949,3 +949,119 @@ describe('DeckEditPage share link', () => {
     expect(input.value).toBe(link)
   })
 })
+
+describe('DeckEditPage text export', () => {
+  it('copies the exact formatted current Deck and announces success', async () => {
+    const writeText = vi.fn(async () => undefined)
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    })
+    renderPage({
+      deckRepository: repository({
+        getDeck: async () =>
+          deck({
+            name: '日本語🎴デッキ',
+            entries: [
+              { cardNumber: 'CARD-002', quantity: 3 },
+              { cardNumber: 'OSHI-001', quantity: 1 },
+              { cardNumber: 'CHEER-001', quantity: 10 },
+              { cardNumber: 'CARD-001', quantity: 4 },
+              { cardNumber: 'UNKNOWN-999', quantity: 2 },
+            ],
+          }),
+      }),
+    })
+
+    const copy = await screen.findByRole('button', {
+      name: 'デッキリストをテキストでコピー',
+    })
+    expect(copy).toHaveTextContent('テキストをコピー')
+    await waitFor(() => expect(copy).toBeEnabled())
+    fireEvent.click(copy)
+
+    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1))
+    expect(writeText).toHaveBeenCalledWith(
+      [
+        'HLSieve DB Deck',
+        'デッキ名: 日本語🎴デッキ',
+        '',
+        '【推しホロメン】',
+        '1 OSHI-001 推しカード',
+        '',
+        '【メインデッキ】',
+        '3 CARD-002 青いカード',
+        '4 CARD-001 赤いカード',
+        '',
+        '【エールデッキ】',
+        '10 CHEER-001 白エール',
+        '',
+        '【未確認カード】',
+        '2 UNKNOWN-999 不明なカード',
+        '',
+        'Main: 7枚',
+        'Cheer: 10枚',
+        'Total: 20枚',
+        '',
+        'https://hlsieve.com',
+      ].join('\n'),
+    )
+    expect(
+      await screen.findByText('デッキリストをコピーしました。'),
+    ).toHaveAttribute('role', 'status')
+  })
+
+  it('reports clipboard failure without a silent fallback', async () => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: vi.fn(async () => Promise.reject(new Error('denied'))),
+      },
+    })
+    renderPage({
+      deckRepository: repository({
+        getDeck: async () =>
+          deck({ entries: [{ cardNumber: 'CARD-001', quantity: 1 }] }),
+      }),
+    })
+
+    const copy = await screen.findByRole('button', {
+      name: 'デッキリストをテキストでコピー',
+    })
+    await waitFor(() => expect(copy).toBeEnabled())
+    fireEvent.click(copy)
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'コピーできませんでした。',
+    )
+  })
+
+  it('disables text export for an empty Deck', async () => {
+    renderPage()
+
+    expect(
+      await screen.findByRole('button', {
+        name: 'デッキリストをテキストでコピー',
+      }),
+    ).toBeDisabled()
+    expect(screen.getByText('デッキにカードがありません。')).toBeVisible()
+  })
+
+  it('waits for Card data and exposes load failure instead of losing entries', async () => {
+    renderPage({
+      deckRepository: repository({
+        getDeck: async () =>
+          deck({ entries: [{ cardNumber: 'UNKNOWN-999', quantity: 2 }] }),
+      }),
+      loadCards: async () => Promise.reject(new Error('offline')),
+    })
+
+    expect(
+      await screen.findByRole('button', {
+        name: 'デッキリストをテキストでコピー',
+      }),
+    ).toBeDisabled()
+    expect(
+      await screen.findByText('カードデータの読み込み後にコピーできます。'),
+    ).toHaveAttribute('role', 'alert')
+  })
+})
