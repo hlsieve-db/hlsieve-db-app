@@ -1,12 +1,22 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
 import { createDeck, getDeckTotal } from '../domain/decks/deck'
+import {
+  createDeckBackup,
+  createDeckBackupFilename,
+  MAX_DECK_BACKUP_FILE_SIZE,
+  parseDeckBackup,
+  planDeckBackupImport,
+  serializeDeckBackup,
+  type DeckBackup,
+  type DeckImportPlan,
+} from '../domain/decks/backup'
 import type { Deck } from '../domain/decks/types'
 import {
   deckRepository,
-  type DeckRepository,
+  type DeckBackupRepository,
 } from '../repositories/deckRepository'
 import { useDocumentMetadata } from '../hooks/useDocumentMetadata'
 
@@ -16,13 +26,36 @@ type DeckListState =
   | { status: 'error' }
 
 type SavedDecksPageProps = {
-  repository?: DeckRepository
+  repository?: DeckBackupRepository
   createNewDeck?: () => Deck
+  now?: () => Date
+  createImportId?: () => string
+  downloadFile?: (filename: string, contents: string) => void
+}
+
+type ImportPreview = {
+  backup: DeckBackup
+  plan: DeckImportPlan
+  filename: string
+}
+
+function downloadJsonFile(filename: string, contents: string): void {
+  const url = URL.createObjectURL(
+    new Blob([contents], { type: 'application/json;charset=utf-8' }),
+  )
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = filename
+  anchor.click()
+  URL.revokeObjectURL(url)
 }
 
 export function SavedDecksPage({
   repository = deckRepository,
   createNewDeck = createDeck,
+  now = () => new Date(),
+  createImportId = () => crypto.randomUUID(),
+  downloadFile = downloadJsonFile,
 }: SavedDecksPageProps) {
   const navigate = useNavigate()
   const [state, setState] = useState<DeckListState>({ status: 'loading' })
@@ -30,6 +63,10 @@ export function SavedDecksPage({
   const [pendingDeleteId, setPendingDeleteId] = useState<string>()
   const [operationError, setOperationError] = useState<string>()
   const [creating, setCreating] = useState(false)
+  const [importPreview, setImportPreview] = useState<ImportPreview>()
+  const [backupError, setBackupError] = useState<string>()
+  const [backupStatus, setBackupStatus] = useState<string>()
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     let active = true
@@ -85,6 +122,79 @@ export function SavedDecksPage({
       setPendingDeleteId(undefined)
     } catch {
       setOperationError('デッキを削除できませんでした。')
+    }
+  }
+
+  const resetFileInput = () => {
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const exportBackup = () => {
+    if (state.status !== 'loaded' || state.decks.length === 0) return
+    setBackupError(undefined)
+    try {
+      const date = now()
+      const backup = createDeckBackup(state.decks, date.toISOString())
+      downloadFile(createDeckBackupFilename(date), serializeDeckBackup(backup))
+      setBackupStatus('デッキバックアップを書き出しました。')
+    } catch {
+      setBackupError('デッキバックアップを書き出せませんでした。')
+    }
+  }
+
+  const selectBackupFile = async (file: File | undefined) => {
+    setBackupError(undefined)
+    setBackupStatus(undefined)
+    setImportPreview(undefined)
+    if (!file) return
+    if (file.size > MAX_DECK_BACKUP_FILE_SIZE) {
+      setBackupError('ファイルサイズが大きすぎます。')
+      resetFileInput()
+      return
+    }
+    try {
+      const parsed = parseDeckBackup(await file.text())
+      if (!parsed.ok) {
+        setBackupError(parsed.message)
+        resetFileInput()
+        return
+      }
+      setImportPreview({
+        backup: parsed.backup,
+        plan: planDeckBackupImport(
+          parsed.backup.decks,
+          state.status === 'loaded' ? state.decks : [],
+          createImportId,
+        ),
+        filename: file.name,
+      })
+    } catch {
+      setBackupError('バックアップファイルを読み込めませんでした。')
+      resetFileInput()
+    }
+  }
+
+  const cancelImport = () => {
+    setImportPreview(undefined)
+    resetFileInput()
+  }
+
+  const executeImport = async () => {
+    if (!importPreview) return
+    setBackupError(undefined)
+    try {
+      await repository.importDecks(importPreview.plan.decks)
+      const decks = await repository.listDecks()
+      setState({ status: 'loaded', decks })
+      setBackupStatus(
+        `バックアップを読み込みました。追加: ${importPreview.plan.newCount}件、同一のためスキップ: ${importPreview.plan.identicalCount}件、ID重複のため別デッキとして追加: ${importPreview.plan.conflictCount}件。`,
+      )
+      setImportPreview(undefined)
+      resetFileInput()
+    } catch {
+      setBackupError(
+        'バックアップを読み込めませんでした。既存のデッキは変更されていません。',
+      )
     }
   }
 
@@ -192,6 +302,125 @@ export function SavedDecksPage({
           </ul>
         </section>
       )}
+
+      <section
+        className="content-surface deck-backup"
+        aria-labelledby="deck-backup-heading"
+      >
+        <h2 id="deck-backup-heading">バックアップ</h2>
+        <p>
+          デッキはこの端末のブラウザ内に保存されています。大切なデッキは定期的にバックアップしてください。
+        </p>
+        <p>
+          バックアップファイルにはデッキ名とカード番号・枚数が含まれます。ファイルはこの端末へ保存され、外部へ送信されません。
+        </p>
+        <p>
+          HLSieve DBから書き出したデッキバックアップのみ読み込んでください。
+        </p>
+        <div className="deck-backup__actions">
+          <button
+            className="button"
+            type="button"
+            disabled={state.status !== 'loaded' || state.decks.length === 0}
+            onClick={exportBackup}
+          >
+            バックアップを書き出す
+          </button>
+          <input
+            ref={fileInputRef}
+            className="deck-backup__file-input"
+            id="deck-backup-file"
+            type="file"
+            accept=".json,application/json"
+            aria-label="デッキバックアップJSONファイル"
+            disabled={state.status !== 'loaded'}
+            onChange={(event) =>
+              void selectBackupFile(event.currentTarget.files?.[0])
+            }
+          />
+          <button
+            className="button button--secondary"
+            type="button"
+            disabled={state.status !== 'loaded'}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            バックアップを読み込む
+          </button>
+        </div>
+        {state.status === 'loaded' && state.decks.length === 0 && (
+          <p>書き出せるデッキがありません。</p>
+        )}
+        {backupStatus && (
+          <p className="status-message" role="status" aria-live="polite">
+            {backupStatus}
+          </p>
+        )}
+        {backupError && (
+          <p className="status-message status-message--error" role="alert">
+            {backupError}
+          </p>
+        )}
+        {importPreview && (
+          <div
+            className="deck-backup__preview"
+            role="dialog"
+            aria-labelledby="deck-import-preview-heading"
+          >
+            <h3 id="deck-import-preview-heading">読み込み内容の確認</h3>
+            <dl>
+              <div>
+                <dt>ファイル</dt>
+                <dd>{importPreview.filename}</dd>
+              </div>
+              <div>
+                <dt>バックアップ日時</dt>
+                <dd>
+                  {new Date(importPreview.backup.exportedAt).toLocaleDateString(
+                    'ja-JP',
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt>デッキ</dt>
+                <dd>{importPreview.backup.decks.length}件</dd>
+              </div>
+              <div>
+                <dt>新規追加</dt>
+                <dd>{importPreview.plan.newCount}件</dd>
+              </div>
+              <div>
+                <dt>既存と同一</dt>
+                <dd>{importPreview.plan.identicalCount}件</dd>
+              </div>
+              <div>
+                <dt>ID重複</dt>
+                <dd>{importPreview.plan.conflictCount}件</dd>
+              </div>
+            </dl>
+            {importPreview.plan.conflictCount > 0 && (
+              <p>
+                IDが重複するデッキは、既存データを保護するため別のデッキとして追加されます。既存データは上書きされません。
+              </p>
+            )}
+            <div className="deck-backup__actions">
+              <button
+                className="button"
+                type="button"
+                onClick={() => void executeImport()}
+              >
+                読み込みを実行
+              </button>
+              <button
+                className="button button--secondary"
+                type="button"
+                onClick={cancelImport}
+              >
+                キャンセル
+              </button>
+            </div>
+          </div>
+        )}
+      </section>
     </main>
   )
 }

@@ -2190,33 +2190,33 @@ summary:focus-visible {
   padding: 16px;
 }
 
-.tournament-backup {
+:is(.tournament-backup, .deck-backup) {
   display: grid;
   gap: 14px;
   min-width: 0;
   padding: clamp(18px, 5vw, 28px);
 }
 
-.tournament-backup h2,
-.tournament-backup h3,
-.tournament-backup p,
-.tournament-backup dl,
-.tournament-backup dd {
+:is(.tournament-backup, .deck-backup) h2,
+:is(.tournament-backup, .deck-backup) h3,
+:is(.tournament-backup, .deck-backup) p,
+:is(.tournament-backup, .deck-backup) dl,
+:is(.tournament-backup, .deck-backup) dd {
   margin: 0;
 }
 
-.tournament-backup p,
-.tournament-backup dd {
+:is(.tournament-backup, .deck-backup) p,
+:is(.tournament-backup, .deck-backup) dd {
   overflow-wrap: anywhere;
 }
 
-.tournament-backup__actions {
+:is(.tournament-backup__actions, .deck-backup__actions) {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
 }
 
-.tournament-backup__file-input {
+:is(.tournament-backup__file-input, .deck-backup__file-input) {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -2227,7 +2227,7 @@ summary:focus-visible {
   border: 0;
 }
 
-.tournament-backup__preview {
+:is(.tournament-backup__preview, .deck-backup__preview) {
   display: grid;
   gap: 14px;
   min-width: 0;
@@ -2237,28 +2237,28 @@ summary:focus-visible {
   background: var(--color-accent-selected);
 }
 
-.tournament-backup__preview dl {
+:is(.tournament-backup__preview, .deck-backup__preview) dl {
   display: grid;
   gap: 8px;
 }
 
-.tournament-backup__preview dl > div {
+:is(.tournament-backup__preview, .deck-backup__preview) dl > div {
   display: grid;
   grid-template-columns: minmax(7rem, auto) minmax(0, 1fr);
   gap: 8px 14px;
 }
 
-.tournament-backup__preview dt {
+:is(.tournament-backup__preview, .deck-backup__preview) dt {
   color: var(--color-muted);
   font-weight: 700;
 }
 
 @media (max-width: 370px) {
-  .tournament-backup__actions .button {
+  :is(.tournament-backup__actions, .deck-backup__actions) .button {
     width: 100%;
   }
 
-  .tournament-backup__preview dl > div {
+  :is(.tournament-backup__preview, .deck-backup__preview) dl > div {
     grid-template-columns: minmax(0, 1fr);
     gap: 2px;
   }

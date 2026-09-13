@@ -53,9 +53,11 @@ describe('application IndexedDB migration', () => {
 
 function atomicFactory(initial: { id: string }[] = []) {
   const records = new Map(initial.map((value) => [value.id, value]))
+  const transactionStores: string[] = []
   const database = {
     objectStoreNames: { contains: () => true },
-    transaction: () => {
+    transaction: (storeName: string) => {
+      transactionStores.push(storeName)
       const pending: { id: string }[] = []
       let failed = false
       const transaction = {
@@ -101,7 +103,11 @@ function atomicFactory(initial: { id: string }[] = []) {
       return request
     },
   }
-  return { factory: factory as unknown as IDBFactory, records }
+  return {
+    factory: factory as unknown as IDBFactory,
+    records,
+    transactionStores,
+  }
 }
 
 describe('application IndexedDB batch writes', () => {
@@ -126,5 +132,21 @@ describe('application IndexedDB batch writes', () => {
       persistence.addMany([{ id: 'new' }, { id: 'existing' }]),
     ).rejects.toThrow('duplicate')
     expect([...records.values()]).toEqual([existing])
+  })
+
+  it('rolls back a Deck batch while opening only the Deck store', async () => {
+    const existing = { id: 'existing' }
+    const { factory, records, transactionStores } = atomicFactory([existing])
+    const persistence = createIndexedDbStorePersistence<{ id: string }>(
+      STORE_DECKS,
+      factory,
+    )
+
+    await expect(
+      persistence.addMany([{ id: 'new' }, { id: 'existing' }]),
+    ).rejects.toThrow('duplicate')
+    expect([...records.values()]).toEqual([existing])
+    expect(transactionStores).toEqual([STORE_DECKS])
+    expect(transactionStores).not.toContain(STORE_TOURNAMENT_REPORTS)
   })
 })

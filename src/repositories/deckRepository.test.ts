@@ -26,6 +26,12 @@ function memoryPersistence(initial: unknown[] = []): DeckPersistenceAdapter {
     put: vi.fn(async (value) => {
       records.set(value.id, value)
     }),
+    addMany: vi.fn(async (values) => {
+      for (const value of values) {
+        if (records.has(value.id)) throw new Error('duplicate')
+      }
+      values.forEach((value: Deck) => records.set(value.id, value))
+    }),
     delete: vi.fn(async (id) => {
       records.delete(id)
     }),
@@ -81,6 +87,9 @@ describe('deckRepository', () => {
       put: vi.fn(async () => {
         throw failure
       }),
+      addMany: vi.fn(async () => {
+        throw failure
+      }),
       delete: vi.fn(async () => {
         throw failure
       }),
@@ -90,6 +99,23 @@ describe('deckRepository', () => {
     await expect(repository.listDecks()).rejects.toBe(failure)
     await expect(repository.getDeck('a')).rejects.toBe(failure)
     await expect(repository.saveDeck(deck('a'))).rejects.toBe(failure)
+    await expect(repository.importDecks([deck('a')])).rejects.toBe(failure)
     await expect(repository.deleteDeck('a')).rejects.toBe(failure)
+  })
+
+  it('validates and imports a Deck batch through add-only persistence', async () => {
+    const persistence = memoryPersistence([deck('existing')])
+    const repository = createDeckRepository(persistence)
+    await repository.importDecks([deck('new-a'), deck('new-b')])
+    expect(persistence.addMany).toHaveBeenCalledWith([
+      deck('new-a'),
+      deck('new-b'),
+    ])
+    await expect(repository.importDecks([deck('existing')])).rejects.toThrow(
+      'duplicate',
+    )
+    await expect(repository.listDecks()).resolves.toContainEqual(
+      deck('existing'),
+    )
   })
 })

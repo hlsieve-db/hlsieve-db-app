@@ -6,7 +6,7 @@ import type { Card, CardsDataFile } from '../domain/cards/types'
 import type { Deck } from '../domain/decks/types'
 import { encodeDeckSharePayload } from '../domain/share/deckShareCodec'
 import type { SharedDeckPayloadV1 } from '../domain/share/types'
-import type { DeckRepository } from '../repositories/deckRepository'
+import type { DeckBackupRepository } from '../repositories/deckRepository'
 import { SavedDecksPage } from './SavedDecksPage'
 import { SharedDeckPage } from './SharedDeckPage'
 
@@ -81,12 +81,15 @@ function encode(value: SharedDeckPayloadV1): string {
   })
 }
 
-function repository(overrides: Partial<DeckRepository> = {}): DeckRepository {
+function repository(
+  overrides: Partial<DeckBackupRepository> = {},
+): DeckBackupRepository {
   return {
     listDecks: vi.fn(async () => []),
     getDeck: vi.fn(async () => undefined),
     saveDeck: vi.fn(async () => undefined),
     deleteDeck: vi.fn(async () => undefined),
+    importDecks: vi.fn(async () => undefined),
     ...overrides,
   }
 }
@@ -98,7 +101,7 @@ function renderPage({
   createLocalDeck,
 }: {
   path?: string
-  deckRepository?: DeckRepository
+  deckRepository?: DeckBackupRepository
   loadCards?: () => Promise<CardsDataFile>
   createLocalDeck?: (value: SharedDeckPayloadV1) => Deck
 } = {}) {

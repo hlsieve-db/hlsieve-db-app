@@ -13,7 +13,16 @@ export type DeckRepository = {
   deleteDeck: (id: DeckId) => Promise<void>
 }
 
-export type DeckPersistenceAdapter = IndexedDbStorePersistence<Deck>
+export type DeckBackupRepository = DeckRepository & {
+  importDecks: (decks: readonly Deck[]) => Promise<void>
+}
+
+export type DeckPersistenceAdapter = Omit<
+  IndexedDbStorePersistence<Deck>,
+  'addMany'
+> & {
+  addMany: (values: readonly Deck[]) => Promise<void>
+}
 
 function assertPersistedDeck(value: unknown): Deck {
   if (!isDeck(value)) throw new Error('Stored deck has an invalid shape.')
@@ -22,7 +31,7 @@ function assertPersistedDeck(value: unknown): Deck {
 
 export function createDeckRepository(
   persistence: DeckPersistenceAdapter,
-): DeckRepository {
+): DeckBackupRepository {
   return {
     async listDecks() {
       const decks = (await persistence.getAll()).map(assertPersistedDeck)
@@ -40,6 +49,10 @@ export function createDeckRepository(
     },
     async deleteDeck(id) {
       await persistence.delete(id)
+    },
+    async importDecks(decks) {
+      if (!decks.every(isDeck)) throw new Error('Invalid deck import.')
+      await persistence.addMany(decks)
     },
   }
 }

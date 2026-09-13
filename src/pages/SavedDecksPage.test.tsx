@@ -1,9 +1,20 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
 import type { Deck } from '../domain/decks/types'
-import type { DeckRepository } from '../repositories/deckRepository'
+import {
+  createDeckBackup,
+  MAX_DECK_BACKUP_FILE_SIZE,
+  serializeDeckBackup,
+} from '../domain/decks/backup'
+import type { DeckBackupRepository } from '../repositories/deckRepository'
 import { SavedDecksPage } from './SavedDecksPage'
 
 function deck(overrides: Partial<Deck> = {}): Deck {
@@ -17,12 +28,15 @@ function deck(overrides: Partial<Deck> = {}): Deck {
   }
 }
 
-function repository(overrides: Partial<DeckRepository> = {}): DeckRepository {
+function repository(
+  overrides: Partial<DeckBackupRepository> = {},
+): DeckBackupRepository {
   return {
     listDecks: vi.fn(async () => []),
     getDeck: vi.fn(async () => undefined),
     saveDeck: vi.fn(async () => undefined),
     deleteDeck: vi.fn(async () => undefined),
+    importDecks: vi.fn(async () => undefined),
     ...overrides,
   }
 }
@@ -33,8 +47,12 @@ function Location() {
 }
 
 function renderPage(
-  deckRepository: DeckRepository,
+  deckRepository: DeckBackupRepository,
   createNewDeck = () => deck({ id: 'new-deck', entries: [] }),
+  extras: {
+    downloadFile?: (filename: string, contents: string) => void
+    createImportId?: () => string
+  } = {},
 ) {
   render(
     <MemoryRouter initialEntries={['/decks']}>
@@ -45,6 +63,9 @@ function renderPage(
             <SavedDecksPage
               repository={deckRepository}
               createNewDeck={createNewDeck}
+              now={() => new Date(2026, 8, 13)}
+              downloadFile={extras.downloadFile}
+              createImportId={extras.createImportId}
             />
           }
         />
@@ -53,6 +74,15 @@ function renderPage(
       <Location />
     </MemoryRouter>,
   )
+}
+
+function backupFile(contents: string, size?: number): File {
+  const file = new File([contents], 'backup.json', {
+    type: 'application/json',
+  })
+  Object.defineProperty(file, 'text', { value: async () => contents })
+  if (size !== undefined) Object.defineProperty(file, 'size', { value: size })
+  return file
 }
 
 describe('SavedDecksPage', () => {
@@ -66,6 +96,12 @@ describe('SavedDecksPage', () => {
     expect(screen.getByText('デッキを読み込んでいます…')).toBeVisible()
     resolveList([])
     expect(await screen.findByText('デッキがありません')).toBeVisible()
+    expect(
+      screen.getByRole('button', { name: 'バックアップを書き出す' }),
+    ).toBeDisabled()
+    expect(
+      screen.getByRole('button', { name: 'バックアップを読み込む' }),
+    ).toBeEnabled()
   })
 
   it('lists totals, update information, and an editor link', async () => {
@@ -166,5 +202,194 @@ describe('SavedDecksPage', () => {
     fireEvent.click(screen.getByRole('button', { name: '再試行' }))
     expect(await screen.findByText('デッキがありません')).toBeVisible()
     expect(listDecks).toHaveBeenCalledTimes(2)
+  })
+
+  it('exports all Decks with the local-date filename and privacy boundaries', async () => {
+    const downloadFile = vi.fn()
+    const saved = deck({ name: '日本語デッキ' })
+    renderPage(repository({ listDecks: async () => [saved] }), undefined, {
+      downloadFile,
+    })
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'バックアップを書き出す' }),
+    )
+
+    expect(downloadFile).toHaveBeenCalledTimes(1)
+    expect(downloadFile.mock.calls[0][0]).toBe(
+      'hlsieve-deck-backup-2026-09-13.json',
+    )
+    expect(JSON.parse(downloadFile.mock.calls[0][1])).toMatchObject({
+      format: 'hlsieve-deck-backup',
+      version: 1,
+      decks: [{ id: 'deck-1', name: '日本語デッキ' }],
+    })
+    expect(downloadFile.mock.calls[0][1]).not.toContain('tournament')
+    expect(downloadFile.mock.calls[0][1]).not.toContain('selected-deck')
+    expect(screen.getByText(/デッキ名とカード番号・枚数/)).toBeVisible()
+    expect(screen.getByText(/外部へ送信されません/)).toBeVisible()
+  })
+
+  it('previews counts, cancels without writing, and accepts the same file again', async () => {
+    const repo = repository()
+    renderPage(repo)
+    const file = backupFile(
+      serializeDeckBackup(
+        createDeckBackup(
+          [deck({ id: 'restored' })],
+          '2026-09-13T00:00:00.000Z',
+        ),
+      ),
+    )
+    const input = screen.getByLabelText('デッキバックアップJSONファイル')
+    fireEvent.change(input, { target: { files: [file] } })
+    const preview = await screen.findByRole('dialog', {
+      name: '読み込み内容の確認',
+    })
+    expect(
+      within(preview).getByText('新規追加').parentElement,
+    ).toHaveTextContent('新規追加1件')
+    fireEvent.click(within(preview).getByRole('button', { name: 'キャンセル' }))
+    expect(repo.importDecks).not.toHaveBeenCalled()
+    expect(input).toHaveValue('')
+    fireEvent.change(input, { target: { files: [file] } })
+    expect(await screen.findByRole('dialog')).toBeVisible()
+  })
+
+  it('imports after confirmation, refreshes the list, and remains idempotent', async () => {
+    localStorage.setItem('hlsieve:selected-deck', 'selected-before-import')
+    const stored: Deck[] = []
+    const repo = repository({
+      listDecks: vi.fn(async () => [...stored]),
+      importDecks: vi.fn(async (values) => {
+        stored.push(...values)
+      }),
+    })
+    renderPage(repo)
+    const incoming = deck({ id: 'restored', name: '復元デッキ' })
+    const file = backupFile(
+      serializeDeckBackup(
+        createDeckBackup([incoming], '2026-09-13T00:00:00.000Z'),
+      ),
+    )
+    const input = screen.getByLabelText('デッキバックアップJSONファイル')
+    fireEvent.change(input, { target: { files: [file] } })
+    fireEvent.click(
+      await screen.findByRole('button', { name: '読み込みを実行' }),
+    )
+    await waitFor(() =>
+      expect(repo.importDecks).toHaveBeenCalledWith([incoming]),
+    )
+    expect(
+      await screen.findByRole('heading', { name: '復元デッキ' }),
+    ).toBeVisible()
+    expect(screen.getByText(/バックアップを読み込みました/)).toHaveTextContent(
+      '追加: 1件、同一のためスキップ: 0件',
+    )
+
+    fireEvent.change(input, { target: { files: [file] } })
+    const secondPreview = await screen.findByRole('dialog')
+    expect(
+      within(secondPreview).getByText('既存と同一').parentElement,
+    ).toHaveTextContent('既存と同一1件')
+    fireEvent.click(
+      within(secondPreview).getByRole('button', { name: '読み込みを実行' }),
+    )
+    await waitFor(() => expect(repo.importDecks).toHaveBeenLastCalledWith([]))
+    expect(screen.getAllByRole('heading', { name: '復元デッキ' })).toHaveLength(
+      1,
+    )
+    expect(localStorage.getItem('hlsieve:selected-deck')).toBe(
+      'selected-before-import',
+    )
+  })
+
+  it('imports an ID conflict under a new ID without overwriting the existing Deck', async () => {
+    const existing = deck({ name: '既存デッキ' })
+    const incoming = deck({ name: '復元デッキ' })
+    let stored = [existing]
+    const repo = repository({
+      listDecks: vi.fn(async () => [...stored]),
+      importDecks: vi.fn(async (values) => {
+        stored = [...stored, ...values]
+      }),
+    })
+    renderPage(repo, undefined, { createImportId: () => 'generated-id' })
+    await screen.findByRole('heading', { name: '既存デッキ' })
+    const file = backupFile(
+      serializeDeckBackup(
+        createDeckBackup([incoming], '2026-09-13T00:00:00.000Z'),
+      ),
+    )
+    fireEvent.change(screen.getByLabelText('デッキバックアップJSONファイル'), {
+      target: { files: [file] },
+    })
+    const preview = await screen.findByRole('dialog')
+    expect(within(preview).getByText('ID重複').parentElement).toHaveTextContent(
+      'ID重複1件',
+    )
+    expect(
+      within(preview).getByText(/既存データは上書きされません/),
+    ).toBeVisible()
+    fireEvent.click(
+      within(preview).getByRole('button', { name: '読み込みを実行' }),
+    )
+    await waitFor(() =>
+      expect(repo.importDecks).toHaveBeenCalledWith([
+        { ...incoming, id: 'generated-id' },
+      ]),
+    )
+    expect(screen.getByRole('heading', { name: '既存デッキ' })).toBeVisible()
+    expect(screen.getByRole('heading', { name: '復元デッキ' })).toBeVisible()
+  })
+
+  it('rejects invalid and oversized files without changing existing Decks', async () => {
+    const existing = deck()
+    const repo = repository({ listDecks: async () => [existing] })
+    renderPage(repo)
+    await screen.findByRole('heading', { name: 'テストデッキ' })
+    const input = screen.getByLabelText('デッキバックアップJSONファイル')
+    fireEvent.change(input, { target: { files: [backupFile('{')] } })
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'バックアップファイルを読み込めませんでした',
+    )
+    expect(repo.importDecks).not.toHaveBeenCalled()
+
+    fireEvent.change(input, {
+      target: { files: [backupFile('{}', MAX_DECK_BACKUP_FILE_SIZE + 1)] },
+    })
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'ファイルサイズが大きすぎます',
+    )
+    expect(screen.getByRole('heading', { name: 'テストデッキ' })).toBeVisible()
+  })
+
+  it('reports atomic import failure and leaves the visible list unchanged', async () => {
+    const existing = deck()
+    const repo = repository({
+      listDecks: async () => [existing],
+      importDecks: async () => Promise.reject(new Error('transaction failed')),
+    })
+    renderPage(repo)
+    const file = backupFile(
+      serializeDeckBackup(
+        createDeckBackup(
+          [deck({ id: 'new', name: '新規デッキ' })],
+          '2026-09-13T00:00:00.000Z',
+        ),
+      ),
+    )
+    fireEvent.change(screen.getByLabelText('デッキバックアップJSONファイル'), {
+      target: { files: [file] },
+    })
+    fireEvent.click(
+      await screen.findByRole('button', { name: '読み込みを実行' }),
+    )
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '既存のデッキは変更されていません',
+    )
+    expect(screen.getByRole('heading', { name: 'テストデッキ' })).toBeVisible()
+    expect(
+      screen.queryByRole('heading', { name: '新規デッキ' }),
+    ).not.toBeInTheDocument()
   })
 })
