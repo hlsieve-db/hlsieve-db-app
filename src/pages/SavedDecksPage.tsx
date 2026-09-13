@@ -215,6 +215,9 @@ export function SavedDecksPage({
         >
           {creating ? '作成中…' : '新しいデッキを作成'}
         </button>
+        <Link className="button button--secondary" to="/deck-compare">
+          デッキ比較
+        </Link>
       </div>
 
       {operationError && (

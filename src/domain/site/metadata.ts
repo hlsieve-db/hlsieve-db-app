@@ -92,6 +92,14 @@ export const TOURNAMENT_STATS_METADATA: PageMetadata = {
   robots: 'noindex,follow',
 }
 
+export const DECK_COMPARISON_METADATA: PageMetadata = {
+  title: 'デッキ比較 | HLSieve DB',
+  description:
+    'この端末のブラウザ内に保存した2つのデッキについて、カードと構成の差分を比較できます。',
+  canonicalPath: '/deck-compare',
+  robots: 'noindex,follow',
+}
+
 export const DISCLAIMER_METADATA: PageMetadata = {
   title: '免責事項・利用条件 | HLSieve DB',
   description:

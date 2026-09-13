@@ -4,6 +4,7 @@ import type { Card } from '../cards/types'
 import { SITE_ORIGIN } from './constants'
 import {
   buildCardDetailMetadata,
+  DECK_COMPARISON_METADATA,
   MULLIGAN_METADATA,
   PROBABILITY_METADATA,
   resolvePageMetadata,
@@ -103,6 +104,13 @@ describe('site metadata', () => {
     const metadata = resolvePageMetadata(TOURNAMENT_STATS_METADATA)
     expect(metadata.title).toBe('大会戦績統計 | HLSieve DB')
     expect(metadata.canonicalUrl).toBe(`${SITE_ORIGIN}/tournament-stats`)
+    expect(metadata.robots).toBe('noindex,follow')
+  })
+
+  it('keeps local deck comparison out of search indexes', () => {
+    const metadata = resolvePageMetadata(DECK_COMPARISON_METADATA)
+    expect(metadata.title).toBe('デッキ比較 | HLSieve DB')
+    expect(metadata.canonicalUrl).toBe(`${SITE_ORIGIN}/deck-compare`)
     expect(metadata.robots).toBe('noindex,follow')
   })
 

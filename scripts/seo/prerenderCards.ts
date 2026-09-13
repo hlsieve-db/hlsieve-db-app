@@ -6,6 +6,7 @@ import { load } from 'cheerio'
 import type { Card, CardsDataFile } from '../../src/domain/cards/types'
 import {
   buildCardDetailMetadata,
+  DECK_COMPARISON_METADATA,
   DISCLAIMER_METADATA,
   MULLIGAN_METADATA,
   PROBABILITY_METADATA,
@@ -197,6 +198,11 @@ export function buildPrerenderRoutes(
       routePath: '/disclaimer',
       outputPath: 'disclaimer.html',
       html: renderMetadataHtml(template, DISCLAIMER_METADATA),
+    },
+    {
+      routePath: '/deck-compare',
+      outputPath: 'deck-compare.html',
+      html: renderMetadataHtml(template, DECK_COMPARISON_METADATA),
     },
   ]
 

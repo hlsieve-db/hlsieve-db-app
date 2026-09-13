@@ -3,6 +3,7 @@ import { AppFooter } from './components/AppFooter'
 import { CardDetailPage } from './pages/CardDetailPage'
 import { CardSearchPage } from './pages/CardSearchPage'
 import { DeckEditPage } from './pages/DeckEditPage'
+import { DeckComparePage } from './pages/DeckComparePage'
 import { DisclaimerPage } from './pages/DisclaimerPage'
 import { MulliganPage } from './pages/MulliganPage'
 import { NotFoundPage } from './pages/NotFoundPage'
@@ -25,6 +26,7 @@ function App() {
         <Route path="/cards/:cardNumber" element={<CardDetailPage />} />
         <Route path="/deck/share" element={<SharedDeckPage />} />
         <Route path="/decks" element={<SavedDecksPage />} />
+        <Route path="/deck-compare" element={<DeckComparePage />} />
         <Route path="/decks/:deckId" element={<DeckEditPage />} />
         <Route path="/updates" element={<UpdateHistoryPage />} />
         <Route path="/probability" element={<ProbabilityPage />} />

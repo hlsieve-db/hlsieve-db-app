@@ -285,6 +285,24 @@ describe('App', () => {
     )
   })
 
+  it('routes to local deck comparison with noindex metadata', async () => {
+    render(
+      <MemoryRouter initialEntries={['/deck-compare']}>
+        <App />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByRole('heading', { name: 'デッキ比較' })).toBeVisible()
+    expect(screen.getByText('デッキを読み込んでいます…')).toBeVisible()
+    expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute(
+      'content',
+      'noindex,follow',
+    )
+    expect(
+      document.head.querySelector('link[rel="canonical"]'),
+    ).toHaveAttribute('href', `${SITE_ORIGIN}/deck-compare`)
+  })
+
   it('uses /decks/:deckId for the editor route', async () => {
     render(
       <MemoryRouter initialEntries={['/decks/missing']}>
