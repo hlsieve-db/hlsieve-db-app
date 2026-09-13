@@ -1,9 +1,20 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
 import type { Card, CardsDataFile } from '../domain/cards/types'
 import type { SavedTournamentReport } from '../domain/tournamentReport/savedReport'
+import {
+  createTournamentBackup,
+  MAX_TOURNAMENT_BACKUP_FILE_SIZE,
+  serializeTournamentBackup,
+} from '../domain/tournamentReport/backup'
 import type { TournamentReportRepository } from '../repositories/tournamentReportRepository'
 import { TournamentHistoryPage } from './TournamentHistoryPage'
 
@@ -37,14 +48,17 @@ const cards: CardsDataFile = {
   cards: [card(), card({ cardNumber: 'OSHI-B', colors: ['blue'] })],
 }
 
-function saved(id = 'report-1'): SavedTournamentReport {
+function saved(
+  id = 'report-1',
+  tournamentName = 'ホロカ杯',
+): SavedTournamentReport {
   return {
     id,
     schemaVersion: 1,
     createdAt: '2026-09-12T00:00:00.000Z',
     updatedAt: '2026-09-12T01:00:00.000Z',
     report: {
-      tournamentName: 'ホロカ杯',
+      tournamentName,
       placement: '3位',
       participantCount: 64,
       eventDate: '2026-09-12',
@@ -58,21 +72,48 @@ function saved(id = 'report-1'): SavedTournamentReport {
 function repository(
   reports: SavedTournamentReport[],
 ): TournamentReportRepository {
+  let stored = [...reports]
   return {
-    listReports: vi.fn(async () => reports),
-    getReport: vi.fn(async () => undefined),
+    listReports: vi.fn(async () => [...stored]),
+    getReport: vi.fn(async (id) => stored.find((report) => report.id === id)),
     createReport: vi.fn(),
     updateReport: vi.fn(),
-    deleteReport: vi.fn(async () => undefined),
+    deleteReport: vi.fn(async (id) => {
+      stored = stored.filter((report) => report.id !== id)
+    }),
+    importReports: vi.fn(async (values) => {
+      stored.push(...values)
+    }),
   }
 }
 
-function renderPage(repo: TournamentReportRepository) {
+function renderPage(
+  repo: TournamentReportRepository,
+  extras: {
+    downloadFile?: (filename: string, contents: string) => void
+    createImportId?: () => string
+  } = {},
+) {
   return render(
     <MemoryRouter initialEntries={['/tournament-history']}>
-      <TournamentHistoryPage repository={repo} loadCards={async () => cards} />
+      <TournamentHistoryPage
+        repository={repo}
+        loadCards={async () => cards}
+        now={() => new Date(2026, 8, 13)}
+        downloadFile={extras.downloadFile}
+        createImportId={extras.createImportId}
+      />
     </MemoryRouter>,
   )
+}
+
+function backupFile(contents: string, size?: number): File {
+  const file = new File([contents], 'backup.json', {
+    type: 'application/json',
+  })
+  Object.defineProperty(file, 'text', { value: async () => contents })
+  if (size !== undefined) Object.defineProperty(file, 'size', { value: size })
+  return file
 }
 
 describe('TournamentHistoryPage', () => {
@@ -85,6 +126,13 @@ describe('TournamentHistoryPage', () => {
     expect(
       screen.getByRole('link', { name: '大会戦績を作成' }),
     ).toHaveAttribute('href', '/tournament-report')
+    expect(
+      screen.getByRole('button', { name: 'バックアップを書き出す' }),
+    ).toBeDisabled()
+    expect(screen.getByText(/定期的にバックアップ/)).toBeVisible()
+    expect(
+      screen.getByRole('button', { name: 'バックアップを読み込む' }),
+    ).toBeEnabled()
   })
 
   it('renders report facts, shared Oshi formatting, summaries, and open link', async () => {
@@ -141,5 +189,152 @@ describe('TournamentHistoryPage', () => {
     expect(
       await screen.findByText('保存された大会戦績はありません。'),
     ).toBeVisible()
+  })
+
+  it('exports all reports with the local-date filename and privacy notice', async () => {
+    const downloadFile = vi.fn()
+    renderPage(repository([saved()]), { downloadFile })
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'バックアップを書き出す' }),
+    )
+    expect(downloadFile).toHaveBeenCalledTimes(1)
+    expect(downloadFile.mock.calls[0][0]).toBe(
+      'hlsieve-tournament-backup-2026-09-13.json',
+    )
+    const exported = JSON.parse(downloadFile.mock.calls[0][1])
+    expect(exported).toMatchObject({
+      format: 'hlsieve-tournament-backup',
+      version: 1,
+      reports: [{ id: 'report-1', schemaVersion: 1 }],
+    })
+    expect(downloadFile.mock.calls[0][1]).not.toContain('theme')
+    expect(downloadFile.mock.calls[0][1]).not.toContain('deck')
+    expect(screen.getByText(/大会名、順位、使用推し/)).toBeVisible()
+    expect(screen.getByText(/外部へ送信されません/)).toBeVisible()
+  })
+
+  it('previews counts, cancels without writing, and accepts the same file again', async () => {
+    const repo = repository([])
+    renderPage(repo)
+    const incoming = saved('new-report')
+    const file = backupFile(
+      serializeTournamentBackup(
+        createTournamentBackup([incoming], '2026-09-13T00:00:00.000Z'),
+      ),
+    )
+    const input = screen.getByLabelText('大会戦績バックアップJSONファイル')
+    fireEvent.change(input, { target: { files: [file] } })
+    const preview = await screen.findByRole('dialog', {
+      name: '読み込み内容の確認',
+    })
+    expect(
+      within(preview).getByText('新規追加').parentElement,
+    ).toHaveTextContent('新規追加1件')
+    fireEvent.click(within(preview).getByRole('button', { name: 'キャンセル' }))
+    expect(repo.importReports).not.toHaveBeenCalled()
+    expect(input).toHaveValue('')
+
+    fireEvent.change(input, { target: { files: [file] } })
+    expect(
+      await screen.findByRole('dialog', { name: '読み込み内容の確認' }),
+    ).toBeVisible()
+  })
+
+  it('imports after confirmation and refreshes the history immediately', async () => {
+    const repo = repository([])
+    renderPage(repo)
+    const incoming = saved('restored', '復元大会')
+    const file = backupFile(
+      serializeTournamentBackup(
+        createTournamentBackup([incoming], '2026-09-13T00:00:00.000Z'),
+      ),
+    )
+    fireEvent.change(
+      screen.getByLabelText('大会戦績バックアップJSONファイル'),
+      {
+        target: { files: [file] },
+      },
+    )
+    fireEvent.click(
+      await screen.findByRole('button', { name: '読み込みを実行' }),
+    )
+    await waitFor(() =>
+      expect(repo.importReports).toHaveBeenCalledWith([incoming]),
+    )
+    expect(
+      await screen.findByRole('heading', { name: '復元大会' }),
+    ).toBeVisible()
+    expect(screen.getByRole('status')).toHaveTextContent(
+      '追加: 1件、同一のためスキップ: 0件',
+    )
+
+    const input = screen.getByLabelText('大会戦績バックアップJSONファイル')
+    fireEvent.change(input, { target: { files: [file] } })
+    const secondPreview = await screen.findByRole('dialog')
+    expect(
+      within(secondPreview).getByText('既存と同一').parentElement,
+    ).toHaveTextContent('既存と同一1件')
+    fireEvent.click(
+      within(secondPreview).getByRole('button', { name: '読み込みを実行' }),
+    )
+    await waitFor(() => expect(repo.importReports).toHaveBeenLastCalledWith([]))
+    expect(screen.getAllByRole('heading', { name: '復元大会' })).toHaveLength(1)
+  })
+
+  it('shows identical/conflict preview and never overwrites the existing record', async () => {
+    const existing = saved('report-1', '既存大会')
+    const incoming = saved('report-1', '復元大会')
+    const repo = repository([existing])
+    renderPage(repo, { createImportId: () => 'generated-id' })
+    await screen.findByRole('heading', { name: '既存大会' })
+    const file = backupFile(
+      serializeTournamentBackup(
+        createTournamentBackup([incoming], '2026-09-13T00:00:00.000Z'),
+      ),
+    )
+    fireEvent.change(
+      screen.getByLabelText('大会戦績バックアップJSONファイル'),
+      {
+        target: { files: [file] },
+      },
+    )
+    const preview = await screen.findByRole('dialog')
+    expect(
+      within(preview).getByText(/既存データは上書きされません/),
+    ).toBeVisible()
+    expect(within(preview).getByText('ID重複').parentElement).toHaveTextContent(
+      'ID重複1件',
+    )
+    fireEvent.click(
+      within(preview).getByRole('button', { name: '読み込みを実行' }),
+    )
+    await waitFor(() =>
+      expect(repo.importReports).toHaveBeenCalledWith([
+        { ...incoming, id: 'generated-id' },
+      ]),
+    )
+    expect(screen.getByRole('heading', { name: '既存大会' })).toBeVisible()
+    expect(screen.getByRole('heading', { name: '復元大会' })).toBeVisible()
+  })
+
+  it('rejects invalid and oversized files without mutating history', async () => {
+    const repo = repository([saved()])
+    renderPage(repo)
+    const input = screen.getByLabelText('大会戦績バックアップJSONファイル')
+    fireEvent.change(input, { target: { files: [backupFile('{')] } })
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'バックアップファイルを読み込めませんでした',
+    )
+    expect(repo.importReports).not.toHaveBeenCalled()
+
+    fireEvent.change(input, {
+      target: {
+        files: [backupFile('{}', MAX_TOURNAMENT_BACKUP_FILE_SIZE + 1)],
+      },
+    })
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'ファイルサイズが大きすぎます',
+    )
+    expect(screen.getByRole('heading', { name: 'ホロカ杯' })).toBeVisible()
   })
 })

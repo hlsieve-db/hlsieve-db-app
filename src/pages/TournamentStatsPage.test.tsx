@@ -76,6 +76,7 @@ function repository(
     createReport: vi.fn(),
     updateReport: vi.fn(),
     deleteReport: vi.fn(),
+    importReports: vi.fn(),
   }
 }
 

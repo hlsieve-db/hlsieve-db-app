@@ -95,6 +95,7 @@ function memoryRepository(
       return value
     }),
     deleteReport: vi.fn(async () => undefined),
+    importReports: vi.fn(async () => undefined),
   }
 }
 

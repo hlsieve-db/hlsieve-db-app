@@ -25,6 +25,7 @@ vi.mock('./repositories/tournamentReportRepository', () => ({
     createReport: vi.fn(),
     updateReport: vi.fn(),
     deleteReport: vi.fn(),
+    importReports: vi.fn(),
   },
 }))
 

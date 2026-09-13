@@ -4,7 +4,10 @@ import {
   STORE_DECKS,
   STORE_TOURNAMENT_REPORTS,
 } from '../domain/decks/constants'
-import { upgradeAppDatabaseSchema } from './appDatabase'
+import {
+  createIndexedDbStorePersistence,
+  upgradeAppDatabaseSchema,
+} from './appDatabase'
 
 function databaseWithStores(initial: string[]) {
   const stores = new Set(initial)
@@ -45,5 +48,83 @@ describe('application IndexedDB migration', () => {
     expect(state.stores).toEqual(
       new Set([STORE_DECKS, STORE_TOURNAMENT_REPORTS]),
     )
+  })
+})
+
+function atomicFactory(initial: { id: string }[] = []) {
+  const records = new Map(initial.map((value) => [value.id, value]))
+  const database = {
+    objectStoreNames: { contains: () => true },
+    transaction: () => {
+      const pending: { id: string }[] = []
+      let failed = false
+      const transaction = {
+        error: new Error('duplicate'),
+        objectStore: () => ({
+          add: (value: { id: string }) => {
+            if (
+              records.has(value.id) ||
+              pending.some((candidate) => candidate.id === value.id)
+            ) {
+              failed = true
+            } else {
+              pending.push(value)
+            }
+            return {} as IDBRequest
+          },
+        }),
+        oncomplete: null as (() => void) | null,
+        onerror: null as (() => void) | null,
+        onabort: null as (() => void) | null,
+      }
+      setTimeout(() => {
+        if (failed) {
+          transaction.onabort?.()
+        } else {
+          pending.forEach((value) => records.set(value.id, value))
+          transaction.oncomplete?.()
+        }
+      }, 0)
+      return transaction
+    },
+  }
+  const factory = {
+    open: () => {
+      const request = {
+        result: database,
+        onsuccess: null as (() => void) | null,
+        onerror: null,
+        onblocked: null,
+        onupgradeneeded: null,
+      }
+      queueMicrotask(() => request.onsuccess?.())
+      return request
+    },
+  }
+  return { factory: factory as unknown as IDBFactory, records }
+}
+
+describe('application IndexedDB batch writes', () => {
+  it('adds a batch in one transaction', async () => {
+    const { factory, records } = atomicFactory()
+    const persistence = createIndexedDbStorePersistence<{ id: string }>(
+      STORE_TOURNAMENT_REPORTS,
+      factory,
+    )
+    await persistence.addMany([{ id: 'one' }, { id: 'two' }])
+    expect([...records.keys()]).toEqual(['one', 'two'])
+  })
+
+  it('aborts the whole batch rather than overwriting or partially importing', async () => {
+    const existing = { id: 'existing' }
+    const { factory, records } = atomicFactory([existing])
+    const persistence = createIndexedDbStorePersistence<{ id: string }>(
+      STORE_TOURNAMENT_REPORTS,
+      factory,
+    )
+    await expect(
+      persistence.addMany([{ id: 'new' }, { id: 'existing' }]),
+    ).rejects.toThrow('duplicate')
+    expect([...records.values()]).toEqual([existing])
   })
 })

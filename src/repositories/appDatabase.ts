@@ -30,7 +30,25 @@ export type IndexedDbStorePersistence<T> = {
   getAll: () => Promise<unknown[]>
   get: (id: string) => Promise<unknown>
   put: (value: T) => Promise<void>
+  addMany?: (values: readonly T[]) => Promise<void>
   delete: (id: string) => Promise<void>
+}
+
+function addManyInStore<T>(
+  database: IDBDatabase,
+  storeName: string,
+  values: readonly T[],
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(storeName, 'readwrite')
+    const store = transaction.objectStore(storeName)
+    for (const value of values) store.add(value)
+    const rejectTransaction = () =>
+      reject(transaction.error ?? new Error(`${storeName} transaction failed.`))
+    transaction.oncomplete = () => resolve()
+    transaction.onerror = rejectTransaction
+    transaction.onabort = rejectTransaction
+  })
 }
 
 function requestInStore<T>(
@@ -61,7 +79,9 @@ function requestInStore<T>(
 export function createIndexedDbStorePersistence<T>(
   storeName: string,
   databaseFactory?: IDBFactory,
-): IndexedDbStorePersistence<T> {
+): IndexedDbStorePersistence<T> & {
+  addMany: (values: readonly T[]) => Promise<void>
+} {
   let databasePromise: Promise<IDBDatabase> | undefined
   const getDatabase = () => {
     if (!databasePromise) {
@@ -101,6 +121,10 @@ export function createIndexedDbStorePersistence<T>(
         'readwrite',
         (store) => store.put(value),
       )
+    },
+    async addMany(values) {
+      if (values.length === 0) return
+      await addManyInStore(await getDatabase(), storeName, values)
     },
     async delete(id) {
       await requestInStore(

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
@@ -10,6 +10,16 @@ import {
   summarizeTournamentRounds,
 } from '../domain/tournamentReport/report'
 import type { SavedTournamentReport } from '../domain/tournamentReport/savedReport'
+import {
+  createTournamentBackup,
+  createTournamentBackupFilename,
+  MAX_TOURNAMENT_BACKUP_FILE_SIZE,
+  parseTournamentBackup,
+  planTournamentBackupImport,
+  serializeTournamentBackup,
+  type TournamentBackup,
+  type TournamentImportPlan,
+} from '../domain/tournamentReport/backup'
 import {
   formatOshiLabel,
   getOshiCandidates,
@@ -29,6 +39,26 @@ type HistoryState =
 type TournamentHistoryPageProps = {
   repository?: TournamentReportRepository
   loadCards?: () => Promise<CardsDataFile>
+  now?: () => Date
+  createImportId?: () => string
+  downloadFile?: (filename: string, contents: string) => void
+}
+
+type ImportPreview = {
+  backup: TournamentBackup
+  plan: TournamentImportPlan
+  filename: string
+}
+
+function downloadJsonFile(filename: string, contents: string): void {
+  const url = URL.createObjectURL(
+    new Blob([contents], { type: 'application/json;charset=utf-8' }),
+  )
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = filename
+  anchor.click()
+  URL.revokeObjectURL(url)
 }
 
 function formatEventDate(value: string): string {
@@ -38,12 +68,19 @@ function formatEventDate(value: string): string {
 export function TournamentHistoryPage({
   repository = tournamentReportRepository,
   loadCards = loadCardsData,
+  now = () => new Date(),
+  createImportId = () => crypto.randomUUID(),
+  downloadFile = downloadJsonFile,
 }: TournamentHistoryPageProps) {
   useDocumentMetadata(TOURNAMENT_HISTORY_METADATA)
   const [state, setState] = useState<HistoryState>({ status: 'loading' })
   const [oshiCards, setOshiCards] = useState<Card[]>([])
   const [pendingDeleteId, setPendingDeleteId] = useState<string>()
   const [feedback, setFeedback] = useState<'idle' | 'deleted' | 'error'>('idle')
+  const [importPreview, setImportPreview] = useState<ImportPreview>()
+  const [backupError, setBackupError] = useState<string>()
+  const [backupStatus, setBackupStatus] = useState<string>()
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     let active = true
@@ -84,6 +121,83 @@ export function TournamentHistoryPage({
     }
   }
 
+  const resetFileInput = () => {
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const exportBackup = () => {
+    if (state.status !== 'loaded' || state.reports.length === 0) return
+    setBackupError(undefined)
+    try {
+      const date = now()
+      const backup = createTournamentBackup(state.reports, date.toISOString())
+      downloadFile(
+        createTournamentBackupFilename(date),
+        serializeTournamentBackup(backup),
+      )
+      setBackupStatus('大会戦績バックアップを書き出しました。')
+    } catch {
+      setBackupError('大会戦績バックアップを書き出せませんでした。')
+    }
+  }
+
+  const selectBackupFile = async (file: File | undefined) => {
+    setBackupError(undefined)
+    setBackupStatus(undefined)
+    setImportPreview(undefined)
+    if (!file) return
+    if (file.size > MAX_TOURNAMENT_BACKUP_FILE_SIZE) {
+      setBackupError('ファイルサイズが大きすぎます。')
+      resetFileInput()
+      return
+    }
+    try {
+      const parsed = parseTournamentBackup(await file.text())
+      if (!parsed.ok) {
+        setBackupError(parsed.message)
+        resetFileInput()
+        return
+      }
+      const existing = state.status === 'loaded' ? state.reports : []
+      setImportPreview({
+        backup: parsed.backup,
+        plan: planTournamentBackupImport(
+          parsed.backup.reports,
+          existing,
+          createImportId,
+        ),
+        filename: file.name,
+      })
+    } catch {
+      setBackupError('バックアップファイルを読み込めませんでした。')
+      resetFileInput()
+    }
+  }
+
+  const cancelImport = () => {
+    setImportPreview(undefined)
+    resetFileInput()
+  }
+
+  const executeImport = async () => {
+    if (!importPreview) return
+    setBackupError(undefined)
+    try {
+      await repository.importReports(importPreview.plan.records)
+      const reports = await repository.listReports()
+      setState({ status: 'loaded', reports })
+      setBackupStatus(
+        `バックアップを読み込みました。追加: ${importPreview.plan.newCount}件、同一のためスキップ: ${importPreview.plan.identicalCount}件、ID重複のため別履歴として追加: ${importPreview.plan.conflictCount}件。`,
+      )
+      setImportPreview(undefined)
+      resetFileInput()
+    } catch {
+      setBackupError(
+        'バックアップを読み込めませんでした。既存の大会戦績は変更されていません。',
+      )
+    }
+  }
+
   return (
     <main className="content-page tournament-history-page">
       <AppNavigation />
@@ -101,6 +215,125 @@ export function TournamentHistoryPage({
       <p className="content-surface tournament-history__notice">
         大会戦績はこの端末のブラウザ内に保存されます。ブラウザのデータを削除すると履歴も削除されます。
       </p>
+
+      <section
+        className="content-surface tournament-backup"
+        aria-labelledby="tournament-backup-heading"
+      >
+        <h2 id="tournament-backup-heading">バックアップ</h2>
+        <p>
+          大会戦績はブラウザ内に保存されています。大切な戦績は定期的にバックアップしてください。
+        </p>
+        <p>
+          バックアップには大会名、順位、使用推し、対戦相手の推し、対戦結果などが含まれます。ファイルはこの端末へ保存され、外部へ送信されません。
+        </p>
+        <p>
+          HLSieve DBから書き出した大会戦績バックアップのみ読み込んでください。
+        </p>
+        <div className="tournament-backup__actions">
+          <button
+            className="button"
+            type="button"
+            disabled={state.status !== 'loaded' || state.reports.length === 0}
+            onClick={exportBackup}
+          >
+            バックアップを書き出す
+          </button>
+          <input
+            ref={fileInputRef}
+            className="tournament-backup__file-input"
+            id="tournament-backup-file"
+            type="file"
+            accept=".json,application/json"
+            aria-label="大会戦績バックアップJSONファイル"
+            disabled={state.status !== 'loaded'}
+            onChange={(event) =>
+              void selectBackupFile(event.currentTarget.files?.[0])
+            }
+          />
+          <button
+            className="button button--secondary"
+            type="button"
+            disabled={state.status !== 'loaded'}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            バックアップを読み込む
+          </button>
+        </div>
+        {state.status === 'loaded' && state.reports.length === 0 && (
+          <p>書き出せる大会戦績がありません。</p>
+        )}
+        {backupStatus && (
+          <p className="status-message" role="status" aria-live="polite">
+            {backupStatus}
+          </p>
+        )}
+        {backupError && (
+          <p className="status-message status-message--error" role="alert">
+            {backupError}
+          </p>
+        )}
+        {importPreview && (
+          <div
+            className="tournament-backup__preview"
+            role="dialog"
+            aria-labelledby="tournament-import-preview-heading"
+          >
+            <h3 id="tournament-import-preview-heading">読み込み内容の確認</h3>
+            <dl>
+              <div>
+                <dt>ファイル</dt>
+                <dd>{importPreview.filename}</dd>
+              </div>
+              <div>
+                <dt>バックアップ日時</dt>
+                <dd>
+                  {new Date(importPreview.backup.exportedAt).toLocaleDateString(
+                    'ja-JP',
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt>大会戦績</dt>
+                <dd>{importPreview.backup.reports.length}件</dd>
+              </div>
+              <div>
+                <dt>新規追加</dt>
+                <dd>{importPreview.plan.newCount}件</dd>
+              </div>
+              <div>
+                <dt>既存と同一</dt>
+                <dd>{importPreview.plan.identicalCount}件</dd>
+              </div>
+              <div>
+                <dt>ID重複</dt>
+                <dd>{importPreview.plan.conflictCount}件</dd>
+              </div>
+            </dl>
+            {importPreview.plan.conflictCount > 0 && (
+              <p>
+                IDが重複する大会戦績は、既存データを保護するため別の履歴として追加されます。既存データは上書きされません。
+              </p>
+            )}
+            <div className="tournament-backup__actions">
+              <button
+                className="button"
+                type="button"
+                onClick={() => void executeImport()}
+              >
+                読み込みを実行
+              </button>
+              <button
+                className="button button--secondary"
+                type="button"
+                onClick={cancelImport}
+              >
+                キャンセル
+              </button>
+            </div>
+          </div>
+        )}
+      </section>
 
       {feedback === 'deleted' && (
         <p className="status-message" role="status" aria-live="polite">

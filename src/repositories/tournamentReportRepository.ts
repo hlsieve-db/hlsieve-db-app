@@ -11,8 +11,12 @@ import {
   type IndexedDbStorePersistence,
 } from './appDatabase'
 
-export type TournamentReportPersistenceAdapter =
-  IndexedDbStorePersistence<SavedTournamentReport>
+export type TournamentReportPersistenceAdapter = Omit<
+  IndexedDbStorePersistence<SavedTournamentReport>,
+  'addMany'
+> & {
+  addMany: (values: readonly SavedTournamentReport[]) => Promise<void>
+}
 
 export type TournamentReportRepository = {
   createReport: (report: TournamentReport) => Promise<SavedTournamentReport>
@@ -23,6 +27,7 @@ export type TournamentReportRepository = {
     report: TournamentReport,
   ) => Promise<SavedTournamentReport>
   deleteReport: (id: string) => Promise<void>
+  importReports: (reports: readonly SavedTournamentReport[]) => Promise<void>
 }
 
 type RepositoryOptions = {
@@ -72,6 +77,12 @@ export function createTournamentReportRepository(
     },
     async deleteReport(id) {
       await persistence.delete(id)
+    },
+    async importReports(reports) {
+      if (!reports.every(isSavedTournamentReport)) {
+        throw new Error('Invalid tournament report import.')
+      }
+      await persistence.addMany(reports)
     },
   }
   return repository

@@ -17,6 +17,9 @@ function memoryPersistence(
     getAll: vi.fn(async () => [...records.values()]),
     get: vi.fn(async (id) => records.get(id)),
     put: vi.fn(async (value) => void records.set(value.id, value)),
+    addMany: vi.fn(async (values: readonly SavedTournamentReport[]) => {
+      values.forEach((value) => records.set(value.id, value))
+    }),
     delete: vi.fn(async (id) => void records.delete(id)),
   }
 }
@@ -89,5 +92,56 @@ describe('tournamentReportRepository', () => {
     await expect(
       repository.updateReport('broken', createDefaultTournamentReport()),
     ).rejects.toThrow('not found')
+  })
+
+  it('imports a validated batch with one persistence transaction call', async () => {
+    const persistence = memoryPersistence()
+    const repository = createTournamentReportRepository(persistence)
+    const records = [
+      {
+        id: 'one',
+        schemaVersion: 1,
+        report: {
+          ...createDefaultTournamentReport(),
+          tournamentName: '大会1',
+        },
+        createdAt: '2026-09-12T00:00:00.000Z',
+        updatedAt: '2026-09-12T00:00:00.000Z',
+      },
+      {
+        id: 'two',
+        schemaVersion: 1,
+        report: {
+          ...createDefaultTournamentReport(),
+          tournamentName: '大会2',
+        },
+        createdAt: '2026-09-13T00:00:00.000Z',
+        updatedAt: '2026-09-13T00:00:00.000Z',
+      },
+    ] satisfies SavedTournamentReport[]
+
+    await repository.importReports(records)
+
+    expect(persistence.addMany).toHaveBeenCalledTimes(1)
+    expect(persistence.addMany).toHaveBeenCalledWith(records)
+    expect((await repository.listReports()).map(({ id }) => id)).toEqual([
+      'two',
+      'one',
+    ])
+  })
+
+  it('rejects the whole batch before persistence when one record is invalid', async () => {
+    const persistence = memoryPersistence()
+    const repository = createTournamentReportRepository(persistence)
+    await expect(
+      repository.importReports([
+        {
+          id: 'broken',
+          schemaVersion: 99,
+        } as unknown as SavedTournamentReport,
+      ]),
+    ).rejects.toThrow('Invalid tournament report import')
+    expect(persistence.addMany).not.toHaveBeenCalled()
+    expect(await repository.listReports()).toEqual([])
   })
 })
