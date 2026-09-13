@@ -45,6 +45,14 @@ export const PROBABILITY_METADATA: PageMetadata = {
   robots: 'index,follow',
 }
 
+export const QA_SEARCH_METADATA: PageMetadata = {
+  title: '公式Q&A検索 | HLSieve DB',
+  description:
+    'ホロライブOCG公式Q&Aを、Q番号・質問・回答・関連カード名・カード番号から検索できます。',
+  canonicalPath: '/qa',
+  robots: 'index,follow',
+}
+
 export const MULLIGAN_METADATA: PageMetadata = {
   title: 'マリガン計算 | HLSieve DB',
   description:

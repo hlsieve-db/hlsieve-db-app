@@ -9,6 +9,7 @@ import {
   DISCLAIMER_METADATA,
   MULLIGAN_METADATA,
   PROBABILITY_METADATA,
+  QA_SEARCH_METADATA,
   resolvePageMetadata,
   SWISS_METADATA,
   TOURNAMENT_REPORT_METADATA,
@@ -156,6 +157,11 @@ export function buildPrerenderRoutes(
       routePath: '/probability',
       outputPath: 'probability.html',
       html: renderMetadataHtml(template, PROBABILITY_METADATA),
+    },
+    {
+      routePath: '/qa',
+      outputPath: 'qa.html',
+      html: renderMetadataHtml(template, QA_SEARCH_METADATA),
     },
     {
       routePath: '/mulligan',

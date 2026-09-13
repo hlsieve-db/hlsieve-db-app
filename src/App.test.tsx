@@ -147,6 +147,20 @@ describe('App', () => {
     expect(document.title).toBe('確率計算 | HLSieve DB')
   })
 
+  it('routes to the official Q&A search with canonical metadata', () => {
+    render(
+      <MemoryRouter initialEntries={['/qa?q=Q617&page=2']}>
+        <App />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByRole('heading', { name: '公式Q&A検索' })).toBeVisible()
+    expect(document.title).toBe('公式Q&A検索 | HLSieve DB')
+    expect(
+      document.head.querySelector('link[rel="canonical"]'),
+    ).toHaveAttribute('href', 'https://hlsieve.com/qa')
+  })
+
   it('routes to the standalone mulligan calculator', () => {
     render(
       <MemoryRouter initialEntries={['/mulligan']}>

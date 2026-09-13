@@ -24,15 +24,16 @@ describe('production SEO assets', () => {
 
     expect(cards.cards).toHaveLength(1381)
     expect(sitemap).toBe(expected)
-    expect(locations).toHaveLength(1387)
-    expect(new Set(locations)).toHaveProperty('size', 1387)
+    expect(locations).toHaveLength(1388)
+    expect(new Set(locations)).toHaveProperty('size', 1388)
     expect(locations[0]).toBe(`${SITE_ORIGIN}/cards`)
-    expect(locations[1]).toBe(`${SITE_ORIGIN}/probability`)
-    expect(locations[2]).toBe(`${SITE_ORIGIN}/mulligan`)
-    expect(locations[3]).toBe(`${SITE_ORIGIN}/swiss`)
-    expect(locations[4]).toBe(`${SITE_ORIGIN}/tournament-report`)
-    expect(locations[5]).toBe(`${SITE_ORIGIN}/updates`)
-    expect(locations.slice(6)).toEqual(
+    expect(locations[1]).toBe(`${SITE_ORIGIN}/qa`)
+    expect(locations[2]).toBe(`${SITE_ORIGIN}/probability`)
+    expect(locations[3]).toBe(`${SITE_ORIGIN}/mulligan`)
+    expect(locations[4]).toBe(`${SITE_ORIGIN}/swiss`)
+    expect(locations[5]).toBe(`${SITE_ORIGIN}/tournament-report`)
+    expect(locations[6]).toBe(`${SITE_ORIGIN}/updates`)
+    expect(locations.slice(7)).toEqual(
       cards.cards
         .map((card) => `${SITE_ORIGIN}/cards/${card.cardNumber}`)
         .sort((left, right) => left.localeCompare(right, 'en')),

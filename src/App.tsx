@@ -7,6 +7,7 @@ import { DisclaimerPage } from './pages/DisclaimerPage'
 import { MulliganPage } from './pages/MulliganPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { ProbabilityPage } from './pages/ProbabilityPage'
+import { QaSearchPage } from './pages/QaSearchPage'
 import { SavedDecksPage } from './pages/SavedDecksPage'
 import { SharedDeckPage } from './pages/SharedDeckPage'
 import { SwissPage } from './pages/SwissPage'
@@ -27,6 +28,7 @@ function App() {
         <Route path="/decks/:deckId" element={<DeckEditPage />} />
         <Route path="/updates" element={<UpdateHistoryPage />} />
         <Route path="/probability" element={<ProbabilityPage />} />
+        <Route path="/qa" element={<QaSearchPage />} />
         <Route path="/mulligan" element={<MulliganPage />} />
         <Route path="/swiss" element={<SwissPage />} />
         <Route path="/tournament-report" element={<TournamentReportPage />} />

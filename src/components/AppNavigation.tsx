@@ -24,6 +24,7 @@ export function AppNavigation() {
       <div className="app-navigation__controls">
         <nav aria-label="メインナビゲーション">
           <NavLink to="/cards">Cards</NavLink>
+          <NavLink to="/qa">Q&amp;A検索</NavLink>
           <Link
             to="/decks"
             className={isDeckSection ? 'active' : undefined}

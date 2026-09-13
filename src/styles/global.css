@@ -994,6 +994,121 @@ summary:focus-visible {
   font-weight: 700;
 }
 
+.qa-search {
+  display: grid;
+  gap: 20px;
+}
+
+.qa-search > h2,
+.qa-search__summary h2,
+.qa-search-result h3,
+.qa-search-result h4,
+.qa-search-result p {
+  margin: 0;
+}
+
+.qa-search__input {
+  display: grid;
+  gap: 8px;
+  font-weight: 750;
+}
+
+.qa-search__input input {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 10px;
+  background: var(--color-surface);
+}
+
+.qa-search__notice,
+.qa-search__empty {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.qa-search__summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-bottom: 16px;
+}
+
+.qa-search__summary p {
+  margin: 0;
+}
+
+.qa-search-results {
+  display: grid;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.qa-search-result {
+  min-width: 0;
+  padding: clamp(16px, 3vw, 24px);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-surface-soft);
+  overflow-wrap: anywhere;
+}
+
+.qa-search-result > article,
+.qa-search-result__copy,
+.qa-search-result__related {
+  display: grid;
+  gap: 10px;
+}
+
+.qa-search-result > article > header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.qa-search-result h3 {
+  color: var(--color-accent-strong);
+  font-size: 1.25rem;
+}
+
+.qa-search-result h4 {
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.qa-search-result time {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.qa-search-result__copy,
+.qa-search-result__related {
+  margin-top: 16px;
+}
+
+.qa-search-result__related ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 22px;
+}
+
+.qa-search-result__related a {
+  color: var(--color-accent-strong);
+  font-weight: 700;
+}
+
+.qa-search-result__related a span {
+  font-weight: 500;
+}
+
 .detail-official-link {
   margin: 0;
   padding: 20px clamp(18px, 3vw, 28px);

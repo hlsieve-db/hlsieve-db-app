@@ -63,6 +63,7 @@ describe('AppNavigation theme control', () => {
     '/decks/deck-1',
     '/deck/share',
     '/probability',
+    '/qa',
     '/mulligan',
     '/swiss',
     '/tournament-report',
@@ -186,6 +187,7 @@ describe('AppNavigation theme control', () => {
         .map((link) => link.textContent),
     ).toEqual([
       'Cards',
+      'Q&A検索',
       'Decks',
       '確率計算',
       'マリガン計算',

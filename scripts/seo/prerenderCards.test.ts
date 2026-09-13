@@ -55,7 +55,7 @@ describe('Card Detail static prerender', () => {
     const routes = buildPrerenderRoutes(template, data.cards)
     const rerun = buildPrerenderRoutes(template, [...data.cards].reverse())
 
-    expect(routes).toHaveLength(1390)
+    expect(routes).toHaveLength(1391)
     expect(
       routes.filter((route) => route.routePath.startsWith('/cards/')),
     ).toHaveLength(1381)
@@ -75,22 +75,30 @@ describe('Card Detail static prerender', () => {
     expect(probability('link[rel="canonical"]').attr('href')).toBe(
       `${SITE_ORIGIN}/probability`,
     )
-    expect(routes[2].outputPath).toBe('mulligan.html')
-    const mulligan = load(routes[2].html)
+    expect(routes[2].outputPath).toBe('qa.html')
+    const qaSearch = load(routes[2].html)
+    expect(qaSearch('title').text()).toBe('公式Q&A検索 | HLSieve DB')
+    expect(qaSearch('meta[name="robots"]').attr('content')).toBe('index,follow')
+    expect(qaSearch('link[rel="canonical"]').attr('href')).toBe(
+      `${SITE_ORIGIN}/qa`,
+    )
+    expect(qaSearch('script[type="application/ld+json"]')).toHaveLength(0)
+    expect(routes[3].outputPath).toBe('mulligan.html')
+    const mulligan = load(routes[3].html)
     expect(mulligan('title').text()).toBe('マリガン計算 | HLSieve DB')
     expect(mulligan('meta[name="robots"]').attr('content')).toBe('index,follow')
     expect(mulligan('link[rel="canonical"]').attr('href')).toBe(
       `${SITE_ORIGIN}/mulligan`,
     )
-    expect(routes[3].outputPath).toBe('swiss.html')
-    const swiss = load(routes[3].html)
+    expect(routes[4].outputPath).toBe('swiss.html')
+    const swiss = load(routes[4].html)
     expect(swiss('title').text()).toBe('スイスドロー計算 | HLSieve DB')
     expect(swiss('meta[name="robots"]').attr('content')).toBe('index,follow')
     expect(swiss('link[rel="canonical"]').attr('href')).toBe(
       `${SITE_ORIGIN}/swiss`,
     )
-    expect(routes[4].outputPath).toBe('tournament-report.html')
-    const tournamentReport = load(routes[4].html)
+    expect(routes[5].outputPath).toBe('tournament-report.html')
+    const tournamentReport = load(routes[5].html)
     expect(tournamentReport('title').text()).toBe(
       '大会戦績レポート | HLSieve DB',
     )
@@ -100,8 +108,8 @@ describe('Card Detail static prerender', () => {
     expect(tournamentReport('link[rel="canonical"]').attr('href')).toBe(
       `${SITE_ORIGIN}/tournament-report`,
     )
-    expect(routes[5].outputPath).toBe('tournament-history.html')
-    const tournamentHistory = load(routes[5].html)
+    expect(routes[6].outputPath).toBe('tournament-history.html')
+    const tournamentHistory = load(routes[6].html)
     expect(tournamentHistory('title').text()).toBe('大会戦績履歴 | HLSieve DB')
     expect(tournamentHistory('meta[name="robots"]').attr('content')).toBe(
       'noindex,follow',
@@ -109,8 +117,8 @@ describe('Card Detail static prerender', () => {
     expect(tournamentHistory('link[rel="canonical"]').attr('href')).toBe(
       `${SITE_ORIGIN}/tournament-history`,
     )
-    expect(routes[6].outputPath).toBe('tournament-stats.html')
-    const tournamentStats = load(routes[6].html)
+    expect(routes[7].outputPath).toBe('tournament-stats.html')
+    const tournamentStats = load(routes[7].html)
     expect(tournamentStats('title').text()).toBe('大会戦績統計 | HLSieve DB')
     expect(tournamentStats('meta[name="robots"]').attr('content')).toBe(
       'noindex,follow',
@@ -118,15 +126,15 @@ describe('Card Detail static prerender', () => {
     expect(tournamentStats('link[rel="canonical"]').attr('href')).toBe(
       `${SITE_ORIGIN}/tournament-stats`,
     )
-    expect(routes[7].outputPath).toBe('updates.html')
-    const updates = load(routes[7].html)
+    expect(routes[8].outputPath).toBe('updates.html')
+    const updates = load(routes[8].html)
     expect(updates('title').text()).toBe('更新履歴 | HLSieve DB')
     expect(updates('meta[name="robots"]').attr('content')).toBe('index,follow')
     expect(updates('link[rel="canonical"]').attr('href')).toBe(
       `${SITE_ORIGIN}/updates`,
     )
-    expect(routes[8].outputPath).toBe('disclaimer.html')
-    const disclaimer = load(routes[8].html)
+    expect(routes[9].outputPath).toBe('disclaimer.html')
+    const disclaimer = load(routes[9].html)
     expect(disclaimer('title').text()).toBe('免責事項・利用条件 | HLSieve DB')
     expect(disclaimer('meta[name="robots"]').attr('content')).toBe(
       'noindex,follow',

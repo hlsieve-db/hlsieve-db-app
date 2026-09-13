@@ -12,6 +12,7 @@ function escapeXml(value: string): string {
 export function buildSitemap(cardNumbers: readonly string[]): string {
   const paths = [
     '/cards',
+    '/qa',
     '/probability',
     '/mulligan',
     '/swiss',
