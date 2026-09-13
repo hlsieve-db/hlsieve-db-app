@@ -349,7 +349,9 @@ describe('DeckEditPage editor operations', () => {
     expect(screen.getByText('20 / 20')).toBeVisible()
     expect(screen.getByText('71 / 71')).toBeVisible()
     expect(screen.getByRole('heading', { name: /推しホロメン/ })).toBeVisible()
-    expect(screen.getByRole('heading', { name: /メインデッキ/ })).toBeVisible()
+    expect(
+      screen.getByRole('heading', { name: /^メインデッキ50枚$/ }),
+    ).toBeVisible()
     expect(screen.getByRole('heading', { name: /エールデッキ/ })).toBeVisible()
     const currentCards = screen.getByRole('region', { name: '現在のカード' })
     const oshiEntry = within(currentCards).getByText('推しカード').closest('li')
@@ -388,8 +390,8 @@ describe('DeckEditPage editor operations', () => {
     ).not.toBeInTheDocument()
     expect(within(currentCards).queryByText('CARD-001')).not.toBeInTheDocument()
 
-    const mainList = screen
-      .getByRole('heading', { name: /メインデッキ/ })
+    const mainList = within(currentCards)
+      .getByRole('heading', { name: /^メインデッキ12枚$/ })
       .closest('section')!
       .querySelector('ul')!
     expect(mainList).toHaveClass('deck-entry-list--compact')
@@ -1063,5 +1065,99 @@ describe('DeckEditPage text export', () => {
     expect(
       await screen.findByText('カードデータの読み込み後にコピーできます。'),
     ).toHaveAttribute('role', 'alert')
+  })
+})
+
+describe('DeckEditPage analysis', () => {
+  it('shows an accessible empty analysis state', async () => {
+    renderPage()
+
+    const analysis = await screen.findByRole('region', { name: 'デッキ分析' })
+    expect(analysis).toHaveTextContent(
+      'カードを追加するとデッキ構成を確認できます。',
+    )
+  })
+
+  it('shows totals, composition, restrictions, and unknown cards', async () => {
+    renderPage({
+      deckRepository: repository({
+        getDeck: async () =>
+          deck({
+            entries: [
+              { cardNumber: 'OSHI-001', quantity: 1 },
+              { cardNumber: 'CARD-001', quantity: 2 },
+              { cardNumber: 'CARD-004', quantity: 3 },
+              { cardNumber: 'CARD-003', quantity: 1 },
+              { cardNumber: 'CHEER-001', quantity: 4 },
+              { cardNumber: 'hBP01-030', quantity: 2 },
+              { cardNumber: 'UNKNOWN-999', quantity: 2 },
+            ],
+          }),
+      }),
+    })
+
+    const analysis = await screen.findByRole('region', { name: 'デッキ分析' })
+    expect(
+      within(analysis).getByRole('heading', { name: '概要' }),
+    ).toBeVisible()
+    expect(within(analysis).getByText('合計').nextSibling).toHaveTextContent(
+      '15枚',
+    )
+    expect(
+      within(analysis).getByRole('listitem', { name: '赤 4枚 50.0%' }),
+    ).toBeVisible()
+    expect(
+      within(analysis).getByRole('listitem', { name: '赤/青 3枚 37.5%' }),
+    ).toBeVisible()
+    expect(analysis).toHaveTextContent('Buzz')
+    expect(analysis).toHaveTextContent('1枚')
+    expect(analysis).toHaveTextContent('hBP01-030 IRyS')
+    expect(analysis).toHaveTextContent('2枚 / 上限1枚')
+    expect(analysis).toHaveTextContent('上限超過')
+    expect(analysis).toHaveTextContent('UNKNOWN-999')
+    expect(analysis).toHaveTextContent('分類不能 2枚')
+  })
+
+  it('updates immediately from the current in-memory Deck', async () => {
+    renderPage({
+      deckRepository: repository({
+        getDeck: async () =>
+          deck({ entries: [{ cardNumber: 'CARD-001', quantity: 1 }] }),
+      }),
+    })
+
+    const analysis = await screen.findByRole('region', { name: 'デッキ分析' })
+    expect(
+      within(analysis).getByRole('listitem', { name: '赤 1枚 100.0%' }),
+    ).toBeVisible()
+
+    const addButtons = screen.getAllByRole('button', {
+      name: '赤いカードを1枚追加',
+    })
+    fireEvent.click(addButtons.at(-1)!)
+
+    await waitFor(() =>
+      expect(
+        within(analysis).getByRole('listitem', { name: '赤 2枚 100.0%' }),
+      ).toBeVisible(),
+    )
+    expect(within(analysis).getByText('メイン').nextSibling).toHaveTextContent(
+      '2枚',
+    )
+  })
+
+  it('keeps the Deck text export available alongside analysis', async () => {
+    renderPage({
+      deckRepository: repository({
+        getDeck: async () =>
+          deck({ entries: [{ cardNumber: 'CARD-001', quantity: 1 }] }),
+      }),
+    })
+
+    const copyButton = await screen.findByRole('button', {
+      name: 'デッキリストをテキストでコピー',
+    })
+    await waitFor(() => expect(copyButton).toBeEnabled())
+    expect(screen.getByRole('region', { name: 'デッキ分析' })).toBeVisible()
   })
 })

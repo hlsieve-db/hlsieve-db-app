@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
+import { DeckAnalysisSummary } from '../components/decks/DeckAnalysisSummary'
 import { DeckLegalitySummary } from '../components/decks/DeckLegalitySummary'
 import { DeckQuantityControl } from '../components/decks/DeckQuantityControl'
 import { DECK_ZONE_LABELS } from '../components/decks/constants'
@@ -15,6 +16,7 @@ import type {
   CardsDataFile,
 } from '../domain/cards/types'
 import { DECK_NAME_MAX_LENGTH } from '../domain/decks/constants'
+import { analyzeDeck } from '../domain/decks/analysis'
 import {
   addCardToDeck,
   decrementCardQuantity,
@@ -25,6 +27,7 @@ import {
 } from '../domain/decks/deck'
 import { formatDeckAsText } from '../domain/decks/formatText'
 import { getDeckZone, validateDeckLegality } from '../domain/decks/legality'
+import { CURRENT_DECK_RESTRICTIONS } from '../domain/decks/restrictions'
 import type { Deck, DeckEntry } from '../domain/decks/types'
 import { DEFAULT_CARD_PAGE_SIZE } from '../domain/search/constants'
 import { getCardSearchResults } from '../domain/search/getCardSearchResults'
@@ -228,6 +231,18 @@ function DeckEditor({
     () =>
       cardsState.status === 'loaded'
         ? validateDeckLegality(deck, cardsState.data.cards)
+        : undefined,
+    [cardsState, deck],
+  )
+
+  const analysis = useMemo(
+    () =>
+      cardsState.status === 'loaded'
+        ? analyzeDeck({
+            deck,
+            cards: cardsState.data.cards,
+            restrictions: CURRENT_DECK_RESTRICTIONS,
+          })
         : undefined,
     [cardsState, deck],
   )
@@ -466,6 +481,13 @@ function DeckEditor({
           )}
         </section>
       </section>
+
+      {analysis && cardsState.status === 'loaded' && (
+        <DeckAnalysisSummary
+          analysis={analysis}
+          cards={cardsState.data.cards}
+        />
+      )}
 
       <div className="deck-editor__columns">
         <section className="deck-panel" aria-labelledby="deck-entries-heading">
