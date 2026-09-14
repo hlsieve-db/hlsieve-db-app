@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
+import { CardsLocalNavigation } from '../components/CardsLocalNavigation'
 import { FavoriteStatus } from '../components/favorites/FavoriteStatus'
 import { FavoriteToggleButton } from '../components/favorites/FavoriteToggleButton'
 import { CARD_COLOR_LABELS, CARD_TYPE_LABELS } from '../domain/cards/constants'
@@ -56,6 +57,7 @@ export function FavoriteCardsPage({
     <main className="favorites-page">
       <header className="favorites-page__header">
         <AppNavigation />
+        <CardsLocalNavigation />
         <h1>お気に入りカード</h1>
         <p>お気に入りはこのブラウザ内に保存されます。</p>
       </header>

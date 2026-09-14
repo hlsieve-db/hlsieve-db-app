@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   STORE_DECKS,
   STORE_FAVORITE_CARDS,
+  STORE_RECENTLY_VIEWED_CARDS,
   STORE_SAVED_SEARCH_PRESETS,
   STORE_TOURNAMENT_REPORTS,
 } from '../domain/decks/constants'
@@ -36,7 +37,7 @@ describe('application IndexedDB migration', () => {
 
     expect(state.stores.has(STORE_DECKS)).toBe(true)
     expect(state.stores.has(STORE_TOURNAMENT_REPORTS)).toBe(true)
-    expect(state.createObjectStore).toHaveBeenCalledTimes(3)
+    expect(state.createObjectStore).toHaveBeenCalledTimes(4)
     expect(state.createObjectStore).toHaveBeenCalledWith(
       STORE_TOURNAMENT_REPORTS,
       { keyPath: 'id' },
@@ -47,6 +48,10 @@ describe('application IndexedDB migration', () => {
     expect(state.createObjectStore).toHaveBeenCalledWith(
       STORE_SAVED_SEARCH_PRESETS,
       { keyPath: 'id' },
+    )
+    expect(state.createObjectStore).toHaveBeenCalledWith(
+      STORE_RECENTLY_VIEWED_CARDS,
+      { keyPath: 'cardNumber' },
     )
     expect(existingDeckRecord).toEqual({ id: 'deck-1', name: '既存デッキ' })
   })
@@ -60,6 +65,7 @@ describe('application IndexedDB migration', () => {
         STORE_TOURNAMENT_REPORTS,
         STORE_FAVORITE_CARDS,
         STORE_SAVED_SEARCH_PRESETS,
+        STORE_RECENTLY_VIEWED_CARDS,
       ]),
     )
   })
@@ -67,7 +73,7 @@ describe('application IndexedDB migration', () => {
   it('adds favorites without recreating existing Deck and tournament stores', () => {
     const state = databaseWithStores([STORE_DECKS, STORE_TOURNAMENT_REPORTS])
     upgradeAppDatabaseSchema(state.database)
-    expect(state.createObjectStore).toHaveBeenCalledTimes(2)
+    expect(state.createObjectStore).toHaveBeenCalledTimes(3)
     expect(state.createObjectStore).toHaveBeenCalledWith(STORE_FAVORITE_CARDS, {
       keyPath: 'cardNumber',
     })
@@ -75,9 +81,13 @@ describe('application IndexedDB migration', () => {
       STORE_SAVED_SEARCH_PRESETS,
       { keyPath: 'id' },
     )
+    expect(state.createObjectStore).toHaveBeenCalledWith(
+      STORE_RECENTLY_VIEWED_CARDS,
+      { keyPath: 'cardNumber' },
+    )
   })
 
-  it('adds only search presets when all existing application stores are present', () => {
+  it('adds search presets and recent cards when older stores are present', () => {
     const state = databaseWithStores([
       STORE_DECKS,
       STORE_TOURNAMENT_REPORTS,
@@ -86,10 +96,14 @@ describe('application IndexedDB migration', () => {
 
     upgradeAppDatabaseSchema(state.database)
 
-    expect(state.createObjectStore).toHaveBeenCalledTimes(1)
+    expect(state.createObjectStore).toHaveBeenCalledTimes(2)
     expect(state.createObjectStore).toHaveBeenCalledWith(
       STORE_SAVED_SEARCH_PRESETS,
       { keyPath: 'id' },
+    )
+    expect(state.createObjectStore).toHaveBeenCalledWith(
+      STORE_RECENTLY_VIEWED_CARDS,
+      { keyPath: 'cardNumber' },
     )
     expect(state.stores).toEqual(
       new Set([
@@ -97,6 +111,33 @@ describe('application IndexedDB migration', () => {
         STORE_TOURNAMENT_REPORTS,
         STORE_FAVORITE_CARDS,
         STORE_SAVED_SEARCH_PRESETS,
+        STORE_RECENTLY_VIEWED_CARDS,
+      ]),
+    )
+  })
+
+  it('adds only recent history to the complete version 4 schema', () => {
+    const state = databaseWithStores([
+      STORE_DECKS,
+      STORE_TOURNAMENT_REPORTS,
+      STORE_FAVORITE_CARDS,
+      STORE_SAVED_SEARCH_PRESETS,
+    ])
+
+    upgradeAppDatabaseSchema(state.database)
+
+    expect(state.createObjectStore).toHaveBeenCalledTimes(1)
+    expect(state.createObjectStore).toHaveBeenCalledWith(
+      STORE_RECENTLY_VIEWED_CARDS,
+      { keyPath: 'cardNumber' },
+    )
+    expect(state.stores).toEqual(
+      new Set([
+        STORE_DECKS,
+        STORE_TOURNAMENT_REPORTS,
+        STORE_FAVORITE_CARDS,
+        STORE_SAVED_SEARCH_PRESETS,
+        STORE_RECENTLY_VIEWED_CARDS,
       ]),
     )
   })

@@ -107,6 +107,13 @@ export const FAVORITES_METADATA: PageMetadata = {
   robots: 'noindex,follow',
 }
 
+export const RECENTLY_VIEWED_METADATA: PageMetadata = {
+  title: '最近見たカード | HLSieve DB',
+  description: 'この端末のブラウザ内に保存した最近見たカードを確認できます。',
+  canonicalPath: '/recent',
+  robots: 'noindex,follow',
+}
+
 export const DISCLAIMER_METADATA: PageMetadata = {
   title: '免責事項・利用条件 | HLSieve DB',
   description:

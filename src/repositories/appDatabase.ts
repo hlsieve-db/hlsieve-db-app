@@ -3,6 +3,7 @@ import {
   DB_VERSION,
   STORE_DECKS,
   STORE_FAVORITE_CARDS,
+  STORE_RECENTLY_VIEWED_CARDS,
   STORE_SAVED_SEARCH_PRESETS,
   STORE_TOURNAMENT_REPORTS,
 } from '../domain/decks/constants'
@@ -22,9 +23,16 @@ export function upgradeAppDatabaseSchema(database: IDBDatabase): void {
   if (!database.objectStoreNames.contains(STORE_SAVED_SEARCH_PRESETS)) {
     database.createObjectStore(STORE_SAVED_SEARCH_PRESETS, { keyPath: 'id' })
   }
+  if (!database.objectStoreNames.contains(STORE_RECENTLY_VIEWED_CARDS)) {
+    database.createObjectStore(STORE_RECENTLY_VIEWED_CARDS, {
+      keyPath: 'cardNumber',
+    })
+  }
 }
 
-function openAppDatabase(databaseFactory: IDBFactory): Promise<IDBDatabase> {
+export function openAppDatabase(
+  databaseFactory: IDBFactory,
+): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = databaseFactory.open(DB_NAME, DB_VERSION)
     request.onupgradeneeded = () => upgradeAppDatabaseSchema(request.result)

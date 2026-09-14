@@ -20,6 +20,7 @@ import type {
   CardsDataFile,
 } from '../domain/cards/types'
 import type { DeckRepository } from '../repositories/deckRepository'
+import type { RecentlyViewedCardRepository } from '../repositories/recentlyViewedCardRepository'
 import { CardDetailPage } from './CardDetailPage'
 import { CardSearchPage } from './CardSearchPage'
 
@@ -127,11 +128,21 @@ function renderDetail({
   loadCards = vi.fn(async () => dataFile()),
   loadPrintings = vi.fn(async () => printingsData()),
   repository = emptyDeckRepository(),
+  recentlyViewedRepository = {
+    list: vi.fn(async () => []),
+    recordView: vi.fn(async (cardNumber) => ({
+      cardNumber,
+      viewedAt: '2026-09-15T00:00:00.000Z',
+    })),
+    remove: vi.fn(async () => undefined),
+    clear: vi.fn(async () => undefined),
+  },
 }: {
   path?: string
   loadCards?: () => Promise<CardsDataFile>
   loadPrintings?: () => Promise<CardPrintingsDataFile>
   repository?: DeckRepository
+  recentlyViewedRepository?: RecentlyViewedCardRepository
 } = {}) {
   render(
     <MemoryRouter initialEntries={[path]}>
@@ -143,6 +154,7 @@ function renderDetail({
               loadCards={loadCards}
               loadPrintings={loadPrintings}
               repository={repository}
+              recentlyViewedRepository={recentlyViewedRepository}
             />
           }
         />
@@ -150,7 +162,7 @@ function renderDetail({
       </Routes>
     </MemoryRouter>,
   )
-  return { loadCards, loadPrintings }
+  return { loadCards, loadPrintings, recentlyViewedRepository }
 }
 
 function HistoryControls() {
@@ -174,6 +186,77 @@ beforeEach(() => {
 })
 
 describe('CardDetailPage route and loader states', () => {
+  it('records a valid logical Card Detail view', async () => {
+    const { recentlyViewedRepository } = renderDetail()
+    await screen.findByRole('heading', { name: 'テストホロメン' })
+    await waitFor(() =>
+      expect(recentlyViewedRepository.recordView).toHaveBeenCalledWith(
+        'TEST-001',
+      ),
+    )
+  })
+
+  it('does not record missing cards or load failures', async () => {
+    const missing = renderDetail({ path: '/cards/UNKNOWN' })
+    await screen.findByRole('heading', { name: 'カードが見つかりません' })
+    expect(missing.recentlyViewedRepository.recordView).not.toHaveBeenCalled()
+
+    const failingRepository: RecentlyViewedCardRepository = {
+      list: vi.fn(async () => []),
+      recordView: vi.fn(async () => {
+        throw new Error('should not run')
+      }),
+      remove: vi.fn(async () => undefined),
+      clear: vi.fn(async () => undefined),
+    }
+    renderDetail({
+      loadCards: async () => {
+        throw new Error('offline')
+      },
+      recentlyViewedRepository: failingRepository,
+    })
+    await screen.findByText('カード情報を読み込めませんでした。')
+    expect(failingRepository.recordView).not.toHaveBeenCalled()
+  })
+
+  it('keeps Card Detail usable when recent tracking fails', async () => {
+    const repository: RecentlyViewedCardRepository = {
+      list: vi.fn(async () => []),
+      recordView: vi.fn(async () => {
+        throw new Error('storage failed')
+      }),
+      remove: vi.fn(async () => undefined),
+      clear: vi.fn(async () => undefined),
+    }
+    renderDetail({ recentlyViewedRepository: repository })
+    expect(
+      await screen.findByRole('heading', { name: 'テストホロメン' }),
+    ).toBeVisible()
+    expect(screen.getByRole('heading', { name: 'カード情報' })).toBeVisible()
+  })
+
+  it('does not create another recent entry when switching printings', async () => {
+    const variants = printingsData()
+    variants.cards['TEST-001']!.printings.push({
+      officialId: '2',
+      officialUrl: 'https://example.com/card/TEST-001?printing=2',
+      isParallel: true,
+      imageUrl: 'https://example.com/test-parallel.png',
+      rarity: 'P',
+      products: ['テスト商品'],
+    })
+    const { recentlyViewedRepository } = renderDetail({
+      loadPrintings: async () => variants,
+    })
+    await screen.findByRole('heading', { name: 'テストホロメン' })
+    fireEvent.click(
+      await screen.findByRole('button', { name: /パラレル.*版 2/ }),
+    )
+    await waitFor(() =>
+      expect(recentlyViewedRepository.recordView).toHaveBeenCalledTimes(1),
+    )
+  })
+
   it('shows an accessible loading state for a direct deep link', () => {
     renderDetail({ loadCards: () => new Promise(() => undefined) })
 

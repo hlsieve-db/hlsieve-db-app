@@ -7,6 +7,7 @@ import { DeckEditPage } from './pages/DeckEditPage'
 import { DeckComparePage } from './pages/DeckComparePage'
 import { DisclaimerPage } from './pages/DisclaimerPage'
 import { FavoriteCardsPage } from './pages/FavoriteCardsPage'
+import { RecentlyViewedCardsPage } from './pages/RecentlyViewedCardsPage'
 import { MulliganPage } from './pages/MulliganPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { ProbabilityPage } from './pages/ProbabilityPage'
@@ -27,6 +28,7 @@ function App() {
         <Route path="/cards" element={<CardSearchPage />} />
         <Route path="/cards/:cardNumber" element={<CardDetailPage />} />
         <Route path="/favorites" element={<FavoriteCardsPage />} />
+        <Route path="/recent" element={<RecentlyViewedCardsPage />} />
         <Route path="/deck/share" element={<SharedDeckPage />} />
         <Route path="/decks" element={<SavedDecksPage />} />
         <Route path="/deck-compare" element={<DeckComparePage />} />

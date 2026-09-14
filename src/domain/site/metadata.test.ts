@@ -6,6 +6,7 @@ import {
   buildCardDetailMetadata,
   DECK_COMPARISON_METADATA,
   FAVORITES_METADATA,
+  RECENTLY_VIEWED_METADATA,
   MULLIGAN_METADATA,
   PROBABILITY_METADATA,
   resolvePageMetadata,
@@ -119,6 +120,13 @@ describe('site metadata', () => {
     const metadata = resolvePageMetadata(FAVORITES_METADATA)
     expect(metadata.title).toBe('お気に入りカード | HLSieve DB')
     expect(metadata.canonicalUrl).toBe(`${SITE_ORIGIN}/favorites`)
+    expect(metadata.robots).toBe('noindex,follow')
+  })
+
+  it('keeps recently viewed cards out of search indexes', () => {
+    const metadata = resolvePageMetadata(RECENTLY_VIEWED_METADATA)
+    expect(metadata.title).toBe('最近見たカード | HLSieve DB')
+    expect(metadata.canonicalUrl).toBe(`${SITE_ORIGIN}/recent`)
     expect(metadata.robots).toBe('noindex,follow')
   })
 

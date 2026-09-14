@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
@@ -35,6 +35,10 @@ import {
 import { useSavedDeckQuickEdit } from '../hooks/useSavedDeckQuickEdit'
 import { useDocumentMetadata } from '../hooks/useDocumentMetadata'
 import { buildCardDetailMetadata } from '../domain/site/metadata'
+import {
+  recentlyViewedCardRepository,
+  type RecentlyViewedCardRepository,
+} from '../repositories/recentlyViewedCardRepository'
 
 type CardDataState =
   | { status: 'loading' }
@@ -45,6 +49,7 @@ type CardDetailPageProps = {
   loadCards?: () => Promise<CardsDataFile>
   loadPrintings?: () => Promise<CardPrintingsDataFile>
   repository?: DeckRepository
+  recentlyViewedRepository?: RecentlyViewedCardRepository
 }
 
 type PrintingDataState =
@@ -600,12 +605,14 @@ export function CardDetailPage({
   loadCards = loadCardsData,
   loadPrintings = loadCardPrintingsData,
   repository = deckRepository,
+  recentlyViewedRepository = recentlyViewedCardRepository,
 }: CardDetailPageProps) {
   const { cardNumber } = useParams<'cardNumber'>()
   const [cardData, setCardData] = useState<CardDataState>({
     status: 'loading',
   })
   const [loadAttempt, setLoadAttempt] = useState(0)
+  const trackedCardNumber = useRef<string | undefined>(undefined)
 
   useEffect(() => {
     let active = true
@@ -631,6 +638,14 @@ export function CardDetailPage({
         : undefined,
     [cardData, cardNumber],
   )
+
+  useEffect(() => {
+    if (!card || trackedCardNumber.current === card.cardNumber) return
+    trackedCardNumber.current = card.cardNumber
+    void recentlyViewedRepository.recordView(card.cardNumber).catch(() => {
+      // Recent history is non-critical and must never block Card Detail.
+    })
+  }, [card, recentlyViewedRepository])
 
   useDocumentMetadata(
     card

@@ -9,6 +9,7 @@ import {
   DECK_COMPARISON_METADATA,
   DISCLAIMER_METADATA,
   FAVORITES_METADATA,
+  RECENTLY_VIEWED_METADATA,
   MULLIGAN_METADATA,
   PROBABILITY_METADATA,
   QA_SEARCH_METADATA,
@@ -209,6 +210,11 @@ export function buildPrerenderRoutes(
       routePath: '/favorites',
       outputPath: 'favorites.html',
       html: renderMetadataHtml(template, FAVORITES_METADATA),
+    },
+    {
+      routePath: '/recent',
+      outputPath: 'recent.html',
+      html: renderMetadataHtml(template, RECENTLY_VIEWED_METADATA),
     },
   ]
 

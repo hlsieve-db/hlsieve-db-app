@@ -7,9 +7,10 @@ import {
   type ChangeEvent,
   type CompositionEvent,
 } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
+import { CardsLocalNavigation } from '../components/CardsLocalNavigation'
 import { FavoriteStatus } from '../components/favorites/FavoriteStatus'
 import { LatestUpdateNotice } from '../components/LatestUpdateNotice'
 import { DeckTargetSelector } from '../components/decks/DeckTargetSelector'
@@ -185,11 +186,7 @@ export function CardSearchPage({
 
       <LatestUpdateNotice entries={updateHistory} />
 
-      <div className="favorites-route-link">
-        <Link className="button button--secondary" to="/favorites">
-          お気に入りカードを見る
-        </Link>
-      </div>
+      <CardsLocalNavigation />
 
       <FavoriteStatus />
 

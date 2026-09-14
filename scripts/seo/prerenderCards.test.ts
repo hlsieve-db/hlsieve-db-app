@@ -55,7 +55,7 @@ describe('Card Detail static prerender', () => {
     const routes = buildPrerenderRoutes(template, data.cards)
     const rerun = buildPrerenderRoutes(template, [...data.cards].reverse())
 
-    expect(routes).toHaveLength(1393)
+    expect(routes).toHaveLength(1394)
     expect(
       routes.filter((route) => route.routePath.startsWith('/cards/')),
     ).toHaveLength(1381)
@@ -159,6 +159,13 @@ describe('Card Detail static prerender', () => {
     )
     expect(favorites('link[rel="canonical"]').attr('href')).toBe(
       `${SITE_ORIGIN}/favorites`,
+    )
+    expect(routes[12].outputPath).toBe('recent.html')
+    const recent = load(routes[12].html)
+    expect(recent('title').text()).toBe('最近見たカード | HLSieve DB')
+    expect(recent('meta[name="robots"]').attr('content')).toBe('noindex,follow')
+    expect(recent('link[rel="canonical"]').attr('href')).toBe(
+      `${SITE_ORIGIN}/recent`,
     )
   }, 15_000)
 

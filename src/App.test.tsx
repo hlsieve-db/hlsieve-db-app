@@ -332,6 +332,26 @@ describe('App', () => {
     ).toHaveAttribute('href', `${SITE_ORIGIN}/favorites`)
   })
 
+  it('routes to recently viewed cards with canonical noindex metadata', async () => {
+    render(
+      <MemoryRouter initialEntries={['/recent']}>
+        <App />
+      </MemoryRouter>,
+    )
+
+    expect(
+      screen.getByRole('heading', { name: '最近見たカード' }),
+    ).toBeVisible()
+    expect(document.title).toBe('最近見たカード | HLSieve DB')
+    expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute(
+      'content',
+      'noindex,follow',
+    )
+    expect(
+      document.head.querySelector('link[rel="canonical"]'),
+    ).toHaveAttribute('href', `${SITE_ORIGIN}/recent`)
+  })
+
   it('uses /decks/:deckId for the editor route', async () => {
     render(
       <MemoryRouter initialEntries={['/decks/missing']}>
