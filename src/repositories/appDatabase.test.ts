@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import {
   STORE_DECKS,
+  STORE_FAVORITE_CARDS,
   STORE_TOURNAMENT_REPORTS,
 } from '../domain/decks/constants'
 import {
@@ -34,11 +35,14 @@ describe('application IndexedDB migration', () => {
 
     expect(state.stores.has(STORE_DECKS)).toBe(true)
     expect(state.stores.has(STORE_TOURNAMENT_REPORTS)).toBe(true)
-    expect(state.createObjectStore).toHaveBeenCalledTimes(1)
+    expect(state.createObjectStore).toHaveBeenCalledTimes(2)
     expect(state.createObjectStore).toHaveBeenCalledWith(
       STORE_TOURNAMENT_REPORTS,
       { keyPath: 'id' },
     )
+    expect(state.createObjectStore).toHaveBeenCalledWith(STORE_FAVORITE_CARDS, {
+      keyPath: 'cardNumber',
+    })
     expect(existingDeckRecord).toEqual({ id: 'deck-1', name: '既存デッキ' })
   })
 
@@ -46,8 +50,17 @@ describe('application IndexedDB migration', () => {
     const state = databaseWithStores([])
     upgradeAppDatabaseSchema(state.database)
     expect(state.stores).toEqual(
-      new Set([STORE_DECKS, STORE_TOURNAMENT_REPORTS]),
+      new Set([STORE_DECKS, STORE_TOURNAMENT_REPORTS, STORE_FAVORITE_CARDS]),
     )
+  })
+
+  it('adds favorites without recreating existing Deck and tournament stores', () => {
+    const state = databaseWithStores([STORE_DECKS, STORE_TOURNAMENT_REPORTS])
+    upgradeAppDatabaseSchema(state.database)
+    expect(state.createObjectStore).toHaveBeenCalledTimes(1)
+    expect(state.createObjectStore).toHaveBeenCalledWith(STORE_FAVORITE_CARDS, {
+      keyPath: 'cardNumber',
+    })
   })
 })
 

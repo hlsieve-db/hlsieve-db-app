@@ -1,10 +1,12 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppFooter } from './components/AppFooter'
+import { FavoriteCardsProvider } from './contexts/FavoriteCardsContext'
 import { CardDetailPage } from './pages/CardDetailPage'
 import { CardSearchPage } from './pages/CardSearchPage'
 import { DeckEditPage } from './pages/DeckEditPage'
 import { DeckComparePage } from './pages/DeckComparePage'
 import { DisclaimerPage } from './pages/DisclaimerPage'
+import { FavoriteCardsPage } from './pages/FavoriteCardsPage'
 import { MulliganPage } from './pages/MulliganPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { ProbabilityPage } from './pages/ProbabilityPage'
@@ -19,11 +21,12 @@ import { UpdateHistoryPage } from './pages/UpdateHistoryPage'
 
 function App() {
   return (
-    <>
+    <FavoriteCardsProvider>
       <Routes>
         <Route path="/" element={<Navigate to="/cards" replace />} />
         <Route path="/cards" element={<CardSearchPage />} />
         <Route path="/cards/:cardNumber" element={<CardDetailPage />} />
+        <Route path="/favorites" element={<FavoriteCardsPage />} />
         <Route path="/deck/share" element={<SharedDeckPage />} />
         <Route path="/decks" element={<SavedDecksPage />} />
         <Route path="/deck-compare" element={<DeckComparePage />} />
@@ -40,7 +43,7 @@ function App() {
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
       <AppFooter />
-    </>
+    </FavoriteCardsProvider>
   )
 }
 

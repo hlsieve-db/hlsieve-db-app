@@ -55,7 +55,7 @@ describe('Card Detail static prerender', () => {
     const routes = buildPrerenderRoutes(template, data.cards)
     const rerun = buildPrerenderRoutes(template, [...data.cards].reverse())
 
-    expect(routes).toHaveLength(1392)
+    expect(routes).toHaveLength(1393)
     expect(
       routes.filter((route) => route.routePath.startsWith('/cards/')),
     ).toHaveLength(1381)
@@ -150,6 +150,15 @@ describe('Card Detail static prerender', () => {
     )
     expect(deckComparison('link[rel="canonical"]').attr('href')).toBe(
       `${SITE_ORIGIN}/deck-compare`,
+    )
+    expect(routes[11].outputPath).toBe('favorites.html')
+    const favorites = load(routes[11].html)
+    expect(favorites('title').text()).toBe('お気に入りカード | HLSieve DB')
+    expect(favorites('meta[name="robots"]').attr('content')).toBe(
+      'noindex,follow',
+    )
+    expect(favorites('link[rel="canonical"]').attr('href')).toBe(
+      `${SITE_ORIGIN}/favorites`,
     )
   }, 15_000)
 

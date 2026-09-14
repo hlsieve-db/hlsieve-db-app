@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 
 import { DeckQuantityControl } from '../decks/DeckQuantityControl'
+import { FavoriteToggleButton } from '../favorites/FavoriteToggleButton'
 import type { Card } from '../../domain/cards/types'
 import type { CardPaginationResult } from '../../domain/search/paginateCards'
 
@@ -53,6 +54,10 @@ function CardResult({
         <h2>
           <Link to={detailPath}>{card.name}</Link>
         </h2>
+        <FavoriteToggleButton
+          cardName={card.name}
+          cardNumber={card.cardNumber}
+        />
         {deckControls && (
           <DeckQuantityControl
             cardName={card.name}

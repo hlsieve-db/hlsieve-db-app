@@ -4,6 +4,8 @@ import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { AppNavigation } from '../components/AppNavigation'
 import { DeckQuantityControl } from '../components/decks/DeckQuantityControl'
 import { DeckTargetSelector } from '../components/decks/DeckTargetSelector'
+import { FavoriteStatus } from '../components/favorites/FavoriteStatus'
+import { FavoriteToggleButton } from '../components/favorites/FavoriteToggleButton'
 import {
   ABILITY_TYPE_LABELS,
   BLOOM_LEVEL_LABELS,
@@ -104,6 +106,11 @@ function CardInformation({
         {card.nameReading && (
           <p className="detail-name-reading">{card.nameReading}</p>
         )}
+        <FavoriteToggleButton
+          cardName={card.name}
+          cardNumber={card.cardNumber}
+        />
+        <FavoriteStatus />
         <h2 id="card-information">カード情報</h2>
         <dl className="detail-facts">
           <div>

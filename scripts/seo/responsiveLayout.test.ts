@@ -110,4 +110,13 @@ describe('responsive content and navigation layout', () => {
       /\.tournament-history-card__actions\s*{[^}]*flex-wrap: wrap/s,
     )
   })
+
+  it('keeps favorite controls usable in narrow light and dark layouts', async () => {
+    const css = await readFile('src/styles/global.css', 'utf8')
+    expect(css).toMatch(/\.favorite-toggle\s*{[^}]*min-height: 44px/s)
+    expect(css).toMatch(/\.card-grid\s*{[^}]*minmax\(0, 1fr\)/s)
+    expect(css).toMatch(
+      /\.favorite-toggle\s*{[^}]*color: var\(--color-accent-strong\)[^}]*background: var\(--color-surface-soft\)/s,
+    )
+  })
 })

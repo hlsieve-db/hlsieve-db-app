@@ -5,6 +5,7 @@ import { SITE_ORIGIN } from './constants'
 import {
   buildCardDetailMetadata,
   DECK_COMPARISON_METADATA,
+  FAVORITES_METADATA,
   MULLIGAN_METADATA,
   PROBABILITY_METADATA,
   resolvePageMetadata,
@@ -111,6 +112,13 @@ describe('site metadata', () => {
     const metadata = resolvePageMetadata(DECK_COMPARISON_METADATA)
     expect(metadata.title).toBe('デッキ比較 | HLSieve DB')
     expect(metadata.canonicalUrl).toBe(`${SITE_ORIGIN}/deck-compare`)
+    expect(metadata.robots).toBe('noindex,follow')
+  })
+
+  it('keeps local favorites out of search indexes', () => {
+    const metadata = resolvePageMetadata(FAVORITES_METADATA)
+    expect(metadata.title).toBe('お気に入りカード | HLSieve DB')
+    expect(metadata.canonicalUrl).toBe(`${SITE_ORIGIN}/favorites`)
     expect(metadata.robots).toBe('noindex,follow')
   })
 

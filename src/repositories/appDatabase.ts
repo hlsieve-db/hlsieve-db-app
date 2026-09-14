@@ -2,6 +2,7 @@ import {
   DB_NAME,
   DB_VERSION,
   STORE_DECKS,
+  STORE_FAVORITE_CARDS,
   STORE_TOURNAMENT_REPORTS,
 } from '../domain/decks/constants'
 
@@ -11,6 +12,11 @@ export function upgradeAppDatabaseSchema(database: IDBDatabase): void {
   }
   if (!database.objectStoreNames.contains(STORE_TOURNAMENT_REPORTS)) {
     database.createObjectStore(STORE_TOURNAMENT_REPORTS, { keyPath: 'id' })
+  }
+  if (!database.objectStoreNames.contains(STORE_FAVORITE_CARDS)) {
+    database.createObjectStore(STORE_FAVORITE_CARDS, {
+      keyPath: 'cardNumber',
+    })
   }
 }
 

@@ -100,6 +100,13 @@ export const DECK_COMPARISON_METADATA: PageMetadata = {
   robots: 'noindex,follow',
 }
 
+export const FAVORITES_METADATA: PageMetadata = {
+  title: 'お気に入りカード | HLSieve DB',
+  description: 'この端末のブラウザ内に保存したお気に入りカードを確認できます。',
+  canonicalPath: '/favorites',
+  robots: 'noindex,follow',
+}
+
 export const DISCLAIMER_METADATA: PageMetadata = {
   title: '免責事項・利用条件 | HLSieve DB',
   description:

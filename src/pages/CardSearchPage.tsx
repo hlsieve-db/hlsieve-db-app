@@ -7,9 +7,10 @@ import {
   type ChangeEvent,
   type CompositionEvent,
 } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
+import { FavoriteStatus } from '../components/favorites/FavoriteStatus'
 import { LatestUpdateNotice } from '../components/LatestUpdateNotice'
 import { DeckTargetSelector } from '../components/decks/DeckTargetSelector'
 import { CardSearchFilters } from '../components/search/CardSearchFilters'
@@ -176,6 +177,14 @@ export function CardSearchPage({
       </header>
 
       <LatestUpdateNotice entries={updateHistory} />
+
+      <div className="favorites-route-link">
+        <Link className="button button--secondary" to="/favorites">
+          お気に入りカードを見る
+        </Link>
+      </div>
+
+      <FavoriteStatus />
 
       <section className="search-panel" aria-label="カード検索条件">
         <label className="search-field" htmlFor="card-search-query">

@@ -29,6 +29,15 @@ vi.mock('./repositories/tournamentReportRepository', () => ({
   },
 }))
 
+vi.mock('./repositories/favoriteCardRepository', () => ({
+  favoriteCardRepository: {
+    listFavorites: vi.fn(async () => []),
+    getFavorite: vi.fn(async () => undefined),
+    addFavorite: vi.fn(),
+    removeFavorite: vi.fn(),
+  },
+}))
+
 describe('App', () => {
   it('正式名称とカード検索画面の見出しを表示する', () => {
     render(
@@ -301,6 +310,26 @@ describe('App', () => {
     expect(
       document.head.querySelector('link[rel="canonical"]'),
     ).toHaveAttribute('href', `${SITE_ORIGIN}/deck-compare`)
+  })
+
+  it('routes to local favorites with canonical noindex metadata', async () => {
+    render(
+      <MemoryRouter initialEntries={['/favorites']}>
+        <App />
+      </MemoryRouter>,
+    )
+
+    expect(
+      screen.getByRole('heading', { name: 'お気に入りカード' }),
+    ).toBeVisible()
+    expect(document.title).toBe('お気に入りカード | HLSieve DB')
+    expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute(
+      'content',
+      'noindex,follow',
+    )
+    expect(
+      document.head.querySelector('link[rel="canonical"]'),
+    ).toHaveAttribute('href', `${SITE_ORIGIN}/favorites`)
   })
 
   it('uses /decks/:deckId for the editor route', async () => {

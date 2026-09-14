@@ -8,6 +8,7 @@ import {
   buildCardDetailMetadata,
   DECK_COMPARISON_METADATA,
   DISCLAIMER_METADATA,
+  FAVORITES_METADATA,
   MULLIGAN_METADATA,
   PROBABILITY_METADATA,
   QA_SEARCH_METADATA,
@@ -203,6 +204,11 @@ export function buildPrerenderRoutes(
       routePath: '/deck-compare',
       outputPath: 'deck-compare.html',
       html: renderMetadataHtml(template, DECK_COMPARISON_METADATA),
+    },
+    {
+      routePath: '/favorites',
+      outputPath: 'favorites.html',
+      html: renderMetadataHtml(template, FAVORITES_METADATA),
     },
   ]
 
