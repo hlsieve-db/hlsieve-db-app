@@ -3,6 +3,7 @@ import {
   DB_VERSION,
   STORE_DECKS,
   STORE_FAVORITE_CARDS,
+  STORE_SAVED_SEARCH_PRESETS,
   STORE_TOURNAMENT_REPORTS,
 } from '../domain/decks/constants'
 
@@ -17,6 +18,9 @@ export function upgradeAppDatabaseSchema(database: IDBDatabase): void {
     database.createObjectStore(STORE_FAVORITE_CARDS, {
       keyPath: 'cardNumber',
     })
+  }
+  if (!database.objectStoreNames.contains(STORE_SAVED_SEARCH_PRESETS)) {
+    database.createObjectStore(STORE_SAVED_SEARCH_PRESETS, { keyPath: 'id' })
   }
 }
 

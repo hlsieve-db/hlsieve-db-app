@@ -15,6 +15,7 @@ import { LatestUpdateNotice } from '../components/LatestUpdateNotice'
 import { DeckTargetSelector } from '../components/decks/DeckTargetSelector'
 import { CardSearchFilters } from '../components/search/CardSearchFilters'
 import { CardSearchResults } from '../components/search/CardSearchResults'
+import { SavedSearchPresets } from '../components/search/SavedSearchPresets'
 import type { CardsDataFile } from '../domain/cards/types'
 import { DEFAULT_CARD_PAGE_SIZE } from '../domain/search/constants'
 import { getCardSearchResults } from '../domain/search/getCardSearchResults'
@@ -34,6 +35,10 @@ import { useDocumentMetadata } from '../hooks/useDocumentMetadata'
 import { DEFAULT_DOCUMENT_TITLE } from '../domain/site/constants'
 import { CARD_DATA_UPDATE_HISTORY } from '../domain/updates/history'
 import type { CardDataUpdateEntry } from '../domain/updates/types'
+import {
+  savedSearchPresetRepository,
+  type SavedSearchPresetRepository,
+} from '../repositories/savedSearchPresetRepository'
 
 type CardDataState =
   | { status: 'loading' }
@@ -44,6 +49,7 @@ type CardSearchPageProps = {
   loadCards?: () => Promise<CardsDataFile>
   repository?: DeckRepository
   updateHistory?: readonly CardDataUpdateEntry[]
+  searchPresetRepository?: SavedSearchPresetRepository
 }
 
 function searchString(params: URLSearchParams): string {
@@ -55,6 +61,7 @@ export function CardSearchPage({
   loadCards = loadCardsData,
   repository = deckRepository,
   updateHistory = CARD_DATA_UPDATE_HISTORY,
+  searchPresetRepository = savedSearchPresetRepository,
 }: CardSearchPageProps) {
   const location = useLocation()
   const navigate = useNavigate()
@@ -185,6 +192,12 @@ export function CardSearchPage({
       </div>
 
       <FavoriteStatus />
+
+      <SavedSearchPresets
+        currentState={urlState}
+        repository={searchPresetRepository}
+        onApply={(state) => navigateToState(state, false)}
+      />
 
       <section className="search-panel" aria-label="カード検索条件">
         <label className="search-field" htmlFor="card-search-query">

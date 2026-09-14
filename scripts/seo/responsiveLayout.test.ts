@@ -119,4 +119,20 @@ describe('responsive content and navigation layout', () => {
       /\.favorite-toggle\s*{[^}]*color: var\(--color-accent-strong\)[^}]*background: var\(--color-surface-soft\)/s,
     )
   })
+
+  it('keeps saved search presets usable without narrow-screen overflow', async () => {
+    const css = await readFile('src/styles/global.css', 'utf8')
+    const mobile = css.slice(css.indexOf('@media (max-width: 640px)'))
+
+    expect(css).toMatch(/\.search-presets__list li\s*{[^}]*min-width: 0/s)
+    expect(css).toMatch(
+      /\.search-presets__apply\s*{[^}]*min-width: 0[^}]*overflow-wrap: anywhere/s,
+    )
+    expect(css).toMatch(
+      /\.search-presets__apply,[\s\S]*min-height: 44px[\s\S]*background: var\(--color-surface-soft\)/s,
+    )
+    expect(mobile).toMatch(
+      /\.search-presets__heading,[\s\S]*flex-direction: column/s,
+    )
+  })
 })

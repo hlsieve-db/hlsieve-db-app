@@ -6,7 +6,17 @@ import type { Card, CardsDataFile } from '../domain/cards/types'
 import { SELECTED_DECK_STORAGE_KEY } from '../domain/decks/selectedDeckPreference'
 import type { Deck } from '../domain/decks/types'
 import type { DeckRepository } from '../repositories/deckRepository'
+import type { SavedSearchPresetRepository } from '../repositories/savedSearchPresetRepository'
 import { CardSearchPage } from './CardSearchPage'
+
+const searchPresetRepository: SavedSearchPresetRepository = {
+  listPresets: vi.fn(async () => []),
+  getPreset: vi.fn(async () => undefined),
+  createPreset: vi.fn(async () => {
+    throw new Error('not used')
+  }),
+  removePreset: vi.fn(async () => undefined),
+}
 
 function card(cardNumber: string, name: string): Card {
   return {
@@ -88,6 +98,7 @@ function renderPage(
       <CardSearchPage
         loadCards={async () => cardsData()}
         repository={deckRepository}
+        searchPresetRepository={searchPresetRepository}
       />
       <Location />
     </MemoryRouter>,
@@ -141,6 +152,7 @@ describe('CardSearchPage deck quick add', () => {
         <CardSearchPage
           loadCards={async () => cardsData()}
           repository={repository([deck('deck-1', 1), deck('deck-2', 3)])}
+          searchPresetRepository={searchPresetRepository}
         />
       </MemoryRouter>,
     )

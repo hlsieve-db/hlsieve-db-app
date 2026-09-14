@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   STORE_DECKS,
   STORE_FAVORITE_CARDS,
+  STORE_SAVED_SEARCH_PRESETS,
   STORE_TOURNAMENT_REPORTS,
 } from '../domain/decks/constants'
 import {
@@ -27,7 +28,7 @@ function databaseWithStores(initial: string[]) {
 }
 
 describe('application IndexedDB migration', () => {
-  it('adds tournament reports without recreating or clearing the Deck store', () => {
+  it('adds missing stores without recreating or clearing the Deck store', () => {
     const existingDeckRecord = { id: 'deck-1', name: '既存デッキ' }
     const state = databaseWithStores([STORE_DECKS])
 
@@ -35,7 +36,7 @@ describe('application IndexedDB migration', () => {
 
     expect(state.stores.has(STORE_DECKS)).toBe(true)
     expect(state.stores.has(STORE_TOURNAMENT_REPORTS)).toBe(true)
-    expect(state.createObjectStore).toHaveBeenCalledTimes(2)
+    expect(state.createObjectStore).toHaveBeenCalledTimes(3)
     expect(state.createObjectStore).toHaveBeenCalledWith(
       STORE_TOURNAMENT_REPORTS,
       { keyPath: 'id' },
@@ -43,24 +44,61 @@ describe('application IndexedDB migration', () => {
     expect(state.createObjectStore).toHaveBeenCalledWith(STORE_FAVORITE_CARDS, {
       keyPath: 'cardNumber',
     })
+    expect(state.createObjectStore).toHaveBeenCalledWith(
+      STORE_SAVED_SEARCH_PRESETS,
+      { keyPath: 'id' },
+    )
     expect(existingDeckRecord).toEqual({ id: 'deck-1', name: '既存デッキ' })
   })
 
-  it('creates both stores for a fresh database', () => {
+  it('creates every store for a fresh database', () => {
     const state = databaseWithStores([])
     upgradeAppDatabaseSchema(state.database)
     expect(state.stores).toEqual(
-      new Set([STORE_DECKS, STORE_TOURNAMENT_REPORTS, STORE_FAVORITE_CARDS]),
+      new Set([
+        STORE_DECKS,
+        STORE_TOURNAMENT_REPORTS,
+        STORE_FAVORITE_CARDS,
+        STORE_SAVED_SEARCH_PRESETS,
+      ]),
     )
   })
 
   it('adds favorites without recreating existing Deck and tournament stores', () => {
     const state = databaseWithStores([STORE_DECKS, STORE_TOURNAMENT_REPORTS])
     upgradeAppDatabaseSchema(state.database)
-    expect(state.createObjectStore).toHaveBeenCalledTimes(1)
+    expect(state.createObjectStore).toHaveBeenCalledTimes(2)
     expect(state.createObjectStore).toHaveBeenCalledWith(STORE_FAVORITE_CARDS, {
       keyPath: 'cardNumber',
     })
+    expect(state.createObjectStore).toHaveBeenCalledWith(
+      STORE_SAVED_SEARCH_PRESETS,
+      { keyPath: 'id' },
+    )
+  })
+
+  it('adds only search presets when all existing application stores are present', () => {
+    const state = databaseWithStores([
+      STORE_DECKS,
+      STORE_TOURNAMENT_REPORTS,
+      STORE_FAVORITE_CARDS,
+    ])
+
+    upgradeAppDatabaseSchema(state.database)
+
+    expect(state.createObjectStore).toHaveBeenCalledTimes(1)
+    expect(state.createObjectStore).toHaveBeenCalledWith(
+      STORE_SAVED_SEARCH_PRESETS,
+      { keyPath: 'id' },
+    )
+    expect(state.stores).toEqual(
+      new Set([
+        STORE_DECKS,
+        STORE_TOURNAMENT_REPORTS,
+        STORE_FAVORITE_CARDS,
+        STORE_SAVED_SEARCH_PRESETS,
+      ]),
+    )
   })
 })
 

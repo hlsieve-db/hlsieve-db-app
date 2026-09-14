@@ -17,6 +17,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import type { Card, CardsDataFile } from '../domain/cards/types'
 import type { DeckRepository } from '../repositories/deckRepository'
+import type { SavedSearchPresetRepository } from '../repositories/savedSearchPresetRepository'
 import { CardSearchPage } from './CardSearchPage'
 
 function emptyDeckRepository(): DeckRepository {
@@ -25,6 +26,17 @@ function emptyDeckRepository(): DeckRepository {
     getDeck: vi.fn(async () => undefined),
     saveDeck: vi.fn(async () => undefined),
     deleteDeck: vi.fn(async () => undefined),
+  }
+}
+
+function emptySearchPresetRepository(): SavedSearchPresetRepository {
+  return {
+    listPresets: vi.fn(async () => []),
+    getPreset: vi.fn(async () => undefined),
+    createPreset: vi.fn(async () => {
+      throw new Error('not used')
+    }),
+    removePreset: vi.fn(async () => undefined),
   }
 }
 
@@ -142,11 +154,13 @@ function renderPage({
   initialIndex,
   loadCards = vi.fn(async () => dataFile()),
   repository = emptyDeckRepository(),
+  searchPresetRepository = emptySearchPresetRepository(),
 }: {
   entries?: string[]
   initialIndex?: number
   loadCards?: () => Promise<CardsDataFile>
   repository?: DeckRepository
+  searchPresetRepository?: SavedSearchPresetRepository
 } = {}) {
   render(
     <MemoryRouter initialEntries={entries} initialIndex={initialIndex}>
@@ -155,7 +169,11 @@ function renderPage({
           path="/cards"
           element={
             <>
-              <CardSearchPage loadCards={loadCards} repository={repository} />
+              <CardSearchPage
+                loadCards={loadCards}
+                repository={repository}
+                searchPresetRepository={searchPresetRepository}
+              />
               <LocationControls />
             </>
           }
@@ -453,6 +471,55 @@ describe('CardSearchPage query and filters', () => {
     expect(screen.getByTestId('location')).toHaveTextContent(/^\/cards$/)
     fireEvent.click(screen.getByRole('button', { name: '履歴を戻る' }))
     await screen.findByText('1件')
+  })
+
+  it('applies a saved preset through canonical URL history and resets page', async () => {
+    const searchPresetRepository: SavedSearchPresetRepository = {
+      ...emptySearchPresetRepository(),
+      listPresets: vi.fn<SavedSearchPresetRepository['listPresets']>(
+        async () => [
+          {
+            id: 'preset-1',
+            name: '赤ホロメン',
+            searchState: {
+              query: '',
+              colors: ['red'],
+              colorMode: 'or',
+              cardTypes: ['holomem'],
+              bloom: [],
+              criticalColors: [],
+              criticalColorMode: 'or',
+              effectTags: [],
+              effectTagMode: 'and',
+              sort: 'card_number_asc',
+            },
+            createdAt: '2026-09-14T00:00:00.000Z',
+            updatedAt: '2026-09-14T00:00:00.000Z',
+          },
+        ],
+      ),
+    }
+    renderPage({
+      entries: ['/cards?color=green&page=2'],
+      searchPresetRepository,
+    })
+    await screen.findByText('2 / 2ページ')
+
+    fireEvent.click(await screen.findByRole('button', { name: '赤ホロメン' }))
+
+    await waitFor(() =>
+      expect(screen.getByTestId('location')).toHaveTextContent(
+        '/cards?color=red&type=holomem&sort=card_number_asc',
+      ),
+    )
+    expect(screen.getByTestId('location')).not.toHaveTextContent('page=')
+    expect(screen.getByRole('heading', { name: 'フワモコ' })).toBeVisible()
+
+    fireEvent.click(screen.getByRole('button', { name: '履歴を戻る' }))
+    await screen.findByText('2 / 2ページ')
+    expect(screen.getByTestId('location')).toHaveTextContent(
+      '/cards?color=green&page=2',
+    )
   })
 })
 
