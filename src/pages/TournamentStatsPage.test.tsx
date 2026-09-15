@@ -113,15 +113,15 @@ describe('TournamentStatsPage', () => {
     expect(
       await screen.findByText('保存された大会戦績がありません。'),
     ).toBeVisible()
-    expect(screen.getByRole('link', { name: '大会戦績作成' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: '戦績を作成' })).toHaveAttribute(
       'href',
       '/tournament-report',
     )
-    expect(screen.getByRole('link', { name: '大会戦績履歴' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: '履歴' })).toHaveAttribute(
       'href',
       '/tournament-history',
     )
-    expect(screen.getByRole('link', { name: '大会戦績統計' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: '統計' })).toHaveAttribute(
       'href',
       '/tournament-stats',
     )

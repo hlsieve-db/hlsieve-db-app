@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
+import { DeckLocalNavigation } from '../components/DeckLocalNavigation'
 import type { Card, CardsDataFile } from '../domain/cards/types'
 import {
   compareDecks,
@@ -360,6 +361,7 @@ export function DeckComparePage({
   return (
     <main className="content-page deck-comparison-page">
       <AppNavigation />
+      <DeckLocalNavigation />
       <header className="content-page__header">
         <h1>デッキ比較</h1>
         <p>保存済みの2つのデッキを、Deck AからDeck Bへの方向で比較します。</p>

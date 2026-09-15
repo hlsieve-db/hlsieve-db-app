@@ -59,6 +59,8 @@ describe('AppNavigation theme control', () => {
   it.each([
     '/cards',
     '/cards/CARD-001',
+    '/favorites',
+    '/recent',
     '/decks',
     '/decks/deck-1',
     '/deck/share',
@@ -67,6 +69,8 @@ describe('AppNavigation theme control', () => {
     '/mulligan',
     '/swiss',
     '/tournament-report',
+    '/tournament-history',
+    '/tournament-stats',
     '/updates',
     '/disclaimer',
     '/unknown',
@@ -145,14 +149,14 @@ describe('AppNavigation theme control', () => {
     expect(document.documentElement).toHaveAttribute('data-theme', 'dark')
   })
 
-  it('marks Cards and Decks sections with aria-current', () => {
+  it('marks Card and Deck categories for deep routes', () => {
     mockColorScheme(false)
     const cards = render(
       <MemoryRouter initialEntries={['/cards/CARD-001']}>
         <AppNavigation />
       </MemoryRouter>,
     )
-    expect(screen.getByRole('link', { name: 'Cards' })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: 'カード' })).toHaveAttribute(
       'aria-current',
       'page',
     )
@@ -166,14 +170,16 @@ describe('AppNavigation theme control', () => {
         <AppNavigation />
       </MemoryRouter>,
     )
-    expect(screen.getByRole('link', { name: 'Decks' })).toHaveClass('active')
-    expect(screen.getByRole('link', { name: 'Decks' })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: 'デッキ' })).toHaveClass(
+      'is-active',
+    )
+    expect(screen.getByRole('button', { name: 'デッキ' })).toHaveAttribute(
       'aria-current',
       'page',
     )
   })
 
-  it('orders primary routes and calculators before the theme control', () => {
+  it('shows five concise primary categories before the theme control', () => {
     mockColorScheme(false)
     const { container } = render(
       <MemoryRouter initialEntries={['/updates']}>
@@ -183,26 +189,84 @@ describe('AppNavigation theme control', () => {
     const navigation = screen.getByRole('navigation')
     expect(
       within(navigation)
-        .getAllByRole('link')
-        .map((link) => link.textContent),
-    ).toEqual([
-      'Cards',
-      'Q&A検索',
-      'Decks',
-      '確率計算',
-      'マリガン計算',
-      'スイス計算',
-      '大会戦績',
-      '更新履歴',
-    ])
+        .getAllByRole('button')
+        .map((button) => button.textContent?.replace('▾', '')),
+    ).toEqual(['カード', 'デッキ', '大会', 'ツール'])
     expect(screen.getByRole('link', { name: '更新履歴' })).toHaveAttribute(
       'aria-current',
       'page',
     )
     expect(
+      within(navigation).queryByRole('link', { name: '免責事項・利用条件' }),
+    ).not.toBeInTheDocument()
+    expect(
       navigation.compareDocumentPosition(
         container.querySelector('.theme-control')!,
       ) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy()
+  })
+
+  it('opens one desktop disclosure and closes it by toggle, outside click, and Escape', () => {
+    mockColorScheme(false)
+    render(
+      <MemoryRouter initialEntries={['/cards']}>
+        <AppNavigation />
+      </MemoryRouter>,
+    )
+    const cardButton = screen.getByRole('button', { name: 'カード' })
+    fireEvent.click(cardButton)
+    expect(cardButton).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('link', { name: '公式Q&A検索' })).toBeVisible()
+
+    fireEvent.click(screen.getByRole('button', { name: 'デッキ' }))
+    expect(cardButton).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.getByRole('link', { name: '保存デッキ' })).toBeVisible()
+
+    fireEvent.pointerDown(document.body)
+    expect(screen.queryByRole('link', { name: '保存デッキ' })).toBeNull()
+
+    fireEvent.click(cardButton)
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(cardButton).toHaveAttribute('aria-expanded', 'false')
+    expect(cardButton).toHaveFocus()
+  })
+
+  it('closes desktop and mobile navigation after route links are used', async () => {
+    mockColorScheme(false)
+    render(
+      <MemoryRouter initialEntries={['/cards']}>
+        <AppNavigation />
+      </MemoryRouter>,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'カード' }))
+    fireEvent.click(screen.getByRole('link', { name: 'お気に入り' }))
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'カード' })).toHaveAttribute(
+        'aria-expanded',
+        'false',
+      ),
+    )
+
+    const menuButton = screen.getByRole('button', { name: 'メニュー' })
+    fireEvent.click(menuButton)
+    expect(menuButton).toHaveAttribute('aria-expanded', 'true')
+    const mobileMenu = screen.getByRole('navigation', {
+      name: 'モバイルメニュー',
+    })
+    expect(within(mobileMenu).getByText('カード')).toBeVisible()
+    expect(within(mobileMenu).getByText('デッキ')).toBeVisible()
+    expect(within(mobileMenu).getByText('大会')).toBeVisible()
+    expect(within(mobileMenu).getByText('ツール')).toBeVisible()
+    expect(within(mobileMenu).getByText('その他')).toBeVisible()
+    expect(screen.getByLabelText('テーマ')).toBeVisible()
+    fireEvent.click(
+      within(mobileMenu).getByRole('link', { name: 'マリガン計算' }),
+    )
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('navigation', { name: 'モバイルメニュー' }),
+      ).not.toBeInTheDocument(),
+    )
+    expect(menuButton).toHaveAttribute('aria-expanded', 'false')
   })
 })

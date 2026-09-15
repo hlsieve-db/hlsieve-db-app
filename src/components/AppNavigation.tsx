@@ -1,19 +1,90 @@
+import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 
+import {
+  activeNavigationGroup,
+  NAV_GROUPS,
+  UPDATES_NAV_ITEM,
+  type NavigationGroupKey,
+} from '../domain/navigation/navigation'
 import type { ThemePreference } from '../domain/theme/theme'
 import { useTheme } from '../hooks/useTheme'
+
+function ThemeControl({
+  preference,
+  setPreference,
+}: {
+  preference: ThemePreference
+  setPreference: (preference: ThemePreference) => void
+}) {
+  return (
+    <label className="theme-control" htmlFor="theme-preference">
+      <span>テーマ</span>
+      <select
+        id="theme-preference"
+        value={preference}
+        onChange={(event) =>
+          setPreference(event.currentTarget.value as ThemePreference)
+        }
+      >
+        <option value="system">システム</option>
+        <option value="light">ライト</option>
+        <option value="dark">ダーク</option>
+      </select>
+    </label>
+  )
+}
 
 export function AppNavigation() {
   const { preference, setPreference } = useTheme()
   const location = useLocation()
-  const isDeckSection =
-    location.pathname.startsWith('/decks') ||
-    location.pathname === '/deck/share'
+  const locationKey = `${location.pathname}${location.search}`
+  const [openGroupState, setOpenGroupState] = useState<{
+    key: NavigationGroupKey
+    locationKey: string
+  }>()
+  const [mobileOpenLocation, setMobileOpenLocation] = useState<string>()
+  const rootRef = useRef<HTMLDivElement>(null)
+  const mobileButtonRef = useRef<HTMLButtonElement>(null)
+  const lastGroupButtonRef = useRef<HTMLButtonElement | undefined>(undefined)
+  const activeGroup = activeNavigationGroup(location.pathname)
+  const openGroup =
+    openGroupState?.locationKey === locationKey ? openGroupState.key : undefined
+  const mobileOpen = mobileOpenLocation === locationKey
+
+  useEffect(() => {
+    const closeFromOutside = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setOpenGroupState(undefined)
+        setMobileOpenLocation(undefined)
+      }
+    }
+    const closeFromEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      if (mobileOpen) mobileButtonRef.current?.focus()
+      else if (openGroup) lastGroupButtonRef.current?.focus()
+      setOpenGroupState(undefined)
+      setMobileOpenLocation(undefined)
+    }
+    document.addEventListener('pointerdown', closeFromOutside)
+    document.addEventListener('keydown', closeFromEscape)
+    return () => {
+      document.removeEventListener('pointerdown', closeFromOutside)
+      document.removeEventListener('keydown', closeFromEscape)
+    }
+  }, [mobileOpen, openGroup])
 
   return (
-    <div className="app-navigation">
+    <div className="app-navigation" ref={rootRef}>
       <div className="site-branding">
-        <Link className="site-brand" to="/cards">
+        <Link
+          className="site-brand"
+          to="/cards"
+          onClick={() => {
+            setOpenGroupState(undefined)
+            setMobileOpenLocation(undefined)
+          }}
+        >
           <img src="/hlsieve-mark.svg" alt="" aria-hidden="true" />
           <span>HLSieve DB</span>
         </Link>
@@ -21,38 +92,124 @@ export function AppNavigation() {
           ホロライブOCGカード検索DB
         </span>
       </div>
+
+      <button
+        ref={mobileButtonRef}
+        type="button"
+        className="app-navigation__menu-button"
+        aria-expanded={mobileOpen}
+        aria-controls="mobile-navigation-panel"
+        onClick={() => {
+          setOpenGroupState(undefined)
+          setMobileOpenLocation(mobileOpen ? undefined : locationKey)
+        }}
+      >
+        <span aria-hidden="true">☰</span>
+        メニュー
+      </button>
+
       <div className="app-navigation__controls">
-        <nav aria-label="メインナビゲーション">
-          <NavLink to="/cards">Cards</NavLink>
-          <NavLink to="/qa">Q&amp;A検索</NavLink>
-          <Link
-            to="/decks"
-            className={isDeckSection ? 'active' : undefined}
-            aria-current={isDeckSection ? 'page' : undefined}
+        <nav
+          className="primary-navigation primary-navigation--desktop"
+          aria-label="メインナビゲーション"
+        >
+          {NAV_GROUPS.map((group) => {
+            const expanded = openGroup === group.key
+            const active = activeGroup === group.key
+            return (
+              <div className="primary-navigation__group" key={group.key}>
+                <button
+                  type="button"
+                  className={active ? 'is-active' : undefined}
+                  aria-expanded={expanded}
+                  aria-controls={`navigation-${group.key}`}
+                  aria-current={active ? 'page' : undefined}
+                  onClick={(event) => {
+                    lastGroupButtonRef.current = event.currentTarget
+                    setOpenGroupState(
+                      expanded ? undefined : { key: group.key, locationKey },
+                    )
+                  }}
+                >
+                  {group.label}
+                  <span aria-hidden="true">▾</span>
+                </button>
+                {expanded && (
+                  <div
+                    id={`navigation-${group.key}`}
+                    className="primary-navigation__dropdown"
+                  >
+                    {group.items.map((item) => (
+                      <NavLink
+                        key={item.to}
+                        to={item.to}
+                        onClick={() => setOpenGroupState(undefined)}
+                      >
+                        {item.label}
+                      </NavLink>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+          <NavLink
+            className="primary-navigation__updates"
+            to="/updates"
+            onClick={() => setOpenGroupState(undefined)}
           >
-            Decks
-          </Link>
-          <NavLink to="/probability">確率計算</NavLink>
-          <NavLink to="/mulligan">マリガン計算</NavLink>
-          <NavLink to="/swiss">スイス計算</NavLink>
-          <NavLink to="/tournament-report">大会戦績</NavLink>
-          <NavLink to="/updates">更新履歴</NavLink>
+            {UPDATES_NAV_ITEM.label}
+          </NavLink>
         </nav>
-        <label className="theme-control" htmlFor="theme-preference">
-          <span>テーマ</span>
-          <select
-            id="theme-preference"
-            value={preference}
-            onChange={(event) =>
-              setPreference(event.currentTarget.value as ThemePreference)
-            }
-          >
-            <option value="system">システム</option>
-            <option value="light">ライト</option>
-            <option value="dark">ダーク</option>
-          </select>
-        </label>
+
+        <ThemeControl preference={preference} setPreference={setPreference} />
       </div>
+
+      {mobileOpen && (
+        <nav
+          id="mobile-navigation-panel"
+          className="primary-navigation primary-navigation--mobile"
+          aria-label="モバイルメニュー"
+        >
+          {NAV_GROUPS.map((group) => (
+            <section key={group.key} aria-labelledby={`mobile-${group.key}`}>
+              <h2
+                id={`mobile-${group.key}`}
+                className={activeGroup === group.key ? 'is-active' : undefined}
+              >
+                {group.label}
+              </h2>
+              {group.items.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  onClick={() => setMobileOpenLocation(undefined)}
+                >
+                  {item.label}
+                </NavLink>
+              ))}
+            </section>
+          ))}
+          <section aria-labelledby="mobile-other">
+            <h2
+              id="mobile-other"
+              className={
+                location.pathname === UPDATES_NAV_ITEM.to
+                  ? 'is-active'
+                  : undefined
+              }
+            >
+              その他
+            </h2>
+            <NavLink
+              to={UPDATES_NAV_ITEM.to}
+              onClick={() => setMobileOpenLocation(undefined)}
+            >
+              {UPDATES_NAV_ITEM.label}
+            </NavLink>
+          </section>
+        </nav>
+      )}
     </div>
   )
 }

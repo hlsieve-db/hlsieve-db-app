@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 
 import { AppNavigation } from '../components/AppNavigation'
+import { ToolsLocalNavigation } from '../components/ToolsLocalNavigation'
 import { formatProbability } from '../domain/probability/atLeastOneProbability'
 import {
   calculateMulliganProbability,
@@ -46,6 +47,7 @@ export function MulliganPage() {
   return (
     <main className="content-page mulligan-page">
       <AppNavigation />
+      <ToolsLocalNavigation />
       <header className="content-page__header">
         <h1>マリガン計算</h1>
         <p>

@@ -11,9 +11,17 @@ describe('responsive content and navigation layout', () => {
 
     expect(mobile).toMatch(/\.site-branding\s*{[^}]*flex-direction: column/s)
     expect(mobile).toMatch(
-      /\.app-navigation__controls\s*{[^}]*flex-direction: column[^}]*width: 100%/s,
+      /\.app-navigation__controls\s*{[^}]*grid-column: 2[^}]*flex-direction: row[^}]*width: auto/s,
     )
-    expect(mobile).toMatch(/\.app-navigation nav\s*{[^}]*flex-wrap: wrap/s)
+    expect(css).toMatch(
+      /@media \(max-width: 767px\)[\s\S]*\.app-navigation__menu-button\s*{[^}]*display: inline-flex/s,
+    )
+    expect(css).toMatch(
+      /@media \(max-width: 767px\)[\s\S]*\.primary-navigation--desktop\s*{[^}]*display: none/s,
+    )
+    expect(mobile).toMatch(
+      /\.primary-navigation--mobile\s*{[^}]*grid-template-columns: minmax\(0, 1fr\)/s,
+    )
     expect(mobile).not.toMatch(/min-width:\s*[4-9]\d{2}px/)
   })
 
@@ -56,7 +64,9 @@ describe('responsive content and navigation layout', () => {
     expect(css).toMatch(
       /\.mulligan-calculator__explanation\s*{[^}]*overflow-wrap: anywhere/s,
     )
-    expect(css).toMatch(/\.app-navigation nav\s*{[^}]*flex-wrap: wrap/s)
+    expect(css).toMatch(
+      /\.primary-navigation--mobile\s*{[^}]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)[^}]*width: 100%/s,
+    )
   })
 
   it('keeps the Swiss calculator and result table within narrow viewports', async () => {

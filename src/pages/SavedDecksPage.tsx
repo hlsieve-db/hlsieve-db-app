@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
+import { DeckLocalNavigation } from '../components/DeckLocalNavigation'
 import { createDeck, getDeckTotal } from '../domain/decks/deck'
 import {
   createDeckBackup,
@@ -202,6 +203,7 @@ export function SavedDecksPage({
     <main className="deck-page">
       <header className="deck-page__header">
         <AppNavigation />
+        <DeckLocalNavigation />
         <h1>保存デッキ</h1>
         <p>端末に保存したデッキを管理します。</p>
       </header>

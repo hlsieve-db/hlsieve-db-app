@@ -525,8 +525,8 @@ describe('CardDetailPage public card information', () => {
 
     await screen.findByRole('heading', { name: 'テストホロメン' })
     expect(screen.getByText('サポート')).toBeVisible()
-    expect(screen.getByText('ツール')).toBeVisible()
-    expect(screen.getByText('対象')).toBeVisible()
+    expect(screen.getByText('ツール', { selector: 'dd' })).toBeVisible()
+    expect(screen.getByText('対象', { selector: 'dd' })).toBeVisible()
     expect(screen.getAllByText('LIMITED')).toHaveLength(2)
   })
 })

@@ -9,6 +9,7 @@ import {
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
+import { CardsLocalNavigation } from '../components/CardsLocalNavigation'
 import type { CardsDataFile } from '../domain/cards/types'
 import {
   buildOfficialQaSearchIndex,
@@ -136,6 +137,7 @@ export function QaSearchPage({ loadCards = loadCardsData }: QaSearchPageProps) {
   return (
     <main className="content-page qa-search-page">
       <AppNavigation />
+      <CardsLocalNavigation />
       <header className="content-page__header">
         <h1>公式Q&amp;A検索</h1>
         <p>

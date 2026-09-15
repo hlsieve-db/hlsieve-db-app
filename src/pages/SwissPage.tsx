@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 
 import { AppNavigation } from '../components/AppNavigation'
+import { ToolsLocalNavigation } from '../components/ToolsLocalNavigation'
 import {
   calculateSwissDistribution,
   formatExpectedPlayers,
@@ -45,6 +46,7 @@ export function SwissPage() {
   return (
     <main className="content-page swiss-page">
       <AppNavigation />
+      <ToolsLocalNavigation />
       <header className="content-page__header">
         <h1>スイスドロー計算</h1>
         <p>大会参加人数と回戦数から、各勝敗数の理論人数を計算します。</p>

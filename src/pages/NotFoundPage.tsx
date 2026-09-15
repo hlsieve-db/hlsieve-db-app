@@ -19,13 +19,13 @@ export function NotFoundPage() {
         <p>URLをご確認いただくか、以下からお探しください。</p>
         <div className="not-found-page__links">
           <Link className="button detail-link-button" to="/cards">
-            Cardsへ
+            カード検索へ
           </Link>
           <Link
             className="button button--secondary detail-link-button"
             to="/decks"
           >
-            Decksへ
+            保存デッキへ
           </Link>
         </div>
       </section>

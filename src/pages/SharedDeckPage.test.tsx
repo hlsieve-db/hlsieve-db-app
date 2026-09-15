@@ -176,10 +176,7 @@ describe('SharedDeckPage preview', () => {
       'noindex,follow',
     )
     expect(loadCards).toHaveBeenCalledTimes(1)
-    expect(screen.getByRole('link', { name: 'Cards' })).toHaveAttribute(
-      'href',
-      '/cards',
-    )
+    expect(screen.getByRole('button', { name: 'カード' })).toBeVisible()
   })
 
   it('does not load cards when d is missing or corrupt', () => {

@@ -102,10 +102,11 @@ describe('SavedDecksPage', () => {
     expect(
       screen.getByRole('button', { name: 'バックアップを読み込む' }),
     ).toBeEnabled()
-    expect(screen.getByRole('link', { name: 'デッキ比較' })).toHaveAttribute(
-      'href',
-      '/deck-compare',
-    )
+    expect(
+      within(
+        screen.getByRole('navigation', { name: 'デッキメニュー' }),
+      ).getByRole('link', { name: 'デッキ比較' }),
+    ).toHaveAttribute('href', '/deck-compare')
   })
 
   it('lists totals, update information, and an editor link', async () => {

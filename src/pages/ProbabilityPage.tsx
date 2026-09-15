@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 
 import { AppNavigation } from '../components/AppNavigation'
+import { ToolsLocalNavigation } from '../components/ToolsLocalNavigation'
 import {
   calculateAtLeastOneProbability,
   formatProbability,
@@ -41,6 +42,7 @@ export function ProbabilityPage() {
   return (
     <main className="content-page probability-page">
       <AppNavigation />
+      <ToolsLocalNavigation />
       <header className="content-page__header">
         <h1>確率計算</h1>
         <p>

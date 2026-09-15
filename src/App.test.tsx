@@ -124,7 +124,7 @@ describe('App', () => {
       'noindex,follow',
     )
 
-    fireEvent.click(screen.getByRole('link', { name: 'Cards' }))
+    fireEvent.click(screen.getByRole('link', { name: 'HLSieve DB' }))
     expect(screen.getByRole('heading', { name: 'カード検索' })).toBeVisible()
     expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute(
       'content',
@@ -257,11 +257,11 @@ describe('App', () => {
     expect(
       screen.getByRole('heading', { name: 'ページが見つかりません' }),
     ).toBeVisible()
-    expect(screen.getByRole('link', { name: 'Cardsへ' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'カード検索へ' })).toHaveAttribute(
       'href',
       '/cards',
     )
-    expect(screen.getByRole('link', { name: 'Decksへ' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: '保存デッキへ' })).toHaveAttribute(
       'href',
       '/decks',
     )
@@ -279,11 +279,9 @@ describe('App', () => {
       </MemoryRouter>,
     )
 
-    expect(screen.getByRole('link', { name: 'Cards' })).toHaveAttribute(
-      'href',
-      '/cards',
-    )
-    expect(screen.getByRole('link', { name: 'Decks' })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: 'カード' })).toBeVisible()
+    expect(screen.getByRole('button', { name: 'デッキ' })).toBeVisible()
+    expect(screen.getByRole('link', { name: '保存デッキ' })).toHaveAttribute(
       'href',
       '/decks',
     )
