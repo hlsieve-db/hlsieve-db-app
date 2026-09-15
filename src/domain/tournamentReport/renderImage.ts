@@ -28,15 +28,16 @@ const EXPORT_COLORS = {
 } as const
 
 const MOBILE_EXPORT_COLORS = {
-  section: '#bfe8e7',
+  background: '#f8fafc',
+  section: '#d8f1f0',
   row: '#ffffff',
-  rowAlternate: '#e4edf5',
-  text: '#0a1f38',
-  muted: '#3f536b',
-  border: '#9fb4c8',
-  win: '#05603f',
-  draw: '#3f4b59',
-  loss: '#9f1d16',
+  rowAlternate: '#f1f5f9',
+  text: '#16233a',
+  muted: '#4e627c',
+  border: '#cbd5e1',
+  win: '#c62828',
+  draw: '#222222',
+  loss: '#1565c0',
 } as const
 
 type TournamentReportRenderLayout = {
@@ -218,6 +219,12 @@ function mobileResultColor(result: string): string {
   if (result.includes('DRAW')) return MOBILE_EXPORT_COLORS.draw
   if (result.includes('LOSE')) return MOBILE_EXPORT_COLORS.loss
   return MOBILE_EXPORT_COLORS.text
+}
+
+function mobileInitiativeLabel(value: string): string {
+  if (value.includes('○')) return '○'
+  if (value.includes('×')) return '×'
+  return value || '—'
 }
 
 function drawHeader(
@@ -423,6 +430,241 @@ function drawSection(
   return y + layout.sectionGap
 }
 
+function mobileRoundSummary(page: TournamentReportImagePage): {
+  wins: number
+  losses: number
+  draws: number
+  first: number
+  second: number
+} {
+  const rounds = page.sections.flatMap((section) => section.rounds)
+  return rounds.reduce(
+    (summary, round) => {
+      if (round.result.includes('WIN')) summary.wins += 1
+      if (round.result.includes('LOSE')) summary.losses += 1
+      if (round.result.includes('DRAW')) summary.draws += 1
+      if (round.playOrder === '先攻') summary.first += 1
+      if (round.playOrder === '後攻') summary.second += 1
+      return summary
+    },
+    { wins: 0, losses: 0, draws: 0, first: 0, second: 0 },
+  )
+}
+
+function drawMobileHeader(
+  context: CanvasRenderingContext2D,
+  page: TournamentReportImagePage,
+  layout: TournamentReportRenderLayout,
+): void {
+  context.fillStyle = MOBILE_EXPORT_COLORS.row
+  context.fillRect(0, 0, layout.width, 240)
+  context.fillStyle = EXPORT_COLORS.accent
+  context.fillRect(0, 0, layout.width, 10)
+
+  context.fillStyle = EXPORT_COLORS.accent
+  setFont(context, 21, 900)
+  context.fillText('大会成績', layout.contentX, 46)
+
+  context.fillStyle = MOBILE_EXPORT_COLORS.text
+  const titleSize = fitFontSize(
+    context,
+    page.tournamentName,
+    layout.contentWidth,
+    36,
+    27,
+    850,
+  )
+  setFont(context, titleSize, 850)
+  const titleLines = wrapText(
+    context,
+    page.tournamentName,
+    layout.contentWidth,
+    2,
+  )
+  const titleStartY = titleLines.length === 1 ? 91 : 76
+  titleLines.forEach((line, index) => {
+    context.fillText(line, layout.contentX, titleStartY + index * 32)
+  })
+
+  context.fillStyle = MOBILE_EXPORT_COLORS.muted
+  setFont(context, 16, 800)
+  const selfOshiLabelY = titleLines.length === 1 ? 126 : 143
+  const selfOshiValueY = titleLines.length === 1 ? 163 : 180
+  const detailsY = titleLines.length === 1 ? 202 : 220
+  context.fillText('使用推し', layout.contentX, selfOshiLabelY)
+  context.fillStyle = MOBILE_EXPORT_COLORS.text
+  setFont(context, 30, 900)
+  context.fillText(
+    ellipsize(context, page.selfOshi ?? '未入力', layout.contentWidth),
+    layout.contentX,
+    selfOshiValueY,
+  )
+
+  const details = [
+    page.participantCount ? `参加人数 ${page.participantCount}` : undefined,
+    page.eventDate ? `開催日 ${page.eventDate}` : undefined,
+  ].filter((value): value is string => value !== undefined)
+  context.fillStyle = MOBILE_EXPORT_COLORS.muted
+  setFont(context, 20, 750)
+  context.fillText(details.join('  ｜  '), layout.contentX, detailsY)
+
+  if (page.totalPages > 1) {
+    context.textAlign = 'right'
+    setFont(context, 20, 800)
+    context.fillText(
+      `${page.pageNumber} / ${page.totalPages}`,
+      layout.width - layout.contentX,
+      46,
+    )
+    context.textAlign = 'left'
+  }
+}
+
+function drawMobileRecord(
+  context: CanvasRenderingContext2D,
+  page: TournamentReportImagePage,
+  layout: TournamentReportRenderLayout,
+): void {
+  const summary = mobileRoundSummary(page)
+  const record = `${summary.wins}-${summary.losses}${summary.draws > 0 ? `-${summary.draws}` : ''}`
+  const completed = summary.wins + summary.losses + summary.draws
+  const winRate =
+    completed > 0 ? Math.round((summary.wins / completed) * 100) : 0
+  const x = layout.contentX
+  const y = 256
+
+  context.fillStyle = MOBILE_EXPORT_COLORS.row
+  context.fillRect(x, y, layout.contentWidth, 190)
+  context.fillStyle = EXPORT_COLORS.accent
+  context.fillRect(x, y, 8, 190)
+  context.fillStyle = EXPORT_COLORS.accent
+  setFont(context, 19, 900)
+  context.fillText('RECORD', x + 28, y + 34)
+
+  context.fillStyle = MOBILE_EXPORT_COLORS.text
+  setFont(context, 58, 900)
+  context.fillText(record, x + 28, y + 100)
+  context.textAlign = 'right'
+  setFont(context, 42, 900)
+  context.fillText(
+    page.placement ?? '順位未入力',
+    x + layout.contentWidth - 28,
+    y + 98,
+  )
+  context.textAlign = 'left'
+
+  setFont(context, 22, 800)
+  context.fillText(
+    `${summary.wins}勝 ${summary.losses}敗${summary.draws > 0 ? ` ${summary.draws}分` : ''}`,
+    x + 30,
+    y + 136,
+  )
+  context.fillStyle = MOBILE_EXPORT_COLORS.muted
+  setFont(context, 20, 750)
+  context.fillText(
+    `勝率 ${winRate}%    先攻 ${summary.first}    後攻 ${summary.second}`,
+    x + 30,
+    y + 170,
+  )
+}
+
+function drawMobileMatches(
+  context: CanvasRenderingContext2D,
+  page: TournamentReportImagePage,
+  layout: TournamentReportRenderLayout,
+): void {
+  const rounds = page.sections.flatMap((section) => section.rounds)
+  const x = layout.contentX
+  const headingY = 486
+  const headerY = 508
+  const headerHeight = 42
+  const rowHeight = 72
+  const rowStart = headerY + headerHeight
+  const columns = {
+    round: x + 18,
+    opponent: x + 92,
+    playOrder: x + 620,
+    initiative: x + 746,
+    result: x + layout.contentWidth - 20,
+  }
+
+  context.fillStyle = EXPORT_COLORS.accent
+  setFont(context, 23, 900)
+  context.fillText(`MATCHES — 全${rounds.length}戦`, x, headingY)
+  context.fillStyle = MOBILE_EXPORT_COLORS.section
+  context.fillRect(x, headerY, layout.contentWidth, headerHeight)
+  context.fillStyle = MOBILE_EXPORT_COLORS.text
+  setFont(context, 17, 850)
+  context.fillText('R', columns.round, headerY + 28)
+  context.fillText('対戦相手 / 使用推し', columns.opponent, headerY + 28)
+  context.fillText('先後', columns.playOrder, headerY + 28)
+  context.fillText('手番選択', columns.initiative, headerY + 28)
+  context.textAlign = 'right'
+  context.fillText('結果', columns.result, headerY + 28)
+  context.textAlign = 'left'
+
+  rounds.forEach((round, index) => {
+    const y = rowStart + index * rowHeight
+    context.fillStyle =
+      index % 2 === 0
+        ? MOBILE_EXPORT_COLORS.row
+        : MOBILE_EXPORT_COLORS.rowAlternate
+    context.fillRect(x, y, layout.contentWidth, rowHeight)
+    context.fillStyle = MOBILE_EXPORT_COLORS.border
+    context.fillRect(x, y + rowHeight - 1, layout.contentWidth, 1)
+
+    context.fillStyle = EXPORT_COLORS.accent
+    setFont(context, 21, 900)
+    context.fillText(round.label, columns.round, y + 44)
+    context.fillStyle = MOBILE_EXPORT_COLORS.text
+    setFont(context, 21, 850)
+    context.fillText(
+      ellipsize(context, round.opponent || '対戦相手未入力', 500),
+      columns.opponent,
+      y + 44,
+    )
+    setFont(context, 19, 750)
+    context.fillText(round.playOrder || '—', columns.playOrder, y + 44)
+    context.fillText(
+      mobileInitiativeLabel(round.initiative),
+      columns.initiative,
+      y + 44,
+    )
+    context.fillStyle = mobileResultColor(round.result)
+    setFont(context, 22, 900)
+    context.textAlign = 'right'
+    context.fillText(round.result || '未入力', columns.result, y + 44)
+    context.textAlign = 'left'
+  })
+}
+
+function drawMobileFooter(
+  context: CanvasRenderingContext2D,
+  layout: TournamentReportRenderLayout,
+): void {
+  context.textAlign = 'right'
+  context.fillStyle = MOBILE_EXPORT_COLORS.text
+  setFont(context, 24, 900)
+  context.fillText('HLSieve DB', layout.width - layout.contentX, 1296)
+  context.fillStyle = MOBILE_EXPORT_COLORS.muted
+  setFont(context, 18, 700)
+  context.fillText('hlsieve.com', layout.width - layout.contentX, 1326)
+  context.textAlign = 'left'
+}
+
+function drawMobileTournamentReportImagePage(
+  context: CanvasRenderingContext2D,
+  page: TournamentReportImagePage,
+  layout: TournamentReportRenderLayout,
+): void {
+  context.fillStyle = MOBILE_EXPORT_COLORS.background
+  context.fillRect(0, 0, layout.width, layout.height)
+  drawMobileHeader(context, page, layout)
+  drawMobileRecord(context, page, layout)
+  drawMobileMatches(context, page, layout)
+  drawMobileFooter(context, layout)
+}
+
 export function drawTournamentReportImagePage(
   context: CanvasRenderingContext2D,
   page: TournamentReportImagePage,
@@ -430,6 +672,10 @@ export function drawTournamentReportImagePage(
   const layout = RENDER_LAYOUTS[page.preset]
   context.textBaseline = 'alphabetic'
   context.textAlign = 'left'
+  if (page.preset === 'mobile_4_5') {
+    drawMobileTournamentReportImagePage(context, page, layout)
+    return
+  }
   context.fillStyle = EXPORT_COLORS.background
   context.fillRect(0, 0, layout.width, layout.height)
   drawHeader(context, page, layout)

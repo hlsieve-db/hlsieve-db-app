@@ -38,6 +38,8 @@ function makeCard(): Card {
 const report: TournamentReport = {
   tournamentName: '日本語大会',
   placement: '優勝',
+  participantCount: 16,
+  eventDate: '2026-09-16',
   selfOshiCardNumber: 'OSHI-001',
   swissRounds: [
     {
@@ -54,6 +56,7 @@ const report: TournamentReport = {
 
 function createCanvasHarness() {
   const text: string[] = []
+  const styledText: { value: string; color: string }[] = []
   const operations: string[] = []
   const context = {
     fillStyle: '',
@@ -65,6 +68,7 @@ function createCanvasHarness() {
     },
     fillText: (value: string, x: number, y: number) => {
       text.push(value)
+      styledText.push({ value, color: String(context.fillStyle) })
       operations.push(`text:${value}:${x}:${y}`)
     },
     measureText: (value: string) => ({ width: Array.from(value).length * 16 }),
@@ -78,7 +82,7 @@ function createCanvasHarness() {
     }),
   } as unknown as HTMLCanvasElement
   const factory: TournamentReportCanvasFactory = vi.fn(() => canvas)
-  return { canvas, context, factory, operations, text }
+  return { canvas, context, factory, operations, styledText, text }
 }
 
 describe('generateTournamentReportImages', () => {
@@ -99,11 +103,22 @@ describe('generateTournamentReportImages', () => {
     expect(file.page.preset).toBe('mobile_4_5')
     const renderedText = harness.text.join(' ')
     for (const expected of [
+      '大会成績',
       '日本語大会',
       '優勝',
-      '使用推し：宝鐘マリン',
-      '⚀○',
-      '⚀×',
+      '参加人数 16人',
+      '開催日 2026/09/16',
+      '使用推し',
+      '宝鐘マリン',
+      'RECORD',
+      '1-1-1',
+      'MATCHES — 全3戦',
+      '対戦相手 / 使用推し',
+      '先後',
+      '手番選択',
+      '結果',
+      '○',
+      '×',
       '○ WIN',
       '△ DRAW',
       '× LOSE',
@@ -112,6 +127,8 @@ describe('generateTournamentReportImages', () => {
     ]) {
       expect(renderedText).toContain(expected)
     }
+    expect(renderedText).not.toContain('非公式ファンメイドツール')
+    expect(renderedText).not.toContain('TOURNAMENT REPORT')
   })
 
   it('keeps the explicit landscape preset at 1600x900', async () => {
@@ -131,6 +148,8 @@ describe('generateTournamentReportImages', () => {
       height: 900,
       page: { preset: 'landscape_16_9' },
     })
+    expect(harness.text).toContain('TOURNAMENT REPORT')
+    expect(harness.text).toContain('非公式ファンメイドツール')
   })
 
   it('renders the 4:5 header as four readable information levels', async () => {
@@ -147,9 +166,9 @@ describe('generateTournamentReportImages', () => {
       return Number(operation?.split(':').at(-1))
     }
 
-    expect(yFor('TOURNAMENT REPORT')).toBeLessThan(yFor('日本語大会'))
-    expect(yFor('日本語大会')).toBeLessThan(yFor('使用推し：宝鐘マリン'))
-    expect(yFor('使用推し：宝鐘マリン')).toBeLessThan(yFor('優勝'))
+    expect(yFor('大会成績')).toBeLessThan(yFor('日本語大会'))
+    expect(yFor('日本語大会')).toBeLessThan(yFor('使用推し'))
+    expect(yFor('使用推し')).toBeLessThan(yFor('宝鐘マリン'))
   })
 
   it('keeps maximum-case rows inside both preset content areas', () => {
@@ -160,7 +179,7 @@ describe('generateTournamentReportImages', () => {
     }
     for (const preset of ['mobile_4_5', 'landscape_16_9'] as const) {
       const rowWidth = preset === 'mobile_4_5' ? 984 : 1472
-      const rowHeight = preset === 'mobile_4_5' ? 92 : 50
+      const rowHeight = preset === 'mobile_4_5' ? 72 : 50
       const footerTop = preset === 'mobile_4_5' ? 1270 : 840
       const pages = buildTournamentReportImagePages(
         maximumReport,
@@ -184,6 +203,21 @@ describe('generateTournamentReportImages', () => {
         expect(Math.max(...rowBottoms)).toBeLessThan(footerTop)
       }
     }
+  })
+
+  it('uses the fixed 4:5 result colors without changing result text', async () => {
+    const harness = createCanvasHarness()
+    await generateTournamentReportImages(report, [makeCard()], {
+      createCanvas: harness.factory,
+    })
+
+    expect(harness.styledText).toEqual(
+      expect.arrayContaining([
+        { value: '○ WIN', color: '#c62828' },
+        { value: '△ DRAW', color: '#222222' },
+        { value: '× LOSE', color: '#1565c0' },
+      ]),
+    )
   })
 
   it('does not fetch or draw Card.imageUrl', async () => {
