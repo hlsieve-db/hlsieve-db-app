@@ -1,6 +1,7 @@
 import { AppNavigation } from '../components/AppNavigation'
 import { DISCLAIMER_METADATA } from '../domain/site/metadata'
 import { useDocumentMetadata } from '../hooks/useDocumentMetadata'
+import { Link } from 'react-router-dom'
 
 export function DisclaimerPage() {
   useDocumentMetadata(DISCLAIMER_METADATA)
@@ -94,7 +95,8 @@ export function DisclaimerPage() {
             </ul>
           </div>
           <p>
-            現時点では問い合わせ窓口を設けていないため、営利利用に該当するか判断が難しい場合は利用をお控えください。
+            営利利用に該当するか判断が難しい場合は利用をお控えください。ご連絡が必要な場合は
+            <Link to="/contact">お問い合わせ</Link> からお知らせください。
           </p>
         </section>
       </div>

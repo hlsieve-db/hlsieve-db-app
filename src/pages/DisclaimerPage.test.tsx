@@ -62,9 +62,10 @@ describe('DisclaimerPage', () => {
     expect(
       screen.getByText(/第三者権利物の利用は、各権利者のルール/),
     ).toBeVisible()
-    expect(
-      screen.getByText(/現時点では問い合わせ窓口を設けていない/),
-    ).toBeVisible()
+    expect(screen.getByRole('link', { name: 'お問い合わせ' })).toHaveAttribute(
+      'href',
+      '/contact',
+    )
     expect(
       screen.getByText(/判断が難しい場合は利用をお控えください/),
     ).toBeVisible()

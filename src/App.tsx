@@ -6,6 +6,7 @@ import { CardSearchPage } from './pages/CardSearchPage'
 import { DeckEditPage } from './pages/DeckEditPage'
 import { DeckComparePage } from './pages/DeckComparePage'
 import { DisclaimerPage } from './pages/DisclaimerPage'
+import { ContactPage } from './pages/ContactPage'
 import { FavoriteCardsPage } from './pages/FavoriteCardsPage'
 import { RecentlyViewedCardsPage } from './pages/RecentlyViewedCardsPage'
 import { MulliganPage } from './pages/MulliganPage'
@@ -42,6 +43,7 @@ function App() {
         <Route path="/tournament-history" element={<TournamentHistoryPage />} />
         <Route path="/tournament-stats" element={<TournamentStatsPage />} />
         <Route path="/disclaimer" element={<DisclaimerPage />} />
+        <Route path="/contact" element={<ContactPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
       <AppFooter />

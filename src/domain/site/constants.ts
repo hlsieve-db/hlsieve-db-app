@@ -6,6 +6,8 @@ export const SITE_SUBTITLE = 'ホロライブOCGカード検索DB'
 
 export const SITE_ORIGIN = siteConfig.origin
 
+export const CONTACT_FORM_URL = 'https://forms.gle/eBNTn6chJ3Bv52nx8'
+
 export const DEFAULT_DOCUMENT_TITLE = `${SITE_NAME} | ${SITE_SUBTITLE}`
 
 export const DEFAULT_META_DESCRIPTION =

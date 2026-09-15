@@ -122,6 +122,14 @@ export const DISCLAIMER_METADATA: PageMetadata = {
   robots: 'noindex,follow',
 }
 
+export const CONTACT_METADATA: PageMetadata = {
+  title: 'お問い合わせ | HLSieve DB',
+  description:
+    'HLSieve DBへのお問い合わせページです。カード情報の誤り、不具合、ご要望、権利関係・削除依頼などを受け付けています。',
+  canonicalPath: '/contact',
+  robots: 'index,follow',
+}
+
 export function buildCardDetailMetadata(card: Card): PageMetadata {
   return {
     title: `${card.name} (${card.cardNumber}) | ${SITE_NAME}`,

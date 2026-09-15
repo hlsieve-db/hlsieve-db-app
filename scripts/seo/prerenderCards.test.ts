@@ -55,7 +55,7 @@ describe('Card Detail static prerender', () => {
     const routes = buildPrerenderRoutes(template, data.cards)
     const rerun = buildPrerenderRoutes(template, [...data.cards].reverse())
 
-    expect(routes).toHaveLength(1394)
+    expect(routes).toHaveLength(1395)
     expect(
       routes.filter((route) => route.routePath.startsWith('/cards/')),
     ).toHaveLength(1381)
@@ -142,8 +142,15 @@ describe('Card Detail static prerender', () => {
     expect(disclaimer('link[rel="canonical"]').attr('href')).toBe(
       `${SITE_ORIGIN}/disclaimer`,
     )
-    expect(routes[10].outputPath).toBe('deck-compare.html')
-    const deckComparison = load(routes[10].html)
+    expect(routes[10].outputPath).toBe('contact.html')
+    const contact = load(routes[10].html)
+    expect(contact('title').text()).toBe('お問い合わせ | HLSieve DB')
+    expect(contact('meta[name="robots"]').attr('content')).toBe('index,follow')
+    expect(contact('link[rel="canonical"]').attr('href')).toBe(
+      `${SITE_ORIGIN}/contact`,
+    )
+    expect(routes[11].outputPath).toBe('deck-compare.html')
+    const deckComparison = load(routes[11].html)
     expect(deckComparison('title').text()).toBe('デッキ比較 | HLSieve DB')
     expect(deckComparison('meta[name="robots"]').attr('content')).toBe(
       'noindex,follow',
@@ -151,8 +158,8 @@ describe('Card Detail static prerender', () => {
     expect(deckComparison('link[rel="canonical"]').attr('href')).toBe(
       `${SITE_ORIGIN}/deck-compare`,
     )
-    expect(routes[11].outputPath).toBe('favorites.html')
-    const favorites = load(routes[11].html)
+    expect(routes[12].outputPath).toBe('favorites.html')
+    const favorites = load(routes[12].html)
     expect(favorites('title').text()).toBe('お気に入りカード | HLSieve DB')
     expect(favorites('meta[name="robots"]').attr('content')).toBe(
       'noindex,follow',
@@ -160,8 +167,8 @@ describe('Card Detail static prerender', () => {
     expect(favorites('link[rel="canonical"]').attr('href')).toBe(
       `${SITE_ORIGIN}/favorites`,
     )
-    expect(routes[12].outputPath).toBe('recent.html')
-    const recent = load(routes[12].html)
+    expect(routes[13].outputPath).toBe('recent.html')
+    const recent = load(routes[13].html)
     expect(recent('title').text()).toBe('最近見たカード | HLSieve DB')
     expect(recent('meta[name="robots"]').attr('content')).toBe('noindex,follow')
     expect(recent('link[rel="canonical"]').attr('href')).toBe(
