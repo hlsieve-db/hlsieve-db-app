@@ -195,6 +195,21 @@ function group(name: string) {
 }
 
 describe('CardSearchPage loading and results', () => {
+  it('opens the mobile filters from the corrected label and preserves its active count', async () => {
+    renderPage({ entries: ['/cards?color=red&type=oshi'] })
+
+    const trigger = screen.getByRole('button', { name: /検索詳細条件/ })
+    expect(trigger).toHaveTextContent('2')
+    expect(
+      screen.queryByRole('button', { name: /^絞り込み/ }),
+    ).not.toBeInTheDocument()
+
+    fireEvent.click(trigger)
+    expect(screen.getByRole('dialog', { name: '絞り込み' })).toBeVisible()
+    fireEvent.keyDown(document, { key: 'Escape' })
+    await waitFor(() => expect(trigger).toHaveFocus())
+  })
+
   it('shows the actual latest publication date and complete update summary', () => {
     renderPage()
 

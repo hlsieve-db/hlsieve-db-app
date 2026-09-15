@@ -222,7 +222,7 @@ export function CardSearchPage({
             className="button button--secondary"
             onClick={() => setMobileSheetOpen(true)}
           >
-            絞り込み
+            検索詳細条件
             {urlState.colors.length +
               urlState.cardTypes.length +
               urlState.bloom.length +
