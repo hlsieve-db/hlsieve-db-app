@@ -194,6 +194,13 @@ function group(name: string) {
   return screen.getByRole('group', { name })
 }
 
+function openAdvancedFilters() {
+  const disclosure = screen.getByRole('button', { name: /詳細な絞り込み/ })
+  if (disclosure.getAttribute('aria-expanded') !== 'true') {
+    fireEvent.click(disclosure)
+  }
+}
+
 describe('CardSearchPage loading and results', () => {
   it('shows the actual latest publication date and complete update summary', () => {
     renderPage()
@@ -416,6 +423,7 @@ describe('CardSearchPage query and filters', () => {
   it('wires all structured filter groups and canonical modes to URL', async () => {
     renderPage({ entries: ['/cards?page=2'] })
     await screen.findByText('2 / 2ページ')
+    openAdvancedFilters()
 
     fireEvent.click(within(group('色')).getByRole('checkbox', { name: '赤' }))
     fireEvent.change(screen.getByLabelText('色の一致条件'), {
@@ -463,6 +471,7 @@ describe('CardSearchPage query and filters', () => {
       within(group('色')).getByRole('checkbox', { name: '赤' }),
     ).not.toBeChecked()
 
+    openAdvancedFilters()
     fireEvent.click(
       within(group('Bloom / Buzz')).getByRole('checkbox', { name: 'Buzz' }),
     )

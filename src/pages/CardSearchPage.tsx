@@ -15,6 +15,8 @@ import { FavoriteStatus } from '../components/favorites/FavoriteStatus'
 import { LatestUpdateNotice } from '../components/LatestUpdateNotice'
 import { DeckTargetSelector } from '../components/decks/DeckTargetSelector'
 import { CardSearchFilters } from '../components/search/CardSearchFilters'
+import { ActiveFilterSummary } from '../components/search/ActiveFilterSummary'
+import { MobileFilterSheet } from '../components/search/MobileFilterSheet'
 import { CardSearchResults } from '../components/search/CardSearchResults'
 import { SavedSearchPresets } from '../components/search/SavedSearchPresets'
 import type { CardsDataFile } from '../domain/cards/types'
@@ -79,6 +81,16 @@ export function CardSearchPage({
   })
   const [loadAttempt, setLoadAttempt] = useState(0)
   const [queryDraft, setQueryDraft] = useState(urlState.query)
+  const [advancedOpen, setAdvancedOpen] = useState(
+    () =>
+      window.matchMedia('(min-width: 1280px)').matches ||
+      urlState.cardTypes.length > 0 ||
+      urlState.bloom.length > 0 ||
+      urlState.criticalColors.length > 0 ||
+      urlState.effectTags.length > 0,
+  )
+  const [mobileSheetOpen, setMobileSheetOpen] = useState(false)
+  const mobileTriggerRef = useRef<HTMLButtonElement>(null)
   const isComposing = useRef(false)
   const deckQuickEdit = useSavedDeckQuickEdit(repository)
 
@@ -211,10 +223,66 @@ export function CardSearchPage({
           />
         </label>
 
-        <CardSearchFilters
-          state={urlState}
-          onChange={(patch) => updateSearch(patch)}
-        />
+        <div className="mobile-filter-bar">
+          <button
+            ref={mobileTriggerRef}
+            type="button"
+            className="button button--secondary"
+            onClick={() => setMobileSheetOpen(true)}
+          >
+            絞り込み
+            {urlState.colors.length +
+              urlState.cardTypes.length +
+              urlState.bloom.length +
+              urlState.criticalColors.length +
+              urlState.effectTags.length >
+              0 && (
+              <span className="filter-count-badge">
+                {urlState.colors.length +
+                  urlState.cardTypes.length +
+                  urlState.bloom.length +
+                  urlState.criticalColors.length +
+                  urlState.effectTags.length}
+              </span>
+            )}
+          </button>
+        </div>
+        <div className="desktop-filter-panel">
+          <CardSearchFilters
+            state={urlState}
+            onChange={(patch) => updateSearch(patch)}
+            variant="basic"
+          />
+          <section
+            className="advanced-filter-disclosure"
+            aria-labelledby="advanced-filter-heading"
+          >
+            <button
+              type="button"
+              className="advanced-filter-disclosure__toggle"
+              aria-expanded={advancedOpen}
+              aria-controls="advanced-filter-content"
+              onClick={() => setAdvancedOpen((open) => !open)}
+            >
+              <span id="advanced-filter-heading">詳細な絞り込み</span>
+              <span className="filter-count-badge">
+                {urlState.cardTypes.length +
+                  urlState.bloom.length +
+                  urlState.criticalColors.length +
+                  urlState.effectTags.length}
+              </span>
+            </button>
+            {advancedOpen && (
+              <div id="advanced-filter-content">
+                <CardSearchFilters
+                  state={urlState}
+                  onChange={(patch) => updateSearch(patch)}
+                  variant="advanced"
+                />
+              </div>
+            )}
+          </section>
+        </div>
 
         <div className="search-actions">
           <label htmlFor="card-sort">
@@ -243,6 +311,24 @@ export function CardSearchPage({
           </button>
         </div>
       </section>
+
+      <ActiveFilterSummary
+        state={urlState}
+        onRemove={(patch) => updateSearch(patch)}
+        onClear={() => navigateToState(DEFAULT_SEARCH_URL_STATE, false)}
+      />
+
+      {mobileSheetOpen && (
+        <MobileFilterSheet
+          state={urlState}
+          onChange={(patch) => updateSearch(patch)}
+          resultCount={results.totalItems}
+          onClose={() => {
+            setMobileSheetOpen(false)
+            requestAnimationFrame(() => mobileTriggerRef.current?.focus())
+          }}
+        />
+      )}
 
       <section
         className="deck-quick-add-panel search-deck-target"

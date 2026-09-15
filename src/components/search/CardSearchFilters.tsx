@@ -32,6 +32,8 @@ export type CardSearchFilterState = Pick<
 type CardSearchFiltersProps = {
   state: CardSearchFilterState
   onChange: (patch: Partial<CardSearchFilterState>) => void
+  variant?: 'all' | 'basic' | 'advanced'
+  idPrefix?: string
 }
 
 function toggleValue<T>(values: readonly T[], value: T): T[] {
@@ -92,106 +94,141 @@ function Checkboxes<T extends string>({
             name={name}
             value={value}
             checked={selected.includes(value)}
+            aria-label={
+              value === 'second_turn_one' ? '後攻1ターン目限定効果' : label
+            }
             onChange={() => onToggle(value)}
           />
-          <span>{label}</span>
+          <span
+            title={
+              value === 'second_turn_one' ? '後攻1ターン目限定効果' : undefined
+            }
+          >
+            {label}
+          </span>
         </label>
       ))}
     </div>
   )
 }
 
-export function CardSearchFilters({ state, onChange }: CardSearchFiltersProps) {
+export function CardSearchFilters({
+  state,
+  onChange,
+  variant = 'all',
+  idPrefix = '',
+}: CardSearchFiltersProps) {
+  const showBasic = variant !== 'advanced'
+  const showAdvanced = variant !== 'basic'
   return (
     <div className="filter-groups">
-      <fieldset className="filter-group">
-        <legend>色</legend>
-        <div className="filter-group__mode">
-          <ModeSelect
-            id="color-mode"
-            label="色の一致条件"
-            value={state.colorMode}
-            disabled={state.colors.length === 0}
-            onChange={(colorMode) => onChange({ colorMode })}
+      {showBasic && (
+        <fieldset className="filter-group">
+          <legend>色</legend>
+          <div className="filter-group__mode">
+            <ModeSelect
+              id={`${idPrefix}color-mode`}
+              label="色の一致条件"
+              value={state.colorMode}
+              disabled={state.colors.length === 0}
+              onChange={(colorMode) => onChange({ colorMode })}
+            />
+          </div>
+          <Checkboxes<CardColor>
+            name="color"
+            labels={CARD_COLOR_LABELS}
+            selected={state.colors}
+            onToggle={(color) =>
+              onChange({ colors: toggleValue(state.colors, color) })
+            }
           />
-        </div>
-        <Checkboxes<CardColor>
-          name="color"
-          labels={CARD_COLOR_LABELS}
-          selected={state.colors}
-          onToggle={(color) =>
-            onChange({ colors: toggleValue(state.colors, color) })
-          }
-        />
-      </fieldset>
+        </fieldset>
+      )}
 
-      <fieldset className="filter-group">
-        <legend>カードタイプ</legend>
-        <Checkboxes<Card['cardType']>
-          name="card-type"
-          labels={CARD_TYPE_LABELS}
-          selected={state.cardTypes}
-          onToggle={(cardType) =>
-            onChange({ cardTypes: toggleValue(state.cardTypes, cardType) })
-          }
-        />
-      </fieldset>
-
-      <fieldset className="filter-group">
-        <legend>Bloom / Buzz</legend>
-        <Checkboxes<BloomFilterValue>
-          name="bloom"
-          labels={BLOOM_FILTER_LABELS}
-          selected={state.bloom}
-          onToggle={(bloom) =>
-            onChange({ bloom: toggleValue(state.bloom, bloom) })
-          }
-        />
-      </fieldset>
-
-      <fieldset className="filter-group">
-        <legend>Critical</legend>
-        <div className="filter-group__mode">
-          <ModeSelect
-            id="critical-mode"
-            label="Criticalの一致条件"
-            value={state.criticalColorMode}
-            disabled={state.criticalColors.length === 0}
-            onChange={(criticalColorMode) => onChange({ criticalColorMode })}
+      {showAdvanced && (
+        <fieldset className="filter-group">
+          <legend>カードタイプ</legend>
+          <Checkboxes<Card['cardType']>
+            name="card-type"
+            labels={CARD_TYPE_LABELS}
+            selected={state.cardTypes}
+            onToggle={(cardType) =>
+              onChange({ cardTypes: toggleValue(state.cardTypes, cardType) })
+            }
           />
-        </div>
-        <Checkboxes<CriticalColor>
-          name="critical-color"
-          labels={CRITICAL_COLOR_LABELS}
-          selected={state.criticalColors}
-          onToggle={(criticalColor) =>
-            onChange({
-              criticalColors: toggleValue(state.criticalColors, criticalColor),
-            })
-          }
-        />
-      </fieldset>
+        </fieldset>
+      )}
 
-      <fieldset className="filter-group filter-group--wide">
-        <legend>効果タグ</legend>
-        <div className="filter-group__mode">
-          <ModeSelect
-            id="effect-tag-mode"
-            label="効果タグの一致条件"
-            value={state.effectTagMode}
-            disabled={state.effectTags.length === 0}
-            onChange={(effectTagMode) => onChange({ effectTagMode })}
+      {showAdvanced && (
+        <fieldset className="filter-group">
+          <legend>Bloom / Buzz</legend>
+          <Checkboxes<BloomFilterValue>
+            name="bloom"
+            labels={BLOOM_FILTER_LABELS}
+            selected={state.bloom}
+            onToggle={(bloom) =>
+              onChange({ bloom: toggleValue(state.bloom, bloom) })
+            }
           />
-        </div>
-        <Checkboxes<EffectTag>
-          name="effect-tag"
-          labels={EFFECT_TAG_LABELS}
-          selected={state.effectTags}
-          onToggle={(effectTag) =>
-            onChange({ effectTags: toggleValue(state.effectTags, effectTag) })
-          }
-        />
-      </fieldset>
+        </fieldset>
+      )}
+
+      {showAdvanced && (
+        <fieldset className="filter-group">
+          <legend>Critical</legend>
+          <div className="filter-group__mode">
+            <ModeSelect
+              id={`${idPrefix}critical-mode`}
+              label="Criticalの一致条件"
+              value={state.criticalColorMode}
+              disabled={state.criticalColors.length === 0}
+              onChange={(criticalColorMode) => onChange({ criticalColorMode })}
+            />
+          </div>
+          <Checkboxes<CriticalColor>
+            name="critical-color"
+            labels={CRITICAL_COLOR_LABELS}
+            selected={state.criticalColors}
+            onToggle={(criticalColor) =>
+              onChange({
+                criticalColors: toggleValue(
+                  state.criticalColors,
+                  criticalColor,
+                ),
+              })
+            }
+          />
+        </fieldset>
+      )}
+
+      {showAdvanced && (
+        <fieldset
+          className="filter-group filter-group--wide"
+          id="effect-tags-section"
+        >
+          <legend>効果タグ</legend>
+          <div className="filter-group__mode">
+            <ModeSelect
+              id={`${idPrefix}effect-tag-mode`}
+              label="効果タグの一致条件"
+              value={state.effectTagMode}
+              disabled={state.effectTags.length === 0}
+              onChange={(effectTagMode) => onChange({ effectTagMode })}
+            />
+          </div>
+          <Checkboxes<EffectTag>
+            name="effect-tag"
+            labels={EFFECT_TAG_LABELS}
+            selected={state.effectTags}
+            onToggle={(effectTag) =>
+              onChange({ effectTags: toggleValue(state.effectTags, effectTag) })
+            }
+          />
+          <p className="effect-tag-note">
+            「後攻1T効果」は「後攻1ターン目限定効果」の短縮表示
+          </p>
+        </fieldset>
+      )}
     </div>
   )
 }
