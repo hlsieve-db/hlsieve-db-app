@@ -63,6 +63,7 @@ describe('SavedSearchPresets', () => {
       ...DEFAULT_SEARCH_URL_STATE,
       query: 'フワモコ',
       colors: ['red'],
+      cardTypes: ['support_tool'],
       sort: 'card_number_asc',
       page: 3,
     }
@@ -202,6 +203,39 @@ describe('SavedSearchPresets', () => {
       ...DEFAULT_SEARCH_URL_STATE,
       bloom: ['buzz'],
       sort: 'release_date_desc',
+      page: 1,
+    })
+  })
+
+  it('expands a legacy support preset when it is applied', async () => {
+    const onApply = vi.fn()
+    const legacyPreset = {
+      ...savedPreset('preset-legacy', '旧サポート検索'),
+      searchState: {
+        ...toSavedSearchState(DEFAULT_SEARCH_URL_STATE),
+        cardTypes: ['support'],
+      },
+    } as unknown as SavedSearchPreset
+
+    render(
+      <SavedSearchPresets
+        currentState={DEFAULT_SEARCH_URL_STATE}
+        repository={repository([legacyPreset])}
+        onApply={onApply}
+      />,
+    )
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: '旧サポート検索' }),
+    )
+    expect(onApply).toHaveBeenCalledWith({
+      ...DEFAULT_SEARCH_URL_STATE,
+      cardTypes: [
+        'support_limited',
+        'support_general',
+        'support_tool',
+        'support_fan',
+      ],
       page: 1,
     })
   })

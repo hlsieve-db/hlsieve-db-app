@@ -1,12 +1,12 @@
 import type { Card, CardColor, CriticalColor, EffectTag } from '../cards/types'
 import { normalizeSearchQuery } from './normalizeSearchQuery'
-import type { BloomFilterValue, MatchMode } from './types'
+import type { BloomFilterValue, CardTypeFilterValue, MatchMode } from './types'
 
 export type SearchCardsInput = {
   query: string
   colors?: readonly CardColor[]
   colorMode?: MatchMode
-  cardTypes?: readonly Card['cardType'][]
+  cardTypes?: readonly CardTypeFilterValue[]
   bloom?: readonly BloomFilterValue[]
   criticalColors?: readonly CriticalColor[]
   criticalColorMode?: MatchMode
@@ -15,6 +15,16 @@ export type SearchCardsInput = {
 }
 
 export type TextSearchInput = SearchCardsInput
+
+const SUPPORT_FILTER_CATEGORIES = {
+  support_limited: 'limited',
+  support_general: 'general',
+  support_tool: 'tool',
+  support_fan: 'fan',
+} as const satisfies Record<
+  Exclude<CardTypeFilterValue, Card['cardType']>,
+  NonNullable<Card['supportSearchCategory']>
+>
 
 function matchesSelection<T>(
   cardValues: readonly T[],
@@ -45,6 +55,23 @@ function matchesBloom(
   })
 }
 
+function matchesCardTypes(
+  card: Card,
+  selectedValues: readonly CardTypeFilterValue[] | undefined,
+): boolean {
+  if (!selectedValues || selectedValues.length === 0) return true
+  return [...new Set(selectedValues)].some((value) => {
+    if (value === 'oshi' || value === 'holomem' || value === 'cheer') {
+      return card.cardType === value
+    }
+    const supportCategory = SUPPORT_FILTER_CATEGORIES[value]
+    return (
+      card.cardType === 'support' &&
+      card.supportSearchCategory === supportCategory
+    )
+  })
+}
+
 export function searchCards(
   cards: readonly Card[],
   input: SearchCardsInput,
@@ -54,9 +81,7 @@ export function searchCards(
     (card) =>
       tokens.every((token) => card.searchText.includes(token)) &&
       matchesSelection(card.colors, input.colors, input.colorMode ?? 'or') &&
-      (!input.cardTypes ||
-        input.cardTypes.length === 0 ||
-        input.cardTypes.includes(card.cardType)) &&
+      matchesCardTypes(card, input.cardTypes) &&
       matchesBloom(card, input.bloom) &&
       matchesSelection(
         card.criticalColors,

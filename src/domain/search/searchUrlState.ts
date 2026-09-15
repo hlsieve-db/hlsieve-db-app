@@ -3,20 +3,26 @@ import {
   CRITICAL_COLOR_LABELS,
   EFFECT_TAG_LABELS,
 } from '../cards/constants'
-import type { Card, CardColor, CriticalColor, EffectTag } from '../cards/types'
+import type { CardColor, CriticalColor, EffectTag } from '../cards/types'
 import {
   BLOOM_FILTER_LABELS,
+  CARD_TYPE_FILTER_LABELS,
   DEFAULT_CARD_PAGE_SIZE,
   DEFAULT_SEARCH_STATE,
 } from './constants'
 import { normalizeSearchQuery } from './normalizeSearchQuery'
-import type { BloomFilterValue, CardSort, MatchMode } from './types'
+import type {
+  BloomFilterValue,
+  CardSort,
+  CardTypeFilterValue,
+  MatchMode,
+} from './types'
 
 export type SearchUrlState = {
   query: string
   colors: readonly CardColor[]
   colorMode: MatchMode
-  cardTypes: readonly Card['cardType'][]
+  cardTypes: readonly CardTypeFilterValue[]
   bloom: readonly BloomFilterValue[]
   criticalColors: readonly CriticalColor[]
   criticalColorMode: MatchMode
@@ -43,12 +49,15 @@ export const DEFAULT_SEARCH_URL_STATE: SearchUrlState = {
 export const SEARCH_URL_PAGE_SIZE = DEFAULT_CARD_PAGE_SIZE
 
 const COLOR_ORDER = Object.keys(CARD_COLOR_LABELS) as CardColor[]
-const CARD_TYPE_ORDER = [
-  'oshi',
-  'holomem',
-  'support',
-  'cheer',
-] satisfies Card['cardType'][]
+const CARD_TYPE_ORDER = Object.keys(
+  CARD_TYPE_FILTER_LABELS,
+) as CardTypeFilterValue[]
+const LEGACY_SUPPORT_CARD_TYPES = [
+  'support_limited',
+  'support_general',
+  'support_tool',
+  'support_fan',
+] satisfies CardTypeFilterValue[]
 const BLOOM_ORDER = Object.keys(BLOOM_FILTER_LABELS) as BloomFilterValue[]
 const CRITICAL_COLOR_ORDER = Object.keys(
   CRITICAL_COLOR_LABELS,
@@ -69,6 +78,22 @@ function parseRepeated<T extends string>(
 ): T[] {
   const received = new Set(params.getAll(name))
   return order.filter((value) => received.has(value))
+}
+
+export function normalizeCardTypeFilterValues(
+  values: readonly string[],
+): CardTypeFilterValue[] {
+  const received = new Set(values)
+  if (received.has('support')) {
+    LEGACY_SUPPORT_CARD_TYPES.forEach((value) => received.add(value))
+  }
+  return CARD_TYPE_ORDER.filter((value) => received.has(value))
+}
+
+export function isCardTypeFilterValue(
+  value: string,
+): value is CardTypeFilterValue {
+  return CARD_TYPE_ORDER.includes(value as CardTypeFilterValue)
 }
 
 function firstValid<T extends string>(
@@ -107,7 +132,7 @@ export function parseSearchUrlState(
       MATCH_MODES,
       DEFAULT_SEARCH_URL_STATE.colorMode,
     ),
-    cardTypes: parseRepeated(params, 'type', CARD_TYPE_ORDER),
+    cardTypes: normalizeCardTypeFilterValues(params.getAll('type')),
     bloom: parseRepeated(params, 'bloom', BLOOM_ORDER),
     criticalColors: parseRepeated(params, 'critical', CRITICAL_COLOR_ORDER),
     criticalColorMode: firstValid(

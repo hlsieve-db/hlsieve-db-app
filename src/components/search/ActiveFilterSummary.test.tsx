@@ -49,4 +49,47 @@ describe('ActiveFilterSummary', () => {
     fireEvent.click(screen.getByRole('button', { name: '青の条件を外す' }))
     expect(onRemove).toHaveBeenCalledWith({ colors: [] })
   })
+
+  it('shows up to two support categories as individually removable chips', () => {
+    const onRemove = vi.fn()
+    render(
+      <ActiveFilterSummary
+        state={{
+          ...empty,
+          cardTypes: ['support_limited', 'support_fan'],
+        }}
+        onRemove={onRemove}
+        onClear={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText('サポート（リミテッド）')).toBeVisible()
+    expect(screen.getByText('ファン')).toBeVisible()
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'サポート（リミテッド）の条件を外す',
+      }),
+    )
+    expect(onRemove).toHaveBeenCalledWith({ cardTypes: ['support_fan'] })
+  })
+
+  it('summarizes three or more card types with the existing count rule', () => {
+    const onRemove = vi.fn()
+    render(
+      <ActiveFilterSummary
+        state={{
+          ...empty,
+          cardTypes: ['support_limited', 'support_general', 'support_tool'],
+        }}
+        onRemove={onRemove}
+        onClear={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText('カードタイプ 3')).toBeVisible()
+    fireEvent.click(
+      screen.getByRole('button', { name: 'カードタイプ 3の条件を外す' }),
+    )
+    expect(onRemove).toHaveBeenCalledWith({ cardTypes: [] })
+  })
 })

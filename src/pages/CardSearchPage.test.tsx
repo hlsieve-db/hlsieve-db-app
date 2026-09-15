@@ -94,6 +94,26 @@ function fixtureCards(count = 30): Card[] {
       searchText: 'm-002 赤い推し さーち',
       releaseDate: '2025-01-01',
     }),
+    card('S-LIMITED', 'リミテッドサポート', {
+      cardType: 'support',
+      supportSearchCategory: 'limited',
+      searchText: 's-limited りみてっどさぽーと',
+    }),
+    card('S-GENERAL', '通常サポート', {
+      cardType: 'support',
+      supportSearchCategory: 'general',
+      searchText: 's-general 通常さぽーと',
+    }),
+    card('S-TOOL', 'ツールサポート', {
+      cardType: 'support',
+      supportSearchCategory: 'tool',
+      searchText: 's-tool つーるさぽーと',
+    }),
+    card('S-FAN', 'ファンサポート', {
+      cardType: 'support',
+      supportSearchCategory: 'fan',
+      searchText: 's-fan ふぁんさぽーと',
+    }),
   ]
   const remaining = Array.from(
     { length: Math.max(0, count - featured.length) },
@@ -205,7 +225,21 @@ describe('CardSearchPage loading and results', () => {
     ).not.toBeInTheDocument()
 
     fireEvent.click(trigger)
-    expect(screen.getByRole('dialog', { name: '絞り込み' })).toBeVisible()
+    const dialog = screen.getByRole('dialog', { name: '絞り込み' })
+    expect(dialog).toBeVisible()
+    expect(
+      within(within(dialog).getByRole('group', { name: 'カードタイプ' }))
+        .getAllByRole('checkbox')
+        .map((checkbox) => checkbox.getAttribute('aria-label')),
+    ).toEqual([
+      '推しホロメン',
+      'ホロメン',
+      'サポート（リミテッド）',
+      'サポート（非リミテッド）',
+      'ツール',
+      'ファン',
+      'エール',
+    ])
     fireEvent.keyDown(document, { key: 'Escape' })
     await waitFor(() => expect(trigger).toHaveFocus())
   })
@@ -323,6 +357,29 @@ describe('CardSearchPage loading and results', () => {
 })
 
 describe('CardSearchPage initial URL and navigation', () => {
+  it('restores and canonicalizes the legacy support URL as four categories', async () => {
+    renderPage({ entries: ['/cards?type=support'] })
+
+    expect(
+      await screen.findByRole('heading', { name: 'リミテッドサポート' }),
+    ).toBeVisible()
+    for (const label of [
+      'サポート（リミテッド）',
+      'サポート（非リミテッド）',
+      'ツール',
+      'ファン',
+    ]) {
+      expect(
+        within(group('カードタイプ')).getByRole('checkbox', { name: label }),
+      ).toBeChecked()
+    }
+    await waitFor(() =>
+      expect(screen.getByTestId('location')).toHaveTextContent(
+        '/cards?type=support_limited&type=support_general&type=support_tool&type=support_fan',
+      ),
+    )
+  })
+
   it('restores query, filters, sort, and page from URL', async () => {
     renderPage({
       entries: [
@@ -389,9 +446,70 @@ describe('CardSearchPage initial URL and navigation', () => {
       await screen.findByRole('heading', { name: '青カード' }),
     ).toBeInTheDocument()
   })
+
+  it('restores support categories through back and forward navigation', async () => {
+    renderPage({
+      entries: ['/cards?type=support_tool', '/cards?type=support_fan'],
+      initialIndex: 1,
+    })
+    expect(
+      await screen.findByRole('heading', { name: 'ファンサポート' }),
+    ).toBeVisible()
+
+    fireEvent.click(screen.getByRole('button', { name: '履歴を戻る' }))
+    expect(
+      await screen.findByRole('heading', { name: 'ツールサポート' }),
+    ).toBeVisible()
+    expect(
+      within(group('カードタイプ')).getByRole('checkbox', { name: 'ツール' }),
+    ).toBeChecked()
+
+    fireEvent.click(screen.getByRole('button', { name: '履歴を進む' }))
+    expect(
+      await screen.findByRole('heading', { name: 'ファンサポート' }),
+    ).toBeVisible()
+  })
 })
 
 describe('CardSearchPage query and filters', () => {
+  it('shows the seven card type filters in the final order on desktop', () => {
+    renderPage()
+
+    expect(
+      within(group('カードタイプ'))
+        .getAllByRole('checkbox')
+        .map((checkbox) => checkbox.getAttribute('aria-label')),
+    ).toEqual([
+      '推しホロメン',
+      'ホロメン',
+      'サポート（リミテッド）',
+      'サポート（非リミテッド）',
+      'ツール',
+      'ファン',
+      'エール',
+    ])
+  })
+
+  it.each([
+    ['サポート（リミテッド）', 'リミテッドサポート', 'support_limited'],
+    ['サポート（非リミテッド）', '通常サポート', 'support_general'],
+    ['ツール', 'ツールサポート', 'support_tool'],
+    ['ファン', 'ファンサポート', 'support_fan'],
+  ] as const)(
+    'filters %s through the shared card type controls',
+    async (label, cardName, value) => {
+      renderPage()
+      fireEvent.click(
+        within(group('カードタイプ')).getByRole('checkbox', { name: label }),
+      )
+
+      expect(
+        await screen.findByRole('heading', { name: cardName }),
+      ).toBeVisible()
+      expect(screen.getByTestId('location')).toHaveTextContent(`type=${value}`)
+    },
+  )
+
   it('preserves Japanese input, normalizes matching, resets page, and replaces history', async () => {
     renderPage({
       entries: ['/previous', '/cards?page=2'],

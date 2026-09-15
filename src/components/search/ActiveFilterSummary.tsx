@@ -1,9 +1,11 @@
 import {
   CARD_COLOR_LABELS,
-  CARD_TYPE_LABELS,
   CRITICAL_COLOR_LABELS,
 } from '../../domain/cards/constants'
-import { BLOOM_FILTER_LABELS } from '../../domain/search/constants'
+import {
+  BLOOM_FILTER_LABELS,
+  CARD_TYPE_FILTER_LABELS,
+} from '../../domain/search/constants'
 import type { SearchUrlState } from '../../domain/search/searchUrlState'
 
 export function ActiveFilterSummary({
@@ -29,15 +31,22 @@ export function ActiveFilterSummary({
       patch: { colors: state.colors.filter((item) => item !== value) },
     }),
   )
-  if (state.cardTypes.length)
+  if (state.cardTypes.length > 2)
     chips.push({
-      label:
-        state.cardTypes.length > 2
-          ? `カードタイプ ${state.cardTypes.length}`
-          : state.cardTypes.map((value) => CARD_TYPE_LABELS[value]).join('・'),
+      label: `カードタイプ ${state.cardTypes.length}`,
       key: 'cardTypes',
       patch: { cardTypes: [] },
     })
+  else
+    state.cardTypes.forEach((value) =>
+      chips.push({
+        label: CARD_TYPE_FILTER_LABELS[value],
+        key: `cardType-${value}`,
+        patch: {
+          cardTypes: state.cardTypes.filter((item) => item !== value),
+        },
+      }),
+    )
   state.bloom.forEach((value) =>
     chips.push({
       label: BLOOM_FILTER_LABELS[value],

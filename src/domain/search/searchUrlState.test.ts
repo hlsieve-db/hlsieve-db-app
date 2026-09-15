@@ -95,9 +95,47 @@ describe('search URL colors and card types', () => {
 
   it('accepts every card type in canonical order', () => {
     const state = parseSearchUrlState(
-      '?type=cheer&type=support&type=holomem&type=oshi',
+      '?type=cheer&type=support_fan&type=support_tool&type=support_general&type=support_limited&type=holomem&type=oshi',
     )
-    expect(state.cardTypes).toEqual(['oshi', 'holomem', 'support', 'cheer'])
+    expect(state.cardTypes).toEqual([
+      'oshi',
+      'holomem',
+      'support_limited',
+      'support_general',
+      'support_tool',
+      'support_fan',
+      'cheer',
+    ])
+    expect(serialized(state)).toBe(
+      'type=oshi&type=holomem&type=support_limited&type=support_general&type=support_tool&type=support_fan&type=cheer',
+    )
+  })
+
+  it('expands legacy support to all canonical support categories', () => {
+    const state = parseSearchUrlState('?type=support')
+    expect(state.cardTypes).toEqual([
+      'support_limited',
+      'support_general',
+      'support_tool',
+      'support_fan',
+    ])
+    expect(serialized(state)).toBe(
+      'type=support_limited&type=support_general&type=support_tool&type=support_fan',
+    )
+  })
+
+  it('deduplicates mixed legacy and canonical support values', () => {
+    expect(
+      parseSearchUrlState(
+        '?type=support&type=support_tool&type=holomem&type=support',
+      ).cardTypes,
+    ).toEqual([
+      'holomem',
+      'support_limited',
+      'support_general',
+      'support_tool',
+      'support_fan',
+    ])
   })
 
   it('deduplicates types and ignores invalid or empty values', () => {
@@ -250,7 +288,7 @@ describe('search URL canonical round-trip', () => {
     query: 'フワモコ & Q&A',
     colors: ['colorless', 'blue', 'red'],
     colorMode: 'and',
-    cardTypes: ['support', 'holomem'],
+    cardTypes: ['support_tool', 'holomem'],
     bloom: ['buzz', 'first', 'debut_normal'],
     criticalColors: ['blue', 'red'],
     criticalColorMode: 'and',
@@ -264,7 +302,7 @@ describe('search URL canonical round-trip', () => {
     expect(parseSearchUrlState(serializeSearchUrlState(complete))).toEqual({
       ...complete,
       colors: ['red', 'blue', 'colorless'],
-      cardTypes: ['holomem', 'support'],
+      cardTypes: ['holomem', 'support_tool'],
       bloom: ['debut_normal', 'first', 'buzz'],
       criticalColors: ['red', 'blue'],
       effectTags: ['draw', 'deck_search'],
@@ -273,7 +311,7 @@ describe('search URL canonical round-trip', () => {
 
   it('uses fixed parameter and domain-value ordering', () => {
     expect(serialized(complete)).toBe(
-      'q=%E3%83%95%E3%83%AF%E3%83%A2%E3%82%B3+%26+Q%26A&color=red&color=blue&color=colorless&colorMode=and&type=holomem&type=support&bloom=debut_normal&bloom=first&bloom=buzz&critical=red&critical=blue&criticalMode=and&tag=draw&tag=deck_search&tagMode=or&sort=release_date_desc&page=4',
+      'q=%E3%83%95%E3%83%AF%E3%83%A2%E3%82%B3+%26+Q%26A&color=red&color=blue&color=colorless&colorMode=and&type=holomem&type=support_tool&bloom=debut_normal&bloom=first&bloom=buzz&critical=red&critical=blue&criticalMode=and&tag=draw&tag=deck_search&tagMode=or&sort=release_date_desc&page=4',
     )
   })
 

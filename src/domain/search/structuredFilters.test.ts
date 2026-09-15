@@ -64,7 +64,35 @@ const cards = [
     colors: ['colorless'],
     bloomLevel: 'debut',
     debutType: 'normal',
+    supportSearchCategory: 'general',
     searchText: '無色 さぽーと',
+  }),
+  card({
+    cardNumber: 'LIMITED-001',
+    name: 'リミテッドサポート',
+    cardType: 'support',
+    supportSearchCategory: 'limited',
+    searchText: 'りみてっど さぽーと',
+  }),
+  card({
+    cardNumber: 'TOOL-001',
+    name: 'ツールサポート',
+    cardType: 'support',
+    supportSearchCategory: 'tool',
+    searchText: 'つーる さぽーと',
+  }),
+  card({
+    cardNumber: 'FAN-001',
+    name: 'ファンサポート',
+    cardType: 'support',
+    supportSearchCategory: 'fan',
+    searchText: 'ふぁん さぽーと',
+  }),
+  card({
+    cardNumber: 'UNCLASSIFIED-SUPPORT-001',
+    name: '未分類サポート',
+    cardType: 'support',
+    searchText: '未分類 さぽーと',
   }),
   card({
     cardNumber: 'EXTRA-001',
@@ -147,15 +175,47 @@ describe('structured colors filter', () => {
 })
 
 describe('structured card type filter', () => {
-  it('matches one card type', () => {
+  it('keeps oshi, holomem, and cheer matching their public card types', () => {
     expect(ids({ query: '', cardTypes: ['oshi'] })).toEqual(['BLUE-001'])
+    expect(ids({ query: '', cardTypes: ['holomem'] })).toEqual([
+      'MULTI-001',
+      'RED-001',
+      'SPOT-001',
+      'NONE-001',
+    ])
+    expect(ids({ query: '', cardTypes: ['cheer'] })).toEqual(['EXTRA-001'])
   })
 
-  it('combines selected card types with OR', () => {
-    expect(ids({ query: '', cardTypes: ['oshi', 'support'] })).toEqual([
-      'BLUE-001',
-      'COLORLESS-001',
+  it.each([
+    ['support_limited', ['LIMITED-001']],
+    ['support_general', ['COLORLESS-001']],
+    ['support_tool', ['TOOL-001']],
+    ['support_fan', ['FAN-001']],
+  ] as const)('matches only the %s support category', (cardType, expected) => {
+    expect(ids({ query: '', cardTypes: [cardType] })).toEqual(expected)
+  })
+
+  it('combines support categories with OR', () => {
+    expect(
+      ids({
+        query: '',
+        cardTypes: ['support_limited', 'support_tool'],
+      }),
+    ).toEqual(['LIMITED-001', 'TOOL-001'])
+  })
+
+  it('combines a base card type and support category with OR', () => {
+    expect(ids({ query: '', cardTypes: ['holomem', 'support_tool'] })).toEqual([
+      'MULTI-001',
+      'RED-001',
+      'TOOL-001',
+      'SPOT-001',
+      'NONE-001',
     ])
+  })
+
+  it('does not infer general for an unclassified support card', () => {
+    expect(ids({ query: '未分類', cardTypes: ['support_general'] })).toEqual([])
   })
 
   it('returns no cards when no card type matches', () => {

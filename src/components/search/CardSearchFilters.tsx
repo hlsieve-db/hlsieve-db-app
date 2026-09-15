@@ -1,21 +1,24 @@
 import {
   CARD_COLOR_LABELS,
-  CARD_TYPE_LABELS,
   CRITICAL_COLOR_LABELS,
   EFFECT_TAG_LABELS,
 } from '../../domain/cards/constants'
 import type {
-  Card,
   CardColor,
   CriticalColor,
   EffectTag,
 } from '../../domain/cards/types'
 import {
   BLOOM_FILTER_LABELS,
+  CARD_TYPE_FILTER_LABELS,
   MATCH_MODE_LABELS,
 } from '../../domain/search/constants'
 import type { SearchUrlState } from '../../domain/search/searchUrlState'
-import type { BloomFilterValue, MatchMode } from '../../domain/search/types'
+import type {
+  BloomFilterValue,
+  CardTypeFilterValue,
+  MatchMode,
+} from '../../domain/search/types'
 
 export type CardSearchFilterState = Pick<
   SearchUrlState,
@@ -148,9 +151,9 @@ export function CardSearchFilters({
       {showAdvanced && (
         <fieldset className="filter-group">
           <legend>カードタイプ</legend>
-          <Checkboxes<Card['cardType']>
+          <Checkboxes<CardTypeFilterValue>
             name="card-type"
-            labels={CARD_TYPE_LABELS}
+            labels={CARD_TYPE_FILTER_LABELS}
             selected={state.cardTypes}
             onToggle={(cardType) =>
               onChange({ cardTypes: toggleValue(state.cardTypes, cardType) })

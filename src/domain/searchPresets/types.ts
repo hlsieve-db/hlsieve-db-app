@@ -1,4 +1,6 @@
 import {
+  isCardTypeFilterValue,
+  normalizeCardTypeFilterValues,
   parseSearchUrlState,
   serializeSearchUrlState,
   type SearchUrlState,
@@ -34,7 +36,14 @@ export function toSavedSearchState(state: SearchUrlState): SavedSearchState {
 export function presetToSearchUrlState(
   state: SavedSearchState,
 ): SearchUrlState {
-  return { ...toSavedSearchState({ ...state, page: 1 }), page: 1 }
+  return {
+    ...toSavedSearchState({
+      ...state,
+      cardTypes: normalizeCardTypeFilterValues(state.cardTypes),
+      page: 1,
+    }),
+    page: 1,
+  }
 }
 
 function hasStringArray(value: unknown): value is readonly string[] {
@@ -70,20 +79,29 @@ export function isSavedSearchState(value: unknown): value is SavedSearchState {
   }
 
   const state = candidate as unknown as SavedSearchState
+  const cardTypes = normalizeCardTypeFilterValues(candidate.cardTypes)
+  if (
+    !candidate.cardTypes.every(
+      (value) => value === 'support' || isCardTypeFilterValue(value),
+    )
+  ) {
+    return false
+  }
+  const canonicalState = { ...state, cardTypes }
   const normalized = parseSearchUrlState(
-    serializeSearchUrlState({ ...state, page: 1 }),
+    serializeSearchUrlState({ ...canonicalState, page: 1 }),
   )
   return (
-    normalized.query === state.query &&
-    normalized.colorMode === state.colorMode &&
-    normalized.criticalColorMode === state.criticalColorMode &&
-    normalized.effectTagMode === state.effectTagMode &&
-    normalized.sort === state.sort &&
-    sameStringArray(normalized.colors, state.colors) &&
-    sameStringArray(normalized.cardTypes, state.cardTypes) &&
-    sameStringArray(normalized.bloom, state.bloom) &&
-    sameStringArray(normalized.criticalColors, state.criticalColors) &&
-    sameStringArray(normalized.effectTags, state.effectTags)
+    normalized.query === canonicalState.query &&
+    normalized.colorMode === canonicalState.colorMode &&
+    normalized.criticalColorMode === canonicalState.criticalColorMode &&
+    normalized.effectTagMode === canonicalState.effectTagMode &&
+    normalized.sort === canonicalState.sort &&
+    sameStringArray(normalized.colors, canonicalState.colors) &&
+    sameStringArray(normalized.cardTypes, canonicalState.cardTypes) &&
+    sameStringArray(normalized.bloom, canonicalState.bloom) &&
+    sameStringArray(normalized.criticalColors, canonicalState.criticalColors) &&
+    sameStringArray(normalized.effectTags, canonicalState.effectTags)
   )
 }
 

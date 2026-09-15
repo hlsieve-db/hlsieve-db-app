@@ -11,13 +11,14 @@ import {
   isSavedSearchState,
   presetToSearchUrlState,
   toSavedSearchState,
+  type SavedSearchState,
 } from './types'
 
 const fullState: SearchUrlState = {
   query: 'フワモコ',
   colors: ['red', 'blue'],
   colorMode: 'and',
-  cardTypes: ['holomem', 'support'],
+  cardTypes: ['holomem', 'support_tool'],
   bloom: ['first', 'buzz'],
   criticalColors: ['red', 'blue'],
   criticalColorMode: 'and',
@@ -35,7 +36,7 @@ describe('saved search preset types', () => {
       query: 'フワモコ',
       colors: ['red', 'blue'],
       colorMode: 'and',
-      cardTypes: ['holomem', 'support'],
+      cardTypes: ['holomem', 'support_tool'],
       bloom: ['first', 'buzz'],
       criticalColors: ['red', 'blue'],
       criticalColorMode: 'and',
@@ -52,9 +53,30 @@ describe('saved search preset types', () => {
     const params = serializeSearchUrlState(restored)
 
     expect(params.toString()).toBe(
-      'q=%E3%83%95%E3%83%AF%E3%83%A2%E3%82%B3&color=red&color=blue&colorMode=and&type=holomem&type=support&bloom=first&bloom=buzz&critical=red&critical=blue&criticalMode=and&tag=draw&tag=deck_search&tagMode=or&sort=card_number_asc',
+      'q=%E3%83%95%E3%83%AF%E3%83%A2%E3%82%B3&color=red&color=blue&colorMode=and&type=holomem&type=support_tool&bloom=first&bloom=buzz&critical=red&critical=blue&criticalMode=and&tag=draw&tag=deck_search&tagMode=or&sort=card_number_asc',
     )
     expect(parseSearchUrlState(params)).toEqual(restored)
+  })
+
+  it('accepts and canonically restores a legacy support preset', () => {
+    const legacy = {
+      ...toSavedSearchState(DEFAULT_SEARCH_URL_STATE),
+      cardTypes: ['support'],
+    }
+
+    expect(isSavedSearchState(legacy)).toBe(true)
+    const restored = presetToSearchUrlState(
+      legacy as unknown as SavedSearchState,
+    )
+    expect(restored.cardTypes).toEqual([
+      'support_limited',
+      'support_general',
+      'support_tool',
+      'support_fan',
+    ])
+    expect(serializeSearchUrlState(restored).toString()).toBe(
+      'type=support_limited&type=support_general&type=support_tool&type=support_fan',
+    )
   })
 
   it('allows the default conditions to be saved', () => {

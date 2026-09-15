@@ -19,11 +19,11 @@ export const BLOOM_FILTER_LABELS = {
 export const CARD_TYPE_FILTER_LABELS = {
   oshi: '推しホロメン',
   holomem: 'ホロメン',
-  cheer: 'エール',
-  support_limited: 'LIMITED',
-  support_general: 'サポート（LIMITED以外）',
+  support_limited: 'サポート（リミテッド）',
+  support_general: 'サポート（非リミテッド）',
   support_tool: 'ツール',
   support_fan: 'ファン',
+  cheer: 'エール',
 } satisfies Record<CardTypeFilterValue, string>
 
 export const MATCH_MODE_LABELS = {

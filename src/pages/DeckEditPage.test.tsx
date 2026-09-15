@@ -716,6 +716,32 @@ describe('DeckEditPage editor operations', () => {
     expect(screen.getByText('1件')).toBeVisible()
   })
 
+  it('uses the shared seven-value Card Type filter in the deck editor', async () => {
+    renderPage()
+    await screen.findByText('9件')
+    fireEvent.click(screen.getByText('詳細条件'))
+    const details = screen.getByText('詳細条件').closest('details')!
+    const group = within(details).getByRole('group', { name: 'カードタイプ' })
+
+    expect(
+      within(group)
+        .getAllByRole('checkbox')
+        .map((input) => input.getAttribute('value')),
+    ).toEqual([
+      'oshi',
+      'holomem',
+      'support_limited',
+      'support_general',
+      'support_tool',
+      'support_fan',
+      'cheer',
+    ])
+    expect(group).toHaveTextContent('サポート（リミテッド）')
+    expect(group).toHaveTextContent('サポート（非リミテッド）')
+    expect(group).toHaveTextContent('ツール')
+    expect(group).toHaveTextContent('ファン')
+  })
+
   it('reuses 24-card pagination and keeps the current page while quantities change', async () => {
     const manyCards = Array.from({ length: 30 }, (_, index) =>
       card(
