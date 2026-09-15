@@ -669,7 +669,7 @@ export function CardDetailPage({
   }
 
   return (
-    <main className="detail-page">
+    <main id="main-content" className="detail-page">
       <DetailHeader />
 
       {cardData.status === 'loading' && (

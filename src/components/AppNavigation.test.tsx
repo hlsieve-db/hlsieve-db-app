@@ -84,6 +84,9 @@ describe('AppNavigation theme control', () => {
         </MemoryRouter>,
       )
 
+      expect(
+        screen.getByRole('link', { name: '本文へスキップ' }),
+      ).toHaveAttribute('href', '#main-content')
       expect(screen.getByText('ホロライブOCGカード検索DB')).toBeVisible()
       expect(screen.getByRole('link', { name: 'HLSieve DB' })).toHaveAttribute(
         'href',

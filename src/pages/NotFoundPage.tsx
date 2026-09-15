@@ -11,7 +11,7 @@ export function NotFoundPage() {
   })
 
   return (
-    <main className="deck-page not-found-page">
+    <main id="main-content" className="deck-page not-found-page">
       <AppNavigation />
       <section className="status-message">
         <p className="not-found-page__code">404</p>

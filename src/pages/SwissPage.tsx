@@ -44,7 +44,7 @@ export function SwissPage() {
   }, [participantCount, roundCount])
 
   return (
-    <main className="content-page swiss-page">
+    <main id="main-content" className="content-page swiss-page">
       <AppNavigation />
       <ToolsLocalNavigation />
       <header className="content-page__header">

@@ -456,7 +456,7 @@ export function TournamentReportPage({
   }
 
   return (
-    <main className="content-page tournament-report-page">
+    <main id="main-content" className="content-page tournament-report-page">
       <AppNavigation />
       <header className="content-page__header">
         <h1>大会戦績レポート</h1>

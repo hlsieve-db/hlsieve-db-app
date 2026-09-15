@@ -177,7 +177,7 @@ export function CardSearchPage({
   }
 
   return (
-    <main className="search-page">
+    <main id="main-content" className="search-page">
       <header className="search-page__header">
         <AppNavigation />
         <h1>カード検索</h1>

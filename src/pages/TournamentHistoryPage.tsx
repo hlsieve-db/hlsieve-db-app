@@ -199,7 +199,7 @@ export function TournamentHistoryPage({
   }
 
   return (
-    <main className="content-page tournament-history-page">
+    <main id="main-content" className="content-page tournament-history-page">
       <AppNavigation />
       <header className="content-page__header">
         <h1>大会戦績履歴</h1>

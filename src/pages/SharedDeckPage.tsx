@@ -199,7 +199,7 @@ export function SharedDeckPage({
   }
 
   return (
-    <main className="deck-page shared-deck-page">
+    <main id="main-content" className="deck-page shared-deck-page">
       <header className="deck-page__header">
         <AppNavigation />
         <Link className="back-link" to="/decks">

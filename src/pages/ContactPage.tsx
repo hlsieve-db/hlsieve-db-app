@@ -16,7 +16,7 @@ export function ContactPage() {
   useDocumentMetadata(CONTACT_METADATA)
 
   return (
-    <main className="content-page contact-page">
+    <main id="main-content" className="content-page contact-page">
       <AppNavigation />
       <header className="content-page__header">
         <h1>お問い合わせ</h1>

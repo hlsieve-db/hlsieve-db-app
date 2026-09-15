@@ -75,141 +75,148 @@ export function AppNavigation() {
   }, [mobileOpen, openGroup])
 
   return (
-    <div className="app-navigation" ref={rootRef}>
-      <div className="site-branding">
-        <Link
-          className="site-brand"
-          to="/cards"
+    <>
+      <a className="skip-link" href="#main-content">
+        本文へスキップ
+      </a>
+      <div className="app-navigation" ref={rootRef}>
+        <div className="site-branding">
+          <Link
+            className="site-brand"
+            to="/cards"
+            onClick={() => {
+              setOpenGroupState(undefined)
+              setMobileOpenLocation(undefined)
+            }}
+          >
+            <img src="/hlsieve-mark.svg" alt="" aria-hidden="true" />
+            <span>HLSieve DB</span>
+          </Link>
+          <span className="site-brand__subtitle" aria-hidden="true">
+            ホロライブOCGカード検索DB
+          </span>
+        </div>
+
+        <button
+          ref={mobileButtonRef}
+          type="button"
+          className="app-navigation__menu-button"
+          aria-expanded={mobileOpen}
+          aria-controls="mobile-navigation-panel"
           onClick={() => {
             setOpenGroupState(undefined)
-            setMobileOpenLocation(undefined)
+            setMobileOpenLocation(mobileOpen ? undefined : locationKey)
           }}
         >
-          <img src="/hlsieve-mark.svg" alt="" aria-hidden="true" />
-          <span>HLSieve DB</span>
-        </Link>
-        <span className="site-brand__subtitle" aria-hidden="true">
-          ホロライブOCGカード検索DB
-        </span>
-      </div>
+          <span aria-hidden="true">☰</span>
+          メニュー
+        </button>
 
-      <button
-        ref={mobileButtonRef}
-        type="button"
-        className="app-navigation__menu-button"
-        aria-expanded={mobileOpen}
-        aria-controls="mobile-navigation-panel"
-        onClick={() => {
-          setOpenGroupState(undefined)
-          setMobileOpenLocation(mobileOpen ? undefined : locationKey)
-        }}
-      >
-        <span aria-hidden="true">☰</span>
-        メニュー
-      </button>
-
-      <div className="app-navigation__controls">
-        <nav
-          className="primary-navigation primary-navigation--desktop"
-          aria-label="メインナビゲーション"
-        >
-          {NAV_GROUPS.map((group) => {
-            const expanded = openGroup === group.key
-            const active = activeGroup === group.key
-            return (
-              <div className="primary-navigation__group" key={group.key}>
-                <button
-                  type="button"
-                  className={active ? 'is-active' : undefined}
-                  aria-expanded={expanded}
-                  aria-controls={`navigation-${group.key}`}
-                  aria-current={active ? 'page' : undefined}
-                  onClick={(event) => {
-                    lastGroupButtonRef.current = event.currentTarget
-                    setOpenGroupState(
-                      expanded ? undefined : { key: group.key, locationKey },
-                    )
-                  }}
-                >
-                  {group.label}
-                  <span aria-hidden="true">▾</span>
-                </button>
-                {expanded && (
-                  <div
-                    id={`navigation-${group.key}`}
-                    className="primary-navigation__dropdown"
-                  >
-                    {group.items.map((item) => (
-                      <NavLink
-                        key={item.to}
-                        to={item.to}
-                        onClick={() => setOpenGroupState(undefined)}
-                      >
-                        {item.label}
-                      </NavLink>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )
-          })}
-          <NavLink
-            className="primary-navigation__updates"
-            to="/updates"
-            onClick={() => setOpenGroupState(undefined)}
+        <div className="app-navigation__controls">
+          <nav
+            className="primary-navigation primary-navigation--desktop"
+            aria-label="メインナビゲーション"
           >
-            {UPDATES_NAV_ITEM.label}
-          </NavLink>
-        </nav>
-
-        <ThemeControl preference={preference} setPreference={setPreference} />
-      </div>
-
-      {mobileOpen && (
-        <nav
-          id="mobile-navigation-panel"
-          className="primary-navigation primary-navigation--mobile"
-          aria-label="モバイルメニュー"
-        >
-          {NAV_GROUPS.map((group) => (
-            <section key={group.key} aria-labelledby={`mobile-${group.key}`}>
-              <h2
-                id={`mobile-${group.key}`}
-                className={activeGroup === group.key ? 'is-active' : undefined}
-              >
-                {group.label}
-              </h2>
-              {group.items.map((item) => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  onClick={() => setMobileOpenLocation(undefined)}
-                >
-                  {item.label}
-                </NavLink>
-              ))}
-            </section>
-          ))}
-          <section aria-labelledby="mobile-other">
-            <h2
-              id="mobile-other"
-              className={
-                location.pathname === UPDATES_NAV_ITEM.to
-                  ? 'is-active'
-                  : undefined
-              }
-            >
-              その他
-            </h2>
+            {NAV_GROUPS.map((group) => {
+              const expanded = openGroup === group.key
+              const active = activeGroup === group.key
+              return (
+                <div className="primary-navigation__group" key={group.key}>
+                  <button
+                    type="button"
+                    className={active ? 'is-active' : undefined}
+                    aria-expanded={expanded}
+                    aria-controls={`navigation-${group.key}`}
+                    aria-current={active ? 'page' : undefined}
+                    onClick={(event) => {
+                      lastGroupButtonRef.current = event.currentTarget
+                      setOpenGroupState(
+                        expanded ? undefined : { key: group.key, locationKey },
+                      )
+                    }}
+                  >
+                    {group.label}
+                    <span aria-hidden="true">▾</span>
+                  </button>
+                  {expanded && (
+                    <div
+                      id={`navigation-${group.key}`}
+                      className="primary-navigation__dropdown"
+                    >
+                      {group.items.map((item) => (
+                        <NavLink
+                          key={item.to}
+                          to={item.to}
+                          onClick={() => setOpenGroupState(undefined)}
+                        >
+                          {item.label}
+                        </NavLink>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
             <NavLink
-              to={UPDATES_NAV_ITEM.to}
-              onClick={() => setMobileOpenLocation(undefined)}
+              className="primary-navigation__updates"
+              to="/updates"
+              onClick={() => setOpenGroupState(undefined)}
             >
               {UPDATES_NAV_ITEM.label}
             </NavLink>
-          </section>
-        </nav>
-      )}
-    </div>
+          </nav>
+
+          <ThemeControl preference={preference} setPreference={setPreference} />
+        </div>
+
+        {mobileOpen && (
+          <nav
+            id="mobile-navigation-panel"
+            className="primary-navigation primary-navigation--mobile"
+            aria-label="モバイルメニュー"
+          >
+            {NAV_GROUPS.map((group) => (
+              <section key={group.key} aria-labelledby={`mobile-${group.key}`}>
+                <h2
+                  id={`mobile-${group.key}`}
+                  className={
+                    activeGroup === group.key ? 'is-active' : undefined
+                  }
+                >
+                  {group.label}
+                </h2>
+                {group.items.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    onClick={() => setMobileOpenLocation(undefined)}
+                  >
+                    {item.label}
+                  </NavLink>
+                ))}
+              </section>
+            ))}
+            <section aria-labelledby="mobile-other">
+              <h2
+                id="mobile-other"
+                className={
+                  location.pathname === UPDATES_NAV_ITEM.to
+                    ? 'is-active'
+                    : undefined
+                }
+              >
+                その他
+              </h2>
+              <NavLink
+                to={UPDATES_NAV_ITEM.to}
+                onClick={() => setMobileOpenLocation(undefined)}
+              >
+                {UPDATES_NAV_ITEM.label}
+              </NavLink>
+            </section>
+          </nav>
+        )}
+      </div>
+    </>
   )
 }

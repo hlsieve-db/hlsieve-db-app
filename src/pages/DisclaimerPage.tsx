@@ -7,7 +7,7 @@ export function DisclaimerPage() {
   useDocumentMetadata(DISCLAIMER_METADATA)
 
   return (
-    <main className="content-page disclaimer-page">
+    <main id="main-content" className="content-page disclaimer-page">
       <AppNavigation />
       <header className="content-page__header">
         <h1>免責事項・利用条件</h1>

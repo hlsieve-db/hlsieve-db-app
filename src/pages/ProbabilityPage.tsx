@@ -40,7 +40,7 @@ export function ProbabilityPage() {
   }, [deckSize, drawCount, targetCount])
 
   return (
-    <main className="content-page probability-page">
+    <main id="main-content" className="content-page probability-page">
       <AppNavigation />
       <ToolsLocalNavigation />
       <header className="content-page__header">

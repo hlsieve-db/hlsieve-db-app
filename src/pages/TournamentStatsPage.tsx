@@ -117,7 +117,7 @@ export function TournamentStatsPage({
   )
 
   return (
-    <main className="content-page tournament-stats-page">
+    <main id="main-content" className="content-page tournament-stats-page">
       <AppNavigation />
       <header className="content-page__header">
         <h1>大会戦績統計</h1>

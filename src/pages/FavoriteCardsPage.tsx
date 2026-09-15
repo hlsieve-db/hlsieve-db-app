@@ -54,7 +54,7 @@ export function FavoriteCardsPage({
   )
 
   return (
-    <main className="favorites-page">
+    <main id="main-content" className="favorites-page">
       <header className="favorites-page__header">
         <AppNavigation />
         <CardsLocalNavigation />

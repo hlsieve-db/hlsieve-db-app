@@ -359,7 +359,7 @@ export function DeckComparePage({
   )
 
   return (
-    <main className="content-page deck-comparison-page">
+    <main id="main-content" className="content-page deck-comparison-page">
       <AppNavigation />
       <DeckLocalNavigation />
       <header className="content-page__header">

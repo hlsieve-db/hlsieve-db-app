@@ -45,7 +45,7 @@ export function MulliganPage() {
   }, [deckSize, openingHandSize, redrawCount, targetCount])
 
   return (
-    <main className="content-page mulligan-page">
+    <main id="main-content" className="content-page mulligan-page">
       <AppNavigation />
       <ToolsLocalNavigation />
       <header className="content-page__header">

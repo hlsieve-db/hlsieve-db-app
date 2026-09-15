@@ -200,7 +200,7 @@ export function SavedDecksPage({
   }
 
   return (
-    <main className="deck-page">
+    <main id="main-content" className="deck-page">
       <header className="deck-page__header">
         <AppNavigation />
         <DeckLocalNavigation />

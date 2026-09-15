@@ -96,7 +96,7 @@ export function RecentlyViewedCardsPage({
   }
 
   return (
-    <main className="recent-page">
+    <main id="main-content" className="recent-page">
       <header className="recent-page__header">
         <AppNavigation />
         <CardsLocalNavigation />

@@ -135,7 +135,7 @@ export function QaSearchPage({ loadCards = loadCardsData }: QaSearchPageProps) {
   }
 
   return (
-    <main className="content-page qa-search-page">
+    <main id="main-content" className="content-page qa-search-page">
       <AppNavigation />
       <CardsLocalNavigation />
       <header className="content-page__header">

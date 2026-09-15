@@ -809,7 +809,7 @@ export function DeckEditPage({
   }
 
   return (
-    <main className="deck-page deck-editor">
+    <main id="main-content" className="deck-page deck-editor">
       {state.status !== 'loaded' && <DeckEditFallbackMetadata />}
       <header className="deck-page__header">
         <AppNavigation />

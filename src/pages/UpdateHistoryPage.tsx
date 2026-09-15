@@ -23,7 +23,7 @@ export function UpdateHistoryPage({
   const ordered = latestFirst(entries)
 
   return (
-    <main className="content-page update-history-page">
+    <main id="main-content" className="content-page update-history-page">
       <AppNavigation />
       <header className="content-page__header">
         <h1>更新履歴</h1>
