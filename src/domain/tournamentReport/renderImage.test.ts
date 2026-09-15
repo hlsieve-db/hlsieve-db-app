@@ -108,10 +108,9 @@ describe('generateTournamentReportImages', () => {
       '優勝',
       '参加人数 16人',
       '開催日 2026/09/16',
-      '使用推し',
-      '宝鐘マリン',
+      '使用推し：宝鐘マリン【赤】（OSHI-001）',
       'RECORD',
-      '1-1-1',
+      '1勝1敗1分',
       'MATCHES — 全3戦',
       '対戦相手 / 使用推し',
       '先後',
@@ -129,6 +128,7 @@ describe('generateTournamentReportImages', () => {
     }
     expect(renderedText).not.toContain('非公式ファンメイドツール')
     expect(renderedText).not.toContain('TOURNAMENT REPORT')
+    expect(renderedText).not.toContain('1-1-1')
   })
 
   it('keeps the explicit landscape preset at 1600x900', async () => {
@@ -148,7 +148,10 @@ describe('generateTournamentReportImages', () => {
       height: 900,
       page: { preset: 'landscape_16_9' },
     })
-    expect(harness.text).toContain('TOURNAMENT REPORT')
+    expect(harness.text).toContain('大会成績')
+    expect(harness.text.join(' ')).toContain(
+      '使用推し：宝鐘マリン【赤】（OSHI-001）',
+    )
     expect(harness.text).toContain('非公式ファンメイドツール')
   })
 
@@ -167,8 +170,9 @@ describe('generateTournamentReportImages', () => {
     }
 
     expect(yFor('大会成績')).toBeLessThan(yFor('日本語大会'))
-    expect(yFor('日本語大会')).toBeLessThan(yFor('使用推し'))
-    expect(yFor('使用推し')).toBeLessThan(yFor('宝鐘マリン'))
+    expect(yFor('日本語大会')).toBeLessThan(
+      yFor('使用推し：宝鐘マリン【赤】（OSHI-001）'),
+    )
   })
 
   it('keeps maximum-case rows inside both preset content areas', () => {
@@ -205,20 +209,37 @@ describe('generateTournamentReportImages', () => {
     }
   })
 
-  it('uses the fixed 4:5 result colors without changing result text', async () => {
-    const harness = createCanvasHarness()
-    await generateTournamentReportImages(report, [makeCard()], {
-      createCanvas: harness.factory,
-    })
+  it.each(['mobile_4_5', 'landscape_16_9'] as const)(
+    'uses the shared heading and result colors for %s',
+    async (preset) => {
+      const harness = createCanvasHarness()
+      await generateTournamentReportImages(report, [makeCard()], {
+        preset,
+        createCanvas: harness.factory,
+      })
 
-    expect(harness.styledText).toEqual(
-      expect.arrayContaining([
-        { value: '○ WIN', color: '#c62828' },
-        { value: '△ DRAW', color: '#222222' },
-        { value: '× LOSE', color: '#1565c0' },
-      ]),
-    )
-  })
+      expect(harness.styledText).toEqual(
+        expect.arrayContaining([
+          { value: '大会成績', color: '#16233a' },
+          { value: '○ WIN', color: '#c62828' },
+          { value: '△ DRAW', color: '#222222' },
+          { value: '× LOSE', color: '#1565c0' },
+        ]),
+      )
+      if (preset === 'mobile_4_5') {
+        expect(harness.styledText).toEqual(
+          expect.arrayContaining([
+            { value: 'RECORD', color: '#16233a' },
+            { value: 'MATCHES — 全3戦', color: '#16233a' },
+          ]),
+        )
+      } else {
+        expect(harness.styledText).toEqual(
+          expect.arrayContaining([{ value: 'Swiss', color: '#16233a' }]),
+        )
+      }
+    },
+  )
 
   it('does not fetch or draw Card.imageUrl', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch')

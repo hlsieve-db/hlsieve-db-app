@@ -1,3 +1,4 @@
+import { CARD_COLOR_LABELS } from '../cards/constants'
 import type { Card } from '../cards/types'
 import {
   buildTournamentReportImageFileName,
@@ -13,18 +14,18 @@ const FONT_FAMILY =
   '"Yu Gothic", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif'
 
 const EXPORT_COLORS = {
-  background: '#f4f7fb',
-  header: '#10233f',
+  background: '#f8fafc',
+  header: '#ffffff',
   accent: '#0ea5a8',
-  accentSoft: '#d9f3f2',
+  accentSoft: '#d8f1f0',
   surface: '#ffffff',
-  stripe: '#edf3f8',
-  text: '#10233f',
-  muted: '#52647a',
-  border: '#cbd8e6',
-  win: '#087f5b',
-  draw: '#8a5b00',
-  loss: '#b42318',
+  stripe: '#f1f5f9',
+  text: '#16233a',
+  muted: '#4e627c',
+  border: '#cbd5e1',
+  win: '#c62828',
+  draw: '#222222',
+  loss: '#1565c0',
 } as const
 
 const MOBILE_EXPORT_COLORS = {
@@ -227,6 +228,18 @@ function mobileInitiativeLabel(value: string): string {
   return value || '—'
 }
 
+function formatImageSelfOshi(
+  report: TournamentReport,
+  oshiCards: readonly Card[],
+): string | undefined {
+  const card = oshiCards.find(
+    (candidate) => candidate.cardNumber === report.selfOshiCardNumber,
+  )
+  if (!card) return undefined
+  const colors = card.colors.map((color) => CARD_COLOR_LABELS[color]).join('/')
+  return `${card.name}${colors ? `【${colors}】` : ''}（${card.cardNumber}）`
+}
+
 function drawHeader(
   context: CanvasRenderingContext2D,
   page: TournamentReportImagePage,
@@ -236,12 +249,12 @@ function drawHeader(
   context.fillRect(0, 0, layout.width, layout.headerHeight)
   context.fillStyle = EXPORT_COLORS.accent
   context.fillRect(0, 0, layout.width, 12)
-  context.fillStyle = '#8de0dc'
+  context.fillStyle = EXPORT_COLORS.text
   const isMobile = layout.rowLayout === 'stacked'
   setFont(context, isMobile ? 20 : 24, 800)
-  context.fillText('TOURNAMENT REPORT', layout.contentX, isMobile ? 42 : 54)
+  context.fillText('大会成績', layout.contentX, isMobile ? 42 : 54)
 
-  context.fillStyle = '#ffffff'
+  context.fillStyle = EXPORT_COLORS.text
   const titleSize = fitFontSize(
     context,
     page.tournamentName,
@@ -268,7 +281,7 @@ function drawHeader(
 
   if (isMobile) {
     const selfOshiY = titleLines.length === 1 ? 136 : 148
-    context.fillStyle = '#ffffff'
+    context.fillStyle = EXPORT_COLORS.text
     setFont(context, 30, 900)
     context.fillText(
       ellipsize(
@@ -287,7 +300,7 @@ function drawHeader(
     page.participantCount ? `参加人数：${page.participantCount}` : undefined,
     page.eventDate ? `開催日：${page.eventDate}` : undefined,
   ].filter((value): value is string => value !== undefined)
-  context.fillStyle = '#dce8f5'
+  context.fillStyle = EXPORT_COLORS.muted
   setFont(context, layout.contextSize, 700)
   const contextY =
     titleLines.length === 1 ? (isMobile ? 190 : 184) : isMobile ? 202 : 196
@@ -298,7 +311,7 @@ function drawHeader(
   )
 
   if (page.totalPages > 1) {
-    context.fillStyle = '#ffffff'
+    context.fillStyle = EXPORT_COLORS.text
     setFont(context, 24, 800)
     context.textAlign = 'right'
     context.fillText(
@@ -461,7 +474,7 @@ function drawMobileHeader(
   context.fillStyle = EXPORT_COLORS.accent
   context.fillRect(0, 0, layout.width, 10)
 
-  context.fillStyle = EXPORT_COLORS.accent
+  context.fillStyle = MOBILE_EXPORT_COLORS.text
   setFont(context, 21, 900)
   context.fillText('大会成績', layout.contentX, 46)
 
@@ -486,18 +499,23 @@ function drawMobileHeader(
     context.fillText(line, layout.contentX, titleStartY + index * 32)
   })
 
-  context.fillStyle = MOBILE_EXPORT_COLORS.muted
-  setFont(context, 16, 800)
   const selfOshiLabelY = titleLines.length === 1 ? 126 : 143
-  const selfOshiValueY = titleLines.length === 1 ? 163 : 180
   const detailsY = titleLines.length === 1 ? 202 : 220
-  context.fillText('使用推し', layout.contentX, selfOshiLabelY)
   context.fillStyle = MOBILE_EXPORT_COLORS.text
-  setFont(context, 30, 900)
+  const selfOshiText = `使用推し：${page.selfOshi ?? '未入力'}`
+  const selfOshiSize = fitFontSize(
+    context,
+    selfOshiText,
+    layout.contentWidth,
+    30,
+    20,
+    900,
+  )
+  setFont(context, selfOshiSize, 900)
   context.fillText(
-    ellipsize(context, page.selfOshi ?? '未入力', layout.contentWidth),
+    ellipsize(context, selfOshiText, layout.contentWidth),
     layout.contentX,
-    selfOshiValueY,
+    selfOshiLabelY + 26,
   )
 
   const details = [
@@ -526,7 +544,7 @@ function drawMobileRecord(
   layout: TournamentReportRenderLayout,
 ): void {
   const summary = mobileRoundSummary(page)
-  const record = `${summary.wins}-${summary.losses}${summary.draws > 0 ? `-${summary.draws}` : ''}`
+  const record = `${summary.wins}勝${summary.losses}敗${summary.draws > 0 ? `${summary.draws}分` : ''}`
   const completed = summary.wins + summary.losses + summary.draws
   const winRate =
     completed > 0 ? Math.round((summary.wins / completed) * 100) : 0
@@ -537,7 +555,7 @@ function drawMobileRecord(
   context.fillRect(x, y, layout.contentWidth, 190)
   context.fillStyle = EXPORT_COLORS.accent
   context.fillRect(x, y, 8, 190)
-  context.fillStyle = EXPORT_COLORS.accent
+  context.fillStyle = MOBILE_EXPORT_COLORS.text
   setFont(context, 19, 900)
   context.fillText('RECORD', x + 28, y + 34)
 
@@ -553,18 +571,12 @@ function drawMobileRecord(
   )
   context.textAlign = 'left'
 
-  setFont(context, 22, 800)
-  context.fillText(
-    `${summary.wins}勝 ${summary.losses}敗${summary.draws > 0 ? ` ${summary.draws}分` : ''}`,
-    x + 30,
-    y + 136,
-  )
   context.fillStyle = MOBILE_EXPORT_COLORS.muted
   setFont(context, 20, 750)
   context.fillText(
     `勝率 ${winRate}%    先攻 ${summary.first}    後攻 ${summary.second}`,
     x + 30,
-    y + 170,
+    y + 152,
   )
 }
 
@@ -588,7 +600,7 @@ function drawMobileMatches(
     result: x + layout.contentWidth - 20,
   }
 
-  context.fillStyle = EXPORT_COLORS.accent
+  context.fillStyle = MOBILE_EXPORT_COLORS.text
   setFont(context, 23, 900)
   context.fillText(`MATCHES — 全${rounds.length}戦`, x, headingY)
   context.fillStyle = MOBILE_EXPORT_COLORS.section
@@ -729,9 +741,11 @@ export async function generateTournamentReportImages(
   const preset = options.preset ?? DEFAULT_TOURNAMENT_EXPORT_PRESET
   const createCanvas = options.createCanvas ?? defaultCanvasFactory
   const pages = buildTournamentReportImagePages(report, oshiCards, preset)
+  const selfOshi = formatImageSelfOshi(report, oshiCards)
   const layout = RENDER_LAYOUTS[preset]
   const files: TournamentReportImageFile[] = []
-  for (const page of pages) {
+  for (const sourcePage of pages) {
+    const page = { ...sourcePage, selfOshi }
     const canvas = createCanvas(layout.width, layout.height)
     canvas.width = layout.width
     canvas.height = layout.height
