@@ -4335,6 +4335,42 @@ main {
   }
 }
 
+@media (min-width: 768px) {
+  .desktop-filter-panel .filter-groups {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    margin-top: 16px;
+  }
+
+  .desktop-filter-panel .filter-group,
+  .desktop-filter-panel .filter-group--wide {
+    grid-column: auto;
+    padding: 16px 0;
+    border: 0;
+    border-top: 1px solid var(--color-border-soft);
+    border-radius: 0;
+  }
+
+  .desktop-filter-panel .filter-group:first-child {
+    border-top: 0;
+    padding-top: 0;
+  }
+
+  .desktop-filter-panel .filter-group legend {
+    float: left;
+    margin-right: 18px;
+  }
+
+  .desktop-filter-panel .filter-group__mode {
+    justify-content: flex-end;
+  }
+
+  .desktop-filter-panel .filter-options {
+    clear: both;
+    padding-top: 10px;
+  }
+}
+
 @media (max-width: 640px) {
   .search-presets__heading,
   .search-presets__form {

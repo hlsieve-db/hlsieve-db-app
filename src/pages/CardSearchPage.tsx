@@ -81,14 +81,6 @@ export function CardSearchPage({
   })
   const [loadAttempt, setLoadAttempt] = useState(0)
   const [queryDraft, setQueryDraft] = useState(urlState.query)
-  const [advancedOpen, setAdvancedOpen] = useState(
-    () =>
-      window.matchMedia('(min-width: 1280px)').matches ||
-      urlState.cardTypes.length > 0 ||
-      urlState.bloom.length > 0 ||
-      urlState.criticalColors.length > 0 ||
-      urlState.effectTags.length > 0,
-  )
   const [mobileSheetOpen, setMobileSheetOpen] = useState(false)
   const mobileTriggerRef = useRef<HTMLButtonElement>(null)
   const isComposing = useRef(false)
@@ -251,37 +243,8 @@ export function CardSearchPage({
           <CardSearchFilters
             state={urlState}
             onChange={(patch) => updateSearch(patch)}
-            variant="basic"
+            variant="all"
           />
-          <section
-            className="advanced-filter-disclosure"
-            aria-labelledby="advanced-filter-heading"
-          >
-            <button
-              type="button"
-              className="advanced-filter-disclosure__toggle"
-              aria-expanded={advancedOpen}
-              aria-controls="advanced-filter-content"
-              onClick={() => setAdvancedOpen((open) => !open)}
-            >
-              <span id="advanced-filter-heading">詳細な絞り込み</span>
-              <span className="filter-count-badge">
-                {urlState.cardTypes.length +
-                  urlState.bloom.length +
-                  urlState.criticalColors.length +
-                  urlState.effectTags.length}
-              </span>
-            </button>
-            {advancedOpen && (
-              <div id="advanced-filter-content">
-                <CardSearchFilters
-                  state={urlState}
-                  onChange={(patch) => updateSearch(patch)}
-                  variant="advanced"
-                />
-              </div>
-            )}
-          </section>
         </div>
 
         <div className="search-actions">
