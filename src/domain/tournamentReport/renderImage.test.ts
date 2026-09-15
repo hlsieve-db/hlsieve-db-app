@@ -141,7 +141,7 @@ describe('generateTournamentReportImages', () => {
     }
     for (const preset of ['mobile_4_5', 'landscape_16_9'] as const) {
       const rowWidth = preset === 'mobile_4_5' ? 984 : 1472
-      const rowHeight = preset === 'mobile_4_5' ? 80 : 50
+      const rowHeight = preset === 'mobile_4_5' ? 96 : 50
       const footerTop = preset === 'mobile_4_5' ? 1270 : 840
       const pages = buildTournamentReportImagePages(
         maximumReport,

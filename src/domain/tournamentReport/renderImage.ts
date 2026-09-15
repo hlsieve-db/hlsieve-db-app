@@ -56,22 +56,22 @@ const RENDER_LAYOUTS: Record<
   mobile_4_5: {
     width: TOURNAMENT_EXPORT_PRESETS.mobile_4_5.width,
     height: TOURNAMENT_EXPORT_PRESETS.mobile_4_5.height,
-    headerHeight: 280,
-    contentTop: 304,
+    headerHeight: 214,
+    contentTop: 238,
     contentX: 48,
     contentWidth: 984,
-    sectionHeaderHeight: 48,
-    sectionGap: 10,
-    rowHeight: 84,
-    rowSurfaceHeight: 80,
+    sectionHeaderHeight: 56,
+    sectionGap: 16,
+    rowHeight: 108,
+    rowSurfaceHeight: 96,
     footerBrandY: 1296,
     footerUrlY: 1326,
     footerNoticeY: 1320,
-    titleSize: 54,
+    titleSize: 50,
     titleMinimumSize: 36,
     titleMaximumWidth: 900,
-    contextSize: 25,
-    sectionTitleSize: 30,
+    contextSize: 22,
+    sectionTitleSize: 32,
     rowLayout: 'stacked',
   },
   landscape_16_9: {
@@ -230,8 +230,8 @@ function drawHeader(
       : wrapText(context, page.tournamentName, layout.titleMaximumWidth, 2)
   const isMobile = layout.rowLayout === 'stacked'
   const titleStartY =
-    titleLines.length === 1 ? (isMobile ? 138 : 122) : isMobile ? 108 : 96
-  const titleLineHeight = isMobile ? 48 : 42
+    titleLines.length === 1 ? (isMobile ? 104 : 122) : isMobile ? 82 : 96
+  const titleLineHeight = isMobile ? 40 : 42
   titleLines.forEach((line, index) => {
     context.fillText(
       line,
@@ -249,7 +249,7 @@ function drawHeader(
   context.fillStyle = '#dce8f5'
   setFont(context, layout.contextSize, 700)
   const contextY =
-    titleLines.length === 1 ? (isMobile ? 224 : 184) : isMobile ? 246 : 196
+    titleLines.length === 1 ? (isMobile ? 174 : 184) : isMobile ? 172 : 196
   context.fillText(
     ellipsize(context, contextParts.join('  ｜  '), layout.contentWidth),
     layout.contentX,
@@ -276,23 +276,30 @@ function drawStackedRound(
   y: number,
   width: number,
 ): void {
-  setFont(context, 29, 800)
+  setFont(context, 30, 900)
   context.fillStyle = EXPORT_COLORS.accent
-  context.fillText(round.label, x + 20, y + 32)
+  context.fillText(round.label, x + 24, y + 42)
   context.fillStyle = EXPORT_COLORS.text
-  setFont(context, 28, 750)
+  setFont(context, 29, 800)
   context.fillText(
-    ellipsize(context, round.opponent, width - 130),
-    x + 110,
-    y + 32,
+    ellipsize(context, round.opponent || '対戦相手未入力', width - 300),
+    x + 126,
+    y + 42,
   )
-  setFont(context, 25, 750)
-  context.fillStyle = EXPORT_COLORS.text
-  context.fillText(round.playOrder, x + 110, y + 68)
-  context.fillText(round.initiative, x + 310, y + 68)
+  setFont(context, 24, 700)
+  context.fillStyle = EXPORT_COLORS.muted
+  context.fillText(
+    [round.playOrder, round.initiative].filter(Boolean).join('  '),
+    x + 126,
+    y + 66,
+  )
   context.fillStyle = resultColor(round.result)
-  setFont(context, 26, 900)
-  context.fillText(round.result, x + 520, y + 68)
+  setFont(context, 28, 900)
+  context.textAlign = 'right'
+  context.fillText(round.result || '未入力', x + width - 24, y + 46)
+  context.textAlign = 'left'
+  context.fillStyle = EXPORT_COLORS.border
+  context.fillRect(x + 24, y + 78, width - 48, 1)
 }
 
 function drawSingleLineRound(
