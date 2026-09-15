@@ -27,6 +27,18 @@ const EXPORT_COLORS = {
   loss: '#b42318',
 } as const
 
+const MOBILE_EXPORT_COLORS = {
+  section: '#bfe8e7',
+  row: '#ffffff',
+  rowAlternate: '#e4edf5',
+  text: '#0a1f38',
+  muted: '#3f536b',
+  border: '#9fb4c8',
+  win: '#05603f',
+  draw: '#3f4b59',
+  loss: '#9f1d16',
+} as const
+
 type TournamentReportRenderLayout = {
   width: number
   height: number
@@ -56,19 +68,19 @@ const RENDER_LAYOUTS: Record<
   mobile_4_5: {
     width: TOURNAMENT_EXPORT_PRESETS.mobile_4_5.width,
     height: TOURNAMENT_EXPORT_PRESETS.mobile_4_5.height,
-    headerHeight: 214,
-    contentTop: 238,
+    headerHeight: 230,
+    contentTop: 254,
     contentX: 48,
     contentWidth: 984,
     sectionHeaderHeight: 56,
     sectionGap: 16,
-    rowHeight: 108,
-    rowSurfaceHeight: 96,
+    rowHeight: 106,
+    rowSurfaceHeight: 92,
     footerBrandY: 1296,
     footerUrlY: 1326,
     footerNoticeY: 1320,
-    titleSize: 50,
-    titleMinimumSize: 36,
+    titleSize: 38,
+    titleMinimumSize: 28,
     titleMaximumWidth: 900,
     contextSize: 22,
     sectionTitleSize: 32,
@@ -201,6 +213,13 @@ function resultColor(result: string): string {
   return EXPORT_COLORS.text
 }
 
+function mobileResultColor(result: string): string {
+  if (result.includes('WIN')) return MOBILE_EXPORT_COLORS.win
+  if (result.includes('DRAW')) return MOBILE_EXPORT_COLORS.draw
+  if (result.includes('LOSE')) return MOBILE_EXPORT_COLORS.loss
+  return MOBILE_EXPORT_COLORS.text
+}
+
 function drawHeader(
   context: CanvasRenderingContext2D,
   page: TournamentReportImagePage,
@@ -211,8 +230,9 @@ function drawHeader(
   context.fillStyle = EXPORT_COLORS.accent
   context.fillRect(0, 0, layout.width, 12)
   context.fillStyle = '#8de0dc'
-  setFont(context, 24, 800)
-  context.fillText('TOURNAMENT REPORT', layout.contentX, 54)
+  const isMobile = layout.rowLayout === 'stacked'
+  setFont(context, isMobile ? 20 : 24, 800)
+  context.fillText('TOURNAMENT REPORT', layout.contentX, isMobile ? 42 : 54)
 
   context.fillStyle = '#ffffff'
   const titleSize = fitFontSize(
@@ -228,10 +248,9 @@ function drawHeader(
     context.measureText(page.tournamentName).width <= layout.titleMaximumWidth
       ? [page.tournamentName]
       : wrapText(context, page.tournamentName, layout.titleMaximumWidth, 2)
-  const isMobile = layout.rowLayout === 'stacked'
   const titleStartY =
-    titleLines.length === 1 ? (isMobile ? 104 : 122) : isMobile ? 82 : 96
-  const titleLineHeight = isMobile ? 40 : 42
+    titleLines.length === 1 ? (isMobile ? 84 : 122) : isMobile ? 72 : 96
+  const titleLineHeight = isMobile ? 34 : 42
   titleLines.forEach((line, index) => {
     context.fillText(
       line,
@@ -240,16 +259,31 @@ function drawHeader(
     )
   })
 
+  if (isMobile) {
+    const selfOshiY = titleLines.length === 1 ? 136 : 148
+    context.fillStyle = '#ffffff'
+    setFont(context, 30, 900)
+    context.fillText(
+      ellipsize(
+        context,
+        `使用推し：${page.selfOshi ?? '未入力'}`,
+        layout.contentWidth,
+      ),
+      layout.contentX,
+      selfOshiY,
+    )
+  }
+
   const contextParts = [
     page.placement,
-    page.selfOshi ? `使用推し：${page.selfOshi}` : undefined,
+    !isMobile && page.selfOshi ? `使用推し：${page.selfOshi}` : undefined,
     page.participantCount ? `参加人数：${page.participantCount}` : undefined,
     page.eventDate ? `開催日：${page.eventDate}` : undefined,
   ].filter((value): value is string => value !== undefined)
   context.fillStyle = '#dce8f5'
   setFont(context, layout.contextSize, 700)
   const contextY =
-    titleLines.length === 1 ? (isMobile ? 174 : 184) : isMobile ? 172 : 196
+    titleLines.length === 1 ? (isMobile ? 190 : 184) : isMobile ? 202 : 196
   context.fillText(
     ellipsize(context, contextParts.join('  ｜  '), layout.contentWidth),
     layout.contentX,
@@ -279,7 +313,7 @@ function drawStackedRound(
   setFont(context, 30, 900)
   context.fillStyle = EXPORT_COLORS.accent
   context.fillText(round.label, x + 24, y + 42)
-  context.fillStyle = EXPORT_COLORS.text
+  context.fillStyle = MOBILE_EXPORT_COLORS.text
   setFont(context, 29, 800)
   context.fillText(
     ellipsize(context, round.opponent || '対戦相手未入力', width - 300),
@@ -287,18 +321,18 @@ function drawStackedRound(
     y + 42,
   )
   setFont(context, 24, 700)
-  context.fillStyle = EXPORT_COLORS.muted
+  context.fillStyle = MOBILE_EXPORT_COLORS.muted
   context.fillText(
     [round.playOrder, round.initiative].filter(Boolean).join('  '),
     x + 126,
     y + 66,
   )
-  context.fillStyle = resultColor(round.result)
-  setFont(context, 28, 900)
+  context.fillStyle = mobileResultColor(round.result)
+  setFont(context, 30, 900)
   context.textAlign = 'right'
   context.fillText(round.result || '未入力', x + width - 24, y + 46)
   context.textAlign = 'left'
-  context.fillStyle = EXPORT_COLORS.border
+  context.fillStyle = MOBILE_EXPORT_COLORS.border
   context.fillRect(x + 24, y + 78, width - 48, 1)
 }
 
@@ -327,14 +361,17 @@ function drawSection(
   startY: number,
   layout: TournamentReportRenderLayout,
 ): number {
-  context.fillStyle = EXPORT_COLORS.accentSoft
+  const isMobile = layout.rowLayout === 'stacked'
+  context.fillStyle = isMobile
+    ? MOBILE_EXPORT_COLORS.section
+    : EXPORT_COLORS.accentSoft
   context.fillRect(
     layout.contentX,
     startY,
     layout.contentWidth,
     layout.sectionHeaderHeight,
   )
-  context.fillStyle = EXPORT_COLORS.text
+  context.fillStyle = isMobile ? MOBILE_EXPORT_COLORS.text : EXPORT_COLORS.text
   setFont(context, layout.sectionTitleSize, 900)
   context.fillText(
     section.heading,
@@ -354,15 +391,22 @@ function drawSection(
 
   let y = startY + layout.sectionHeaderHeight + 6
   section.rounds.forEach((round, index) => {
-    context.fillStyle =
-      index % 2 === 0 ? EXPORT_COLORS.surface : EXPORT_COLORS.stripe
+    context.fillStyle = isMobile
+      ? index % 2 === 0
+        ? MOBILE_EXPORT_COLORS.row
+        : MOBILE_EXPORT_COLORS.rowAlternate
+      : index % 2 === 0
+        ? EXPORT_COLORS.surface
+        : EXPORT_COLORS.stripe
     context.fillRect(
       layout.contentX,
       y,
       layout.contentWidth,
       layout.rowSurfaceHeight,
     )
-    context.fillStyle = EXPORT_COLORS.border
+    context.fillStyle = isMobile
+      ? MOBILE_EXPORT_COLORS.border
+      : EXPORT_COLORS.border
     context.fillRect(
       layout.contentX,
       y + layout.rowSurfaceHeight - 1,

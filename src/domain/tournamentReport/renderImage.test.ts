@@ -133,6 +133,25 @@ describe('generateTournamentReportImages', () => {
     })
   })
 
+  it('renders the 4:5 header as four readable information levels', async () => {
+    const harness = createCanvasHarness()
+    await generateTournamentReportImages(report, [makeCard()], {
+      createCanvas: harness.factory,
+    })
+
+    const yFor = (value: string) => {
+      const operation = harness.operations.find((item) =>
+        item.startsWith(`text:${value}:`),
+      )
+      expect(operation).toBeDefined()
+      return Number(operation?.split(':').at(-1))
+    }
+
+    expect(yFor('TOURNAMENT REPORT')).toBeLessThan(yFor('日本語大会'))
+    expect(yFor('日本語大会')).toBeLessThan(yFor('使用推し：宝鐘マリン'))
+    expect(yFor('使用推し：宝鐘マリン')).toBeLessThan(yFor('優勝'))
+  })
+
   it('keeps maximum-case rows inside both preset content areas', () => {
     const maximumReport: TournamentReport = {
       ...report,
@@ -141,7 +160,7 @@ describe('generateTournamentReportImages', () => {
     }
     for (const preset of ['mobile_4_5', 'landscape_16_9'] as const) {
       const rowWidth = preset === 'mobile_4_5' ? 984 : 1472
-      const rowHeight = preset === 'mobile_4_5' ? 96 : 50
+      const rowHeight = preset === 'mobile_4_5' ? 92 : 50
       const footerTop = preset === 'mobile_4_5' ? 1270 : 840
       const pages = buildTournamentReportImagePages(
         maximumReport,
