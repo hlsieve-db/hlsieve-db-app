@@ -330,17 +330,17 @@ function drawStackedRound(
   y: number,
   width: number,
 ): void {
-  setFont(context, 30, 900)
+  setFont(context, 24, 700)
   context.fillStyle = EXPORT_COLORS.accent
   context.fillText(round.label, x + 24, y + 42)
   context.fillStyle = MOBILE_EXPORT_COLORS.text
-  setFont(context, 29, 800)
+  setFont(context, 28, 700)
   context.fillText(
     ellipsize(context, round.opponent || '対戦相手未入力', width - 300),
     x + 126,
     y + 42,
   )
-  setFont(context, 24, 700)
+  setFont(context, 22, 600)
   context.fillStyle = MOBILE_EXPORT_COLORS.muted
   context.fillText(
     [round.playOrder, round.initiative].filter(Boolean).join('  '),
@@ -348,7 +348,7 @@ function drawStackedRound(
     y + 66,
   )
   context.fillStyle = mobileResultColor(round.result)
-  setFont(context, 30, 900)
+  setFont(context, 24, 700)
   context.textAlign = 'right'
   context.fillText(round.result || '未入力', x + width - 24, y + 46)
   context.textAlign = 'left'
@@ -362,17 +362,33 @@ function drawSingleLineRound(
   x: number,
   y: number,
 ): void {
-  setFont(context, 25, 800)
+  setFont(context, 24, 700)
   context.fillStyle = EXPORT_COLORS.accent
   context.fillText(round.label, x + 20, y + 34)
   context.fillStyle = EXPORT_COLORS.text
-  setFont(context, 25, 700)
+  setFont(context, 28, 700)
   context.fillText(ellipsize(context, round.opponent, 620), x + 126, y + 34)
+  setFont(context, 22, 600)
   context.fillText(round.playOrder, x + 786, y + 34)
   context.fillText(round.initiative, x + 966, y + 34)
   context.fillStyle = resultColor(round.result)
-  setFont(context, 25, 900)
+  setFont(context, 24, 700)
   context.fillText(round.result, x + 1166, y + 34)
+}
+
+function drawLandscapeColumnHeader(
+  context: CanvasRenderingContext2D,
+  layout: TournamentReportRenderLayout,
+): void {
+  const x = layout.contentX
+  const baseline = layout.contentTop - 6
+  context.fillStyle = EXPORT_COLORS.muted
+  setFont(context, 20, 700)
+  context.fillText('R', x + 20, baseline)
+  context.fillText('対戦相手 / 使用推し', x + 126, baseline)
+  context.fillText('先後', x + 786, baseline)
+  context.fillText('手番選択', x + 966, baseline)
+  context.fillText('結果', x + 1166, baseline)
 }
 
 function drawSection(
@@ -560,10 +576,10 @@ function drawMobileRecord(
   context.fillText('RECORD', x + 28, y + 34)
 
   context.fillStyle = MOBILE_EXPORT_COLORS.text
-  setFont(context, 58, 900)
+  setFont(context, 46, 700)
   context.fillText(record, x + 28, y + 100)
   context.textAlign = 'right'
-  setFont(context, 42, 900)
+  setFont(context, 36, 700)
   context.fillText(
     page.placement ?? '順位未入力',
     x + layout.contentWidth - 28,
@@ -606,7 +622,7 @@ function drawMobileMatches(
   context.fillStyle = MOBILE_EXPORT_COLORS.section
   context.fillRect(x, headerY, layout.contentWidth, headerHeight)
   context.fillStyle = MOBILE_EXPORT_COLORS.text
-  setFont(context, 17, 850)
+  setFont(context, 20, 700)
   context.fillText('R', columns.round, headerY + 28)
   context.fillText('対戦相手 / 使用推し', columns.opponent, headerY + 28)
   context.fillText('先後', columns.playOrder, headerY + 28)
@@ -626,16 +642,16 @@ function drawMobileMatches(
     context.fillRect(x, y + rowHeight - 1, layout.contentWidth, 1)
 
     context.fillStyle = EXPORT_COLORS.accent
-    setFont(context, 21, 900)
+    setFont(context, 24, 700)
     context.fillText(round.label, columns.round, y + 44)
     context.fillStyle = MOBILE_EXPORT_COLORS.text
-    setFont(context, 21, 850)
+    setFont(context, 28, 700)
     context.fillText(
       ellipsize(context, round.opponent || '対戦相手未入力', 500),
       columns.opponent,
       y + 44,
     )
-    setFont(context, 19, 750)
+    setFont(context, 22, 600)
     context.fillText(round.playOrder || '—', columns.playOrder, y + 44)
     context.fillText(
       mobileInitiativeLabel(round.initiative),
@@ -643,7 +659,7 @@ function drawMobileMatches(
       y + 44,
     )
     context.fillStyle = mobileResultColor(round.result)
-    setFont(context, 22, 900)
+    setFont(context, 24, 700)
     context.textAlign = 'right'
     context.fillText(round.result || '未入力', columns.result, y + 44)
     context.textAlign = 'left'
@@ -691,6 +707,7 @@ export function drawTournamentReportImagePage(
   context.fillStyle = EXPORT_COLORS.background
   context.fillRect(0, 0, layout.width, layout.height)
   drawHeader(context, page, layout)
+  drawLandscapeColumnHeader(context, layout)
   let y = layout.contentTop
   page.sections.forEach((section) => {
     y = drawSection(context, section, y, layout)

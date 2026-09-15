@@ -57,6 +57,7 @@ const report: TournamentReport = {
 function createCanvasHarness() {
   const text: string[] = []
   const styledText: { value: string; color: string }[] = []
+  const typographyText: { value: string; font: string }[] = []
   const operations: string[] = []
   const context = {
     fillStyle: '',
@@ -69,6 +70,7 @@ function createCanvasHarness() {
     fillText: (value: string, x: number, y: number) => {
       text.push(value)
       styledText.push({ value, color: String(context.fillStyle) })
+      typographyText.push({ value, font: String(context.font) })
       operations.push(`text:${value}:${x}:${y}`)
     },
     measureText: (value: string) => ({ width: Array.from(value).length * 16 }),
@@ -82,7 +84,15 @@ function createCanvasHarness() {
     }),
   } as unknown as HTMLCanvasElement
   const factory: TournamentReportCanvasFactory = vi.fn(() => canvas)
-  return { canvas, context, factory, operations, styledText, text }
+  return {
+    canvas,
+    context,
+    factory,
+    operations,
+    styledText,
+    text,
+    typographyText,
+  }
 }
 
 describe('generateTournamentReportImages', () => {
@@ -237,6 +247,37 @@ describe('generateTournamentReportImages', () => {
         expect(harness.styledText).toEqual(
           expect.arrayContaining([{ value: 'Swiss', color: '#16233a' }]),
         )
+      }
+    },
+  )
+
+  it.each(['mobile_4_5', 'landscape_16_9'] as const)(
+    'uses the readable match typography hierarchy for %s',
+    async (preset) => {
+      const harness = createCanvasHarness()
+      await generateTournamentReportImages(report, [makeCard()], {
+        preset,
+        createCanvas: harness.factory,
+      })
+
+      const expectFont = (value: string, expected: string) => {
+        expect(
+          harness.typographyText.find((drawing) => drawing.value === value)
+            ?.font,
+        ).toContain(expected)
+      }
+
+      expectFont('R', '700 20px')
+      expectFont('対戦相手 / 使用推し', '700 20px')
+      expectFont('R1', '700 24px')
+      expectFont('宝鐘マリン', '700 28px')
+      expectFont('先攻', '600 22px')
+      expectFont(preset === 'mobile_4_5' ? '○' : '⚀○', '600 22px')
+      expectFont('○ WIN', '700 24px')
+
+      if (preset === 'mobile_4_5') {
+        expectFont('1勝1敗1分', '700 46px')
+        expectFont('優勝', '700 36px')
       }
     },
   )
