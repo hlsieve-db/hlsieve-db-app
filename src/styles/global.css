@@ -2636,6 +2636,17 @@ main {
   text-decoration: none;
 }
 
+.deck-card-image-link .deck-card-image {
+  transition:
+    box-shadow 160ms ease,
+    opacity 160ms ease;
+}
+
+.deck-card-image-link:hover .deck-card-image {
+  box-shadow: inset 0 0 0 2px var(--color-accent-border);
+  opacity: 0.9;
+}
+
 .deck-card-image-link:focus-visible {
   outline-offset: 3px;
 }
@@ -4574,12 +4585,17 @@ main {
   }
 
   .deck-entry:not(.deck-entry--compact) {
-    grid-template-columns: 54px minmax(0, 1fr) auto;
+    grid-template-columns: 54px minmax(0, 1fr);
+  }
+
+  .deck-entry:not(.deck-entry--compact) .deck-quantity-control {
+    grid-column: 1 / -1;
+    justify-self: center;
   }
 
   .deck-entry:not(.deck-entry--compact) .deck-entry__remove {
-    grid-column: 2 / -1;
-    justify-self: start;
+    grid-column: 1 / -1;
+    justify-self: center;
   }
 
   .deck-entry-list--compact {

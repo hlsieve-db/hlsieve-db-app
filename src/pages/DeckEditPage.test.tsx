@@ -286,6 +286,11 @@ describe('DeckEditPage editor operations', () => {
         name: 'UNKNOWN-001を1枚追加',
       }),
     ).toBeVisible()
+    expect(
+      within(currentCards).queryByRole('link', {
+        name: /UNKNOWN-001.*カード詳細/,
+      }),
+    ).not.toBeInTheDocument()
     expect(screen.getByText('カード情報なし')).toBeVisible()
     expect(screen.getByText('合計 3枚')).toBeVisible()
   })
@@ -422,7 +427,7 @@ describe('DeckEditPage editor operations', () => {
     )
   })
 
-  it('links Oshi, Main, and Cheer images to logical Card Detail routes and preserves Back navigation', async () => {
+  it('links Oshi, Main, and Cheer images to logical Card Detail routes and supports keyboard-style activation and Back navigation', async () => {
     renderPage({
       deckRepository: repository({
         getDeck: async () =>
@@ -457,7 +462,7 @@ describe('DeckEditPage editor operations', () => {
     mainLink.focus()
     expect(mainLink).toHaveFocus()
 
-    fireEvent.click(mainLink)
+    fireEvent.click(mainLink, { detail: 0 })
     expect(screen.getByText('Card detail destination: CARD-001')).toBeVisible()
     fireEvent.click(screen.getByRole('button', { name: 'Browser Back' }))
     expect(
