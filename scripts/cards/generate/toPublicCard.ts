@@ -3,20 +3,21 @@ import type { SearchIndexedCardCandidate } from '../searchIndex/types'
 import type { GenerationResult, PublicCardOptions } from './types'
 import { validatePublicCard } from './validation'
 import { buildOfficialQaId, buildOfficialQaUrl } from '../qa/officialQa'
+import { getMemberSearchTerms } from '../searchIndex/memberReadings'
 
 export function toPublicCard(
   candidate: SearchIndexedCardCandidate,
   options: PublicCardOptions = {},
 ): GenerationResult<Card> {
+  const nameReading =
+    options.nameReading ?? getMemberSearchTerms(candidate.name)?.nameReading
   const card: Card = {
     cardNumber: candidate.cardNumber,
     name: candidate.name,
     ...(candidate.imageUrl !== undefined
       ? { imageUrl: candidate.imageUrl }
       : {}),
-    ...(options.nameReading !== undefined
-      ? { nameReading: options.nameReading }
-      : {}),
+    ...(nameReading !== undefined ? { nameReading } : {}),
     cardType: candidate.cardType,
     colors: [...candidate.colors],
     ...(candidate.bloomLevel !== undefined

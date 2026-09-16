@@ -215,8 +215,15 @@ describe('toPublicCard', () => {
     })
   })
 
-  it('does not infer nameReading', () => {
+  it('does not infer nameReading for a name outside the fixed dictionary', () => {
     expect(publicCard()).not.toHaveProperty('nameReading')
+  })
+
+  it('maps the fixed member reading without requiring a caller option', () => {
+    expect(publicCard(candidate('hTEST-002', { name: 'AZKi' }))).toHaveProperty(
+      'nameReading',
+      'あずき',
+    )
   })
 
   it('preserves an official future release date without excluding the Card', () => {

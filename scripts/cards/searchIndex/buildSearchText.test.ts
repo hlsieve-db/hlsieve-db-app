@@ -133,6 +133,17 @@ describe('buildSearchText', () => {
     expect(buildSearchText(target)).toBe(buildSearchText(target))
   })
 
+  it('indexes the fixed member reading and compact official name by default', () => {
+    const indexed = toSearchIndexedCardCandidate(
+      card({ name: 'パヴォリア・レイネ' }),
+    )
+
+    expect(indexed.searchText).toBe(
+      'ぱゔぉりあ・れいね htest-001 ぱゔぉりあれいね',
+    )
+    expect(indexed.searchText).not.toContain('れいねちゃん')
+  })
+
   it('does not index filter, metadata, URL, Q&A metadata, or conflict fields', () => {
     const target = card({
       rarities: ['DoNotIndexRarity'],

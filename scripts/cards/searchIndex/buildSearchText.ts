@@ -4,6 +4,7 @@ import type {
   SearchIndexedCardCandidate,
   SearchTextAdditionalTerms,
 } from './types'
+import { getMemberSearchTerms } from './memberReadings'
 
 function collectSearchTextSegments(
   card: DerivedCardCandidate,
@@ -49,7 +50,9 @@ export function buildSearchText(
 
 export function toSearchIndexedCardCandidate(
   card: DerivedCardCandidate,
-  additionalTerms: SearchTextAdditionalTerms = {},
+  additionalTerms: SearchTextAdditionalTerms = getMemberSearchTerms(
+    card.name,
+  ) ?? {},
 ): SearchIndexedCardCandidate {
   return {
     ...card,
