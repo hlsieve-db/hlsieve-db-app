@@ -65,6 +65,18 @@ describe('search URL query', () => {
   it('uses the first query value', () => {
     expect(parseSearchUrlState('?q=first&q=second').query).toBe('first')
   })
+
+  it('defaults Q&A inclusion to off and omits it from the URL', () => {
+    expect(parseSearchUrlState('').includeQa).toBe(false)
+    expect(serialized(withState({ includeQa: false }))).toBe('')
+  })
+
+  it('round-trips Q&A inclusion as qa=1 only', () => {
+    expect(parseSearchUrlState('?qa=1').includeQa).toBe(true)
+    expect(serialized(withState({ includeQa: true }))).toBe('qa=1')
+    expect(parseSearchUrlState('?qa=0').includeQa).toBe(false)
+    expect(serialized(parseSearchUrlState('?qa=unknown'))).toBe('')
+  })
 })
 
 describe('search URL colors and card types', () => {
@@ -286,6 +298,7 @@ describe('search URL sort and page', () => {
 describe('search URL canonical round-trip', () => {
   const complete = withState({
     query: 'フワモコ & Q&A',
+    includeQa: true,
     colors: ['colorless', 'blue', 'red'],
     colorMode: 'and',
     cardTypes: ['support_tool', 'holomem'],
@@ -311,7 +324,7 @@ describe('search URL canonical round-trip', () => {
 
   it('uses fixed parameter and domain-value ordering', () => {
     expect(serialized(complete)).toBe(
-      'q=%E3%83%95%E3%83%AF%E3%83%A2%E3%82%B3+%26+Q%26A&color=red&color=blue&color=colorless&colorMode=and&type=holomem&type=support_tool&bloom=debut_normal&bloom=first&bloom=buzz&critical=red&critical=blue&criticalMode=and&tag=draw&tag=deck_search&tagMode=or&sort=release_date_desc&page=4',
+      'q=%E3%83%95%E3%83%AF%E3%83%A2%E3%82%B3+%26+Q%26A&qa=1&color=red&color=blue&color=colorless&colorMode=and&type=holomem&type=support_tool&bloom=debut_normal&bloom=first&bloom=buzz&critical=red&critical=blue&criticalMode=and&tag=draw&tag=deck_search&tagMode=or&sort=release_date_desc&page=4',
     )
   })
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import type { Card } from '../cards/types'
+import { normalizeSearchText } from './normalizeSearchText'
 import { searchCards } from './searchCards'
 
 function card(cardNumber: string, searchText: string, name = cardNumber): Card {
@@ -32,6 +33,40 @@ const cards = [
   ),
   card('hBP01-004', 'hbp01-004 白上ふぶき 白 げーまーず', '白上フブキ'),
   card('hSD01-001', 'hsd01-001 ときのそら 青 そらとも', 'ときのそら'),
+]
+
+const qaCard = card(
+  'hSD16-007',
+  normalizeSearchText(
+    [
+      'hSD16-007',
+      'さくらみこ',
+      'コラボしたとき、カードを1枚引く',
+      '白上フブキがいる場合、この能力は使えますか？',
+      'はい、使えます。ターンプレイヤーが処理します。',
+      '白上フブキを別の場所から移動した場合も使えますか？',
+      'いいえ、使えません。',
+    ].join(' '),
+  ),
+  'さくらみこ',
+)
+qaCard.colors = ['red']
+qaCard.abilities = [{ type: 'gift', text: 'コラボしたとき、カードを1枚引く' }]
+qaCard.qas = [
+  {
+    id: 'Q633',
+    question: '白上フブキがいる場合、この能力は使えますか？',
+    answer: 'はい、使えます。ターンプレイヤーが処理します。',
+    officialUrl: 'https://example.com/qa/Q633',
+    relatedCardNumbers: ['hSD16-007'],
+  },
+  {
+    id: 'Q634',
+    question: '白上フブキを別の場所から移動した場合も使えますか？',
+    answer: 'いいえ、使えません。',
+    officialUrl: 'https://example.com/qa/Q634',
+    relatedCardNumbers: ['hSD16-007'],
+  },
 ]
 
 describe('searchCards', () => {
@@ -99,7 +134,69 @@ describe('searchCards', () => {
     expect(searchCards(withoutAlias, { query: 'fuwamoco' })).toEqual([])
   })
 
-  it('matches ability, art, and Q&A terms only through searchText', () => {
+  it('matches indexed production terms through searchText', () => {
     expect(searchCards(cards, { query: 'どろー 回答' })).toEqual([cards[0]])
+  })
+
+  it('excludes linked Q&A by default and when explicitly disabled', () => {
+    expect(searchCards([qaCard], { query: 'フブキ' })).toEqual([])
+    expect(
+      searchCards([qaCard], { query: 'フブキ', includeQa: false }),
+    ).toEqual([])
+  })
+
+  it('includes linked Q&A questions and answers only when enabled', () => {
+    expect(searchCards([qaCard], { query: 'フブキ', includeQa: true })).toEqual(
+      [qaCard],
+    )
+    expect(
+      searchCards([qaCard], {
+        query: 'ターンプレイヤー',
+        includeQa: true,
+      }),
+    ).toEqual([qaCard])
+  })
+
+  it('keeps card-body matching available regardless of the Q&A option', () => {
+    expect(searchCards([qaCard], { query: 'コラボ' })).toEqual([qaCard])
+    expect(searchCards([qaCard], { query: 'コラボ', includeQa: true })).toEqual(
+      [qaCard],
+    )
+  })
+
+  it('ANDs words across card body and Q&A without duplicating a card', () => {
+    expect(
+      searchCards([qaCard], {
+        query: 'コラボ フブキ',
+        includeQa: true,
+      }),
+    ).toEqual([qaCard])
+    expect(
+      searchCards([qaCard], {
+        query: 'フブキ ターンプレイヤー',
+        includeQa: true,
+      }),
+    ).toEqual([qaCard])
+  })
+
+  it('keeps empty-query counts identical and still ANDs structured filters', () => {
+    expect(searchCards([qaCard], { query: '' })).toHaveLength(1)
+    expect(searchCards([qaCard], { query: '', includeQa: true })).toHaveLength(
+      1,
+    )
+    expect(
+      searchCards([qaCard], {
+        query: 'フブキ',
+        includeQa: true,
+        colors: ['blue'],
+      }),
+    ).toEqual([])
+    expect(
+      searchCards([qaCard], {
+        query: 'フブキ',
+        includeQa: true,
+        colors: ['red'],
+      }),
+    ).toEqual([qaCard])
   })
 })

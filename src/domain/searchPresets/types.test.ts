@@ -16,6 +16,7 @@ import {
 
 const fullState: SearchUrlState = {
   query: 'フワモコ',
+  includeQa: true,
   colors: ['red', 'blue'],
   colorMode: 'and',
   cardTypes: ['holomem', 'support_tool'],
@@ -34,6 +35,7 @@ describe('saved search preset types', () => {
 
     expect(saved).toEqual({
       query: 'フワモコ',
+      includeQa: true,
       colors: ['red', 'blue'],
       colorMode: 'and',
       cardTypes: ['holomem', 'support_tool'],
@@ -53,7 +55,7 @@ describe('saved search preset types', () => {
     const params = serializeSearchUrlState(restored)
 
     expect(params.toString()).toBe(
-      'q=%E3%83%95%E3%83%AF%E3%83%A2%E3%82%B3&color=red&color=blue&colorMode=and&type=holomem&type=support_tool&bloom=first&bloom=buzz&critical=red&critical=blue&criticalMode=and&tag=draw&tag=deck_search&tagMode=or&sort=card_number_asc',
+      'q=%E3%83%95%E3%83%AF%E3%83%A2%E3%82%B3&qa=1&color=red&color=blue&colorMode=and&type=holomem&type=support_tool&bloom=first&bloom=buzz&critical=red&critical=blue&criticalMode=and&tag=draw&tag=deck_search&tagMode=or&sort=card_number_asc',
     )
     expect(parseSearchUrlState(params)).toEqual(restored)
   })
@@ -85,6 +87,22 @@ describe('saved search preset types', () => {
     expect(
       serializeSearchUrlState(presetToSearchUrlState(saved)).toString(),
     ).toBe('')
+  })
+
+  it('restores an older preset without includeQa as Q&A search off', () => {
+    const current = toSavedSearchState(fullState)
+    const legacy = { ...current } as Partial<SavedSearchState>
+    delete legacy.includeQa
+
+    expect(isSavedSearchState(legacy)).toBe(true)
+    expect(
+      presetToSearchUrlState(legacy as unknown as SavedSearchState),
+    ).toMatchObject({ includeQa: false, page: 1 })
+  })
+
+  it('rejects malformed includeQa values without changing the schema version', () => {
+    const saved = toSavedSearchState(DEFAULT_SEARCH_URL_STATE)
+    expect(isSavedSearchState({ ...saved, includeQa: 'true' })).toBe(false)
   })
 
   it('rejects page fields, unknown filters, and malformed preset records', () => {

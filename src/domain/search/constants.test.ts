@@ -5,6 +5,7 @@ describe('DEFAULT_SEARCH_STATE', () => {
   it('MVPの初期検索条件を保持する', () => {
     expect(DEFAULT_SEARCH_STATE).toEqual({
       query: '',
+      includeQa: false,
       colors: [],
       colorsMode: 'or',
       bloomLevels: [],

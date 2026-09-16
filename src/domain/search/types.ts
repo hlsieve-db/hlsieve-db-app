@@ -19,6 +19,7 @@ export type CardTypeFilterValue =
 
 export type SearchState = {
   query: string
+  includeQa: boolean
   colors: CardColor[]
   colorsMode: MatchMode
   bloomLevels: BloomFilterValue[]

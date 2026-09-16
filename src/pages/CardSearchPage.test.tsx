@@ -114,6 +114,20 @@ function fixtureCards(count = 30): Card[] {
       supportSearchCategory: 'fan',
       searchText: 's-fan ふぁんさぽーと',
     }),
+    card('hSD16-007', 'さくらみこ', {
+      abilities: [{ type: 'gift', text: 'コラボしたとき、カードを1枚引く' }],
+      qas: [
+        {
+          id: 'Q633',
+          question: '白上フブキがいる場合、この能力は使えますか？',
+          answer: 'はい、使えます。ターンプレイヤーが処理します。',
+          officialUrl: 'https://example.com/qa/Q633',
+          relatedCardNumbers: ['hSD16-007'],
+        },
+      ],
+      searchText:
+        'hsd16-007 さくらみこ こらぼしたとき、かーどを1枚引く 白上ふぶきがいる場合、この能力は使えますか? はい、使えます。たーんぷれいやーが処理します。',
+    }),
   ]
   const remaining = Array.from(
     { length: Math.max(0, count - featured.length) },
@@ -381,6 +395,32 @@ describe('CardSearchPage loading and results', () => {
 })
 
 describe('CardSearchPage initial URL and navigation', () => {
+  it('restores Q&A inclusion from a direct link and follows history', async () => {
+    renderPage({
+      entries: ['/cards?q=フブキ', '/cards?q=フブキ&qa=1'],
+      initialIndex: 1,
+    })
+
+    expect(
+      await screen.findByRole('heading', { name: 'さくらみこ' }),
+    ).toBeVisible()
+    expect(screen.getByLabelText('Q&Aを含める')).toBeChecked()
+
+    fireEvent.click(screen.getByRole('button', { name: '履歴を戻る' }))
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('heading', { name: 'さくらみこ' }),
+      ).not.toBeInTheDocument(),
+    )
+    expect(screen.getByLabelText('Q&Aを含める')).not.toBeChecked()
+
+    fireEvent.click(screen.getByRole('button', { name: '履歴を進む' }))
+    expect(
+      await screen.findByRole('heading', { name: 'さくらみこ' }),
+    ).toBeVisible()
+    expect(screen.getByLabelText('Q&Aを含める')).toBeChecked()
+  })
+
   it('restores and canonicalizes the legacy support URL as four categories', async () => {
     renderPage({ entries: ['/cards?type=support'] })
 
@@ -496,6 +536,47 @@ describe('CardSearchPage initial URL and navigation', () => {
 })
 
 describe('CardSearchPage query and filters', () => {
+  it('places the native Q&A option below the keyword and outside mobile filters', async () => {
+    renderPage()
+    await loaded()
+
+    const keywordLabel = screen.getByLabelText('キーワード').closest('label')
+    const qaOption = screen.getByLabelText('Q&Aを含める')
+    expect(qaOption).not.toBeChecked()
+    expect(keywordLabel?.nextElementSibling).toBe(qaOption.closest('label'))
+
+    fireEvent.click(screen.getByRole('button', { name: /検索詳細条件/ }))
+    expect(
+      within(screen.getByRole('dialog', { name: '絞り込み' })).queryByLabelText(
+        'Q&Aを含める',
+      ),
+    ).not.toBeInTheDocument()
+  })
+
+  it('toggles Q&A-only matching, URL state, and page reset without adding a filter chip', async () => {
+    renderPage({ entries: ['/cards?q=フブキ&page=2'] })
+    expect(
+      await screen.findByText('条件に一致するカードがありません。'),
+    ).toBeVisible()
+
+    fireEvent.click(screen.getByLabelText('Q&Aを含める'))
+
+    expect(
+      await screen.findByRole('heading', { name: 'さくらみこ' }),
+    ).toBeVisible()
+    expect(screen.getByTestId('location')).toHaveTextContent(
+      '/cards?q=%E3%83%95%E3%83%96%E3%82%AD&qa=1',
+    )
+    expect(screen.getByTestId('location')).not.toHaveTextContent('page=')
+    expect(screen.queryByText('Q&Aを含める：')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByLabelText('Q&Aを含める'))
+    expect(
+      await screen.findByText('条件に一致するカードがありません。'),
+    ).toBeVisible()
+    expect(screen.getByTestId('location')).not.toHaveTextContent('qa=')
+  })
+
   it('shows the seven card type filters in the final order on desktop', () => {
     renderPage()
 
@@ -640,6 +721,7 @@ describe('CardSearchPage query and filters', () => {
             name: '赤ホロメン',
             searchState: {
               query: '',
+              includeQa: false,
               colors: ['red'],
               colorMode: 'or',
               cardTypes: ['holomem'],

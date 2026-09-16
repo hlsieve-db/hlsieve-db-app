@@ -610,6 +610,33 @@ describe('DeckEditPage editor operations', () => {
     expect(saveDeck.mock.calls[1]?.[0]).not.toHaveProperty('rulesVersion')
   })
 
+  it('preserves existing Q&A-term matching without adding a Deck editor option', async () => {
+    const qaOnlyCard = card('QA-ONLY', '本文にないカード', {
+      qas: [
+        {
+          id: 'Q-DECK',
+          question: '白上フブキがいる場合、この能力は使えますか？',
+          answer: 'はい、使えます。',
+          officialUrl: 'https://example.com/qa/Q-DECK',
+          relatedCardNumbers: ['QA-ONLY'],
+        },
+      ],
+      searchText:
+        'qa-only 本文にないかーど 白上ふぶきがいる場合、この能力は使えますか? はい、使えます。',
+    })
+    renderPage({
+      loadCards: vi.fn(async () => cardsData([...cards, qaOnlyCard])),
+      loadPrintings: vi.fn(async () => printingsData([...cards, qaOnlyCard])),
+    })
+    const search = await screen.findByLabelText('カード検索')
+
+    fireEvent.change(search, { target: { value: 'フブキ' } })
+
+    const picker = screen.getByRole('region', { name: 'カードを追加' })
+    expect(await within(picker).findByText('本文にないカード')).toBeVisible()
+    expect(screen.queryByLabelText('Q&Aを含める')).not.toBeInTheDocument()
+  })
+
   it('shows an empty search result without inventing search semantics', async () => {
     renderPage()
     const search = await screen.findByLabelText('カード検索')

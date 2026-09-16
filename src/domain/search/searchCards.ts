@@ -1,9 +1,12 @@
 import type { Card, CardColor, CriticalColor, EffectTag } from '../cards/types'
+import { normalizeOfficialQaSearchText } from '../qa/officialQaSearch'
 import { normalizeSearchQuery } from './normalizeSearchQuery'
+import { normalizeSearchText } from './normalizeSearchText'
 import type { BloomFilterValue, CardTypeFilterValue, MatchMode } from './types'
 
 export type SearchCardsInput = {
   query: string
+  includeQa?: boolean
   colors?: readonly CardColor[]
   colorMode?: MatchMode
   cardTypes?: readonly CardTypeFilterValue[]
@@ -15,6 +18,46 @@ export type SearchCardsInput = {
 }
 
 export type TextSearchInput = SearchCardsInput
+
+type CardSearchCorpus = {
+  baseText: string
+  qaText: string
+}
+
+const CARD_SEARCH_CORPUS_CACHE = new WeakMap<Card, CardSearchCorpus>()
+
+function buildCardSearchCorpus(card: Card): CardSearchCorpus {
+  const cached = CARD_SEARCH_CORPUS_CACHE.get(card)
+  if (cached) return cached
+
+  const qaSegments = card.qas
+    .flatMap(({ question, answer }) => [question, answer])
+    .map(normalizeSearchText)
+    .filter(Boolean)
+    .sort((left, right) => right.length - left.length)
+  let residualSearchText = normalizeSearchText(card.searchText)
+  for (const qaSegment of qaSegments) {
+    residualSearchText = residualSearchText.replaceAll(qaSegment, ' ')
+  }
+
+  const baseSegments: (string | undefined)[] = [
+    card.name,
+    card.cardNumber,
+    card.nameReading,
+    ...card.abilities.map(({ text }) => text),
+    ...card.arts.flatMap(({ name, effectText }) => [name, effectText]),
+    card.extraText,
+    residualSearchText,
+  ]
+  const corpus = {
+    baseText: normalizeSearchText(
+      baseSegments.filter((value) => value !== undefined).join(' '),
+    ),
+    qaText: normalizeOfficialQaSearchText(card.qas),
+  }
+  CARD_SEARCH_CORPUS_CACHE.set(card, corpus)
+  return corpus
+}
 
 const SUPPORT_FILTER_CATEGORIES = {
   support_limited: 'limited',
@@ -77,9 +120,18 @@ export function searchCards(
   input: SearchCardsInput,
 ): Card[] {
   const tokens = normalizeSearchQuery(input.query).split(' ').filter(Boolean)
-  return cards.filter(
-    (card) =>
-      tokens.every((token) => card.searchText.includes(token)) &&
+  return cards.filter((card) => {
+    const corpus =
+      tokens.length === 0
+        ? ''
+        : (() => {
+            const { baseText, qaText } = buildCardSearchCorpus(card)
+            return input.includeQa && qaText
+              ? `${baseText} ${qaText}`
+              : baseText
+          })()
+    return (
+      tokens.every((token) => corpus.includes(token)) &&
       matchesSelection(card.colors, input.colors, input.colorMode ?? 'or') &&
       matchesCardTypes(card, input.cardTypes) &&
       matchesBloom(card, input.bloom) &&
@@ -92,6 +144,7 @@ export function searchCards(
         card.effectTags,
         input.effectTags,
         input.effectTagMode ?? 'and',
-      ),
-  )
+      )
+    )
+  })
 }

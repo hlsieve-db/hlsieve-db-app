@@ -5,6 +5,7 @@ import type { SearchUrlState } from '../../domain/search/searchUrlState'
 
 const empty: SearchUrlState = {
   query: '',
+  includeQa: false,
   colors: [],
   colorMode: 'or',
   cardTypes: [],
@@ -22,6 +23,17 @@ describe('ActiveFilterSummary', () => {
     const { container } = render(
       <ActiveFilterSummary
         state={empty}
+        onRemove={vi.fn()}
+        onClear={vi.fn()}
+      />,
+    )
+    expect(container).toBeEmptyDOMElement()
+  })
+
+  it('does not treat Q&A inclusion as a removable filter chip', () => {
+    const { container } = render(
+      <ActiveFilterSummary
+        state={{ ...empty, includeQa: true }}
         onRemove={vi.fn()}
         onClear={vi.fn()}
       />,

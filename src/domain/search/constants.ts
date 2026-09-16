@@ -33,6 +33,7 @@ export const MATCH_MODE_LABELS = {
 
 export const DEFAULT_SEARCH_STATE: SearchState = {
   query: '',
+  includeQa: false,
   colors: [],
   colorsMode: 'or',
   bloomLevels: [],

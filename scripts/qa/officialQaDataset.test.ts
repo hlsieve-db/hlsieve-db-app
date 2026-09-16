@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { CardsDataFile } from '../../src/domain/cards/types'
 import { buildOfficialQaSearchIndex } from '../../src/domain/qa/officialQaSearch'
+import { searchCards } from '../../src/domain/search/searchCards'
 
 describe('production official Q&A dataset', () => {
   it('builds 655 conflict-free unique records from 909 card occurrences', async () => {
@@ -35,5 +36,32 @@ describe('production official Q&A dataset', () => {
     expect(occurrences).toBe(909)
     expect(index).toHaveLength(655)
     expect(new Set(index.map(({ id }) => id))).toHaveProperty('size', 655)
+  })
+
+  it('finds hSD16-007 by its official Q&A only when Q&A search is enabled', async () => {
+    const data = JSON.parse(
+      await readFile(resolve('public', 'cards.json'), 'utf8'),
+    ) as CardsDataFile
+    const target = data.cards.find(
+      ({ cardNumber }) => cardNumber === 'hSD16-007',
+    )
+
+    expect(target?.name).toBe('さくらみこ')
+    expect(
+      target?.qas.some(
+        ({ id, question, answer }) =>
+          id === 'Q633' && `${question} ${answer}`.includes('フブキ'),
+      ),
+    ).toBe(true)
+    expect(
+      searchCards(data.cards, { query: 'フブキ' }).some(
+        ({ cardNumber }) => cardNumber === 'hSD16-007',
+      ),
+    ).toBe(false)
+    expect(
+      searchCards(data.cards, { query: 'フブキ', includeQa: true }).some(
+        ({ cardNumber }) => cardNumber === 'hSD16-007',
+      ),
+    ).toBe(true)
   })
 })

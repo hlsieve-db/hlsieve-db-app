@@ -196,7 +196,11 @@ function DeckEditor({
     () =>
       getCardSearchResults(
         cardsState.status === 'loaded' ? cardsState.data.cards : [],
-        { ...pickerState, pageSize: DEFAULT_CARD_PAGE_SIZE },
+        {
+          ...pickerState,
+          includeQa: true,
+          pageSize: DEFAULT_CARD_PAGE_SIZE,
+        },
       ),
     [cardsState, pickerState],
   )

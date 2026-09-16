@@ -62,6 +62,7 @@ describe('SavedSearchPresets', () => {
     const currentState: SearchUrlState = {
       ...DEFAULT_SEARCH_URL_STATE,
       query: 'フワモコ',
+      includeQa: true,
       colors: ['red'],
       cardTypes: ['support_tool'],
       sort: 'card_number_asc',
@@ -203,6 +204,46 @@ describe('SavedSearchPresets', () => {
       ...DEFAULT_SEARCH_URL_STATE,
       bloom: ['buzz'],
       sort: 'release_date_desc',
+      page: 1,
+    })
+  })
+
+  it('restores Q&A inclusion and defaults an older preset to off', async () => {
+    const onApply = vi.fn()
+    const qaPreset = savedPreset('preset-qa', 'Q&A検索', {
+      query: 'フブキ',
+      includeQa: true,
+    })
+    const currentLegacyState = toSavedSearchState(DEFAULT_SEARCH_URL_STATE)
+    const legacyState = { ...currentLegacyState } as Partial<
+      typeof currentLegacyState
+    >
+    delete legacyState.includeQa
+    const legacyPreset = {
+      ...savedPreset('preset-old', '旧検索'),
+      searchState: legacyState,
+    } as unknown as SavedSearchPreset
+
+    render(
+      <SavedSearchPresets
+        currentState={DEFAULT_SEARCH_URL_STATE}
+        repository={repository([qaPreset, legacyPreset])}
+        onApply={onApply}
+      />,
+    )
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Q&A検索' }))
+    expect(onApply).toHaveBeenLastCalledWith({
+      ...DEFAULT_SEARCH_URL_STATE,
+      query: 'フブキ',
+      includeQa: true,
+      page: 1,
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: '旧検索' }))
+    expect(onApply).toHaveBeenLastCalledWith({
+      ...DEFAULT_SEARCH_URL_STATE,
+      includeQa: false,
       page: 1,
     })
   })

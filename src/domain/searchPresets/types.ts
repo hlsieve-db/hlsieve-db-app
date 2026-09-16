@@ -21,6 +21,7 @@ export type SavedSearchPreset = {
 export function toSavedSearchState(state: SearchUrlState): SavedSearchState {
   return {
     query: state.query,
+    includeQa: state.includeQa,
     colors: [...state.colors],
     colorMode: state.colorMode,
     cardTypes: [...state.cardTypes],
@@ -39,6 +40,7 @@ export function presetToSearchUrlState(
   return {
     ...toSavedSearchState({
       ...state,
+      includeQa: state.includeQa === true,
       cardTypes: normalizeCardTypeFilterValues(state.cardTypes),
       page: 1,
     }),
@@ -65,6 +67,8 @@ export function isSavedSearchState(value: unknown): value is SavedSearchState {
   const candidate = value as Record<string, unknown>
   if (
     typeof candidate.query !== 'string' ||
+    (candidate.includeQa !== undefined &&
+      typeof candidate.includeQa !== 'boolean') ||
     typeof candidate.colorMode !== 'string' ||
     typeof candidate.criticalColorMode !== 'string' ||
     typeof candidate.effectTagMode !== 'string' ||
@@ -87,12 +91,17 @@ export function isSavedSearchState(value: unknown): value is SavedSearchState {
   ) {
     return false
   }
-  const canonicalState = { ...state, cardTypes }
+  const canonicalState = {
+    ...state,
+    includeQa: candidate.includeQa === true,
+    cardTypes,
+  }
   const normalized = parseSearchUrlState(
     serializeSearchUrlState({ ...canonicalState, page: 1 }),
   )
   return (
     normalized.query === canonicalState.query &&
+    normalized.includeQa === canonicalState.includeQa &&
     normalized.colorMode === canonicalState.colorMode &&
     normalized.criticalColorMode === canonicalState.criticalColorMode &&
     normalized.effectTagMode === canonicalState.effectTagMode &&

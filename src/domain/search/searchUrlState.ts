@@ -20,6 +20,7 @@ import type {
 
 export type SearchUrlState = {
   query: string
+  includeQa: boolean
   colors: readonly CardColor[]
   colorMode: MatchMode
   cardTypes: readonly CardTypeFilterValue[]
@@ -34,6 +35,7 @@ export type SearchUrlState = {
 
 export const DEFAULT_SEARCH_URL_STATE: SearchUrlState = {
   query: DEFAULT_SEARCH_STATE.query,
+  includeQa: DEFAULT_SEARCH_STATE.includeQa,
   colors: [],
   colorMode: DEFAULT_SEARCH_STATE.colorsMode,
   cardTypes: [],
@@ -125,6 +127,7 @@ export function parseSearchUrlState(
     typeof search === 'string' ? new URLSearchParams(search) : search
   return {
     query: params.get('q') ?? DEFAULT_SEARCH_URL_STATE.query,
+    includeQa: params.getAll('qa').includes('1'),
     colors: parseRepeated(params, 'color', COLOR_ORDER),
     colorMode: firstValid(
       params,
@@ -170,6 +173,7 @@ export function serializeSearchUrlState(
 ): URLSearchParams {
   const params = new URLSearchParams()
   if (normalizeSearchQuery(state.query) !== '') params.set('q', state.query)
+  if (state.includeQa) params.set('qa', '1')
 
   appendSelected(params, 'color', state.colors, COLOR_ORDER)
   if (state.colors.length > 0 && state.colorMode !== 'or') {

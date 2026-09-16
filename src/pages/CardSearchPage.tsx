@@ -190,7 +190,9 @@ export function CardSearchPage({
       <header className="search-page__header">
         <AppNavigation />
         <h1>カード検索</h1>
-        <p>カード名、能力、Q&amp;Aから公式カードを探せます。</p>
+        <p>
+          カード名、能力、カード番号から公式カードを探せます。Q&amp;Aも必要に応じて検索できます。
+        </p>
       </header>
 
       <LatestUpdateNotice entries={updateHistory} />
@@ -218,6 +220,16 @@ export function CardSearchPage({
             onCompositionStart={handleCompositionStart}
             onCompositionEnd={handleCompositionEnd}
           />
+        </label>
+        <label className="search-query-option">
+          <input
+            type="checkbox"
+            checked={urlState.includeQa}
+            onChange={(event) =>
+              updateSearch({ includeQa: event.currentTarget.checked })
+            }
+          />
+          <span>Q&amp;Aを含める</span>
         </label>
 
         <div className="mobile-filter-bar">

@@ -21,6 +21,14 @@ type MutableQaRecord = Omit<
   relatedCardNumbers: Set<string>
 }
 
+export function normalizeOfficialQaSearchText(
+  qas: readonly Pick<CardQa, 'question' | 'answer'>[],
+): string {
+  return normalizeSearchText(
+    qas.flatMap(({ question, answer }) => [question, answer]).join(' '),
+  )
+}
+
 function qaNumber(id: string): number {
   const match = /^q(\d+)$/i.exec(id)
   return match ? Number(match[1]) : Number.MAX_SAFE_INTEGER
@@ -75,8 +83,7 @@ export function buildOfficialQaSearchIndex(
         searchText: normalizeSearchText(
           [
             qa.id,
-            qa.question,
-            qa.answer,
+            normalizeOfficialQaSearchText([qa]),
             ...relatedCards.flatMap(({ cardNumber, name }) => [
               cardNumber,
               name ?? '',
