@@ -1057,6 +1057,7 @@ main {
 }
 
 .card-result {
+  min-width: 0;
   overflow: hidden;
   border: 1px solid var(--color-border);
   border-radius: 14px;
@@ -1099,13 +1100,19 @@ main {
 }
 
 .card-result__body {
+  min-width: 0;
   padding: 12px;
+  overflow-wrap: anywhere;
 }
 
 .card-result__body h2 {
+  display: -webkit-box;
+  overflow: hidden;
   margin: 4px 0 0;
   font-size: 1rem;
   line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 }
 
 .card-result__body h2 a {
@@ -1116,8 +1123,14 @@ main {
 }
 
 .card-result__body .deck-quantity-control {
+  min-width: 0;
+  gap: 4px;
   justify-content: center;
   margin-top: 12px;
+}
+
+.card-result__body .deck-quantity-control output {
+  min-width: 2ch;
 }
 
 .card-result__body .favorite-toggle {
@@ -1140,8 +1153,19 @@ main {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-wrap: wrap;
   gap: 16px;
   margin-top: 28px;
+}
+
+.pagination .button {
+  min-height: 44px;
+}
+
+.pagination [aria-current='page'] {
+  min-width: 5.5em;
+  text-align: center;
+  font-weight: 800;
 }
 
 .detail-page {
@@ -4551,6 +4575,66 @@ main {
   }
 }
 
+/* Card Search responsive result grid. Keep shared card grids unchanged. */
+.search-results .card-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+@media (min-width: 420px) {
+  .search-results .card-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+}
+
+@media (min-width: 768px) {
+  .search-results .card-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .search-results .card-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 16px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .search-results .card-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 18px;
+  }
+}
+
+@media (max-width: 419px) {
+  .search-results__header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .card-result__body h2 {
+    font-size: 0.9rem;
+  }
+
+  .card-result__number {
+    font-size: 0.7rem;
+    overflow-wrap: anywhere;
+  }
+
+  .pagination {
+    gap: 8px;
+  }
+
+  .pagination .button {
+    flex: 1 1 0;
+    padding-inline: 10px;
+  }
+}
+
 @media (max-width: 420px) {
   .app-navigation {
     align-items: stretch;
@@ -4730,8 +4814,11 @@ main {
 }
 
 .mobile-filter-sheet {
+  width: 100%;
   max-height: min(92vh, 760px);
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 18px 16px 24px;
   border-radius: 18px 18px 0 0;
   background: var(--color-surface);
@@ -4772,18 +4859,41 @@ main {
     margin-top: 16px;
   }
   .mobile-filter-bar .button {
+    width: 100%;
     min-height: 44px;
+    justify-content: center;
+    white-space: normal;
   }
   .active-filter-summary {
     align-items: stretch;
     flex-direction: column;
   }
   .active-filter-summary__chips {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    padding-bottom: 2px;
+    flex-wrap: wrap;
   }
   .active-filter-summary__clear {
     align-self: flex-start;
+    min-height: 44px;
+  }
+
+  .search-results {
+    padding: 8px;
+  }
+
+  .card-result__body {
+    padding: 6px;
+  }
+
+  .card-result__body .deck-quantity-control {
+    gap: 2px;
+  }
+
+  .card-result__body .deck-quantity-control output {
+    min-width: 1.5ch;
+  }
+
+  .card-result__body .favorite-toggle {
+    padding-inline: 6px;
+    font-size: 0.78rem;
   }
 }

@@ -227,6 +227,9 @@ describe('CardSearchPage loading and results', () => {
     fireEvent.click(trigger)
     const dialog = screen.getByRole('dialog', { name: '絞り込み' })
     expect(dialog).toBeVisible()
+    expect(dialog).toHaveAttribute('aria-modal', 'true')
+    expect(screen.getByRole('heading', { name: '絞り込み' })).toHaveFocus()
+    expect(document.body.style.overflow).toBe('hidden')
     expect(
       within(within(dialog).getByRole('group', { name: 'カードタイプ' }))
         .getAllByRole('checkbox')
@@ -242,6 +245,26 @@ describe('CardSearchPage loading and results', () => {
     ])
     fireEvent.keyDown(document, { key: 'Escape' })
     await waitFor(() => expect(trigger).toHaveFocus())
+    expect(document.body.style.overflow).toBe('')
+  })
+
+  it('traps focus in the mobile filter sheet and closes from the scrim', async () => {
+    renderPage()
+    const trigger = screen.getByRole('button', { name: /検索詳細条件/ })
+    fireEvent.click(trigger)
+
+    const dialog = screen.getByRole('dialog', { name: '絞り込み' })
+    const close = within(dialog).getByRole('button', { name: '閉じる' })
+    const apply = within(dialog).getByRole('button', { name: /件を表示/ })
+    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true })
+    expect(apply).toHaveFocus()
+    fireEvent.keyDown(document, { key: 'Tab' })
+    expect(close).toHaveFocus()
+
+    fireEvent.click(dialog.parentElement!)
+    await waitFor(() => expect(trigger).toHaveFocus())
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(document.body.style.overflow).toBe('')
   })
 
   it('shows the actual latest publication date and complete update summary', () => {
@@ -265,6 +288,7 @@ describe('CardSearchPage loading and results', () => {
     await loaded()
 
     expect(screen.getAllByRole('article')).toHaveLength(24)
+    expect(document.querySelector('.card-grid')).toBeInTheDocument()
     expect(
       screen.getByRole('img', { name: 'フワモコのカード画像' }),
     ).toHaveAttribute('loading', 'lazy')
@@ -690,11 +714,13 @@ describe('CardSearchPage sort and pagination', () => {
     await screen.findByText('1 / 2ページ')
     const previous = screen.getByRole('button', { name: '前へ' })
     const next = screen.getByRole('button', { name: '次へ' })
+    expect(screen.getByText('1 / 2')).toHaveAttribute('aria-current', 'page')
     expect(previous).toBeDisabled()
     expect(next).toBeEnabled()
 
     fireEvent.click(next)
     await screen.findByText('2 / 2ページ')
+    expect(screen.getByText('2 / 2')).toHaveAttribute('aria-current', 'page')
     expect(screen.getByTestId('location')).toHaveTextContent(
       '/cards?color=green&page=2',
     )

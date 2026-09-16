@@ -158,6 +158,11 @@ export function CardSearchPage({
     updateSearch({ query }, true)
   }
 
+  const closeMobileSheet = useCallback(() => {
+    setMobileSheetOpen(false)
+    requestAnimationFrame(() => mobileTriggerRef.current?.focus())
+  }, [])
+
   const handleQueryChange = (event: ChangeEvent<HTMLInputElement>) => {
     const value = event.currentTarget.value
     setQueryDraft(value)
@@ -286,10 +291,7 @@ export function CardSearchPage({
           state={urlState}
           onChange={(patch) => updateSearch(patch)}
           resultCount={results.totalItems}
-          onClose={() => {
-            setMobileSheetOpen(false)
-            requestAnimationFrame(() => mobileTriggerRef.current?.focus())
-          }}
+          onClose={closeMobileSheet}
         />
       )}
 
