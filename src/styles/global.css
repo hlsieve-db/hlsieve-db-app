@@ -598,13 +598,21 @@ main {
   min-height: 44px;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  padding: 8px 12px;
+  gap: 8px;
+  padding: 8px clamp(8px, 2.5vw, 12px);
   border: 1px solid var(--color-border-strong);
   border-radius: 9px;
   color: var(--color-accent-strong);
   background: var(--color-surface);
-  font-weight: 800;
+  font-size: 1rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.app-navigation__menu-icon {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
 }
 
 .primary-navigation--desktop {
@@ -4672,11 +4680,6 @@ main {
     max-width: calc(100% - 39px);
     margin-left: 39px;
     overflow-wrap: anywhere;
-  }
-
-  .app-navigation__menu-button {
-    gap: 1px;
-    padding-inline: 2px;
   }
 
   .app-navigation__controls {

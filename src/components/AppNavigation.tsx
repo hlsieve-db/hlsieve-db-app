@@ -108,8 +108,10 @@ export function AppNavigation() {
             setMobileOpenLocation(mobileOpen ? undefined : locationKey)
           }}
         >
-          <span aria-hidden="true">☰</span>
-          メニュー
+          <span className="app-navigation__menu-icon" aria-hidden="true">
+            ☰
+          </span>
+          <span className="app-navigation__menu-label">メニュー</span>
         </button>
 
         <div className="app-navigation__controls">

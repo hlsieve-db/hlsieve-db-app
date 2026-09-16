@@ -272,4 +272,23 @@ describe('AppNavigation theme control', () => {
     )
     expect(menuButton).toHaveAttribute('aria-expanded', 'false')
   })
+
+  it('uses one accessible mobile trigger for the hamburger icon and menu label', () => {
+    mockColorScheme(false)
+    render(
+      <MemoryRouter initialEntries={['/cards']}>
+        <AppNavigation />
+      </MemoryRouter>,
+    )
+
+    const menuButton = screen.getByRole('button', { name: 'メニュー' })
+    expect(menuButton).toHaveTextContent('☰')
+    expect(menuButton).toHaveTextContent('メニュー')
+    expect(menuButton).toHaveAttribute('aria-expanded', 'false')
+    expect(menuButton).toHaveAttribute(
+      'aria-controls',
+      'mobile-navigation-panel',
+    )
+    expect(screen.getAllByText('メニュー')).toHaveLength(1)
+  })
 })
