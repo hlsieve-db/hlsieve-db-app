@@ -101,9 +101,10 @@ describe('App', () => {
     expect(
       screen.getByText('HLSieve DBは非公式のファンメイドツールです。'),
     ).toBeVisible()
-    expect(
-      screen.getByRole('link', { name: '免責事項・利用条件' }),
-    ).toHaveAttribute('href', '/disclaimer')
+    expect(screen.getByRole('link', { name: '利用条件' })).toHaveAttribute(
+      'href',
+      '/disclaimer',
+    )
   })
 
   it('routes to updates and cleans disclaimer robots metadata on navigation', () => {
@@ -115,10 +116,8 @@ describe('App', () => {
     expect(screen.getByRole('heading', { name: '更新履歴' })).toBeVisible()
     expect(document.title).toBe('更新履歴 | HLSieve DB')
 
-    fireEvent.click(screen.getByRole('link', { name: '免責事項・利用条件' }))
-    expect(
-      screen.getByRole('heading', { name: '免責事項・利用条件' }),
-    ).toBeVisible()
+    fireEvent.click(screen.getByRole('link', { name: '利用条件' }))
+    expect(screen.getByRole('heading', { name: '利用条件' })).toBeVisible()
     expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute(
       'content',
       'noindex,follow',

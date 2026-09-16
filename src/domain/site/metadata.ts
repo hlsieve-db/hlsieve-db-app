@@ -115,9 +115,9 @@ export const RECENTLY_VIEWED_METADATA: PageMetadata = {
 }
 
 export const DISCLAIMER_METADATA: PageMetadata = {
-  title: '免責事項・利用条件 | HLSieve DB',
+  title: '利用条件 | HLSieve DB',
   description:
-    'HLSieve DBの非公式サービスとしての免責事項、権利帰属および利用条件をご案内します。',
+    'HLSieve DBの利用条件、第三者の権利、禁止事項および免責事項をご案内します。',
   canonicalPath: '/disclaimer',
   robots: 'noindex,follow',
 }

@@ -13,67 +13,76 @@ function renderPage() {
 }
 
 describe('DisclaimerPage', () => {
-  it('states its unofficial status and third-party rights attribution', () => {
+  it('states its unofficial status and does not grant permission over third-party works', () => {
     renderPage()
+    expect(screen.getByRole('heading', { name: '利用条件' })).toBeVisible()
+    expect(screen.getByText(/非公式のファンメイドツール/)).toBeVisible()
     expect(
-      screen.getByRole('heading', { name: '免責事項・利用条件' }),
+      screen.getByText(/権利者が運営・提供・公認するサービスではありません/),
     ).toBeVisible()
     expect(
-      screen.getByText(/個人が運営する非公式のファンメイドツール/),
+      screen.getByText(
+        /第三者権利物について利用許諾を与える立場にはありません/,
+      ),
     ).toBeVisible()
     expect(
-      screen.getByText(/公式に運営、提供、承認または協賛された/),
-    ).toBeVisible()
-    expect(
-      screen.getByText(/著作物・商標等の権利は、各権利者に帰属/),
+      screen.getByText(/各権利者が定める利用規約、ガイドライン/),
     ).toBeVisible()
   })
 
-  it('covers accuracy, official-rule guidance, liability, and external links', () => {
+  it('does not prohibit commercial use solely because revenue is generated', () => {
+    renderPage()
+    expect(
+      screen.getByRole('heading', { name: '4. 営利目的での利用について' }),
+    ).toBeVisible()
+    expect(screen.getByText(/営利・非営利を問わず禁止しません/)).toBeVisible()
+    expect(
+      screen.getByText(/収益が発生することを理由として、その利用を一律に禁止/),
+    ).toBeVisible()
+  })
+
+  it('prohibits cloning, mass redistribution, and disruptive access', () => {
+    renderPage()
+    expect(
+      screen.getByText(
+        /別サービスとして再配布・再公開する行為は認められません/,
+      ),
+    ).toBeVisible()
+    expect(
+      screen.getByText(/実質的に同一のデータベースやサービスを構築・公開/),
+    ).toBeVisible()
+    expect(screen.getByText(/不正アクセス、脆弱性の悪用/)).toBeVisible()
+    expect(screen.getByText(/スクレイピング、クローリング/)).toBeVisible()
+  })
+
+  it('removes the former free-versus-paid usage rules', () => {
+    renderPage()
+    const pageText = document.body.textContent ?? ''
+    expect(pageText).not.toContain('営利目的の活動は禁止します')
+    expect(pageText).not.toContain('無料コンテンツで許容する例')
+    expect(pageText).not.toContain('禁止する例')
+    expect(pageText).not.toContain('有料note')
+    expect(pageText).not.toContain('有料教材')
+    expect(pageText).not.toContain('直接または間接的に収益を得る目的')
+    expect(pageText).not.toContain('判断が難しい場合は利用をお控えください')
+  })
+
+  it('covers accuracy, liability, service changes, and contact guidance', () => {
     renderPage()
     expect(screen.getByText(/正確性、完全性、最新性を保証/)).toBeVisible()
+    expect(screen.getByText(/公式情報を優先/)).toBeVisible()
     expect(
-      screen.getByText(/公式サイト、公式ルールおよび公式Q&A/),
+      screen.getByText(/法令上責任を負う場合を除き、責任を負いません/),
     ).toBeVisible()
+    expect(screen.getByText(/公開停止または運営終了を行う場合/)).toBeVisible()
     expect(
-      screen.getByText(/法令上認められる範囲で運営者は責任を負いません/),
-    ).toBeVisible()
-    expect(screen.getByText(/外部リンク先の内容やサービス/)).toBeVisible()
-  })
-
-  it('distinguishes free introductions from prohibited commercial uses', () => {
-    renderPage()
-    expect(
-      screen.getByRole('heading', { name: '営利目的での利用について' }),
-    ).toBeVisible()
-    expect(screen.getByText('〇 無料noteでHLSieve DBを紹介する')).toBeVisible()
-    expect(screen.getByText(/× 有料noteへ/)).toBeVisible()
-    expect(screen.getByText(/× 有料教材や有料会員向けコンテンツ/)).toBeVisible()
-    expect(
-      screen.getByText(/× HLSieve DBの情報を利用した資料を販売/),
-    ).toBeVisible()
-  })
-
-  it('does not imply permission over third-party works and handles no contact method', () => {
-    renderPage()
-    expect(
-      screen.getByText(/運営者が利用許諾を与えるものではありません/),
-    ).toBeVisible()
-    expect(
-      screen.getByText(/第三者権利物の利用は、各権利者のルール/),
-    ).toBeVisible()
-    expect(screen.getByRole('link', { name: 'お問い合わせ' })).toHaveAttribute(
-      'href',
-      '/contact',
-    )
-    expect(
-      screen.getByText(/判断が難しい場合は利用をお控えください/),
-    ).toBeVisible()
+      screen.getByRole('link', { name: 'お問い合わせページ' }),
+    ).toHaveAttribute('href', '/contact')
   })
 
   it('uses canonical noindex,follow metadata', () => {
     renderPage()
-    expect(document.title).toBe('免責事項・利用条件 | HLSieve DB')
+    expect(document.title).toBe('利用条件 | HLSieve DB')
     expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute(
       'content',
       'noindex,follow',

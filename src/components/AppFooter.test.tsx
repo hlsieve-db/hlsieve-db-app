@@ -19,9 +19,10 @@ describe('AppFooter', () => {
       'href',
       '/updates',
     )
-    expect(
-      screen.getByRole('link', { name: '免責事項・利用条件' }),
-    ).toHaveAttribute('href', '/disclaimer')
+    expect(screen.getByRole('link', { name: '利用条件' })).toHaveAttribute(
+      'href',
+      '/disclaimer',
+    )
     expect(screen.getByRole('link', { name: 'お問い合わせ' })).toHaveAttribute(
       'href',
       '/contact',

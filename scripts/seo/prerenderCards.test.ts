@@ -135,7 +135,7 @@ describe('Card Detail static prerender', () => {
     )
     expect(routes[9].outputPath).toBe('disclaimer.html')
     const disclaimer = load(routes[9].html)
-    expect(disclaimer('title').text()).toBe('免責事項・利用条件 | HLSieve DB')
+    expect(disclaimer('title').text()).toBe('利用条件 | HLSieve DB')
     expect(disclaimer('meta[name="robots"]').attr('content')).toBe(
       'noindex,follow',
     )
