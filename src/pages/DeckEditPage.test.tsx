@@ -46,6 +46,7 @@ function card(
     name,
     imageUrl: `https://example.com/${cardNumber}.png`,
     cardType: 'holomem',
+    bloomLevel: 'debut',
     colors: ['red'],
     isBuzz: false,
     tags: [],
@@ -437,6 +438,35 @@ describe('DeckEditPage editor operations', () => {
     expect(cheerList.children[0]?.children[0]?.children[0]).toHaveClass(
       'deck-card-image',
     )
+  })
+
+  it('renders Deck entries in canonical category and card-number order without changing stored order', async () => {
+    const sourceEntries = [
+      { cardNumber: 'CARD-003', quantity: 3 },
+      { cardNumber: 'CARD-004', quantity: 4 },
+      { cardNumber: 'CARD-002', quantity: 2 },
+    ]
+    const getDeck = vi.fn(async () => deck({ entries: sourceEntries }))
+    renderPage({ deckRepository: repository({ getDeck }) })
+
+    const currentCards = await screen.findByRole('region', {
+      name: '現在のカード',
+    })
+    await within(currentCards).findByRole('link', {
+      name: '青いカードのカード詳細を開く',
+    })
+    const mainList = within(currentCards)
+      .getByRole('heading', { name: /^メインデッキ9枚$/ })
+      .closest('section')!
+      .querySelector('ul')!
+    const detailLinks = within(mainList).getAllByRole('link')
+
+    expect(detailLinks.map((link) => link.getAttribute('aria-label'))).toEqual([
+      '青いカードのカード詳細を開く',
+      '赤青カードのカード詳細を開く',
+      '緑のカードのカード詳細を開く',
+    ])
+    expect((await getDeck()).entries).toEqual(sourceEntries)
   })
 
   it('links Oshi, Main, and Cheer images to logical Card Detail routes and supports keyboard-style activation and Back navigation', async () => {
@@ -978,7 +1008,10 @@ describe('DeckEditPage share link', () => {
         getDeck: async () =>
           deck({
             name: '日本語共有デッキ',
-            entries: [{ cardNumber: 'CARD-001', quantity: 2 }],
+            entries: [
+              { cardNumber: 'CARD-003', quantity: 1 },
+              { cardNumber: 'CARD-002', quantity: 2 },
+            ],
           }),
       }),
     })
@@ -996,7 +1029,10 @@ describe('DeckEditPage share link', () => {
       value: {
         v: 1,
         name: '日本語共有デッキ',
-        entries: [{ cardNumber: 'CARD-001', quantity: 2 }],
+        entries: [
+          { cardNumber: 'CARD-003', quantity: 1 },
+          { cardNumber: 'CARD-002', quantity: 2 },
+        ],
       },
     })
     expect(
@@ -1099,8 +1135,8 @@ describe('DeckEditPage text export', () => {
         '1 OSHI-001 推しカード',
         '',
         '【メインデッキ】',
-        '3 CARD-002 青いカード',
         '4 CARD-001 赤いカード',
+        '3 CARD-002 青いカード',
         '',
         '【エールデッキ】',
         '10 CHEER-001 白エール',

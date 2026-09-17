@@ -41,18 +41,23 @@ function card(
 
 const cards = [
   card('OSHI-001', '共有推し', 'oshi'),
-  card('MAIN-001', '共有メイン', 'support', { deckLimit: null }),
+  card('MAIN-001', '共有メイン', 'support', {
+    deckLimit: null,
+    supportSearchCategory: 'general',
+  }),
   card('CHEER-001', '共有エール', 'cheer'),
-  card('hBP01-030', 'IRyS', 'support'),
+  card('hBP01-030', 'IRyS', 'support', {
+    supportSearchCategory: 'general',
+  }),
 ]
 
-function cardsData(): CardsDataFile {
+function cardsData(source = cards): CardsDataFile {
   return {
     format: 'holocard-cards',
     formatVersion: 1,
     dataVersion: `sha256:${'0'.repeat(64)}`,
     generatedAt: '2026-09-09T00:00:00.000Z',
-    cards,
+    cards: source,
   }
 }
 
@@ -177,6 +182,45 @@ describe('SharedDeckPage preview', () => {
     )
     expect(loadCards).toHaveBeenCalledTimes(1)
     expect(screen.getByRole('button', { name: 'カード' })).toBeVisible()
+  })
+
+  it('renders the shared preview in canonical order without rewriting its payload', async () => {
+    const orderedCards = [
+      ...cards,
+      card('FIRST-002', '1st 二', 'holomem', { bloomLevel: 'first' }),
+      card('FIRST-001', '1st 一', 'holomem', { bloomLevel: 'first' }),
+      card('BUZZ-001', 'Buzz 一', 'holomem', {
+        bloomLevel: 'first',
+        isBuzz: true,
+      }),
+    ]
+    const sharedPayload = payload({
+      entries: [
+        { cardNumber: 'BUZZ-001', quantity: 1 },
+        { cardNumber: 'FIRST-002', quantity: 1 },
+        { cardNumber: 'FIRST-001', quantity: 1 },
+      ],
+    })
+    renderPage({
+      path: `/deck/share?d=${encode(sharedPayload)}`,
+      loadCards: async () => cardsData(orderedCards),
+    })
+
+    const mainZone = (
+      await screen.findByRole('heading', {
+        name: 'メインデッキ3枚',
+      })
+    ).closest('section')!
+    expect(
+      within(mainZone)
+        .getAllByRole('heading', { level: 4 })
+        .map((heading) => heading.textContent),
+    ).toEqual(['1st 一', '1st 二', 'Buzz 一'])
+    expect(sharedPayload.entries.map(({ cardNumber }) => cardNumber)).toEqual([
+      'BUZZ-001',
+      'FIRST-002',
+      'FIRST-001',
+    ])
   })
 
   it('does not load cards when d is missing or corrupt', () => {

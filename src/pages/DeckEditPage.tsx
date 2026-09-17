@@ -26,6 +26,10 @@ import {
   renameDeck,
 } from '../domain/decks/deck'
 import { formatDeckAsText } from '../domain/decks/formatText'
+import {
+  getDeckDisplayCategory,
+  sortDeckEntriesForDisplay,
+} from '../domain/decks/displayOrder'
 import { getDeckZone, validateDeckLegality } from '../domain/decks/legality'
 import { CURRENT_DECK_RESTRICTIONS } from '../domain/decks/restrictions'
 import { writeSelectedDeckId } from '../domain/decks/selectedDeckPreference'
@@ -284,9 +288,16 @@ function DeckEditor({
       cheer: [] as DeckEntry[],
       unknown: [] as DeckEntry[],
     }
-    for (const entry of deck.entries) {
+    for (const entry of sortDeckEntriesForDisplay(
+      deck.entries,
+      cardsByNumber,
+    )) {
       const card = cardsByNumber.get(entry.cardNumber)
       if (!card) {
+        entriesByZone.unknown.push(entry)
+        continue
+      }
+      if (getDeckDisplayCategory(card) === 'unknown') {
         entriesByZone.unknown.push(entry)
         continue
       }

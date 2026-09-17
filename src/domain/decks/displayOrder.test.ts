@@ -1,0 +1,156 @@
+import { describe, expect, it } from 'vitest'
+
+import type { Card } from '../cards/types'
+import {
+  DECK_DISPLAY_CATEGORY_ORDER,
+  getDeckDisplayCategory,
+  sortDeckEntriesForDisplay,
+} from './displayOrder'
+import type { DeckEntry } from './types'
+
+function card(
+  cardNumber: string,
+  cardType: Card['cardType'],
+  overrides: Partial<Card> = {},
+): Card {
+  return {
+    cardNumber,
+    name: cardNumber,
+    imageUrl: `https://example.test/${cardNumber}.png`,
+    cardType,
+    colors: ['white'],
+    isBuzz: false,
+    tags: [],
+    isLimited: false,
+    abilities: [],
+    arts: [],
+    batonPass: [],
+    effectTags: [],
+    criticalColors: [],
+    rarities: [],
+    products: [],
+    illustrators: [],
+    qas: [],
+    searchText: cardNumber.toLowerCase(),
+    ...overrides,
+  }
+}
+
+const cards = [
+  card('OSHI-002', 'oshi'),
+  card('OSHI-001', 'oshi'),
+  card('DEBUT-001', 'holomem', { bloomLevel: 'debut' }),
+  card('FIRST-001', 'holomem', { bloomLevel: 'first' }),
+  card('BUZZ-001', 'holomem', { bloomLevel: 'first', isBuzz: true }),
+  card('SECOND-001', 'holomem', { bloomLevel: 'second' }),
+  card('LIMITED-001', 'support', {
+    isLimited: true,
+    supportSearchCategory: 'limited',
+  }),
+  card('GENERAL-001', 'support', { supportSearchCategory: 'general' }),
+  card('TOOL-001', 'support', { supportSearchCategory: 'tool' }),
+  card('FAN-001', 'support', { supportSearchCategory: 'fan' }),
+  card('CHEER-001', 'cheer'),
+  card('SPOT-001', 'holomem', { bloomLevel: 'spot' }),
+]
+
+const cardsByNumber = new Map(cards.map((value) => [value.cardNumber, value]))
+
+function entries(cardNumbers: readonly string[]): DeckEntry[] {
+  return cardNumbers.map((cardNumber, index) => ({
+    cardNumber,
+    quantity: index + 1,
+  }))
+}
+
+describe('Deck display order', () => {
+  it('defines the fixed category order with unknown entries last', () => {
+    expect(DECK_DISPLAY_CATEGORY_ORDER).toEqual([
+      'oshi',
+      'debut',
+      'first',
+      'buzz',
+      'second',
+      'support_limited',
+      'support_general',
+      'support_tool',
+      'support_fan',
+      'cheer',
+      'unknown',
+    ])
+  })
+
+  it('uses formal Card properties and classifies Buzz independently of bloom level', () => {
+    expect(cards.map((value) => getDeckDisplayCategory(value))).toEqual([
+      'oshi',
+      'oshi',
+      'debut',
+      'first',
+      'buzz',
+      'second',
+      'support_limited',
+      'support_general',
+      'support_tool',
+      'support_fan',
+      'cheer',
+      'unknown',
+    ])
+    expect(getDeckDisplayCategory(undefined)).toBe('unknown')
+  })
+
+  it('sorts all categories canonically and card numbers ascending within a category', () => {
+    const input = entries([
+      'MISSING-002',
+      'CHEER-001',
+      'FAN-001',
+      'TOOL-001',
+      'GENERAL-001',
+      'LIMITED-001',
+      'SECOND-001',
+      'BUZZ-001',
+      'FIRST-001',
+      'DEBUT-001',
+      'OSHI-002',
+      'SPOT-001',
+      'OSHI-001',
+      'MISSING-001',
+    ])
+
+    expect(
+      sortDeckEntriesForDisplay(input, cardsByNumber).map(
+        ({ cardNumber }) => cardNumber,
+      ),
+    ).toEqual([
+      'OSHI-001',
+      'OSHI-002',
+      'DEBUT-001',
+      'FIRST-001',
+      'BUZZ-001',
+      'SECOND-001',
+      'LIMITED-001',
+      'GENERAL-001',
+      'TOOL-001',
+      'FAN-001',
+      'CHEER-001',
+      'MISSING-001',
+      'MISSING-002',
+      'SPOT-001',
+    ])
+  })
+
+  it('does not mutate entries or use quantity as a sort key', () => {
+    const input = [
+      { cardNumber: 'OSHI-002', quantity: 1 },
+      { cardNumber: 'OSHI-001', quantity: 99 },
+    ]
+    const before = structuredClone(input)
+    const result = sortDeckEntriesForDisplay(input, cardsByNumber)
+
+    expect(result).not.toBe(input)
+    expect(result.map(({ cardNumber }) => cardNumber)).toEqual([
+      'OSHI-001',
+      'OSHI-002',
+    ])
+    expect(input).toEqual(before)
+  })
+})

@@ -9,6 +9,10 @@ import type { Card, CardsDataFile } from '../domain/cards/types'
 import { getDeckZone, validateDeckLegality } from '../domain/decks/legality'
 import type { Deck, DeckEntry, DeckZone } from '../domain/decks/types'
 import {
+  getDeckDisplayCategory,
+  sortDeckEntriesForDisplay,
+} from '../domain/decks/displayOrder'
+import {
   createDeckFromSharedPayload,
   decodeDeckSharePayload,
 } from '../domain/share/deckShareCodec'
@@ -165,9 +169,16 @@ export function SharedDeckPage({
       cheer: [],
       unknown: [],
     }
-    for (const entry of previewDeck.entries) {
+    for (const entry of sortDeckEntriesForDisplay(
+      previewDeck.entries,
+      cardsByNumber,
+    )) {
       const card = cardsByNumber.get(entry.cardNumber)
-      groupedEntries[card ? getDeckZone(card) : 'unknown'].push(entry)
+      groupedEntries[
+        card && getDeckDisplayCategory(card) !== 'unknown'
+          ? getDeckZone(card)
+          : 'unknown'
+      ].push(entry)
     }
     return (['oshi', 'main', 'cheer', 'unknown'] as const)
       .filter((key) => groupedEntries[key].length > 0)

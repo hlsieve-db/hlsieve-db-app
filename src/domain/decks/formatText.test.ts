@@ -53,8 +53,10 @@ function deck(overrides: Partial<Deck> = {}): Deck {
 
 const cards = [
   card('OSHI-1', '推しカード', 'oshi'),
-  card('MAIN-1', 'メイン一', 'holomem'),
-  card('MAIN-2', '制限メイン二', 'support'),
+  card('MAIN-1', 'メイン一', 'holomem', { bloomLevel: 'first' }),
+  card('MAIN-2', '制限メイン二', 'support', {
+    supportSearchCategory: 'limited',
+  }),
   card('CHEER-1', '白エール', 'cheer'),
   card('CHEER-2', '青エール', 'cheer', { colors: ['blue'] }),
 ]
@@ -72,8 +74,8 @@ describe('formatDeckAsText', () => {
         '1 OSHI-1 推しカード',
         '',
         '【メインデッキ】',
-        '3 MAIN-2 制限メイン二',
         '4 MAIN-1 メイン一',
+        '3 MAIN-2 制限メイン二',
         '',
         '【エールデッキ】',
         '10 CHEER-1 白エール',
@@ -97,20 +99,20 @@ describe('formatDeckAsText', () => {
 
     expect(resolved.map(({ entry, zone }) => [entry.cardNumber, zone])).toEqual(
       [
-        ['MAIN-2', 'main'],
         ['OSHI-1', 'oshi'],
-        ['CHEER-1', 'cheer'],
         ['MAIN-1', 'main'],
-        ['UNKNOWN-1', 'unknown'],
+        ['MAIN-2', 'main'],
+        ['CHEER-1', 'cheer'],
         ['CHEER-2', 'cheer'],
+        ['UNKNOWN-1', 'unknown'],
       ],
     )
   })
 
-  it('preserves original entry order inside each section without duplication', () => {
+  it('uses canonical display order inside each section without duplication', () => {
     const text = formatDeckAsText({ deck: deck(), cards })
 
-    expect(text.indexOf('MAIN-2')).toBeLessThan(text.indexOf('MAIN-1'))
+    expect(text.indexOf('MAIN-1')).toBeLessThan(text.indexOf('MAIN-2'))
     expect(text.indexOf('CHEER-1')).toBeLessThan(text.indexOf('CHEER-2'))
     for (const cardNumber of deck().entries.map((entry) => entry.cardNumber)) {
       expect(text.match(new RegExp(cardNumber, 'g'))).toHaveLength(1)

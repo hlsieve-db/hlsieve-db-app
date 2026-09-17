@@ -2,6 +2,10 @@ import type { Card } from '../cards/types'
 import { DEFAULT_DECK_NAME } from './constants'
 import { getDeckZone } from './legality'
 import type { Deck, DeckEntry, DeckZone } from './types'
+import {
+  getDeckDisplayCategory,
+  sortDeckEntriesForDisplay,
+} from './displayOrder'
 
 const DECK_TEXT_ZONE_LABELS = {
   oshi: '推しホロメン',
@@ -29,9 +33,12 @@ export function resolveDeckTextEntries(
   cards: readonly Card[],
 ): ResolvedDeckTextEntry[] {
   const cardsByNumber = new Map(cards.map((card) => [card.cardNumber, card]))
-  return deck.entries.map((entry) => {
+  return sortDeckEntriesForDisplay(deck.entries, cardsByNumber).map((entry) => {
     const card = cardsByNumber.get(entry.cardNumber)
     if (!card) return { entry, zone: 'unknown' }
+    if (getDeckDisplayCategory(card) === 'unknown') {
+      return { entry, card, zone: 'unknown' }
+    }
     try {
       return { entry, card, zone: getDeckZone(card) }
     } catch {
