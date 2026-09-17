@@ -28,6 +28,7 @@ import {
 import { formatDeckAsText } from '../domain/decks/formatText'
 import { getDeckZone, validateDeckLegality } from '../domain/decks/legality'
 import { CURRENT_DECK_RESTRICTIONS } from '../domain/decks/restrictions'
+import { writeSelectedDeckId } from '../domain/decks/selectedDeckPreference'
 import type { Deck, DeckEntry } from '../domain/decks/types'
 import { DEFAULT_CARD_PAGE_SIZE } from '../domain/search/constants'
 import { getCardSearchResults } from '../domain/search/getCardSearchResults'
@@ -710,16 +711,22 @@ function DeckEditor({
                     )?.quantity ?? 0
                   return (
                     <li key={card.cardNumber}>
-                      <DeckCardImage
-                        card={card}
-                        imageUrl={originalPrintingImages.get(card.cardNumber)}
-                      />
-                      <div>
-                        <h3>{card.name}</h3>
-                        <p>
-                          {card.cardNumber}・{CARD_TYPE_LABELS[card.cardType]}
-                        </p>
-                      </div>
+                      <Link
+                        className="deck-search-result__detail-link"
+                        to={`/cards/${encodeURIComponent(card.cardNumber)}`}
+                        aria-label={`${card.name}のカード詳細を開く`}
+                      >
+                        <DeckCardImage
+                          card={card}
+                          imageUrl={originalPrintingImages.get(card.cardNumber)}
+                        />
+                        <div>
+                          <h3>{card.name}</h3>
+                          <p>
+                            {card.cardNumber}・{CARD_TYPE_LABELS[card.cardType]}
+                          </p>
+                        </div>
+                      </Link>
                       <DeckQuantityControl
                         cardName={card.name}
                         quantity={quantity}
@@ -796,6 +803,7 @@ export function DeckEditPage({
     void repository.getDeck(deckId).then(
       (deck) => {
         if (!active) return
+        if (deck) writeSelectedDeckId(deck.id)
         setState(deck ? { status: 'loaded', deck } : { status: 'not-found' })
       },
       () => {

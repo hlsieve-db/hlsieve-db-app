@@ -145,4 +145,22 @@ describe('responsive content and navigation layout', () => {
       /\.search-presets__heading,[\s\S]*flex-direction: column/s,
     )
   })
+
+  it('keeps Deck add-card results in normal mobile document flow', async () => {
+    const css = await readFile('src/styles/global.css', 'utf8')
+    const mobile = css.slice(css.indexOf('@media (max-width: 767px)'))
+
+    expect(css).toMatch(
+      /\.deck-search-results\s*{[^}]*max-height: 720px[^}]*overflow-y: auto/s,
+    )
+    expect(mobile).toMatch(
+      /\.deck-search-results\s*{[^}]*max-height: none[^}]*overflow-y: visible/s,
+    )
+    expect(mobile).toMatch(
+      /\.deck-search-results li\s*{[^}]*grid-template-columns: minmax\(0, 1fr\)/s,
+    )
+    expect(css).toMatch(
+      /@media \(max-width: 640px\)[\s\S]*\.deck-rename\s*{[^}]*grid-template-columns: minmax\(0, 1fr\)/s,
+    )
+  })
 })

@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -12,6 +18,7 @@ import type { Deck } from '../domain/decks/types'
 import type { DeckRepository } from '../repositories/deckRepository'
 import { CardDetailPage } from './CardDetailPage'
 import { CardSearchPage } from './CardSearchPage'
+import { DeckEditPage } from './DeckEditPage'
 
 const dataVersion = `sha256:${'0'.repeat(64)}`
 
@@ -115,6 +122,8 @@ function renderDetail(deckRepository: DeckRepository) {
             />
           }
         />
+        <Route path="/decks" element={<p>保存デッキ一覧</p>} />
+        <Route path="/decks/:deckId" element={<p>選択中デッキ編集画面</p>} />
       </Routes>
     </MemoryRouter>,
   )
@@ -122,7 +131,103 @@ function renderDetail(deckRepository: DeckRepository) {
 
 afterEach(() => localStorage.clear())
 
+Object.defineProperty(window, 'scrollTo', {
+  configurable: true,
+  value: vi.fn(),
+})
+
 describe('Card Detail deck quick add', () => {
+  it('links back to the same selected deck used by Quick Add', async () => {
+    localStorage.setItem(SELECTED_DECK_STORAGE_KEY, 'deck-2')
+    renderDetail(repository([deck('deck-1'), deck('deck-2', 3)]))
+
+    expect(await screen.findByLabelText('追加先デッキ')).toHaveValue('deck-2')
+    expect(
+      screen.getByRole('link', { name: '作成中デッキへ戻る' }),
+    ).toHaveAttribute('href', '/decks/deck-2')
+    expect(
+      screen.getByRole('link', { name: 'カード検索へ戻る' }),
+    ).toHaveAttribute('href', '/cards')
+  })
+
+  it('falls back safely for no decks and stale selected deck preferences', async () => {
+    const { unmount } = renderDetail(repository([]))
+    expect(
+      await screen.findByRole('link', { name: '作成中デッキへ戻る' }),
+    ).toHaveAttribute('href', '/decks')
+    unmount()
+
+    localStorage.setItem(SELECTED_DECK_STORAGE_KEY, 'stale-deck')
+    renderDetail(repository([deck('deck-1')]))
+    expect(await screen.findByLabelText('追加先デッキ')).toHaveValue('deck-1')
+    expect(
+      screen.getByRole('link', { name: '作成中デッキへ戻る' }),
+    ).toHaveAttribute('href', '/decks/deck-1')
+  })
+
+  it('returns to the selected Deck Edit route without changing its quantity', async () => {
+    renderDetail(repository([deck('deck-1', 2)]))
+
+    expect(await screen.findByLabelText('現在 2枚')).toBeVisible()
+    fireEvent.click(screen.getByRole('link', { name: '作成中デッキへ戻る' }))
+    expect(screen.getByText('選択中デッキ編集画面')).toBeVisible()
+  })
+
+  it('round-trips from Deck Edit to Detail and back to the same Deck with quantity intact', async () => {
+    const selectedDeck = deck('deck-1', 2)
+    const deckRepository = repository([selectedDeck], {
+      getDeck: vi.fn(async (id) =>
+        id === selectedDeck.id ? selectedDeck : undefined,
+      ),
+    })
+    render(
+      <MemoryRouter initialEntries={['/decks/deck-1']}>
+        <Routes>
+          <Route
+            path="/decks/:deckId"
+            element={
+              <DeckEditPage
+                repository={deckRepository}
+                loadCards={async () => cardsData()}
+                loadPrintings={async () => printingsData()}
+              />
+            }
+          />
+          <Route
+            path="/cards/:cardNumber"
+            element={
+              <CardDetailPage
+                loadCards={async () => cardsData()}
+                loadPrintings={async () => printingsData()}
+                repository={deckRepository}
+              />
+            }
+          />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    const currentCards = await screen.findByRole('region', {
+      name: '現在のカード',
+    })
+    fireEvent.click(
+      await within(currentCards).findByRole('link', {
+        name: 'テストカードのカード詳細を開く',
+      }),
+    )
+    expect(await screen.findByLabelText('追加先デッキ')).toHaveValue('deck-1')
+    expect(screen.getByLabelText('現在 2枚')).toBeVisible()
+    fireEvent.click(screen.getByRole('link', { name: '作成中デッキへ戻る' }))
+    expect(
+      await screen.findByRole('heading', { name: 'デッキ1' }),
+    ).toBeVisible()
+    expect(
+      within(
+        screen.getByRole('region', { name: '現在のカード' }),
+      ).getByLabelText('現在 2枚'),
+    ).toBeVisible()
+  })
+
   it('renders the selected deck and quantity between the main image and printings', async () => {
     renderDetail(repository([deck('deck-1', 2)]))
 

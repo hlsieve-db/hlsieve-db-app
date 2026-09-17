@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
+import {
+  Link,
+  useLocation,
+  useNavigationType,
+  useParams,
+  useSearchParams,
+} from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
 import { DeckQuantityControl } from '../components/decks/DeckQuantityControl'
@@ -83,13 +89,31 @@ function CheerList({ cheers }: { cheers: RequiredCheer[] }) {
   )
 }
 
-function DetailHeader() {
+type SavedDeckQuickEdit = ReturnType<typeof useSavedDeckQuickEdit>
+
+function DetailHeader({
+  selectedDeck,
+}: {
+  selectedDeck: SavedDeckQuickEdit['selectedDeck']
+}) {
+  const deckDestination = selectedDeck
+    ? `/decks/${encodeURIComponent(selectedDeck.id)}`
+    : '/decks'
+
   return (
     <header className="detail-page__header">
       <AppNavigation />
-      <Link className="back-link" to="/cards">
-        カード検索へ戻る
-      </Link>
+      <nav
+        className="detail-page__return-links"
+        aria-label="カード詳細の戻り先"
+      >
+        <Link className="back-link" to="/cards">
+          カード検索へ戻る
+        </Link>
+        <Link className="back-link" to={deckDestination}>
+          作成中デッキへ戻る
+        </Link>
+      </nav>
     </header>
   )
 }
@@ -462,20 +486,18 @@ function LoadedCardDetail({
   card,
   cardsDataVersion,
   loadPrintings,
-  repository,
+  deckQuickEdit,
 }: {
   card: Card
   cardsDataVersion: string
   loadPrintings: () => Promise<CardPrintingsDataFile>
-  repository: DeckRepository
+  deckQuickEdit: SavedDeckQuickEdit
 }) {
   const [searchParams, setSearchParams] = useSearchParams()
   const [printingData, setPrintingData] = useState<PrintingDataState>({
     status: 'loading',
   })
   const [loadAttempt, setLoadAttempt] = useState(0)
-  const deckQuickEdit = useSavedDeckQuickEdit(repository)
-
   useEffect(() => {
     let active = true
     void loadPrintings().then(
@@ -608,11 +630,19 @@ export function CardDetailPage({
   recentlyViewedRepository = recentlyViewedCardRepository,
 }: CardDetailPageProps) {
   const { cardNumber } = useParams<'cardNumber'>()
+  const location = useLocation()
+  const navigationType = useNavigationType()
   const [cardData, setCardData] = useState<CardDataState>({
     status: 'loading',
   })
   const [loadAttempt, setLoadAttempt] = useState(0)
   const trackedCardNumber = useRef<string | undefined>(undefined)
+  const deckQuickEdit = useSavedDeckQuickEdit(repository)
+
+  useEffect(() => {
+    if (navigationType !== 'PUSH' || location.hash) return
+    window.scrollTo({ top: 0, left: 0 })
+  }, [cardNumber, location.hash, navigationType])
 
   useEffect(() => {
     let active = true
@@ -670,7 +700,7 @@ export function CardDetailPage({
 
   return (
     <main id="main-content" className="detail-page">
-      <DetailHeader />
+      <DetailHeader selectedDeck={deckQuickEdit.selectedDeck} />
 
       {cardData.status === 'loading' && (
         <section className="status-message detail-status">
@@ -710,7 +740,7 @@ export function CardDetailPage({
           card={card}
           cardsDataVersion={cardData.data.dataVersion}
           loadPrintings={loadPrintings}
-          repository={repository}
+          deckQuickEdit={deckQuickEdit}
         />
       )}
     </main>

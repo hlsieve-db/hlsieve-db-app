@@ -19,6 +19,7 @@ import type {
   CardPrintingsDataFile,
   CardsDataFile,
 } from '../domain/cards/types'
+import { SELECTED_DECK_STORAGE_KEY } from '../domain/decks/selectedDeckPreference'
 import type { Deck } from '../domain/decks/types'
 import { decodeDeckSharePayload } from '../domain/share/deckShareCodec'
 import type { DeckRepository } from '../repositories/deckRepository'
@@ -194,9 +195,20 @@ afterEach(() => {
     configurable: true,
     value: originalClipboard,
   })
+  localStorage.clear()
 })
 
 describe('DeckEditPage loading', () => {
+  it('makes the loaded Deck the shared selected Deck preference', async () => {
+    localStorage.setItem(SELECTED_DECK_STORAGE_KEY, 'another-deck')
+    renderPage()
+
+    expect(
+      await screen.findByRole('heading', { name: 'テストデッキ' }),
+    ).toBeVisible()
+    expect(localStorage.getItem(SELECTED_DECK_STORAGE_KEY)).toBe('deck-1')
+  })
+
   it('shows a deck loading state', () => {
     renderPage({
       deckRepository: repository({
@@ -502,6 +514,43 @@ describe('DeckEditPage editor operations', () => {
     )
     expect(screen.getByRole('region', { name: '現在のカード' })).toBeVisible()
     await waitFor(() => expect(saveDeck).toHaveBeenCalledTimes(2))
+  })
+
+  it('links add-card result images and names to logical Card Detail while quantity controls remain independent', async () => {
+    const saveDeck = vi.fn(async () => undefined)
+    renderPage({ deckRepository: repository({ saveDeck }) })
+    const picker = await screen.findByRole('region', { name: 'カードを追加' })
+    const resultLink = await within(picker).findByRole('link', {
+      name: '赤いカードのカード詳細を開く',
+    })
+    const result = resultLink.closest('li')!
+
+    expect(resultLink).toHaveAttribute('href', '/cards/CARD-001')
+    expect(resultLink.getAttribute('href')).not.toContain('printing')
+    expect(within(resultLink).getByRole('presentation')).toBeVisible()
+    expect(
+      within(resultLink).getByRole('heading', { name: '赤いカード' }),
+    ).toBeVisible()
+    expect(
+      within(resultLink).queryByRole('button', { name: /赤いカードを1枚/ }),
+    ).not.toBeInTheDocument()
+
+    fireEvent.click(
+      within(result).getByRole('button', { name: '赤いカードを1枚追加' }),
+    )
+    expect(within(result).getByLabelText('現在 1枚')).toBeVisible()
+    expect(screen.getByRole('region', { name: 'カードを追加' })).toBeVisible()
+    await waitFor(() => expect(saveDeck).toHaveBeenCalledTimes(1))
+
+    fireEvent.click(
+      within(result).getByRole('button', { name: '赤いカードを1枚減らす' }),
+    )
+    expect(within(result).getByLabelText('現在 0枚')).toBeVisible()
+    expect(screen.getByRole('region', { name: 'カードを追加' })).toBeVisible()
+    await waitFor(() => expect(saveDeck).toHaveBeenCalledTimes(2))
+
+    fireEvent.click(resultLink)
+    expect(screen.getByText('Card detail destination: CARD-001')).toBeVisible()
   })
 
   it('uses the original non-parallel artwork only in Deck picker thumbnails', async () => {

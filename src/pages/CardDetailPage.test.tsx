@@ -6,6 +6,7 @@ import {
   within,
 } from '@testing-library/react'
 import {
+  Link,
   MemoryRouter,
   Route,
   Routes,
@@ -183,9 +184,81 @@ function HistoryControls() {
 
 beforeEach(() => {
   document.title = 'HLSieve DB'
+  Object.defineProperty(window, 'scrollTo', {
+    configurable: true,
+    value: vi.fn(),
+  })
 })
 
 describe('CardDetailPage route and loader states', () => {
+  it('scrolls a newly pushed Deck-to-Detail navigation to the page top', async () => {
+    render(
+      <MemoryRouter initialEntries={['/decks/deck-1']}>
+        <Routes>
+          <Route
+            path="/decks/:deckId"
+            element={<Link to="/cards/TEST-001">カード詳細を開く</Link>}
+          />
+          <Route
+            path="/cards/:cardNumber"
+            element={
+              <CardDetailPage
+                loadCards={async () => dataFile()}
+                loadPrintings={async () => printingsData()}
+                repository={emptyDeckRepository()}
+              />
+            }
+          />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    fireEvent.click(screen.getByRole('link', { name: 'カード詳細を開く' }))
+    expect(
+      await screen.findByRole('heading', { name: 'テストホロメン' }),
+    ).toBeVisible()
+    expect(window.scrollTo).toHaveBeenCalledWith({ top: 0, left: 0 })
+    expect(screen.getByRole('heading', { name: /公式Q&A/ })).not.toHaveFocus()
+  })
+
+  it('scrolls to top when a pushed Card Detail cardNumber changes but preserves explicit hashes', async () => {
+    const secondCard = card({
+      cardNumber: 'TEST-002',
+      name: '2枚目のカード',
+      searchText: 'test-002 2まいめのかーど',
+    })
+    render(
+      <MemoryRouter initialEntries={['/cards/TEST-001']}>
+        <Routes>
+          <Route
+            path="/cards/:cardNumber"
+            element={
+              <CardDetailPage
+                loadCards={async () => dataFile([card(), secondCard])}
+                loadPrintings={async () => printingsData()}
+                repository={emptyDeckRepository()}
+              />
+            }
+          />
+        </Routes>
+        <Link to="/cards/TEST-002">別カードへ</Link>
+        <Link to="/cards/TEST-001#official-qa">Q&amp;Aへ</Link>
+      </MemoryRouter>,
+    )
+
+    await screen.findByRole('heading', { name: 'テストホロメン' })
+    expect(window.scrollTo).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('link', { name: '別カードへ' }))
+    expect(
+      await screen.findByRole('heading', { name: '2枚目のカード' }),
+    ).toBeVisible()
+    expect(window.scrollTo).toHaveBeenCalledTimes(1)
+
+    fireEvent.click(screen.getByRole('link', { name: 'Q&Aへ' }))
+    await screen.findByRole('heading', { name: 'テストホロメン' })
+    expect(window.scrollTo).toHaveBeenCalledTimes(1)
+  })
+
   it('records a valid logical Card Detail view', async () => {
     const { recentlyViewedRepository } = renderDetail()
     await screen.findByRole('heading', { name: 'テストホロメン' })
