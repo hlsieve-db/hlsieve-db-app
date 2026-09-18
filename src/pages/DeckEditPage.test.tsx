@@ -694,31 +694,58 @@ describe('DeckEditPage editor operations', () => {
     expect(saveDeck.mock.calls[1]?.[0]).not.toHaveProperty('rulesVersion')
   })
 
-  it('preserves existing Q&A-term matching without adding a Deck editor option', async () => {
+  it('keeps Q&A search off by default and toggles shared question, answer, and cross-source AND matching', async () => {
     const qaOnlyCard = card('QA-ONLY', '本文にないカード', {
       qas: [
         {
           id: 'Q-DECK',
           question: '白上フブキがいる場合、この能力は使えますか？',
-          answer: 'はい、使えます。',
+          answer: 'はい、ターンプレイヤーが処理します。',
           officialUrl: 'https://example.com/qa/Q-DECK',
           relatedCardNumbers: ['QA-ONLY'],
         },
       ],
       searchText:
-        'qa-only 本文にないかーど 白上ふぶきがいる場合、この能力は使えますか? はい、使えます。',
+        'qa-only 本文にないかーど 白上ふぶきがいる場合、この能力は使えますか? はい、たーんぷれいやーが処理します。',
     })
     renderPage({
       loadCards: vi.fn(async () => cardsData([...cards, qaOnlyCard])),
       loadPrintings: vi.fn(async () => printingsData([...cards, qaOnlyCard])),
     })
     const search = await screen.findByLabelText('カード検索')
+    const includeQa = screen.getByLabelText('Q&Aを含める')
+    const picker = screen.getByRole('region', { name: 'カードを追加' })
+
+    expect(includeQa).not.toBeChecked()
 
     fireEvent.change(search, { target: { value: 'フブキ' } })
+    expect(
+      within(picker).queryByText('本文にないカード'),
+    ).not.toBeInTheDocument()
 
-    const picker = screen.getByRole('region', { name: 'カードを追加' })
+    fireEvent.click(includeQa)
     expect(await within(picker).findByText('本文にないカード')).toBeVisible()
-    expect(screen.queryByLabelText('Q&Aを含める')).not.toBeInTheDocument()
+
+    fireEvent.change(search, { target: { value: 'ターンプレイヤー' } })
+    expect(await within(picker).findByText('本文にないカード')).toBeVisible()
+
+    fireEvent.change(search, {
+      target: { value: 'フブキ ターンプレイヤー' },
+    })
+    expect(await within(picker).findByText('本文にないカード')).toBeVisible()
+
+    fireEvent.change(search, { target: { value: '本文にないカード フブキ' } })
+    expect(await within(picker).findByText('本文にないカード')).toBeVisible()
+
+    fireEvent.click(includeQa)
+    expect(
+      within(picker).queryByText('本文にないカード'),
+    ).not.toBeInTheDocument()
+
+    fireEvent.change(search, { target: { value: '本文にないカード' } })
+    expect(await within(picker).findByText('本文にないカード')).toBeVisible()
+    fireEvent.click(includeQa)
+    expect(await within(picker).findByText('本文にないカード')).toBeVisible()
   })
 
   it('shows an empty search result without inventing search semantics', async () => {
@@ -731,6 +758,9 @@ describe('DeckEditPage editor operations', () => {
   it('keeps shared structured filters collapsed by default and retains active values', async () => {
     renderPage()
     await screen.findByText('9件')
+    const includeQa = screen.getByLabelText('Q&Aを含める')
+    fireEvent.click(includeQa)
+    expect(includeQa).toBeChecked()
     const summary = screen.getByText('詳細条件')
     const details = summary.closest('details')!
     expect(details).not.toHaveAttribute('open')
@@ -754,6 +784,7 @@ describe('DeckEditPage editor operations', () => {
     fireEvent.click(
       within(details).getByRole('button', { name: '条件をクリア' }),
     )
+    expect(includeQa).not.toBeChecked()
     expect(screen.getByText('詳細条件')).toBeVisible()
     expect(screen.getByText('9件')).toBeVisible()
   })
@@ -865,6 +896,10 @@ describe('DeckEditPage editor operations', () => {
     const pagination = screen.getByRole('navigation', {
       name: 'カード追加結果のページ',
     })
+    fireEvent.click(within(pagination).getByRole('button', { name: '次へ' }))
+    expect(screen.getByText('2 / 2')).toBeVisible()
+    fireEvent.click(screen.getByLabelText('Q&Aを含める'))
+    expect(screen.getByText('1 / 2')).toBeVisible()
     fireEvent.click(within(pagination).getByRole('button', { name: '次へ' }))
     expect(screen.getByText('2 / 2')).toBeVisible()
     fireEvent.click(

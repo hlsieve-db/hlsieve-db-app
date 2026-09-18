@@ -203,7 +203,6 @@ function DeckEditor({
         cardsState.status === 'loaded' ? cardsState.data.cards : [],
         {
           ...pickerState,
-          includeQa: true,
           pageSize: DEFAULT_CARD_PAGE_SIZE,
         },
       ),
@@ -643,6 +642,16 @@ function DeckEditor({
                 updatePicker({ query: event.currentTarget.value })
               }
             />
+          </label>
+          <label className="search-query-option">
+            <input
+              type="checkbox"
+              checked={pickerState.includeQa}
+              onChange={(event) =>
+                updatePicker({ includeQa: event.currentTarget.checked })
+              }
+            />
+            <span>Q&amp;Aを含める</span>
           </label>
 
           <details className="deck-picker-filters">
