@@ -4,6 +4,7 @@ import { DeckQuantityControl } from '../decks/DeckQuantityControl'
 import { FavoriteToggleButton } from '../favorites/FavoriteToggleButton'
 import type { Card } from '../../domain/cards/types'
 import type { CardPaginationResult } from '../../domain/search/paginateCards'
+import type { CardDetailReturnState } from '../../domain/navigation/cardDetailReturnState'
 
 export type DeckQuickEditControls = {
   disabled: boolean
@@ -18,14 +19,17 @@ type CardSearchResultsProps = {
   onNext: () => void
   onClear: () => void
   deckControls?: DeckQuickEditControls
+  detailState?: CardDetailReturnState
 }
 
 function CardResult({
   card,
   deckControls,
+  detailState,
 }: {
   card: Card
   deckControls?: DeckQuickEditControls
+  detailState?: CardDetailReturnState
 }) {
   const quantity = deckControls?.quantityFor(card.cardNumber) ?? 0
   const detailPath = `/cards/${encodeURIComponent(card.cardNumber)}`
@@ -34,6 +38,7 @@ function CardResult({
       <Link
         className="card-result__image-link"
         to={detailPath}
+        state={detailState}
         aria-label={`${card.name}の詳細を見る`}
       >
         <div className="card-result__image-frame">
@@ -52,7 +57,9 @@ function CardResult({
       <div className="card-result__body">
         <p className="card-result__number">{card.cardNumber}</p>
         <h2>
-          <Link to={detailPath}>{card.name}</Link>
+          <Link to={detailPath} state={detailState}>
+            {card.name}
+          </Link>
         </h2>
         <FavoriteToggleButton
           cardName={card.name}
@@ -78,6 +85,7 @@ export function CardSearchResults({
   onNext,
   onClear,
   deckControls,
+  detailState,
 }: CardSearchResultsProps) {
   return (
     <section className="search-results" aria-labelledby="search-result-count">
@@ -105,6 +113,7 @@ export function CardSearchResults({
             <CardResult
               card={card}
               deckControls={deckControls}
+              detailState={detailState}
               key={card.cardNumber}
             />
           ))}

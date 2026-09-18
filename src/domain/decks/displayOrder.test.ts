@@ -153,4 +153,93 @@ describe('Deck display order', () => {
     ])
     expect(input).toEqual(before)
   })
+
+  it.each([
+    ['debut', { bloomLevel: 'debut' }],
+    ['first', { bloomLevel: 'first' }],
+    ['buzz', { bloomLevel: 'first', isBuzz: true }],
+    ['second', { bloomLevel: 'second' }],
+  ] as const)('sorts %s Holomem by member reading', (_, category) => {
+    const localCards = [
+      card('READING-002', 'holomem', {
+        ...category,
+        name: '白上フブキ',
+        nameReading: 'しらかみふぶき',
+      }),
+      card('READING-001', 'holomem', {
+        ...category,
+        name: 'AZKi',
+        nameReading: 'あずき',
+      }),
+    ]
+    const lookup = new Map(localCards.map((value) => [value.cardNumber, value]))
+
+    expect(
+      sortDeckEntriesForDisplay(
+        entries(['READING-002', 'READING-001']),
+        lookup,
+      ).map(({ cardNumber }) => cardNumber),
+    ).toEqual(['READING-001', 'READING-002'])
+  })
+
+  it('sorts the same member by the fixed color rank and then card number', () => {
+    const colors = [
+      'colorless',
+      'yellow',
+      'purple',
+      'blue',
+      'red',
+      'green',
+      'white',
+    ] as const
+    const localCards = colors.flatMap((color) => [
+      card(`MEMBER-${color}-002`, 'holomem', {
+        name: '同じメンバー',
+        nameReading: 'おなじめんばー',
+        colors: [color],
+        bloomLevel: 'first',
+      }),
+      card(`MEMBER-${color}-001`, 'holomem', {
+        name: '同じメンバー',
+        nameReading: 'おなじめんばー',
+        colors: [color],
+        bloomLevel: 'first',
+      }),
+    ])
+    const lookup = new Map(localCards.map((value) => [value.cardNumber, value]))
+
+    expect(
+      sortDeckEntriesForDisplay(
+        entries(localCards.map(({ cardNumber }) => cardNumber)),
+        lookup,
+      ).map(({ cardNumber }) => cardNumber),
+    ).toEqual(
+      [...colors]
+        .reverse()
+        .flatMap((color) => [`MEMBER-${color}-001`, `MEMBER-${color}-002`]),
+    )
+  })
+
+  it('falls back to normalized names deterministically without changing Oshi ordering', () => {
+    const localCards = [
+      card('HOLO-002', 'holomem', {
+        name: 'カナ',
+        bloomLevel: 'first',
+      }),
+      card('HOLO-001', 'holomem', {
+        name: 'あき',
+        bloomLevel: 'first',
+      }),
+      card('OSHI-002', 'oshi', { name: 'あき' }),
+      card('OSHI-001', 'oshi', { name: 'しらかみ' }),
+    ]
+    const lookup = new Map(localCards.map((value) => [value.cardNumber, value]))
+
+    expect(
+      sortDeckEntriesForDisplay(
+        entries(['HOLO-002', 'OSHI-002', 'HOLO-001', 'OSHI-001']),
+        lookup,
+      ).map(({ cardNumber }) => cardNumber),
+    ).toEqual(['OSHI-001', 'OSHI-002', 'HOLO-001', 'HOLO-002'])
+  })
 })

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
 import { DeckAnalysisSummary } from '../components/decks/DeckAnalysisSummary'
@@ -34,6 +34,12 @@ import { getDeckZone, validateDeckLegality } from '../domain/decks/legality'
 import { CURRENT_DECK_RESTRICTIONS } from '../domain/decks/restrictions'
 import { writeSelectedDeckId } from '../domain/decks/selectedDeckPreference'
 import type { Deck, DeckEntry } from '../domain/decks/types'
+import {
+  deckEditorDetailState,
+  deckEditorLocationState,
+  deckEditorSearchState,
+  type CardDetailReturnState,
+} from '../domain/navigation/cardDetailReturnState'
 import { DEFAULT_CARD_PAGE_SIZE } from '../domain/search/constants'
 import { getCardSearchResults } from '../domain/search/getCardSearchResults'
 import {
@@ -87,10 +93,12 @@ function DeckCardImage({
   card,
   imageUrl = card?.imageUrl,
   linkToDetail = false,
+  detailState,
 }: {
   card?: Card
   imageUrl?: string
   linkToDetail?: boolean
+  detailState?: CardDetailReturnState
 }) {
   const image = (
     <div className="deck-card-image">
@@ -105,6 +113,7 @@ function DeckCardImage({
     <Link
       className="deck-card-image-link"
       to={`/cards/${encodeURIComponent(card.cardNumber)}`}
+      state={detailState}
       aria-label={`${card.name}のカード詳細を開く`}
     >
       {image}
@@ -131,6 +140,8 @@ function DeckEditor({
   loadCards: () => Promise<CardsDataFile>
   loadPrintings: () => Promise<CardPrintingsDataFile>
 }) {
+  const location = useLocation()
+  const navigate = useNavigate()
   const [deck, setDeck] = useState(initialDeck)
   const [nameDraft, setNameDraft] = useState(initialDeck.name)
   const [nameError, setNameError] = useState<string>()
@@ -143,13 +154,20 @@ function DeckEditor({
     status: 'loading',
   })
   const [pickerState, setPickerState] = useState<SearchUrlState>(
-    DEFAULT_SEARCH_URL_STATE,
+    () => deckEditorSearchState(location.state) ?? DEFAULT_SEARCH_URL_STATE,
   )
   const [isShareLinkVisible, setIsShareLinkVisible] = useState(false)
   const [copyResult, setCopyResult] = useState<CopyResult>()
   const [deckTextCopyStatus, setDeckTextCopyStatus] =
     useState<DeckTextCopyStatus>()
   const deckRef = useRef(initialDeck)
+
+  useEffect(() => {
+    navigate(
+      { pathname: location.pathname, search: location.search },
+      { replace: true, state: deckEditorLocationState(pickerState) },
+    )
+  }, [location.pathname, location.search, navigate, pickerState])
 
   useDocumentMetadata({
     title: `${deck.name} | HLSieve DB`,
@@ -543,7 +561,14 @@ function DeckEditor({
                             className="deck-entry deck-entry--compact"
                             key={entry.cardNumber}
                           >
-                            <DeckCardImage card={card} linkToDetail />
+                            <DeckCardImage
+                              card={card}
+                              linkToDetail
+                              detailState={deckEditorDetailState(
+                                initialDeck.id,
+                                pickerState,
+                              )}
+                            />
                             <DeckQuantityControl
                               cardName={displayName}
                               quantity={entry.quantity}
@@ -577,7 +602,14 @@ function DeckEditor({
                       }
                       return (
                         <li className="deck-entry" key={entry.cardNumber}>
-                          <DeckCardImage card={card} linkToDetail />
+                          <DeckCardImage
+                            card={card}
+                            linkToDetail
+                            detailState={deckEditorDetailState(
+                              initialDeck.id,
+                              pickerState,
+                            )}
+                          />
                           <div className="deck-entry__information">
                             <h4>{displayName}</h4>
                             <p>{entry.cardNumber}</p>
@@ -734,6 +766,10 @@ function DeckEditor({
                       <Link
                         className="deck-search-result__detail-link"
                         to={`/cards/${encodeURIComponent(card.cardNumber)}`}
+                        state={deckEditorDetailState(
+                          initialDeck.id,
+                          pickerState,
+                        )}
                         aria-label={`${card.name}のカード詳細を開く`}
                       >
                         <DeckCardImage

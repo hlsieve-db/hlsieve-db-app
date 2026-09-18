@@ -858,7 +858,7 @@ describe('DeckEditPage editor operations', () => {
     expect(screen.getByText('1件')).toBeVisible()
   })
 
-  it('uses the shared seven-value Card Type filter in the deck editor', async () => {
+  it('uses the shared eight-value Card Type filter in the deck editor', async () => {
     renderPage()
     await screen.findByText('9件')
     fireEvent.click(screen.getByText('詳細条件'))
@@ -876,12 +876,44 @@ describe('DeckEditPage editor operations', () => {
       'support_general',
       'support_tool',
       'support_fan',
+      'support_mascot',
       'cheer',
     ])
     expect(group).toHaveTextContent('サポート（リミテッド）')
     expect(group).toHaveTextContent('サポート（非リミテッド）')
     expect(group).toHaveTextContent('ツール')
     expect(group).toHaveTextContent('ファン')
+    expect(group).toHaveTextContent('マスコット')
+  })
+
+  it('separates Mascot from general support through the shared search core', async () => {
+    const supportCards = [
+      card('GENERAL-001', '通常サポート', {
+        cardType: 'support',
+        supportSearchCategory: 'general',
+      }),
+      card('MASCOT-001', 'マスコットサポート', {
+        cardType: 'support',
+        supportType: 'mascot',
+        supportSearchCategory: 'general',
+      }),
+    ]
+    renderPage({
+      loadCards: async () => cardsData(supportCards),
+      loadPrintings: async () => printingsData(supportCards),
+    })
+    await screen.findByText('2件')
+    fireEvent.click(screen.getByText('詳細条件'))
+    const details = screen.getByText('詳細条件').closest('details')!
+    const typeGroup = within(details).getByRole('group', {
+      name: 'カードタイプ',
+    })
+
+    fireEvent.click(
+      within(typeGroup).getByRole('checkbox', { name: 'マスコット' }),
+    )
+    expect(screen.getByText('マスコットサポート')).toBeVisible()
+    expect(screen.queryByText('通常サポート')).not.toBeInTheDocument()
   })
 
   it('reuses 24-card pagination and keeps the current page while quantities change', async () => {

@@ -42,6 +42,10 @@ import { useSavedDeckQuickEdit } from '../hooks/useSavedDeckQuickEdit'
 import { useDocumentMetadata } from '../hooks/useDocumentMetadata'
 import { buildCardDetailMetadata } from '../domain/site/metadata'
 import {
+  readCardDetailReturnState,
+  type CardDetailReturnState,
+} from '../domain/navigation/cardDetailReturnState'
+import {
   recentlyViewedCardRepository,
   type RecentlyViewedCardRepository,
 } from '../repositories/recentlyViewedCardRepository'
@@ -93,12 +97,23 @@ type SavedDeckQuickEdit = ReturnType<typeof useSavedDeckQuickEdit>
 
 function DetailHeader({
   selectedDeck,
+  returnState,
 }: {
   selectedDeck: SavedDeckQuickEdit['selectedDeck']
+  returnState?: CardDetailReturnState
 }) {
-  const deckDestination = selectedDeck
-    ? `/decks/${encodeURIComponent(selectedDeck.id)}`
-    : '/decks'
+  const cardSearchDestination =
+    returnState?.source === 'card-search' ? returnState.returnTo : '/cards'
+  const deckDestination =
+    returnState?.source === 'deck-editor'
+      ? `/decks/${encodeURIComponent(returnState.deckId)}`
+      : selectedDeck
+        ? `/decks/${encodeURIComponent(selectedDeck.id)}`
+        : '/decks'
+  const deckLocationState =
+    returnState?.source === 'deck-editor'
+      ? { deckSearch: returnState.search }
+      : undefined
 
   return (
     <header className="detail-page__header">
@@ -107,10 +122,14 @@ function DetailHeader({
         className="detail-page__return-links"
         aria-label="カード詳細の戻り先"
       >
-        <Link className="back-link" to="/cards">
+        <Link className="back-link" to={cardSearchDestination}>
           カード検索へ戻る
         </Link>
-        <Link className="back-link" to={deckDestination}>
+        <Link
+          className="back-link"
+          to={deckDestination}
+          state={deckLocationState}
+        >
           作成中デッキへ戻る
         </Link>
       </nav>
@@ -638,6 +657,7 @@ export function CardDetailPage({
   const [loadAttempt, setLoadAttempt] = useState(0)
   const trackedCardNumber = useRef<string | undefined>(undefined)
   const deckQuickEdit = useSavedDeckQuickEdit(repository)
+  const returnState = readCardDetailReturnState(location.state)
 
   useEffect(() => {
     if (navigationType !== 'PUSH' || location.hash) return
@@ -700,7 +720,10 @@ export function CardDetailPage({
 
   return (
     <main id="main-content" className="detail-page">
-      <DetailHeader selectedDeck={deckQuickEdit.selectedDeck} />
+      <DetailHeader
+        selectedDeck={deckQuickEdit.selectedDeck}
+        returnState={returnState}
+      />
 
       {cardData.status === 'loading' && (
         <section className="status-message detail-status">
@@ -728,7 +751,14 @@ export function CardDetailPage({
         <section className="status-message detail-status">
           <h1>カードが見つかりません</h1>
           <p>指定されたカード番号のカードは登録されていません。</p>
-          <Link className="button detail-link-button" to="/cards">
+          <Link
+            className="button detail-link-button"
+            to={
+              returnState?.source === 'card-search'
+                ? returnState.returnTo
+                : '/cards'
+            }
+          >
             カード検索へ戻る
           </Link>
         </section>

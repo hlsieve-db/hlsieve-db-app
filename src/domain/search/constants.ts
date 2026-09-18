@@ -23,6 +23,7 @@ export const CARD_TYPE_FILTER_LABELS = {
   support_general: 'サポート（非リミテッド）',
   support_tool: 'ツール',
   support_fan: 'ファン',
+  support_mascot: 'マスコット',
   cheer: 'エール',
 } satisfies Record<CardTypeFilterValue, string>
 

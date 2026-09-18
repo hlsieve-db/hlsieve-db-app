@@ -276,6 +276,7 @@ describe('SavedSearchPresets', () => {
         'support_general',
         'support_tool',
         'support_fan',
+        'support_mascot',
       ],
       page: 1,
     })

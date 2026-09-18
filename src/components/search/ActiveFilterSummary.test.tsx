@@ -68,7 +68,7 @@ describe('ActiveFilterSummary', () => {
       <ActiveFilterSummary
         state={{
           ...empty,
-          cardTypes: ['support_limited', 'support_fan'],
+          cardTypes: ['support_limited', 'support_mascot'],
         }}
         onRemove={onRemove}
         onClear={vi.fn()}
@@ -76,13 +76,13 @@ describe('ActiveFilterSummary', () => {
     )
 
     expect(screen.getByText('サポート（リミテッド）')).toBeVisible()
-    expect(screen.getByText('ファン')).toBeVisible()
+    expect(screen.getByText('マスコット')).toBeVisible()
     fireEvent.click(
       screen.getByRole('button', {
         name: 'サポート（リミテッド）の条件を外す',
       }),
     )
-    expect(onRemove).toHaveBeenCalledWith({ cardTypes: ['support_fan'] })
+    expect(onRemove).toHaveBeenCalledWith({ cardTypes: ['support_mascot'] })
   })
 
   it('summarizes three or more card types with the existing count rule', () => {

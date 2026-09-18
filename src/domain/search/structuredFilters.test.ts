@@ -89,6 +89,14 @@ const cards = [
     searchText: 'ふぁん さぽーと',
   }),
   card({
+    cardNumber: 'MASCOT-001',
+    name: 'マスコットサポート',
+    cardType: 'support',
+    supportType: 'mascot',
+    supportSearchCategory: 'general',
+    searchText: 'ますこっと さぽーと',
+  }),
+  card({
     cardNumber: 'UNCLASSIFIED-SUPPORT-001',
     name: '未分類サポート',
     cardType: 'support',
@@ -191,6 +199,7 @@ describe('structured card type filter', () => {
     ['support_general', ['COLORLESS-001']],
     ['support_tool', ['TOOL-001']],
     ['support_fan', ['FAN-001']],
+    ['support_mascot', ['MASCOT-001']],
   ] as const)('matches only the %s support category', (cardType, expected) => {
     expect(ids({ query: '', cardTypes: [cardType] })).toEqual(expected)
   })
@@ -202,6 +211,18 @@ describe('structured card type filter', () => {
         cardTypes: ['support_limited', 'support_tool'],
       }),
     ).toEqual(['LIMITED-001', 'TOOL-001'])
+  })
+
+  it('keeps Mascot out of general support and combines them with OR', () => {
+    expect(ids({ query: '', cardTypes: ['support_general'] })).toEqual([
+      'COLORLESS-001',
+    ])
+    expect(
+      ids({
+        query: '',
+        cardTypes: ['support_general', 'support_mascot'],
+      }),
+    ).toEqual(['COLORLESS-001', 'MASCOT-001'])
   })
 
   it('combines a base card type and support category with OR', () => {

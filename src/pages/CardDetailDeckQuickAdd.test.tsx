@@ -43,13 +43,13 @@ const testCard: Card = {
   searchText: 'test-001 てすとかーど',
 }
 
-function cardsData(): CardsDataFile {
+function cardsData(cards: Card[] = [testCard]): CardsDataFile {
   return {
     format: 'holocard-cards',
     formatVersion: 1,
     dataVersion,
     generatedAt: '2026-09-09T00:00:00.000Z',
-    cards: [testCard],
+    cards,
   }
 }
 
@@ -210,6 +210,10 @@ describe('Card Detail deck quick add', () => {
     const currentCards = await screen.findByRole('region', {
       name: '現在のカード',
     })
+    fireEvent.change(screen.getByLabelText('カード検索'), {
+      target: { value: 'テスト' },
+    })
+    fireEvent.click(screen.getByLabelText('Q&Aを含める'))
     fireEvent.click(
       await within(currentCards).findByRole('link', {
         name: 'テストカードのカード詳細を開く',
@@ -226,6 +230,65 @@ describe('Card Detail deck quick add', () => {
         screen.getByRole('region', { name: '現在のカード' }),
       ).getByLabelText('現在 2枚'),
     ).toBeVisible()
+    expect(screen.getByLabelText('カード検索')).toHaveValue('テスト')
+    expect(screen.getByLabelText('Q&Aを含める')).toBeChecked()
+  })
+
+  it('restores Deck Editor pagination from the explicit return link', async () => {
+    const manyCards = Array.from({ length: 30 }, (_, index) => ({
+      ...testCard,
+      cardNumber: `TEST-${String(index + 1).padStart(3, '0')}`,
+      name: `テストカード${index + 1}`,
+      searchText: `test-${String(index + 1).padStart(3, '0')} てすとかーど${index + 1}`,
+    }))
+    const selectedDeck = deck('deck-1')
+    const deckRepository = repository([selectedDeck], {
+      getDeck: vi.fn(async () => selectedDeck),
+    })
+    render(
+      <MemoryRouter initialEntries={['/decks/deck-1']}>
+        <Routes>
+          <Route
+            path="/decks/:deckId"
+            element={
+              <DeckEditPage
+                repository={deckRepository}
+                loadCards={async () => cardsData(manyCards)}
+                loadPrintings={async () => printingsData()}
+              />
+            }
+          />
+          <Route
+            path="/cards/:cardNumber"
+            element={
+              <CardDetailPage
+                loadCards={async () => cardsData(manyCards)}
+                loadPrintings={async () => printingsData()}
+                repository={deckRepository}
+              />
+            }
+          />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    fireEvent.click(await screen.findByLabelText('Q&Aを含める'))
+    const pagination = await screen.findByRole('navigation', {
+      name: 'カード追加結果のページ',
+    })
+    fireEvent.click(within(pagination).getByRole('button', { name: '次へ' }))
+    expect(screen.getByText('2 / 2')).toBeVisible()
+    fireEvent.click(
+      screen.getByRole('link', {
+        name: 'テストカード25のカード詳細を開く',
+      }),
+    )
+    fireEvent.click(
+      await screen.findByRole('link', { name: '作成中デッキへ戻る' }),
+    )
+
+    expect(await screen.findByText('2 / 2')).toBeVisible()
+    expect(screen.getByLabelText('Q&Aを含める')).toBeChecked()
   })
 
   it('renders the selected deck and quantity between the main image and printings', async () => {
@@ -363,5 +426,9 @@ describe('Card Detail deck quick add', () => {
     fireEvent.click(screen.getByRole('link', { name: 'テストカード' }))
     expect(await screen.findByLabelText('追加先デッキ')).toHaveValue('deck-2')
     expect(screen.getByLabelText('現在 2枚')).toBeVisible()
+    fireEvent.click(screen.getByRole('link', { name: 'カード検索へ戻る' }))
+    expect(await screen.findByLabelText('キーワード')).toHaveValue(
+      'テストカード',
+    )
   })
 })

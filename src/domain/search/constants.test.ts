@@ -30,6 +30,7 @@ describe('DEFAULT_SEARCH_STATE', () => {
       ['support_general', 'サポート（非リミテッド）'],
       ['support_tool', 'ツール'],
       ['support_fan', 'ファン'],
+      ['support_mascot', 'マスコット'],
       ['cheer', 'エール'],
     ])
   })

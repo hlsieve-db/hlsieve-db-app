@@ -16,6 +16,7 @@ export type CardTypeFilterValue =
   | 'support_general'
   | 'support_tool'
   | 'support_fan'
+  | 'support_mascot'
 
 export type SearchState = {
   query: string

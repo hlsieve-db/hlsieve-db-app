@@ -59,6 +59,7 @@ const LEGACY_SUPPORT_CARD_TYPES = [
   'support_general',
   'support_tool',
   'support_fan',
+  'support_mascot',
 ] satisfies CardTypeFilterValue[]
 const BLOOM_ORDER = Object.keys(BLOOM_FILTER_LABELS) as BloomFilterValue[]
 const CRITICAL_COLOR_ORDER = Object.keys(

@@ -36,6 +36,7 @@ import {
 import { useSavedDeckQuickEdit } from '../hooks/useSavedDeckQuickEdit'
 import { useDocumentMetadata } from '../hooks/useDocumentMetadata'
 import { DEFAULT_DOCUMENT_TITLE } from '../domain/site/constants'
+import { cardSearchDetailState } from '../domain/navigation/cardDetailReturnState'
 import { CARD_DATA_UPDATE_HISTORY } from '../domain/updates/history'
 import type { CardDataUpdateEntry } from '../domain/updates/types'
 import {
@@ -340,6 +341,9 @@ export function CardSearchPage({
       {cardData.status === 'loaded' && (
         <CardSearchResults
           result={results}
+          detailState={cardSearchDetailState(
+            `${location.pathname}${canonicalSearch}`,
+          )}
           onPrevious={() =>
             navigateToState({ ...urlState, page: results.page - 1 }, false)
           }

@@ -107,7 +107,7 @@ describe('search URL colors and card types', () => {
 
   it('accepts every card type in canonical order', () => {
     const state = parseSearchUrlState(
-      '?type=cheer&type=support_fan&type=support_tool&type=support_general&type=support_limited&type=holomem&type=oshi',
+      '?type=cheer&type=support_mascot&type=support_fan&type=support_tool&type=support_general&type=support_limited&type=holomem&type=oshi',
     )
     expect(state.cardTypes).toEqual([
       'oshi',
@@ -116,10 +116,11 @@ describe('search URL colors and card types', () => {
       'support_general',
       'support_tool',
       'support_fan',
+      'support_mascot',
       'cheer',
     ])
     expect(serialized(state)).toBe(
-      'type=oshi&type=holomem&type=support_limited&type=support_general&type=support_tool&type=support_fan&type=cheer',
+      'type=oshi&type=holomem&type=support_limited&type=support_general&type=support_tool&type=support_fan&type=support_mascot&type=cheer',
     )
   })
 
@@ -130,9 +131,10 @@ describe('search URL colors and card types', () => {
       'support_general',
       'support_tool',
       'support_fan',
+      'support_mascot',
     ])
     expect(serialized(state)).toBe(
-      'type=support_limited&type=support_general&type=support_tool&type=support_fan',
+      'type=support_limited&type=support_general&type=support_tool&type=support_fan&type=support_mascot',
     )
   })
 
@@ -147,6 +149,7 @@ describe('search URL colors and card types', () => {
       'support_general',
       'support_tool',
       'support_fan',
+      'support_mascot',
     ])
   })
 

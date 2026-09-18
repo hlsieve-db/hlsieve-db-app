@@ -65,7 +65,7 @@ const SUPPORT_FILTER_CATEGORIES = {
   support_tool: 'tool',
   support_fan: 'fan',
 } as const satisfies Record<
-  Exclude<CardTypeFilterValue, Card['cardType']>,
+  Exclude<CardTypeFilterValue, Card['cardType'] | 'support_mascot'>,
   NonNullable<Card['supportSearchCategory']>
 >
 
@@ -107,10 +107,14 @@ function matchesCardTypes(
     if (value === 'oshi' || value === 'holomem' || value === 'cheer') {
       return card.cardType === value
     }
+    if (value === 'support_mascot') {
+      return card.cardType === 'support' && card.supportType === 'mascot'
+    }
     const supportCategory = SUPPORT_FILTER_CATEGORIES[value]
     return (
       card.cardType === 'support' &&
-      card.supportSearchCategory === supportCategory
+      card.supportSearchCategory === supportCategory &&
+      (value !== 'support_general' || card.supportType !== 'mascot')
     )
   })
 }

@@ -75,9 +75,10 @@ describe('saved search preset types', () => {
       'support_general',
       'support_tool',
       'support_fan',
+      'support_mascot',
     ])
     expect(serializeSearchUrlState(restored).toString()).toBe(
-      'type=support_limited&type=support_general&type=support_tool&type=support_fan',
+      'type=support_limited&type=support_general&type=support_tool&type=support_fan&type=support_mascot',
     )
   })
 

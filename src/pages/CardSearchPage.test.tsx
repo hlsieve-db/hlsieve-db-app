@@ -7,6 +7,7 @@ import {
 } from '@testing-library/react'
 import {
   MemoryRouter,
+  Link,
   Route,
   Routes,
   useLocation,
@@ -16,6 +17,7 @@ import {
 import { describe, expect, it, vi } from 'vitest'
 
 import type { Card, CardsDataFile } from '../domain/cards/types'
+import { readCardDetailReturnState } from '../domain/navigation/cardDetailReturnState'
 import type { DeckRepository } from '../repositories/deckRepository'
 import type { SavedSearchPresetRepository } from '../repositories/savedSearchPresetRepository'
 import { CardSearchPage } from './CardSearchPage'
@@ -114,6 +116,12 @@ function fixtureCards(count = 30): Card[] {
       supportSearchCategory: 'fan',
       searchText: 's-fan ふぁんさぽーと',
     }),
+    card('S-MASCOT', 'マスコットサポート', {
+      cardType: 'support',
+      supportType: 'mascot',
+      supportSearchCategory: 'general',
+      searchText: 's-mascot ますこっとさぽーと',
+    }),
     card('hSD16-007', 'さくらみこ', {
       abilities: [{ type: 'gift', text: 'コラボしたとき、カードを1枚引く' }],
       qas: [
@@ -175,9 +183,20 @@ function LocationControls() {
 
 function DetailDestination() {
   const { cardNumber } = useParams()
+  const location = useLocation()
+  const returnState = readCardDetailReturnState(location.state)
   return (
     <>
       <h1>Detail destination {cardNumber}</h1>
+      <Link
+        to={
+          returnState?.source === 'card-search'
+            ? returnState.returnTo
+            : '/cards'
+        }
+      >
+        カード検索へ戻る
+      </Link>
       <LocationControls />
     </>
   )
@@ -255,6 +274,7 @@ describe('CardSearchPage loading and results', () => {
       'サポート（非リミテッド）',
       'ツール',
       'ファン',
+      'マスコット',
       'エール',
     ])
     fireEvent.keyDown(document, { key: 'Escape' })
@@ -347,19 +367,30 @@ describe('CardSearchPage loading and results', () => {
     ).toHaveAttribute('loading', 'lazy')
   })
 
-  it('restores filters, sort, and page after returning from detail', async () => {
-    renderPage({ entries: ['/cards?color=green&sort=card_number_asc&page=2'] })
+  it('restores the complete URL state from the explicit Card Detail return link', async () => {
+    renderPage({
+      entries: [
+        '/cards?qa=1&color=green&type=holomem&bloom=debut_normal&sort=card_number_asc&page=2',
+      ],
+      loadCards: vi.fn(async () => dataFile(fixtureCards(40))),
+    })
     await screen.findByText('2 / 2ページ')
 
     fireEvent.click(screen.getAllByRole('link', { name: /の詳細を見る/ })[0]!)
-    fireEvent.click(screen.getByRole('button', { name: '履歴を戻る' }))
+    fireEvent.click(screen.getByRole('link', { name: 'カード検索へ戻る' }))
 
     expect(screen.getByTestId('location')).toHaveTextContent(
-      '/cards?color=green&sort=card_number_asc&page=2',
+      '/cards?qa=1&color=green&type=holomem&bloom=debut_normal&sort=card_number_asc&page=2',
     )
     await waitFor(() => {
       expect(screen.getByText('2 / 2ページ')).toBeVisible()
       expect(group('色').querySelector('input[value="green"]')).toBeChecked()
+      expect(screen.getByLabelText('Q&Aを含める')).toBeChecked()
+      expect(
+        within(group('カードタイプ')).getByRole('checkbox', {
+          name: 'ホロメン',
+        }),
+      ).toBeChecked()
       expect(screen.getByLabelText('並び順')).toHaveValue('card_number_asc')
     })
   })
@@ -421,7 +452,7 @@ describe('CardSearchPage initial URL and navigation', () => {
     expect(screen.getByLabelText('Q&Aを含める')).toBeChecked()
   })
 
-  it('restores and canonicalizes the legacy support URL as four categories', async () => {
+  it('restores and canonicalizes the legacy support URL as five categories', async () => {
     renderPage({ entries: ['/cards?type=support'] })
 
     expect(
@@ -432,6 +463,7 @@ describe('CardSearchPage initial URL and navigation', () => {
       'サポート（非リミテッド）',
       'ツール',
       'ファン',
+      'マスコット',
     ]) {
       expect(
         within(group('カードタイプ')).getByRole('checkbox', { name: label }),
@@ -439,7 +471,7 @@ describe('CardSearchPage initial URL and navigation', () => {
     }
     await waitFor(() =>
       expect(screen.getByTestId('location')).toHaveTextContent(
-        '/cards?type=support_limited&type=support_general&type=support_tool&type=support_fan',
+        '/cards?type=support_limited&type=support_general&type=support_tool&type=support_fan&type=support_mascot',
       ),
     )
   })
@@ -577,7 +609,7 @@ describe('CardSearchPage query and filters', () => {
     expect(screen.getByTestId('location')).not.toHaveTextContent('qa=')
   })
 
-  it('shows the seven card type filters in the final order on desktop', () => {
+  it('shows the eight card type filters in the final order on desktop', () => {
     renderPage()
 
     expect(
@@ -591,6 +623,7 @@ describe('CardSearchPage query and filters', () => {
       'サポート（非リミテッド）',
       'ツール',
       'ファン',
+      'マスコット',
       'エール',
     ])
   })
@@ -600,6 +633,7 @@ describe('CardSearchPage query and filters', () => {
     ['サポート（非リミテッド）', '通常サポート', 'support_general'],
     ['ツール', 'ツールサポート', 'support_tool'],
     ['ファン', 'ファンサポート', 'support_fan'],
+    ['マスコット', 'マスコットサポート', 'support_mascot'],
   ] as const)(
     'filters %s through the shared card type controls',
     async (label, cardName, value) => {
