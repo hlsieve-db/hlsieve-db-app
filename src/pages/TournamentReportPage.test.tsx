@@ -945,4 +945,96 @@ describe('TournamentReportPage', () => {
       ),
     )
   })
+
+  it('gives every Oshi input the same Japanese-IME-safe semantics', async () => {
+    renderPage()
+    await screen.findByText('推しホロメン候補 4件')
+
+    fireEvent.click(screen.getByRole('button', { name: '＋ 回戦を追加' }))
+    fireEvent.click(screen.getByRole('button', { name: '＋ 回戦を追加' }))
+    fireEvent.click(screen.getByRole('button', { name: '＋ 回戦を追加' }))
+    fireEvent.click(
+      screen.getByRole('button', { name: '＋ トーナメント戦を追加' }),
+    )
+    fireEvent.click(
+      screen.getByRole('button', { name: '＋ トーナメント戦を追加' }),
+    )
+
+    const comboboxNames = [
+      '自分の推しホロメン（必須）',
+      'R1 対戦相手の推し',
+      'R2 対戦相手の推し',
+      'R3 対戦相手の推し',
+      'T1 対戦相手の推し',
+      'T2 対戦相手の推し',
+    ]
+    const comboboxes = comboboxNames.map((name) =>
+      screen.getByRole('combobox', { name }),
+    )
+    expect(comboboxes).toHaveLength(comboboxNames.length)
+
+    comboboxes.forEach((combobox) => {
+      expect(combobox).toHaveAttribute('type', 'text')
+      expect(combobox).toHaveAttribute('inputmode', 'text')
+      expect(combobox).toHaveAttribute('autocapitalize', 'none')
+      expect(combobox).not.toHaveAttribute('pattern')
+      expect(combobox).not.toHaveAttribute('enterkeyhint')
+    })
+
+    const [selfOshi, ...opponents] = comboboxes
+    opponents.forEach((opponent) => {
+      expect(opponent.getAttribute('type')).toBe(selfOshi.getAttribute('type'))
+      expect(opponent.getAttribute('inputmode')).toBe(
+        selfOshi.getAttribute('inputmode'),
+      )
+      expect(opponent.getAttribute('autocapitalize')).toBe(
+        selfOshi.getAttribute('autocapitalize'),
+      )
+      expect(opponent.getAttribute('autocomplete')).toBe(
+        selfOshi.getAttribute('autocomplete'),
+      )
+    })
+  })
+
+  it('searches and selects Japanese readings in a dynamically added round', async () => {
+    renderPage()
+    await screen.findByText('推しホロメン候補 4件')
+    fireEvent.click(screen.getByRole('button', { name: '＋ 回戦を追加' }))
+    fireEvent.click(screen.getByRole('button', { name: '＋ 回戦を追加' }))
+
+    const opponent = screen.getByRole('combobox', {
+      name: 'R2 対戦相手の推し',
+    })
+    fireEvent.focus(opponent)
+    fireEvent.change(opponent, { target: { value: 'うさだ' } })
+
+    const option = await screen.findByRole('option', { name: /兎田ぺこら/ })
+    fireEvent.click(option)
+    expect(opponent).toHaveValue('兎田ぺこら（PEKORA-001）')
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
+  })
+
+  it('keeps IME composition intact and does not commit on a composing Enter', async () => {
+    renderPage()
+    await screen.findByText('推しホロメン候補 4件')
+    fireEvent.click(screen.getByRole('button', { name: '＋ 回戦を追加' }))
+
+    const opponent = screen.getByRole('combobox', {
+      name: 'R1 対戦相手の推し',
+    })
+    fireEvent.focus(opponent)
+    fireEvent.compositionStart(opponent)
+    fireEvent.change(opponent, { target: { value: 'あず' } })
+    fireEvent.keyDown(opponent, { key: 'Enter', isComposing: true })
+
+    expect(opponent).toHaveValue('あず')
+    expect(screen.getByRole('listbox')).toBeVisible()
+
+    fireEvent.compositionEnd(opponent, { data: 'あずき' })
+    fireEvent.change(opponent, { target: { value: 'あずき' } })
+    expect(opponent).toHaveValue('あずき')
+
+    fireEvent.click(await screen.findByRole('option', { name: /AZKi/ }))
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
+  })
 })

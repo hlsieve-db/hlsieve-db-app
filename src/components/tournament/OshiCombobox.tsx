@@ -44,6 +44,7 @@ export function OshiCombobox({
         id={inputId}
         type="text"
         inputMode="text"
+        autoCapitalize="none"
         role="combobox"
         aria-autocomplete="list"
         aria-controls={listboxId}
