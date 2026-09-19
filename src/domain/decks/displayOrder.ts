@@ -1,6 +1,6 @@
 import { compareCardNumbers } from '../cards/cardNumber'
+import { compareCardsByReading } from '../cards/readingOrder'
 import type { Card } from '../cards/types'
-import { normalizeSearchText } from '../search/normalizeSearchText'
 import type { DeckEntry } from './types'
 
 export const DECK_DISPLAY_CATEGORY_ORDER = [
@@ -29,49 +29,6 @@ const HOLOMEM_CATEGORIES = new Set<DeckDisplayCategory>([
   'buzz',
   'second',
 ])
-
-const HOLOMEM_COLOR_RANK = new Map(
-  ['white', 'green', 'red', 'blue', 'purple', 'yellow', 'colorless'].map(
-    (color, index) => [color, index],
-  ),
-)
-
-function compareText(left: string, right: string): number {
-  return left.localeCompare(right, 'ja')
-}
-
-function compareHolomem(left: Card, right: Card): number {
-  const readingDifference = compareText(
-    normalizeSearchText(left.nameReading ?? left.name),
-    normalizeSearchText(right.nameReading ?? right.name),
-  )
-  if (readingDifference !== 0) return readingDifference
-
-  const nameDifference = compareText(
-    normalizeSearchText(left.name),
-    normalizeSearchText(right.name),
-  )
-  if (nameDifference !== 0) return nameDifference
-
-  const leftColors = left.colors
-    .map((color) => HOLOMEM_COLOR_RANK.get(color) ?? Number.MAX_SAFE_INTEGER)
-    .sort((a, b) => a - b)
-  const rightColors = right.colors
-    .map((color) => HOLOMEM_COLOR_RANK.get(color) ?? Number.MAX_SAFE_INTEGER)
-    .sort((a, b) => a - b)
-  for (
-    let index = 0;
-    index < Math.max(leftColors.length, rightColors.length);
-    index += 1
-  ) {
-    const difference =
-      (leftColors[index] ?? Number.MAX_SAFE_INTEGER) -
-      (rightColors[index] ?? Number.MAX_SAFE_INTEGER)
-    if (difference !== 0) return difference
-  }
-
-  return compareCardNumbers(left.cardNumber, right.cardNumber)
-}
 
 export function getDeckDisplayCategory(
   card: Card | undefined,
@@ -123,7 +80,7 @@ export function sortDeckEntriesForDisplay(
       const leftCard = cardsByNumber.get(left.entry.cardNumber)
       const rightCard = cardsByNumber.get(right.entry.cardNumber)
       if (HOLOMEM_CATEGORIES.has(leftCategory) && leftCard && rightCard) {
-        const holomemDifference = compareHolomem(leftCard, rightCard)
+        const holomemDifference = compareCardsByReading(leftCard, rightCard)
         if (holomemDifference !== 0) return holomemDifference
       }
 

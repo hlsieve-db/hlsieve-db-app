@@ -1,4 +1,5 @@
 import { CARD_COLOR_LABELS } from '../cards/constants'
+import { compareCardsByReading } from '../cards/readingOrder'
 import type { Card, CardColor } from '../cards/types'
 import { normalizeSearchText } from '../search/normalizeSearchText'
 
@@ -6,13 +7,19 @@ const CARD_COLOR_ORDER = Object.keys(CARD_COLOR_LABELS) as CardColor[]
 
 export function getOshiCandidates(cards: readonly Card[]): Card[] {
   const seenCardNumbers = new Set<string>()
-  return cards.filter((card) => {
-    if (card.cardType !== 'oshi' || seenCardNumbers.has(card.cardNumber)) {
-      return false
-    }
-    seenCardNumbers.add(card.cardNumber)
-    return true
-  })
+  return (
+    cards
+      .filter((card) => {
+        if (card.cardType !== 'oshi' || seenCardNumbers.has(card.cardNumber)) {
+          return false
+        }
+        seenCardNumbers.add(card.cardNumber)
+        return true
+      })
+      // Sorted once here so every consumer, and every filtered subset produced
+      // by searchOshiCandidates, stays in Japanese reading order.
+      .sort(compareCardsByReading)
+  )
 }
 
 function orderedColorLabels(card: Card): string {

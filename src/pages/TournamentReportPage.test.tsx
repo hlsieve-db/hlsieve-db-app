@@ -1352,4 +1352,65 @@ describe('TournamentReportPage', () => {
       }),
     ).not.toBeInTheDocument()
   })
+
+  it('lists candidates in Japanese reading order in every Oshi field', async () => {
+    renderPage()
+    await screen.findByText('推しホロメン候補 4件')
+
+    fireEvent.click(screen.getByRole('button', { name: '＋ 回戦を追加' }))
+    fireEvent.click(screen.getByRole('button', { name: '＋ 回戦を追加' }))
+    fireEvent.click(
+      screen.getByRole('button', { name: '＋ トーナメント戦を追加' }),
+    )
+    fireEvent.click(
+      screen.getByRole('button', { name: '＋ トーナメント戦を追加' }),
+    )
+
+    // These fixtures give AZKi and both 宝鐘マリン the reading あずき, so this
+    // exercises all three tie-breaks at once: reading (あずき before
+    // うさだぺこら), then name, then the canonical colour order (赤 before 青).
+    const expected = [
+      'AZKi（OSHI-001）',
+      '宝鐘マリン 【赤】（MARINE-R）',
+      '宝鐘マリン 【青】（MARINE-B）',
+      '兎田ぺこら（PEKORA-001）',
+    ]
+
+    const names = [
+      '自分の推しホロメン（必須）',
+      'R1 対戦相手の推し',
+      'R2 対戦相手の推し',
+      'T1 対戦相手の推し',
+      'T2 対戦相手の推し',
+    ]
+
+    names.forEach((name) => {
+      const combobox = screen.getByRole('combobox', { name })
+      fireEvent.focus(combobox)
+      const options = within(listboxFor(combobox) as HTMLElement).getAllByRole(
+        'option',
+      )
+      expect(options.map((option) => option.textContent)).toEqual(expected)
+    })
+  })
+
+  it('keeps the reading order after the candidates are filtered', async () => {
+    renderPage()
+    await screen.findByText('推しホロメン候補 4件')
+    fireEvent.click(screen.getByRole('button', { name: '＋ 回戦を追加' }))
+
+    const opponent = screen.getByRole('combobox', {
+      name: 'R1 対戦相手の推し',
+    })
+    fireEvent.focus(opponent)
+    fireEvent.change(opponent, { target: { value: 'まりん' } })
+
+    const options = within(listboxFor(opponent) as HTMLElement).getAllByRole(
+      'option',
+    )
+    expect(options.map((option) => option.textContent)).toEqual([
+      '宝鐘マリン 【赤】（MARINE-R）',
+      '宝鐘マリン 【青】（MARINE-B）',
+    ])
+  })
 })
