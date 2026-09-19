@@ -6,8 +6,6 @@ import {
   searchOshiCandidates,
 } from '../../domain/tournamentReport/oshi'
 
-const MAX_VISIBLE_OPTIONS = 20
-
 type OshiComboboxProps = {
   label: string
   cards: readonly Card[]
@@ -32,9 +30,13 @@ export function OshiCombobox({
   const [isOpen, setIsOpen] = useState(false)
   const inputValue =
     query ?? (selectedCard ? formatOshiOptionLabel(selectedCard, cards) : '')
+  // Filtering on the typed query rather than the displayed value keeps the
+  // full candidate list available on focus, including once a card is
+  // selected and its label is what the input shows. The listbox scrolls
+  // internally, so every candidate stays reachable by tap alone.
   const matches = useMemo(
-    () => searchOshiCandidates(cards, inputValue).slice(0, MAX_VISIBLE_OPTIONS),
-    [cards, inputValue],
+    () => searchOshiCandidates(cards, query ?? ''),
+    [cards, query],
   )
 
   return (

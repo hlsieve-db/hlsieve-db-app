@@ -119,6 +119,11 @@ async function selectOshi(label: string, query: string, optionName: RegExp) {
   fireEvent.click(await screen.findByRole('option', { name: optionName }))
 }
 
+function listboxFor(combobox: HTMLElement): HTMLElement | null {
+  const id = combobox.getAttribute('aria-controls')
+  return id ? document.getElementById(id) : null
+}
+
 async function openImageDialog(imageOptions: ImageTestOptions = {}) {
   renderPage(undefined, {
     generateImages: vi.fn(async () => [makeImageFile()]),
@@ -1039,5 +1044,158 @@ describe('TournamentReportPage', () => {
 
     fireEvent.click(await screen.findByRole('option', { name: /AZKi/ }))
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
+  })
+
+  it('opens the full candidate list on focus before anything is typed', async () => {
+    renderPage()
+    await screen.findByText('推しホロメン候補 4件')
+
+    const selfOshi = screen.getByRole('combobox', {
+      name: '自分の推しホロメン（必須）',
+    })
+    expect(selfOshi).toHaveAttribute('aria-expanded', 'false')
+    expect(listboxFor(selfOshi)).toBeNull()
+
+    fireEvent.focus(selfOshi)
+    expect(selfOshi).toHaveAttribute('aria-expanded', 'true')
+    const listbox = listboxFor(selfOshi)
+    expect(listbox).not.toBeNull()
+    // Every Oshi candidate is reachable without typing a single character.
+    expect(within(listbox as HTMLElement).getAllByRole('option')).toHaveLength(
+      4,
+    )
+    expect(selfOshi).toHaveValue('')
+  })
+
+  it('selects an Oshi by tapping a candidate without any typing', async () => {
+    renderPage()
+    await screen.findByText('推しホロメン候補 4件')
+
+    const selfOshi = screen.getByRole('combobox', {
+      name: '自分の推しホロメン（必須）',
+    })
+    fireEvent.focus(selfOshi)
+    const option = within(listboxFor(selfOshi) as HTMLElement).getByRole(
+      'option',
+      { name: /兎田ぺこら/ },
+    )
+    fireEvent.mouseDown(option)
+    fireEvent.click(option)
+
+    expect(selfOshi).toHaveValue('兎田ぺこら（PEKORA-001）')
+    expect(selfOshi).toHaveAttribute('aria-expanded', 'false')
+    expect(listboxFor(selfOshi)).toBeNull()
+  })
+
+  it('reopens every candidate when refocusing an Oshi that is already set', async () => {
+    renderPage()
+    await screen.findByText('推しホロメン候補 4件')
+
+    const selfOshi = screen.getByRole('combobox', {
+      name: '自分の推しホロメン（必須）',
+    })
+    fireEvent.focus(selfOshi)
+    fireEvent.click(
+      within(listboxFor(selfOshi) as HTMLElement).getByRole('option', {
+        name: /兎田ぺこら/,
+      }),
+    )
+    expect(selfOshi).toHaveValue('兎田ぺこら（PEKORA-001）')
+
+    fireEvent.focus(selfOshi)
+    const reopened = listboxFor(selfOshi)
+    expect(reopened).not.toBeNull()
+    // The displayed label must not filter the list down to the current pick.
+    expect(within(reopened as HTMLElement).getAllByRole('option')).toHaveLength(
+      4,
+    )
+    expect(selfOshi).toHaveValue('兎田ぺこら（PEKORA-001）')
+  })
+
+  it('opens the candidate list on focus for dynamically added rounds', async () => {
+    renderPage()
+    await screen.findByText('推しホロメン候補 4件')
+
+    fireEvent.click(screen.getByRole('button', { name: '＋ 回戦を追加' }))
+    fireEvent.click(screen.getByRole('button', { name: '＋ 回戦を追加' }))
+    fireEvent.click(screen.getByRole('button', { name: '＋ 回戦を追加' }))
+    fireEvent.click(
+      screen.getByRole('button', { name: '＋ トーナメント戦を追加' }),
+    )
+    fireEvent.click(
+      screen.getByRole('button', { name: '＋ トーナメント戦を追加' }),
+    )
+
+    const names = [
+      'R1 対戦相手の推し',
+      'R2 対戦相手の推し',
+      'R3 対戦相手の推し',
+      'T1 対戦相手の推し',
+      'T2 対戦相手の推し',
+    ]
+    names.forEach((name) => {
+      const combobox = screen.getByRole('combobox', { name })
+      expect(combobox).toHaveAttribute('aria-expanded', 'false')
+      fireEvent.focus(combobox)
+      expect(combobox).toHaveAttribute('aria-expanded', 'true')
+      const listbox = listboxFor(combobox)
+      expect(listbox).not.toBeNull()
+      expect(
+        within(listbox as HTMLElement).getAllByRole('option'),
+      ).toHaveLength(4)
+    })
+
+    const secondRound = screen.getByRole('combobox', {
+      name: 'R2 対戦相手の推し',
+    })
+    fireEvent.click(
+      within(listboxFor(secondRound) as HTMLElement).getByRole('option', {
+        name: /AZKi/,
+      }),
+    )
+    expect(secondRound).toHaveValue('AZKi（OSHI-001）')
+  })
+
+  it('narrows the candidate list once a query is typed', async () => {
+    renderPage()
+    await screen.findByText('推しホロメン候補 4件')
+    fireEvent.click(screen.getByRole('button', { name: '＋ 回戦を追加' }))
+
+    const opponent = screen.getByRole('combobox', {
+      name: 'R1 対戦相手の推し',
+    })
+    fireEvent.focus(opponent)
+    expect(
+      within(listboxFor(opponent) as HTMLElement).getAllByRole('option'),
+    ).toHaveLength(4)
+
+    fireEvent.change(opponent, { target: { value: 'うさだ' } })
+    const filtered = within(listboxFor(opponent) as HTMLElement).getAllByRole(
+      'option',
+    )
+    expect(filtered).toHaveLength(1)
+    expect(filtered[0]).toHaveTextContent('兎田ぺこら')
+  })
+
+  it('closes the candidate list on Escape without clearing the value', async () => {
+    renderPage()
+    await screen.findByText('推しホロメン候補 4件')
+
+    const selfOshi = screen.getByRole('combobox', {
+      name: '自分の推しホロメン（必須）',
+    })
+    fireEvent.focus(selfOshi)
+    fireEvent.click(
+      within(listboxFor(selfOshi) as HTMLElement).getByRole('option', {
+        name: /AZKi/,
+      }),
+    )
+    fireEvent.focus(selfOshi)
+    expect(listboxFor(selfOshi)).not.toBeNull()
+
+    fireEvent.keyDown(selfOshi, { key: 'Escape' })
+    expect(selfOshi).toHaveAttribute('aria-expanded', 'false')
+    expect(listboxFor(selfOshi)).toBeNull()
+    expect(selfOshi).toHaveValue('AZKi（OSHI-001）')
   })
 })
