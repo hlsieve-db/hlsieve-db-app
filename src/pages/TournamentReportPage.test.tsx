@@ -1198,4 +1198,158 @@ describe('TournamentReportPage', () => {
     expect(listboxFor(selfOshi)).toBeNull()
     expect(selfOshi).toHaveValue('AZKi（OSHI-001）')
   })
+
+  it('only offers a clear button once the Oshi field has a value', async () => {
+    renderPage()
+    await screen.findByText('推しホロメン候補 4件')
+
+    const selfOshi = screen.getByRole('combobox', {
+      name: '自分の推しホロメン（必須）',
+    })
+    expect(
+      screen.queryByRole('button', {
+        name: '自分の推しホロメン（必須）をクリア',
+      }),
+    ).not.toBeInTheDocument()
+
+    fireEvent.focus(selfOshi)
+    fireEvent.click(
+      within(listboxFor(selfOshi) as HTMLElement).getByRole('option', {
+        name: /AZKi/,
+      }),
+    )
+
+    const clear = screen.getByRole('button', {
+      name: '自分の推しホロメン（必須）をクリア',
+    })
+    expect(clear).toBeVisible()
+    expect(clear).toHaveAttribute('type', 'button')
+  })
+
+  it('clears the selected Oshi from the input, the report, and the listbox', async () => {
+    renderPage()
+    await screen.findByText('推しホロメン候補 4件')
+
+    const selfOshi = screen.getByRole('combobox', {
+      name: '自分の推しホロメン（必須）',
+    })
+    fireEvent.focus(selfOshi)
+    fireEvent.click(
+      within(listboxFor(selfOshi) as HTMLElement).getByRole('option', {
+        name: /AZKi/,
+      }),
+    )
+    expect(selfOshi).toHaveValue('AZKi（OSHI-001）')
+    expect(screen.getByText('使用推し').nextElementSibling).toHaveTextContent(
+      'AZKi',
+    )
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: '自分の推しホロメン（必須）をクリア',
+      }),
+    )
+
+    expect(selfOshi).toHaveValue('')
+    // The report itself must drop the card number, not just the input.
+    expect(screen.getByText('使用推し').nextElementSibling).toHaveTextContent(
+      '未選択',
+    )
+    expect(
+      screen.queryByRole('button', {
+        name: '自分の推しホロメン（必須）をクリア',
+      }),
+    ).not.toBeInTheDocument()
+
+    const listbox = listboxFor(selfOshi)
+    expect(listbox).not.toBeNull()
+    const options = within(listbox as HTMLElement).getAllByRole('option')
+    expect(options).toHaveLength(4)
+    options.forEach((option) =>
+      expect(option).toHaveAttribute('aria-selected', 'false'),
+    )
+    expect(selfOshi).toHaveFocus()
+    expect(selfOshi).toHaveAttribute('aria-expanded', 'true')
+  })
+
+  it('clears a half-typed query as well as a selection', async () => {
+    renderPage()
+    await screen.findByText('推しホロメン候補 4件')
+    fireEvent.click(screen.getByRole('button', { name: '＋ 回戦を追加' }))
+
+    const opponent = screen.getByRole('combobox', {
+      name: 'R1 対戦相手の推し',
+    })
+    fireEvent.focus(opponent)
+    fireEvent.change(opponent, { target: { value: 'うさだ' } })
+    expect(
+      within(listboxFor(opponent) as HTMLElement).getAllByRole('option'),
+    ).toHaveLength(1)
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'R1 対戦相手の推しをクリア' }),
+    )
+
+    expect(opponent).toHaveValue('')
+    expect(
+      within(listboxFor(opponent) as HTMLElement).getAllByRole('option'),
+    ).toHaveLength(4)
+  })
+
+  it('clears every Oshi field including dynamically added rounds', async () => {
+    renderPage()
+    await screen.findByText('推しホロメン候補 4件')
+
+    fireEvent.click(screen.getByRole('button', { name: '＋ 回戦を追加' }))
+    fireEvent.click(screen.getByRole('button', { name: '＋ 回戦を追加' }))
+    fireEvent.click(
+      screen.getByRole('button', { name: '＋ トーナメント戦を追加' }),
+    )
+    fireEvent.click(
+      screen.getByRole('button', { name: '＋ トーナメント戦を追加' }),
+    )
+
+    const names = [
+      '自分の推しホロメン（必須）',
+      'R1 対戦相手の推し',
+      'R2 対戦相手の推し',
+      'T1 対戦相手の推し',
+      'T2 対戦相手の推し',
+    ]
+
+    names.forEach((name) => {
+      const combobox = screen.getByRole('combobox', { name })
+      expect(
+        screen.queryByRole('button', { name: `${name}をクリア` }),
+      ).not.toBeInTheDocument()
+
+      fireEvent.focus(combobox)
+      fireEvent.click(
+        within(listboxFor(combobox) as HTMLElement).getByRole('option', {
+          name: /兎田ぺこら/,
+        }),
+      )
+      expect(combobox).toHaveValue('兎田ぺこら（PEKORA-001）')
+
+      fireEvent.click(screen.getByRole('button', { name: `${name}をクリア` }))
+      expect(combobox).toHaveValue('')
+      expect(
+        screen.queryByRole('button', { name: `${name}をクリア` }),
+      ).not.toBeInTheDocument()
+    })
+  })
+
+  it('offers no clear button while the card data is still loading', () => {
+    renderPage()
+
+    const selfOshi = screen.getByRole('combobox', {
+      name: '自分の推しホロメン（必須）',
+    })
+    expect(selfOshi).toBeDisabled()
+    expect(
+      screen.queryByRole('button', {
+        name: '自分の推しホロメン（必須）をクリア',
+      }),
+    ).not.toBeInTheDocument()
+  })
 })

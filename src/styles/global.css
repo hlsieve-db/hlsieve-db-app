@@ -3616,7 +3616,7 @@ main {
 }
 
 .report-basic-fields input,
-.oshi-combobox > input {
+.oshi-combobox__field > input {
   width: 100%;
   min-width: 0;
   min-height: 48px;
@@ -3630,6 +3630,39 @@ main {
 
 .oshi-combobox {
   position: relative;
+}
+
+.oshi-combobox__field {
+  position: relative;
+  min-width: 0;
+}
+
+/* Reserved unconditionally so showing the clear button never reflows text. */
+.oshi-combobox__field > input {
+  padding-right: 46px;
+}
+
+.oshi-combobox__clear {
+  position: absolute;
+  top: 50%;
+  right: 2px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  color: var(--color-muted);
+  background: transparent;
+  font-size: 1.15rem;
+  line-height: 1;
+  transform: translateY(-50%);
+}
+
+.oshi-combobox__clear:hover,
+.oshi-combobox__clear:focus-visible {
+  color: var(--color-text);
 }
 
 .oshi-combobox__options {

@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from 'react'
+import { useId, useMemo, useRef, useState } from 'react'
 
 import type { Card } from '../../domain/cards/types'
 import {
@@ -26,6 +26,7 @@ export function OshiCombobox({
   const selectedCard = cards.find(
     (card) => card.cardNumber === selectedCardNumber,
   )
+  const inputRef = useRef<HTMLInputElement>(null)
   const [query, setQuery] = useState<string | null>(null)
   const [isOpen, setIsOpen] = useState(false)
   const inputValue =
@@ -38,36 +39,63 @@ export function OshiCombobox({
     () => searchOshiCandidates(cards, query ?? ''),
     [cards, query],
   )
+  const canClear = !disabled && inputValue !== ''
+
+  const clear = () => {
+    // Clearing the typed query and the parent's selection together keeps the
+    // displayed value and the report in sync, whatever was in the field.
+    setQuery('')
+    onChange(undefined)
+    setIsOpen(true)
+    inputRef.current?.focus()
+  }
 
   return (
     <div className="oshi-combobox">
       <label htmlFor={inputId}>{label}</label>
-      <input
-        id={inputId}
-        type="text"
-        inputMode="text"
-        lang="ja"
-        autoCapitalize="none"
-        role="combobox"
-        aria-autocomplete="list"
-        aria-controls={listboxId}
-        aria-expanded={isOpen}
-        autoComplete="off"
-        disabled={disabled}
-        placeholder={
-          disabled ? 'カードデータを読み込み中…' : '名前・読み・カード番号'
-        }
-        value={inputValue}
-        onFocus={() => setIsOpen(true)}
-        onChange={(event) => {
-          setQuery(event.currentTarget.value)
-          onChange(undefined)
-          setIsOpen(true)
-        }}
-        onKeyDown={(event) => {
-          if (event.key === 'Escape') setIsOpen(false)
-        }}
-      />
+      <div className="oshi-combobox__field">
+        <input
+          ref={inputRef}
+          id={inputId}
+          type="text"
+          inputMode="text"
+          lang="ja"
+          autoCapitalize="none"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-controls={listboxId}
+          aria-expanded={isOpen}
+          autoComplete="off"
+          disabled={disabled}
+          placeholder={
+            disabled ? 'カードデータを読み込み中…' : '名前・読み・カード番号'
+          }
+          value={inputValue}
+          onFocus={() => setIsOpen(true)}
+          onChange={(event) => {
+            setQuery(event.currentTarget.value)
+            onChange(undefined)
+            setIsOpen(true)
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') setIsOpen(false)
+          }}
+        />
+        {canClear && (
+          <button
+            className="oshi-combobox__clear"
+            type="button"
+            aria-label={`${label}をクリア`}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={(event) => {
+              event.stopPropagation()
+              clear()
+            }}
+          >
+            <span aria-hidden="true">×</span>
+          </button>
+        )}
+      </div>
       {isOpen && !disabled && (
         <div className="oshi-combobox__options" id={listboxId} role="listbox">
           {matches.length === 0 ? (
