@@ -119,12 +119,30 @@ async function selectOshi(label: string, query: string, optionName: RegExp) {
   fireEvent.click(await screen.findByRole('option', { name: optionName }))
 }
 
+async function openImageDialog(imageOptions: ImageTestOptions = {}) {
+  renderPage(undefined, {
+    generateImages: vi.fn(async () => [makeImageFile()]),
+    createObjectUrl: vi.fn(() => 'blob:report-page-1'),
+    revokeObjectUrl: vi.fn(),
+    ...imageOptions,
+  })
+  fireEvent.change(screen.getByLabelText('大会名（必須）'), {
+    target: { value: '大会' },
+  })
+  fireEvent.click(screen.getByRole('button', { name: '大会結果を画像にする' }))
+  await screen.findByRole('dialog', { name: '大会結果画像' })
+}
+
 describe('TournamentReportPage', () => {
   it('renders editable basic fields and an incomplete live preview', async () => {
     const { container } = renderPage()
 
-    expect(screen.getByLabelText('大会名（必須）')).toBeVisible()
+    expect(screen.getByLabelText('大会名（必須）')).toHaveAttribute(
+      'inputmode',
+      'text',
+    )
     expect(screen.getByLabelText('順位')).toHaveAttribute('type', 'text')
+    expect(screen.getByLabelText('順位')).toHaveAttribute('inputmode', 'text')
     expect(screen.getByLabelText('参加人数（任意）')).toHaveAttribute(
       'inputmode',
       'numeric',
@@ -140,6 +158,24 @@ describe('TournamentReportPage', () => {
       '未選択',
     )
     expect(await screen.findByText('推しホロメン候補 4件')).toBeVisible()
+    expect(
+      screen.getByRole('combobox', { name: '自分の推しホロメン（必須）' }),
+    ).toHaveAttribute('type', 'text')
+    expect(
+      screen.getByRole('combobox', { name: '自分の推しホロメン（必須）' }),
+    ).toHaveAttribute('inputmode', 'text')
+  })
+
+  it('uses standard text input semantics for opponent Oshi', async () => {
+    renderPage()
+    await screen.findByText('推しホロメン候補 4件')
+    fireEvent.click(screen.getByRole('button', { name: '＋ 回戦を追加' }))
+
+    const opponent = screen.getByRole('combobox', {
+      name: 'R1 対戦相手の推し',
+    })
+    expect(opponent).toHaveAttribute('type', 'text')
+    expect(opponent).toHaveAttribute('inputmode', 'text')
   })
 
   it('updates tournament details and self Oshi in the preview', async () => {
@@ -455,9 +491,11 @@ describe('TournamentReportPage', () => {
         name: '1ページ目の大会結果画像を保存',
       }),
     )
-    expect(downloadFile).toHaveBeenCalledWith(
-      'blob:report-page-1',
-      'hlsieve-大会.png',
+    await waitFor(() =>
+      expect(downloadFile).toHaveBeenCalledWith(
+        'blob:report-page-1',
+        'hlsieve-大会.png',
+      ),
     )
     fireEvent.click(
       within(dialog).getByRole('button', { name: '画像プレビューを閉じる' }),
@@ -535,9 +573,11 @@ describe('TournamentReportPage', () => {
         name: '2ページ目の大会結果画像を保存',
       }),
     )
-    expect(downloadFile).toHaveBeenCalledWith(
-      'blob:page-2',
-      'hlsieve-大会-2.png',
+    await waitFor(() =>
+      expect(downloadFile).toHaveBeenCalledWith(
+        'blob:page-2',
+        'hlsieve-大会-2.png',
+      ),
     )
   })
 
@@ -757,5 +797,152 @@ describe('TournamentReportPage', () => {
       `${SITE_ORIGIN}/tournament-report`,
     )
     expect(screen.getByText(/保存した画像を添付してください/)).toBeVisible()
+  })
+
+  it('keeps the add-round buttons directly below the last round and above save', () => {
+    renderPage()
+    const swiss = document.querySelector(
+      'section[aria-labelledby="swiss-report-heading"]',
+    )
+    const tournament = document.querySelector(
+      'section[aria-labelledby="tournament-round-heading"]',
+    )
+    expect(swiss).not.toBeNull()
+    expect(tournament).not.toBeNull()
+
+    const addRound = screen.getByRole('button', { name: '＋ 回戦を追加' })
+    const addTournament = screen.getByRole('button', {
+      name: '＋ トーナメント戦を追加',
+    })
+    expect(addRound).toBeEnabled()
+    expect(addTournament).toBeEnabled()
+
+    const follows = (earlier: Element, later: Element) =>
+      Boolean(
+        earlier.compareDocumentPosition(later) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+      )
+
+    const swissList = swiss?.querySelector('.tournament-round-list')
+    const swissSave = swiss?.querySelector('.report-section__save')
+    expect(follows(swissList!, addRound)).toBe(true)
+    expect(follows(addRound, swissSave!)).toBe(true)
+
+    const tournamentList = tournament?.querySelector('.tournament-round-list')
+    expect(follows(tournamentList!, addTournament)).toBe(true)
+  })
+
+  it('moves the add-round button below each newly added round', () => {
+    renderPage()
+    const follows = (earlier: Element, later: Element) =>
+      Boolean(
+        earlier.compareDocumentPosition(later) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+      )
+
+    fireEvent.click(screen.getByRole('button', { name: '＋ 回戦を追加' }))
+    fireEvent.click(screen.getByRole('button', { name: '＋ 回戦を追加' }))
+
+    const addRound = screen.getByRole('button', { name: '＋ 回戦を追加' })
+    const lastRemove = screen.getAllByRole('button', { name: 'R2を削除' })
+    expect(lastRemove).toHaveLength(1)
+    expect(follows(lastRemove[0], addRound)).toBe(true)
+
+    fireEvent.click(
+      screen.getByRole('button', { name: '＋ トーナメント戦を追加' }),
+    )
+    const addTournament = screen.getByRole('button', {
+      name: '＋ トーナメント戦を追加',
+    })
+    expect(
+      follows(screen.getByRole('button', { name: 'T1を削除' }), addTournament),
+    ).toBe(true)
+  })
+
+  it('shares the generated PNG File from the image dialog when supported', async () => {
+    const share = vi.fn(async () => undefined)
+    const canShare = vi.fn(() => true)
+    const downloadFile = vi.fn()
+    await openImageDialog({
+      downloadFile,
+      shareNavigator: { share, canShare },
+    })
+    fireEvent.click(
+      screen.getByRole('button', { name: '1ページ目の大会結果画像を保存' }),
+    )
+
+    await waitFor(() => expect(share).toHaveBeenCalledTimes(1))
+    expect(canShare).toHaveBeenCalledWith({
+      files: [expect.objectContaining({ type: 'image/png' })],
+    })
+    expect(share).toHaveBeenCalledWith({
+      title: expect.stringContaining('大会'),
+      files: [
+        expect.objectContaining({
+          name: 'hlsieve-大会.png',
+          type: 'image/png',
+        }),
+      ],
+    })
+    expect(downloadFile).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['canShare rejects files', { share: vi.fn(), canShare: () => false }],
+    ['share unavailable', {}],
+  ])(
+    'falls back to the existing PNG download: %s',
+    async (_name, shareNavigator: TournamentShareNavigator) => {
+      const downloadFile = vi.fn()
+      await openImageDialog({ downloadFile, shareNavigator })
+      fireEvent.click(
+        screen.getByRole('button', { name: '1ページ目の大会結果画像を保存' }),
+      )
+
+      await waitFor(() =>
+        expect(downloadFile).toHaveBeenCalledWith(
+          'blob:report-page-1',
+          'hlsieve-大会.png',
+        ),
+      )
+    },
+  )
+
+  it('treats a dismissed share sheet as a cancellation without downloading', async () => {
+    const abortError = Object.assign(new Error('cancelled'), {
+      name: 'AbortError',
+    })
+    const share = vi.fn(async () => Promise.reject(abortError))
+    const downloadFile = vi.fn()
+    await openImageDialog({
+      downloadFile,
+      shareNavigator: { share, canShare: () => true },
+    })
+    fireEvent.click(
+      screen.getByRole('button', { name: '1ページ目の大会結果画像を保存' }),
+    )
+
+    await waitFor(() => expect(share).toHaveBeenCalledTimes(1))
+    expect(downloadFile).not.toHaveBeenCalled()
+    expect(screen.getByRole('dialog', { name: '大会結果画像' })).toBeVisible()
+  })
+
+  it('downloads the PNG when sharing fails for another reason', async () => {
+    const share = vi.fn(async () => Promise.reject(new Error('denied')))
+    const downloadFile = vi.fn()
+    await openImageDialog({
+      downloadFile,
+      shareNavigator: { share, canShare: () => true },
+    })
+    fireEvent.click(
+      screen.getByRole('button', { name: '1ページ目の大会結果画像を保存' }),
+    )
+
+    await waitFor(() =>
+      expect(downloadFile).toHaveBeenCalledWith(
+        'blob:report-page-1',
+        'hlsieve-大会.png',
+      ),
+    )
   })
 })

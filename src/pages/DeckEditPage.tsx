@@ -407,6 +407,8 @@ function DeckEditor({
           <div>
             <input
               id="deck-name"
+              type="text"
+              inputMode="text"
               value={nameDraft}
               maxLength={DECK_NAME_MAX_LENGTH}
               onChange={(event) => setNameDraft(event.currentTarget.value)}
@@ -667,7 +669,8 @@ function DeckEditor({
             <span>カード検索</span>
             <input
               id="deck-card-search"
-              type="search"
+              type="text"
+              inputMode="text"
               value={pickerState.query}
               placeholder="カード名・能力・Q&Aを検索…"
               onChange={(event) =>

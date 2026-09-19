@@ -9,6 +9,7 @@ import {
   buildTournamentShareTitle,
   buildTournamentXIntentUrl,
   shareTournamentReport,
+  shareTournamentReportImage,
   TOURNAMENT_REPORT_SHARE_URL,
   X_TWEET_INTENT_URL,
 } from './share'
@@ -236,6 +237,91 @@ describe('tournament report sharing', () => {
         navigator: { share: vi.fn(async () => Promise.reject(error)) },
         title: 'title',
         text: 'text',
+      }),
+    ).toEqual({ status: 'error', error })
+  })
+})
+
+describe('tournament report image sharing', () => {
+  it('shares the generated PNG File when file sharing is supported', async () => {
+    const share = vi.fn(async () => undefined)
+    const canShare = vi.fn(() => true)
+    const result = await shareTournamentReportImage({
+      navigator: { share, canShare },
+      title: '大会 | HLSieve DB',
+      image: makeImage(),
+    })
+
+    expect(result).toEqual({ status: 'shared' })
+    expect(canShare).toHaveBeenCalledWith({
+      files: [expect.objectContaining({ type: 'image/png' })],
+    })
+    expect(share).toHaveBeenCalledWith({
+      title: '大会 | HLSieve DB',
+      files: [
+        expect.objectContaining({
+          name: 'hlsieve-大会.png',
+          type: 'image/png',
+        }),
+      ],
+    })
+  })
+
+  it.each([
+    ['share unavailable', {}],
+    ['canShare rejects files', { share: vi.fn(), canShare: () => false }],
+    ['canShare unavailable', { share: vi.fn() }],
+  ])('reports unsupported so callers can download: %s', async (_name, api) => {
+    expect(
+      await shareTournamentReportImage({
+        navigator: api,
+        title: 'title',
+        image: makeImage(),
+      }),
+    ).toEqual({ status: 'unsupported' })
+  })
+
+  it('reports unsupported when File construction fails', async () => {
+    const share = vi.fn(async () => undefined)
+    expect(
+      await shareTournamentReportImage({
+        navigator: { share, canShare: () => true },
+        title: 'title',
+        image: makeImage(),
+        createFile: () => {
+          throw new Error('File unavailable')
+        },
+      }),
+    ).toEqual({ status: 'unsupported' })
+    expect(share).not.toHaveBeenCalled()
+  })
+
+  it('treats a dismissed share sheet as a cancellation', async () => {
+    const abortError = Object.assign(new Error('cancelled'), {
+      name: 'AbortError',
+    })
+    expect(
+      await shareTournamentReportImage({
+        navigator: {
+          share: vi.fn(async () => Promise.reject(abortError)),
+          canShare: () => true,
+        },
+        title: 'title',
+        image: makeImage(),
+      }),
+    ).toEqual({ status: 'cancelled' })
+  })
+
+  it('reports other share failures', async () => {
+    const error = new Error('denied')
+    expect(
+      await shareTournamentReportImage({
+        navigator: {
+          share: vi.fn(async () => Promise.reject(error)),
+          canShare: () => true,
+        },
+        title: 'title',
+        image: makeImage(),
       }),
     ).toEqual({ status: 'error', error })
   })

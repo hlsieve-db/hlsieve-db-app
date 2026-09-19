@@ -83,6 +83,8 @@ describe('SavedSearchPresets', () => {
     expect(screen.getByText(/このブラウザ内に保存/)).toBeVisible()
     fireEvent.click(screen.getByRole('button', { name: '検索条件を保存' }))
     expect(screen.getByLabelText('名前')).toHaveAttribute('maxlength', '50')
+    expect(screen.getByLabelText('名前')).toHaveAttribute('type', 'text')
+    expect(screen.getByLabelText('名前')).toHaveAttribute('inputmode', 'text')
     fireEvent.change(screen.getByLabelText('名前'), {
       target: { value: '  赤いフワモコ  ' },
     })

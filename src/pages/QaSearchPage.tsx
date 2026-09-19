@@ -156,7 +156,8 @@ export function QaSearchPage({ loadCards = loadCardsData }: QaSearchPageProps) {
           <span>検索キーワード</span>
           <input
             id="qa-search-query"
-            type="search"
+            type="text"
+            inputMode="text"
             value={queryDraft}
             placeholder="Q番号・質問・回答・カード名で検索"
             onChange={handleQueryChange}

@@ -26,6 +26,7 @@ import {
   buildTournamentShareTitle,
   buildTournamentXIntentUrl,
   shareTournamentReport,
+  shareTournamentReportImage,
   type TournamentShareNavigator,
 } from '../domain/tournamentReport/share'
 import {
@@ -78,6 +79,33 @@ type TournamentReportPageProps = {
     options: FilePropertyBag,
   ) => File
   repository?: TournamentReportRepository
+}
+
+type TournamentReportSaveButtonProps = {
+  disabled: boolean
+  label: string
+  onSave: () => void
+}
+
+function TournamentReportSaveButton({
+  disabled,
+  label,
+  onSave,
+}: TournamentReportSaveButtonProps) {
+  return (
+    <button
+      className="button"
+      type="button"
+      disabled={disabled}
+      onClick={onSave}
+    >
+      {label}
+    </button>
+  )
+}
+
+type TournamentReportImagePreviewSource = TournamentReportImagePreview & {
+  file: TournamentReportImageFile
 }
 
 const PLAY_ORDER_LABELS = {
@@ -208,7 +236,7 @@ export function TournamentReportPage({
     DEFAULT_TOURNAMENT_EXPORT_PRESET,
   )
   const [imagePreviews, setImagePreviews] = useState<
-    TournamentReportImagePreview[] | undefined
+    TournamentReportImagePreviewSource[] | undefined
   >()
   const [shareStatus, setShareStatus] = useState<
     | 'idle'
@@ -312,6 +340,13 @@ export function TournamentReportPage({
     () => buildTournamentXIntentUrl(shareText),
     [shareText],
   )
+  const saveDisabled = saveStatus === 'saving' || savedLoadStatus !== 'ready'
+  const saveLabel =
+    saveStatus === 'saving'
+      ? '保存しています…'
+      : savedReportId
+        ? '変更を保存'
+        : '保存'
 
   const copyReportText = async () => {
     if (!reportText) return
@@ -329,10 +364,11 @@ export function TournamentReportPage({
     try {
       const files = await generateImages(report, oshiCards, exportPreset)
       if (files.length === 0) throw new Error('No image pages were generated.')
-      const createdPreviews: TournamentReportImagePreview[] = []
+      const createdPreviews: TournamentReportImagePreviewSource[] = []
       try {
         files.forEach((file) => {
           createdPreviews.push({
+            file,
             url: createObjectUrl(file.blob),
             fileName: file.fileName,
             pageNumber: file.page.pageNumber,
@@ -350,6 +386,22 @@ export function TournamentReportPage({
     } catch {
       setImageStatus('error')
     }
+  }
+
+  const saveReportImage = async (image: TournamentReportImagePreview) => {
+    const preview = imagePreviews?.find(
+      (candidate) => candidate.fileName === image.fileName,
+    )
+    if (preview) {
+      const result = await shareTournamentReportImage({
+        navigator: shareNavigator ?? getBrowserShareNavigator(),
+        title: shareTitle,
+        image: preview.file,
+        createFile: createShareFile,
+      })
+      if (result.status === 'shared' || result.status === 'cancelled') return
+    }
+    downloadFile(image.url, image.fileName)
   }
 
   const shareReport = async () => {
@@ -467,18 +519,11 @@ export function TournamentReportPage({
       <TournamentLocalNavigation />
 
       <div className="tournament-report-storage-actions">
-        <button
-          className="button"
-          type="button"
-          disabled={saveStatus === 'saving' || savedLoadStatus !== 'ready'}
-          onClick={() => void saveReport()}
-        >
-          {saveStatus === 'saving'
-            ? '保存しています…'
-            : savedReportId
-              ? '変更を保存'
-              : '保存'}
-        </button>
+        <TournamentReportSaveButton
+          disabled={saveDisabled}
+          label={saveLabel}
+          onSave={() => void saveReport()}
+        />
         <Link className="button button--secondary" to="/tournament-history">
           大会戦績履歴
         </Link>
@@ -538,6 +583,7 @@ export function TournamentReportPage({
                 <span>大会名（必須）</span>
                 <input
                   type="text"
+                  inputMode="text"
                   maxLength={MAX_TOURNAMENT_NAME_LENGTH}
                   value={report.tournamentName}
                   onChange={(event) => {
@@ -553,6 +599,7 @@ export function TournamentReportPage({
                 <span>順位</span>
                 <input
                   type="text"
+                  inputMode="text"
                   maxLength={MAX_PLACEMENT_LENGTH}
                   placeholder="優勝、3位、ベスト8など"
                   value={report.placement}
@@ -640,14 +687,6 @@ export function TournamentReportPage({
                   {report.swissRounds.length} / {MAX_SWISS_REPORT_ROUNDS}回戦
                 </p>
               </div>
-              <button
-                className="button"
-                type="button"
-                disabled={report.swissRounds.length >= MAX_SWISS_REPORT_ROUNDS}
-                onClick={() => addRound('swissRounds', MAX_SWISS_REPORT_ROUNDS)}
-              >
-                ＋ 回戦を追加
-              </button>
             </div>
             <div className="tournament-round-list">
               {report.swissRounds.map((round, index) => (
@@ -663,6 +702,23 @@ export function TournamentReportPage({
                 />
               ))}
             </div>
+            <div className="report-section__actions">
+              <button
+                className="button"
+                type="button"
+                disabled={report.swissRounds.length >= MAX_SWISS_REPORT_ROUNDS}
+                onClick={() => addRound('swissRounds', MAX_SWISS_REPORT_ROUNDS)}
+              >
+                ＋ 回戦を追加
+              </button>
+            </div>
+            <div className="report-section__save">
+              <TournamentReportSaveButton
+                disabled={saveDisabled}
+                label={saveLabel}
+                onSave={() => void saveReport()}
+              />
+            </div>
           </section>
 
           <section
@@ -677,18 +733,6 @@ export function TournamentReportPage({
                   {MAX_TOURNAMENT_REPORT_ROUNDS}回戦
                 </p>
               </div>
-              <button
-                className="button"
-                type="button"
-                disabled={
-                  report.tournamentRounds.length >= MAX_TOURNAMENT_REPORT_ROUNDS
-                }
-                onClick={() =>
-                  addRound('tournamentRounds', MAX_TOURNAMENT_REPORT_ROUNDS)
-                }
-              >
-                ＋ トーナメント戦を追加
-              </button>
             </div>
             <div className="tournament-round-list">
               {report.tournamentRounds.map((round, index) => (
@@ -704,6 +748,29 @@ export function TournamentReportPage({
                 />
               ))}
             </div>
+            <div className="report-section__actions">
+              <button
+                className="button"
+                type="button"
+                disabled={
+                  report.tournamentRounds.length >= MAX_TOURNAMENT_REPORT_ROUNDS
+                }
+                onClick={() =>
+                  addRound('tournamentRounds', MAX_TOURNAMENT_REPORT_ROUNDS)
+                }
+              >
+                ＋ トーナメント戦を追加
+              </button>
+            </div>
+            {report.tournamentRounds.length > 0 && (
+              <div className="report-section__save">
+                <TournamentReportSaveButton
+                  disabled={saveDisabled}
+                  label={saveLabel}
+                  onSave={() => void saveReport()}
+                />
+              </div>
+            )}
           </section>
         </div>
 
@@ -929,7 +996,7 @@ export function TournamentReportPage({
         <TournamentReportImageDialog
           images={imagePreviews}
           onClose={() => setImagePreviews(undefined)}
-          onSave={(image) => downloadFile(image.url, image.fileName)}
+          onSave={(image) => void saveReportImage(image)}
         />
       )}
     </main>

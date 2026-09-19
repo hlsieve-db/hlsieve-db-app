@@ -16,8 +16,8 @@ const SHARE_FIELD_MAX_LENGTH = 100
 
 export type TournamentShareData = {
   title: string
-  text: string
-  url: string
+  text?: string
+  url?: string
   files?: File[]
 }
 
@@ -122,6 +122,51 @@ export function buildTournamentShareFiles(
   return images.map((image) =>
     createFile([image.blob], image.fileName, { type: 'image/png' }),
   )
+}
+
+export type TournamentImageShareResult =
+  | { status: 'shared' }
+  | { status: 'unsupported' }
+  | { status: 'cancelled' }
+  | { status: 'error'; error: unknown }
+
+export type ShareTournamentReportImageOptions = {
+  navigator: TournamentShareNavigator
+  title: string
+  image: TournamentReportImageFile
+  createFile?: (
+    parts: BlobPart[],
+    fileName: string,
+    options: FilePropertyBag,
+  ) => File
+}
+
+export async function shareTournamentReportImage({
+  navigator: shareNavigator,
+  title,
+  image,
+  createFile = defaultCreateFile,
+}: ShareTournamentReportImageOptions): Promise<TournamentImageShareResult> {
+  if (!shareNavigator.share) return { status: 'unsupported' }
+
+  let files: File[]
+  try {
+    files = buildTournamentShareFiles([image], createFile)
+  } catch {
+    return { status: 'unsupported' }
+  }
+  if (files.length === 0 || shareNavigator.canShare?.({ files }) !== true) {
+    return { status: 'unsupported' }
+  }
+
+  try {
+    await shareNavigator.share({ title, files })
+    return { status: 'shared' }
+  } catch (error) {
+    return isAbortError(error)
+      ? { status: 'cancelled' }
+      : { status: 'error', error }
+  }
 }
 
 export async function shareTournamentReport({

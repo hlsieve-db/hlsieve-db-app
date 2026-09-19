@@ -572,6 +572,11 @@ describe('CardSearchPage query and filters', () => {
     renderPage()
     await loaded()
 
+    expect(screen.getByLabelText('キーワード')).toHaveAttribute('type', 'text')
+    expect(screen.getByLabelText('キーワード')).toHaveAttribute(
+      'inputmode',
+      'text',
+    )
     const keywordLabel = screen.getByLabelText('キーワード').closest('label')
     const qaOption = screen.getByLabelText('Q&Aを含める')
     expect(qaOption).not.toBeChecked()

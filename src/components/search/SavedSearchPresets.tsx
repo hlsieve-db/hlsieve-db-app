@@ -136,6 +136,7 @@ export function SavedSearchPresets({
             <input
               id="search-preset-name"
               type="text"
+              inputMode="text"
               value={name}
               maxLength={SEARCH_PRESET_NAME_MAX_LENGTH}
               onChange={(event) => setName(event.currentTarget.value)}

@@ -3590,6 +3590,17 @@ main {
   font-size: 0.8rem;
 }
 
+.report-section__actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.report-section__save {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 2px;
+}
+
 .report-basic-fields {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -4180,7 +4191,8 @@ main {
     flex-direction: column;
   }
 
-  .report-section__heading .button {
+  .report-section__actions .button,
+  .report-section__save .button {
     width: 100%;
   }
 

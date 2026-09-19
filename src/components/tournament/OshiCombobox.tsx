@@ -42,7 +42,8 @@ export function OshiCombobox({
       <label htmlFor={inputId}>{label}</label>
       <input
         id={inputId}
-        type="search"
+        type="text"
+        inputMode="text"
         role="combobox"
         aria-autocomplete="list"
         aria-controls={listboxId}

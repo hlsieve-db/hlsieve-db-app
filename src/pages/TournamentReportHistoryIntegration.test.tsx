@@ -128,14 +128,14 @@ describe('TournamentReportPage saved history integration', () => {
     fireEvent.change(screen.getByLabelText('大会名（必須）'), {
       target: { value: '新規大会' },
     })
-    fireEvent.click(screen.getByRole('button', { name: '保存' }))
+    fireEvent.click(screen.getAllByRole('button', { name: '保存' })[0])
     await waitFor(() =>
       expect(repository.createReport).toHaveBeenCalledTimes(1),
     )
     expect(await screen.findByRole('status')).toHaveTextContent('保存しました')
-    const updateButton = await screen.findByRole('button', {
-      name: '変更を保存',
-    })
+    const updateButton = (
+      await screen.findAllByRole('button', { name: '変更を保存' })
+    )[0]
     await waitFor(() => expect(updateButton).toBeEnabled())
     fireEvent.change(screen.getByLabelText('順位'), {
       target: { value: '優勝' },
@@ -213,7 +213,11 @@ describe('TournamentReportPage saved history integration', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       '大会戦績が見つかりません',
     )
-    expect(screen.getByRole('button', { name: '保存' })).toBeDisabled()
+    expect(
+      screen
+        .getAllByRole('button', { name: '保存' })
+        .every((button) => button.hasAttribute('disabled')),
+    ).toBe(true)
   })
 
   it('reports save failures without crashing', async () => {
@@ -222,9 +226,66 @@ describe('TournamentReportPage saved history integration', () => {
       new Error('failed'),
     )
     renderPage(repository)
-    fireEvent.click(screen.getByRole('button', { name: '保存' }))
+    fireEvent.click(screen.getAllByRole('button', { name: '保存' })[0])
     expect(await screen.findByRole('alert')).toHaveTextContent(
       '保存できませんでした',
+    )
+  })
+
+  it('saves from the Swiss footer', async () => {
+    const repository = memoryRepository()
+    renderPage(repository)
+    fireEvent.change(screen.getByLabelText('大会名（必須）'), {
+      target: { value: '下部保存大会' },
+    })
+
+    const initialSaveButtons = screen.getAllByRole('button', { name: '保存' })
+    expect(initialSaveButtons).toHaveLength(2)
+    fireEvent.click(initialSaveButtons[1])
+    await waitFor(() =>
+      expect(repository.createReport).toHaveBeenCalledTimes(1),
+    )
+  })
+
+  it('shows and saves from the conditional tournament footer', async () => {
+    const repository = memoryRepository()
+    renderPage(repository)
+    expect(screen.getAllByRole('button', { name: '保存' })).toHaveLength(2)
+
+    fireEvent.click(
+      screen.getByRole('button', { name: '＋ トーナメント戦を追加' }),
+    )
+    const saveButtons = screen.getAllByRole('button', { name: '保存' })
+    expect(saveButtons).toHaveLength(3)
+    fireEvent.click(saveButtons[2])
+    await waitFor(() =>
+      expect(repository.createReport).toHaveBeenCalledTimes(1),
+    )
+  })
+
+  it('synchronizes saving and disabled state across every save button', async () => {
+    let finishSave: (() => void) | undefined
+    const repository = memoryRepository()
+    vi.mocked(repository.createReport).mockImplementationOnce(
+      (report) =>
+        new Promise((resolve) => {
+          finishSave = () => resolve({ ...stored(), id: 'new-1', report })
+        }),
+    )
+    renderPage(repository)
+
+    fireEvent.click(screen.getAllByRole('button', { name: '保存' })[1])
+    const savingButtons = await screen.findAllByRole('button', {
+      name: '保存しています…',
+    })
+    expect(savingButtons).toHaveLength(2)
+    savingButtons.forEach((button) => expect(button).toBeDisabled())
+
+    finishSave?.()
+    await waitFor(() =>
+      expect(
+        screen.getAllByRole('button', { name: '変更を保存' }),
+      ).toHaveLength(2),
     )
   })
 })

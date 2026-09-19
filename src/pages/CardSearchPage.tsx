@@ -213,7 +213,8 @@ export function CardSearchPage({
           <span>キーワード</span>
           <input
             id="card-search-query"
-            type="search"
+            type="text"
+            inputMode="text"
             value={queryDraft}
             placeholder="カード名・能力・Q&Aを検索…"
             autoComplete="off"

@@ -314,6 +314,8 @@ describe('DeckEditPage editor operations', () => {
     )
     renderPage({ deckRepository: repository({ saveDeck }) })
     const input = await screen.findByLabelText('デッキ名')
+    expect(input).toHaveAttribute('type', 'text')
+    expect(input).toHaveAttribute('inputmode', 'text')
 
     fireEvent.change(input, { target: { value: '   ' } })
     fireEvent.click(screen.getByRole('button', { name: '名前を保存' }))
@@ -673,6 +675,8 @@ describe('DeckEditPage editor operations', () => {
     )
     renderPage({ deckRepository: repository({ saveDeck }) })
     const search = await screen.findByLabelText('カード検索')
+    expect(search).toHaveAttribute('type', 'text')
+    expect(search).toHaveAttribute('inputmode', 'text')
 
     fireEvent.change(search, { target: { value: '赤い' } })
     const picker = screen.getByRole('region', { name: 'カードを追加' })

@@ -77,6 +77,14 @@ describe('QaSearchPage', () => {
       'placeholder',
       'Q番号・質問・回答・カード名で検索',
     )
+    expect(screen.getByLabelText('検索キーワード')).toHaveAttribute(
+      'type',
+      'text',
+    )
+    expect(screen.getByLabelText('検索キーワード')).toHaveAttribute(
+      'inputmode',
+      'text',
+    )
     expect(
       await screen.findByText('Q番号・質問・回答などを入力してください。'),
     ).toBeVisible()
