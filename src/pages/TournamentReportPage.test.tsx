@@ -976,7 +976,9 @@ describe('TournamentReportPage', () => {
     comboboxes.forEach((combobox) => {
       expect(combobox).toHaveAttribute('type', 'text')
       expect(combobox).toHaveAttribute('inputmode', 'text')
+      expect(combobox).toHaveAttribute('lang', 'ja')
       expect(combobox).toHaveAttribute('autocapitalize', 'none')
+      expect(combobox).toHaveAttribute('autocomplete', 'off')
       expect(combobox).not.toHaveAttribute('pattern')
       expect(combobox).not.toHaveAttribute('enterkeyhint')
     })
@@ -987,6 +989,7 @@ describe('TournamentReportPage', () => {
       expect(opponent.getAttribute('inputmode')).toBe(
         selfOshi.getAttribute('inputmode'),
       )
+      expect(opponent.getAttribute('lang')).toBe(selfOshi.getAttribute('lang'))
       expect(opponent.getAttribute('autocapitalize')).toBe(
         selfOshi.getAttribute('autocapitalize'),
       )
