@@ -42,6 +42,7 @@ import { useSavedDeckQuickEdit } from '../hooks/useSavedDeckQuickEdit'
 import { useDocumentMetadata } from '../hooks/useDocumentMetadata'
 import { buildCardDetailMetadata } from '../domain/site/metadata'
 import {
+  deckEditorReturnLocationState,
   readCardDetailReturnState,
   type CardDetailReturnState,
 } from '../domain/navigation/cardDetailReturnState'
@@ -112,7 +113,7 @@ function DetailHeader({
         : '/decks'
   const deckLocationState =
     returnState?.source === 'deck-editor'
-      ? { deckSearch: returnState.search }
+      ? deckEditorReturnLocationState(returnState)
       : undefined
 
   return (

@@ -1,4 +1,12 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
@@ -37,8 +45,10 @@ import type { Deck, DeckEntry } from '../domain/decks/types'
 import {
   deckEditorDetailState,
   deckEditorLocationState,
+  deckEditorScrollPosition,
   deckEditorSearchState,
   type CardDetailReturnState,
+  type DeckEditorScrollPosition,
 } from '../domain/navigation/cardDetailReturnState'
 import { DEFAULT_CARD_PAGE_SIZE } from '../domain/search/constants'
 import { getCardSearchResults } from '../domain/search/getCardSearchResults'
@@ -89,16 +99,61 @@ function DeckEditFallbackMetadata() {
   return null
 }
 
+function CardDetailLink({
+  cardNumber,
+  className,
+  ariaLabel,
+  buildDetailState,
+  children,
+}: {
+  cardNumber: string
+  className: string
+  ariaLabel: string
+  buildDetailState?: () => CardDetailReturnState
+  children: ReactNode
+}) {
+  const navigate = useNavigate()
+  const to = `/cards/${encodeURIComponent(cardNumber)}`
+
+  return (
+    <Link
+      className={className}
+      to={to}
+      state={buildDetailState?.()}
+      aria-label={ariaLabel}
+      onClick={(event) => {
+        if (!buildDetailState) return
+        if (
+          event.defaultPrevented ||
+          event.button !== 0 ||
+          event.metaKey ||
+          event.ctrlKey ||
+          event.shiftKey ||
+          event.altKey
+        ) {
+          return
+        }
+        // Capture the scroll offsets as they are at click time, which is
+        // newer than whatever the last render produced.
+        event.preventDefault()
+        navigate(to, { state: buildDetailState() })
+      }}
+    >
+      {children}
+    </Link>
+  )
+}
+
 function DeckCardImage({
   card,
   imageUrl = card?.imageUrl,
   linkToDetail = false,
-  detailState,
+  buildDetailState,
 }: {
   card?: Card
   imageUrl?: string
   linkToDetail?: boolean
-  detailState?: CardDetailReturnState
+  buildDetailState?: () => CardDetailReturnState
 }) {
   const image = (
     <div className="deck-card-image">
@@ -110,14 +165,14 @@ function DeckCardImage({
     </div>
   )
   return linkToDetail && card ? (
-    <Link
+    <CardDetailLink
       className="deck-card-image-link"
-      to={`/cards/${encodeURIComponent(card.cardNumber)}`}
-      state={detailState}
-      aria-label={`${card.name}のカード詳細を開く`}
+      cardNumber={card.cardNumber}
+      ariaLabel={`${card.name}のカード詳細を開く`}
+      buildDetailState={buildDetailState}
     >
       {image}
-    </Link>
+    </CardDetailLink>
   ) : (
     image
   )
@@ -161,6 +216,21 @@ function DeckEditor({
   const [deckTextCopyStatus, setDeckTextCopyStatus] =
     useState<DeckTextCopyStatus>()
   const deckRef = useRef(initialDeck)
+  const searchResultsRef = useRef<HTMLUListElement>(null)
+  // Only ever set from the entry this page was mounted with, so a direct
+  // visit or a later in-page navigation never restores a stale offset.
+  const scrollToRestoreRef = useRef<DeckEditorScrollPosition | undefined>(
+    deckEditorScrollPosition(location.state),
+  )
+
+  const captureDetailState = useCallback(
+    (): CardDetailReturnState =>
+      deckEditorDetailState(initialDeck.id, pickerState, {
+        pageScrollY: window.scrollY,
+        resultScrollTop: searchResultsRef.current?.scrollTop ?? 0,
+      }),
+    [initialDeck.id, pickerState],
+  )
 
   useEffect(() => {
     navigate(
@@ -168,6 +238,22 @@ function DeckEditor({
       { replace: true, state: deckEditorLocationState(pickerState) },
     )
   }, [location.pathname, location.search, navigate, pickerState])
+
+  useEffect(() => {
+    // The picker state is restored synchronously on mount, so waiting for the
+    // cards to load is enough to guarantee the search results (and their
+    // page) are laid out before the offsets are applied.
+    const target = scrollToRestoreRef.current
+    if (!target || cardsState.status !== 'loaded') return
+    scrollToRestoreRef.current = undefined
+    const frame = window.requestAnimationFrame(() => {
+      window.scrollTo({ top: target.pageScrollY, left: 0 })
+      if (searchResultsRef.current) {
+        searchResultsRef.current.scrollTop = target.resultScrollTop
+      }
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [cardsState.status])
 
   useDocumentMetadata({
     title: `${deck.name} | HLSieve DB`,
@@ -566,10 +652,7 @@ function DeckEditor({
                             <DeckCardImage
                               card={card}
                               linkToDetail
-                              detailState={deckEditorDetailState(
-                                initialDeck.id,
-                                pickerState,
-                              )}
+                              buildDetailState={captureDetailState}
                             />
                             <DeckQuantityControl
                               cardName={displayName}
@@ -607,10 +690,7 @@ function DeckEditor({
                           <DeckCardImage
                             card={card}
                             linkToDetail
-                            detailState={deckEditorDetailState(
-                              initialDeck.id,
-                              pickerState,
-                            )}
+                            buildDetailState={captureDetailState}
                           />
                           <div className="deck-entry__information">
                             <h4>{displayName}</h4>
@@ -758,7 +838,7 @@ function DeckEditor({
           )}
           {pickerResults.items.length > 0 && (
             <>
-              <ul className="deck-search-results">
+              <ul className="deck-search-results" ref={searchResultsRef}>
                 {pickerResults.items.map((card) => {
                   const quantity =
                     deck.entries.find(
@@ -766,14 +846,11 @@ function DeckEditor({
                     )?.quantity ?? 0
                   return (
                     <li key={card.cardNumber}>
-                      <Link
+                      <CardDetailLink
                         className="deck-search-result__detail-link"
-                        to={`/cards/${encodeURIComponent(card.cardNumber)}`}
-                        state={deckEditorDetailState(
-                          initialDeck.id,
-                          pickerState,
-                        )}
-                        aria-label={`${card.name}のカード詳細を開く`}
+                        cardNumber={card.cardNumber}
+                        ariaLabel={`${card.name}のカード詳細を開く`}
+                        buildDetailState={captureDetailState}
                       >
                         <DeckCardImage
                           card={card}
@@ -785,7 +862,7 @@ function DeckEditor({
                             {card.cardNumber}・{CARD_TYPE_LABELS[card.cardType]}
                           </p>
                         </div>
-                      </Link>
+                      </CardDetailLink>
                       <DeckQuantityControl
                         cardName={card.name}
                         quantity={quantity}

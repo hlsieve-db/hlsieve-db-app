@@ -272,6 +272,12 @@ describe('Card Detail deck quick add', () => {
       </MemoryRouter>,
     )
 
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+    Object.defineProperty(window, 'scrollY', {
+      configurable: true,
+      value: 1480,
+    })
+
     fireEvent.click(await screen.findByLabelText('Q&Aを含める'))
     const pagination = await screen.findByRole('navigation', {
       name: 'カード追加結果のページ',
@@ -283,12 +289,20 @@ describe('Card Detail deck quick add', () => {
         name: 'テストカード25のカード詳細を開く',
       }),
     )
+    scrollTo.mockClear()
     fireEvent.click(
       await screen.findByRole('link', { name: '作成中デッキへ戻る' }),
     )
 
     expect(await screen.findByText('2 / 2')).toBeVisible()
     expect(screen.getByLabelText('Q&Aを含める')).toBeChecked()
+    // The restored page must already be in place before the offset is applied.
+    await waitFor(() =>
+      expect(scrollTo).toHaveBeenCalledWith({ top: 1480, left: 0 }),
+    )
+    expect(screen.getByText('2 / 2')).toBeVisible()
+
+    scrollTo.mockRestore()
   })
 
   it('renders the selected deck and quantity between the main image and printings', async () => {
@@ -430,5 +444,170 @@ describe('Card Detail deck quick add', () => {
     expect(await screen.findByLabelText('キーワード')).toHaveValue(
       'テストカード',
     )
+  })
+
+  it('restores the Deck Editor scroll position through the explicit return link', async () => {
+    const selectedDeck = deck('deck-1', 2)
+    const deckRepository = repository([selectedDeck], {
+      getDeck: vi.fn(async (id) =>
+        id === selectedDeck.id ? selectedDeck : undefined,
+      ),
+    })
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+    Object.defineProperty(window, 'scrollY', {
+      configurable: true,
+      value: 940,
+    })
+
+    render(
+      <MemoryRouter initialEntries={['/decks/deck-1']}>
+        <Routes>
+          <Route
+            path="/decks/:deckId"
+            element={
+              <DeckEditPage
+                repository={deckRepository}
+                loadCards={async () => cardsData()}
+                loadPrintings={async () => printingsData()}
+              />
+            }
+          />
+          <Route
+            path="/cards/:cardNumber"
+            element={
+              <CardDetailPage
+                loadCards={async () => cardsData()}
+                loadPrintings={async () => printingsData()}
+                repository={deckRepository}
+              />
+            }
+          />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    fireEvent.change(await screen.findByLabelText('カード検索'), {
+      target: { value: 'テスト' },
+    })
+    fireEvent.click(screen.getByLabelText('Q&Aを含める'))
+
+    const results = document.querySelector('.deck-search-results')
+    expect(results).not.toBeNull()
+    ;(results as HTMLElement).scrollTop = 260
+
+    fireEvent.click(
+      await within(results as HTMLElement).findByRole('link', {
+        name: 'テストカードのカード詳細を開く',
+      }),
+    )
+
+    expect(await screen.findByLabelText('追加先デッキ')).toHaveValue('deck-1')
+    // TASK-039: Card Detail still opens at its own top on a PUSH.
+    expect(scrollTo).toHaveBeenCalledWith({ top: 0, left: 0 })
+
+    scrollTo.mockClear()
+    fireEvent.click(screen.getByRole('link', { name: '作成中デッキへ戻る' }))
+
+    expect(
+      await screen.findByRole('heading', { name: 'デッキ1' }),
+    ).toBeVisible()
+    expect(screen.getByLabelText('カード検索')).toHaveValue('テスト')
+    expect(screen.getByLabelText('Q&Aを含める')).toBeChecked()
+
+    await waitFor(() =>
+      expect(scrollTo).toHaveBeenCalledWith({ top: 940, left: 0 }),
+    )
+    await waitFor(() =>
+      expect(
+        (document.querySelector('.deck-search-results') as HTMLElement)
+          .scrollTop,
+      ).toBe(260),
+    )
+
+    scrollTo.mockRestore()
+  })
+
+  it('does not restore a scroll position when Deck Edit is opened directly', async () => {
+    const selectedDeck = deck('deck-1', 2)
+    const deckRepository = repository([selectedDeck], {
+      getDeck: vi.fn(async (id) =>
+        id === selectedDeck.id ? selectedDeck : undefined,
+      ),
+    })
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+
+    render(
+      <MemoryRouter initialEntries={['/decks/deck-1']}>
+        <Routes>
+          <Route
+            path="/decks/:deckId"
+            element={
+              <DeckEditPage
+                repository={deckRepository}
+                loadCards={async () => cardsData()}
+                loadPrintings={async () => printingsData()}
+              />
+            }
+          />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    expect(
+      await screen.findByRole('heading', { name: 'デッキ1' }),
+    ).toBeVisible()
+    await screen.findByLabelText('カード検索')
+    await waitFor(() => expect(scrollTo).not.toHaveBeenCalled())
+
+    scrollTo.mockRestore()
+  })
+
+  it('ignores a stale Deck Editor scroll context on a direct Card Detail visit', async () => {
+    const selectedDeck = deck('deck-1', 2)
+    const deckRepository = repository([selectedDeck], {
+      getDeck: vi.fn(async (id) =>
+        id === selectedDeck.id ? selectedDeck : undefined,
+      ),
+    })
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+
+    render(
+      <MemoryRouter initialEntries={['/cards/TEST-001']}>
+        <Routes>
+          <Route
+            path="/decks/:deckId"
+            element={
+              <DeckEditPage
+                repository={deckRepository}
+                loadCards={async () => cardsData()}
+                loadPrintings={async () => printingsData()}
+              />
+            }
+          />
+          <Route
+            path="/cards/:cardNumber"
+            element={
+              <CardDetailPage
+                loadCards={async () => cardsData()}
+                loadPrintings={async () => printingsData()}
+                repository={deckRepository}
+              />
+            }
+          />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByLabelText('追加先デッキ')).toHaveValue('deck-1')
+    scrollTo.mockClear()
+    fireEvent.click(screen.getByRole('link', { name: '作成中デッキへ戻る' }))
+
+    expect(
+      await screen.findByRole('heading', { name: 'デッキ1' }),
+    ).toBeVisible()
+    await screen.findByLabelText('カード検索')
+    await waitFor(() => expect(scrollTo).not.toHaveBeenCalled())
+
+    scrollTo.mockRestore()
   })
 })
