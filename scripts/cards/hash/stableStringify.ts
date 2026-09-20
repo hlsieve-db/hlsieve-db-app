@@ -16,6 +16,21 @@ function unsupported(path: string, detail: string): never {
   throw new TypeError(`Cannot serialize ${detail} at ${path}`)
 }
 
+/**
+ * Rejects anything that is not a plain object, so Date, Map, Set and class
+ * instances cannot reach a snapshot through JSON.stringify's coercions.
+ */
+function assertPlainObject(value: object, path: string): void {
+  const prototype = Object.getPrototypeOf(value) as object | null
+  if (prototype !== Object.prototype && prototype !== null) {
+    unsupported(path, 'non-plain object')
+  }
+  const symbols = Object.getOwnPropertySymbols(value).filter((symbol) =>
+    Object.prototype.propertyIsEnumerable.call(value, symbol),
+  )
+  if (symbols.length > 0) unsupported(path, 'symbol-keyed property')
+}
+
 function serialize(
   value: unknown,
   path: string,
@@ -51,14 +66,7 @@ function serialize(
         .join(',')}]`
     }
 
-    const prototype = Object.getPrototypeOf(value) as object | null
-    if (prototype !== Object.prototype && prototype !== null) {
-      return unsupported(path, 'non-plain object')
-    }
-    const symbols = Object.getOwnPropertySymbols(value).filter((symbol) =>
-      Object.prototype.propertyIsEnumerable.call(value, symbol),
-    )
-    if (symbols.length > 0) return unsupported(path, 'symbol-keyed property')
+    assertPlainObject(value, path)
 
     const record = value as Record<string, unknown>
     const keys = Object.keys(record)
@@ -77,6 +85,64 @@ function serialize(
 
 export function stableStringify(value: unknown): string {
   return serialize(value, '$', new Set<object>())
+}
+
+function assertSerializable(
+  value: unknown,
+  path: string,
+  ancestors: Set<object>,
+): void {
+  if (
+    value === null ||
+    typeof value === 'boolean' ||
+    typeof value === 'string'
+  ) {
+    return
+  }
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) unsupported(path, `non-finite number ${value}`)
+    return
+  }
+  if (
+    typeof value === 'undefined' ||
+    typeof value === 'bigint' ||
+    typeof value === 'function' ||
+    typeof value === 'symbol'
+  ) {
+    unsupported(path, typeof value)
+  }
+  if (typeof value !== 'object') unsupported(path, typeof value)
+  const container = value as object
+  if (ancestors.has(container)) unsupported(path, 'circular reference')
+
+  ancestors.add(container)
+  try {
+    if (Array.isArray(container)) {
+      container.forEach((entry, index) =>
+        assertSerializable(entry, `${path}[${index}]`, ancestors),
+      )
+      return
+    }
+
+    assertPlainObject(container, path)
+
+    const record = container as Record<string, unknown>
+    for (const key of Object.keys(record)) {
+      if (record[key] === undefined) continue
+      assertSerializable(record[key], `${path}.${key}`, ancestors)
+    }
+  } finally {
+    ancestors.delete(container)
+  }
+}
+
+/**
+ * Applies exactly the rules stableStringify enforces, without building the
+ * serialized string. Callers that only need the safety gate should use this;
+ * the traversal is an order of magnitude cheaper on large snapshots.
+ */
+export function assertJsonSerializable(value: unknown, path = '$'): void {
+  assertSerializable(value, path, new Set<object>())
 }
 
 function convertToJsonValue(

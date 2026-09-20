@@ -1,9 +1,9 @@
-import { stableStringify } from '../hash/stableStringify'
+import { assertJsonSerializable } from '../hash/stableStringify'
 import type { GenerationResult } from './types'
 
 export function serializeDataFile(value: unknown): GenerationResult<string> {
   try {
-    stableStringify(value)
+    assertJsonSerializable(value)
     return {
       ok: true,
       value: `${JSON.stringify(value, null, 2)}\n`,

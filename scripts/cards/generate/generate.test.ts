@@ -708,6 +708,76 @@ describe('serializeDataFile', () => {
       errors: [expect.objectContaining({ code: 'INVALID_JSON_VALUE' })],
     })
   })
+
+  // JSON.stringify silently turns each of these into null, {}, an ISO string
+  // or a dropped key, so the safety gate in serializeDataFile is what keeps a
+  // corrupted snapshot from being written.
+  it.each([
+    ['object function value', { value: () => 1 }],
+    ['array function item', { value: [() => 1] }],
+    ['symbol value', { value: Symbol('x') }],
+    ['symbol-keyed property', Object.assign({ a: 1 }, { [Symbol('k')]: 2 })],
+    ['Date instance', { value: new Date('2026-01-01T00:00:00.000Z') }],
+    ['Map instance', { value: new Map([['k', 1]]) }],
+    ['Set instance', { value: new Set([1]) }],
+    [
+      'class instance',
+      {
+        value: new (class Sample {
+          x = 1
+        })(),
+      },
+    ],
+    ['object with toJSON', { value: { toJSON: () => 'X' } }],
+    ['bigint', { value: 1n }],
+  ])(
+    'rejects value JSON.stringify would silently mangle: %s',
+    (_label, value) => {
+      expect(serializeDataFile(value)).toMatchObject({
+        ok: false,
+        errors: [expect.objectContaining({ code: 'INVALID_JSON_VALUE' })],
+      })
+    },
+  )
+
+  it('rejects a cyclic reference', () => {
+    const cyclic: Record<string, unknown> = { a: 1 }
+    cyclic.self = cyclic
+    expect(serializeDataFile(cyclic)).toMatchObject({
+      ok: false,
+      errors: [expect.objectContaining({ code: 'INVALID_JSON_VALUE' })],
+    })
+  })
+
+  it.each([
+    ['NaN', { a: Number.NaN }, 'Cannot serialize non-finite number NaN at $.a'],
+    [
+      'nested array item',
+      { a: { b: [1, Number.POSITIVE_INFINITY] } },
+      'Cannot serialize non-finite number Infinity at $.a.b[1]',
+    ],
+    [
+      'nested function',
+      { a: [{ b: () => 1 }] },
+      'Cannot serialize function at $.a[0].b',
+    ],
+    [
+      'nested non-plain object',
+      { a: { b: new Date('2026-01-01T00:00:00.000Z') } },
+      'Cannot serialize non-plain object at $.a.b',
+    ],
+  ])('reports the offending path for %s', (_label, value, message) => {
+    expect(serializeDataFile(value)).toEqual({
+      ok: false,
+      errors: [{ code: 'INVALID_JSON_VALUE', message }],
+    })
+  })
+
+  it('accepts values that are plain JSON, including omitted undefined keys', () => {
+    const value = { a: 1, b: undefined, c: [1, null] }
+    const expected = JSON.stringify(value, null, 2) + '\n'
+    expect(expectSuccess(serializeDataFile(value))).toBe(expected)
+  })
 })
 
 describe('FUWAMOCO fixture generation pipeline', () => {

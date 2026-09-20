@@ -22,7 +22,7 @@ import {
   computeCardContentHash,
   computeContentHash,
 } from './computeContentHash'
-import { stableStringify } from './stableStringify'
+import { assertJsonSerializable, stableStringify } from './stableStringify'
 import type { CardContentHashPayload } from './types'
 
 const fixtureRoot = resolve(process.cwd(), 'scripts/cards/fixtures')
@@ -499,5 +499,97 @@ describe('FUWAMOCO full fixture pipeline', () => {
     expect(payload.effectTags).toEqual(['cheer_acceleration'])
     expect(payload.criticalColors).toEqual([])
     expect(payload).not.toHaveProperty('searchText')
+  })
+})
+
+describe('assertJsonSerializable', () => {
+  // The gate and the serializer must accept and reject exactly the same
+  // values, with the same message, or serializeDataFile would start letting
+  // through data that stableStringify (and therefore the hash) rejects.
+  const fixtures: [string, unknown][] = [
+    ['plain nested value', { a: [1, { b: 'x', c: null }], d: true }],
+    ['empty object', {} as unknown],
+    ['empty array', [] as unknown],
+    ['null prototype object', Object.create(null) as unknown],
+    ['omitted undefined key', { a: 1, b: undefined }],
+    ['NaN', { a: Number.NaN }],
+    ['Infinity', { a: Number.POSITIVE_INFINITY }],
+    ['-Infinity', { a: Number.NEGATIVE_INFINITY }],
+    ['undefined in array', { a: [1, undefined] }],
+    ['function in array', { a: [() => 1] }],
+    ['function value', { f: () => 1 }],
+    ['symbol value', { a: Symbol('x') }],
+    ['symbol-keyed property', Object.assign({ a: 1 }, { [Symbol('k')]: 2 })],
+    ['Date instance', { a: new Date('2026-01-01T00:00:00.000Z') }],
+    ['Map instance', { a: new Map([['k', 1]]) }],
+    ['Set instance', { a: new Set([1]) }],
+    [
+      'class instance',
+      {
+        a: new (class Sample {
+          x = 1
+        })(),
+      },
+    ],
+    ['object with toJSON', { a: { toJSON: () => 'X' } }],
+    ['bigint', { a: 1n }],
+    ['deeply nested rejection', { a: { b: [{ c: Number.NaN }] } }],
+    ['top-level undefined', undefined],
+    ['top-level function', () => 1],
+  ]
+
+  function outcome(run: () => unknown): string {
+    try {
+      run()
+      return 'ok'
+    } catch (error) {
+      return error instanceof Error
+        ? `${error.constructor.name}: ${error.message}`
+        : String(error)
+    }
+  }
+
+  it.each(fixtures)(
+    'matches stableStringify accept/reject and message for %s',
+    (_label, value) => {
+      expect(outcome(() => assertJsonSerializable(value))).toBe(
+        outcome(() => stableStringify(value)),
+      )
+    },
+  )
+
+  it('reports the same path as stableStringify for a nested rejection', () => {
+    const value = { a: [{ b: new Date('2026-01-01T00:00:00.000Z') }] }
+    expect(() => assertJsonSerializable(value)).toThrow(
+      'Cannot serialize non-plain object at $.a[0].b',
+    )
+    expect(() => stableStringify(value)).toThrow(
+      'Cannot serialize non-plain object at $.a[0].b',
+    )
+  })
+
+  it('accepts a cyclic-free graph that reuses the same object twice', () => {
+    const shared = { a: 1 }
+    expect(() =>
+      assertJsonSerializable({ left: shared, right: shared }),
+    ).not.toThrow()
+    expect(() => stableStringify({ left: shared, right: shared })).not.toThrow()
+  })
+
+  it('rejects a cyclic reference like stableStringify', () => {
+    const cyclic: Record<string, unknown> = { a: 1 }
+    cyclic.self = cyclic
+    expect(() => assertJsonSerializable(cyclic)).toThrow(
+      'Cannot serialize circular reference at $.self',
+    )
+    expect(() => stableStringify(cyclic)).toThrow(
+      'Cannot serialize circular reference at $.self',
+    )
+  })
+
+  it('honours a custom root path', () => {
+    expect(() =>
+      assertJsonSerializable({ a: Number.NaN }, '$.cards[3]'),
+    ).toThrow('Cannot serialize non-finite number NaN at $.cards[3].a')
   })
 })
