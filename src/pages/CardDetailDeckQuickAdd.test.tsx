@@ -136,6 +136,73 @@ Object.defineProperty(window, 'scrollTo', {
   value: vi.fn(),
 })
 
+let releaseScrollHarness: (() => void) | undefined
+
+afterEach(() => {
+  releaseScrollHarness?.()
+  releaseScrollHarness = undefined
+})
+
+/**
+ * Runs animation frames synchronously so scroll restoration finishes inside
+ * the commit that schedules it. Without this the tests could only wait a
+ * while and hope, which makes "no restoration happened" impossible to assert
+ * and leaves a frame that can fire during a later test.
+ */
+/**
+ * The restore effect only runs once the cards resolve, so asserting before
+ * then would pass no matter what the page does. The result count is rendered
+ * exclusively in the loaded state.
+ */
+async function waitForLoadedCardPicker() {
+  await waitFor(() =>
+    expect(document.querySelector('.deck-picker-result-count')).not.toBeNull(),
+  )
+}
+
+/** Resolves once the results list exists, which needs the cards to load. */
+async function waitForSearchResults(): Promise<HTMLElement> {
+  await waitForLoadedCardPicker()
+  let results: HTMLElement | null = null
+  await waitFor(() => {
+    results = document.querySelector('.deck-search-results')
+    expect(results).not.toBeNull()
+  })
+  return results as unknown as HTMLElement
+}
+
+function installScrollHarness() {
+  const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+  const requestFrame = vi
+    .spyOn(window, 'requestAnimationFrame')
+    .mockImplementation((callback) => {
+      callback(0)
+      return 0
+    })
+  const cancelFrame = vi
+    .spyOn(window, 'cancelAnimationFrame')
+    .mockImplementation(() => {})
+  const scrollYDescriptor = Object.getOwnPropertyDescriptor(window, 'scrollY')
+
+  releaseScrollHarness = () => {
+    scrollTo.mockRestore()
+    requestFrame.mockRestore()
+    cancelFrame.mockRestore()
+    if (scrollYDescriptor) {
+      Object.defineProperty(window, 'scrollY', scrollYDescriptor)
+    }
+  }
+
+  return {
+    scrollTo,
+    setPageScrollY: (value: number) =>
+      Object.defineProperty(window, 'scrollY', {
+        configurable: true,
+        value,
+      }),
+  }
+}
+
 describe('Card Detail deck quick add', () => {
   it('links back to the same selected deck used by Quick Add', async () => {
     localStorage.setItem(SELECTED_DECK_STORAGE_KEY, 'deck-2')
@@ -272,11 +339,8 @@ describe('Card Detail deck quick add', () => {
       </MemoryRouter>,
     )
 
-    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
-    Object.defineProperty(window, 'scrollY', {
-      configurable: true,
-      value: 1480,
-    })
+    const { scrollTo, setPageScrollY } = installScrollHarness()
+    setPageScrollY(1480)
 
     fireEvent.click(await screen.findByLabelText('Q&Aを含める'))
     const pagination = await screen.findByRole('navigation', {
@@ -301,8 +365,6 @@ describe('Card Detail deck quick add', () => {
       expect(scrollTo).toHaveBeenCalledWith({ top: 1480, left: 0 }),
     )
     expect(screen.getByText('2 / 2')).toBeVisible()
-
-    scrollTo.mockRestore()
   })
 
   it('renders the selected deck and quantity between the main image and printings', async () => {
@@ -453,11 +515,8 @@ describe('Card Detail deck quick add', () => {
         id === selectedDeck.id ? selectedDeck : undefined,
       ),
     })
-    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
-    Object.defineProperty(window, 'scrollY', {
-      configurable: true,
-      value: 940,
-    })
+    const { scrollTo, setPageScrollY } = installScrollHarness()
+    setPageScrollY(940)
 
     render(
       <MemoryRouter initialEntries={['/decks/deck-1']}>
@@ -491,12 +550,11 @@ describe('Card Detail deck quick add', () => {
     })
     fireEvent.click(screen.getByLabelText('Q&Aを含める'))
 
-    const results = document.querySelector('.deck-search-results')
-    expect(results).not.toBeNull()
-    ;(results as HTMLElement).scrollTop = 260
+    const results = await waitForSearchResults()
+    results.scrollTop = 260
 
     fireEvent.click(
-      await within(results as HTMLElement).findByRole('link', {
+      await within(results).findByRole('link', {
         name: 'テストカードのカード詳細を開く',
       }),
     )
@@ -523,8 +581,6 @@ describe('Card Detail deck quick add', () => {
           .scrollTop,
       ).toBe(260),
     )
-
-    scrollTo.mockRestore()
   })
 
   it('does not restore a scroll position when Deck Edit is opened directly', async () => {
@@ -534,7 +590,7 @@ describe('Card Detail deck quick add', () => {
         id === selectedDeck.id ? selectedDeck : undefined,
       ),
     })
-    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+    const { scrollTo } = installScrollHarness()
 
     render(
       <MemoryRouter initialEntries={['/decks/deck-1']}>
@@ -556,10 +612,11 @@ describe('Card Detail deck quick add', () => {
     expect(
       await screen.findByRole('heading', { name: 'デッキ1' }),
     ).toBeVisible()
+    // Frames run synchronously, so once the picker has loaded the only moment
+    // restoration could have happened has already passed.
     await screen.findByLabelText('カード検索')
-    await waitFor(() => expect(scrollTo).not.toHaveBeenCalled())
-
-    scrollTo.mockRestore()
+    await waitForLoadedCardPicker()
+    expect(scrollTo).not.toHaveBeenCalled()
   })
 
   it('ignores a stale Deck Editor scroll context on a direct Card Detail visit', async () => {
@@ -569,7 +626,7 @@ describe('Card Detail deck quick add', () => {
         id === selectedDeck.id ? selectedDeck : undefined,
       ),
     })
-    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+    const { scrollTo } = installScrollHarness()
 
     render(
       <MemoryRouter initialEntries={['/cards/TEST-001']}>
@@ -606,8 +663,7 @@ describe('Card Detail deck quick add', () => {
       await screen.findByRole('heading', { name: 'デッキ1' }),
     ).toBeVisible()
     await screen.findByLabelText('カード検索')
-    await waitFor(() => expect(scrollTo).not.toHaveBeenCalled())
-
-    scrollTo.mockRestore()
+    await waitForLoadedCardPicker()
+    expect(scrollTo).not.toHaveBeenCalled()
   })
 })
