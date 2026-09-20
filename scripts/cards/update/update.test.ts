@@ -4,7 +4,7 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { beforeAll, describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it, vi } from 'vitest'
 
 import type {
   Card,
@@ -24,6 +24,12 @@ import { renderUpdateReportMarkdown, writeUpdateReports } from './report'
 import type { UpdateAuditInput, UpdatePreparationHealth } from './types'
 import type { DiscoveryResult } from '../discovery/types'
 import { hasCompletePageCoverage } from './workflow'
+
+// Every case here audits the whole production snapshot, so the work is real
+// rather than accidental: measured in isolation the cases run 1.2s-4.4s each,
+// leaving the 5s default with almost no headroom once the suite runs in
+// parallel. Scoped to this file so the default still applies everywhere else.
+vi.setConfig({ testTimeout: 15_000 })
 
 let baselineCardsText: string
 let baselinePrintingsText: string
