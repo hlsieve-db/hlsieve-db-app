@@ -1,5 +1,4 @@
 import {
-  DB_NAME,
   DB_VERSION,
   STORE_DECKS,
   STORE_FAVORITE_CARDS,
@@ -7,6 +6,11 @@ import {
   STORE_SAVED_SEARCH_PRESETS,
   STORE_TOURNAMENT_REPORTS,
 } from '../domain/decks/constants'
+import {
+  ANONYMOUS_LOCAL_DATA_NAMESPACE,
+  indexedDbNameForNamespace,
+  type LocalDataNamespace,
+} from '../domain/storage/localDataNamespace'
 
 export function upgradeAppDatabaseSchema(database: IDBDatabase): void {
   if (!database.objectStoreNames.contains(STORE_DECKS)) {
@@ -32,9 +36,13 @@ export function upgradeAppDatabaseSchema(database: IDBDatabase): void {
 
 export function openAppDatabase(
   databaseFactory: IDBFactory,
+  namespace: LocalDataNamespace = ANONYMOUS_LOCAL_DATA_NAMESPACE,
 ): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const request = databaseFactory.open(DB_NAME, DB_VERSION)
+    const request = databaseFactory.open(
+      indexedDbNameForNamespace(namespace),
+      DB_VERSION,
+    )
     request.onupgradeneeded = () => upgradeAppDatabaseSchema(request.result)
     request.onsuccess = () => resolve(request.result)
     request.onerror = () =>
@@ -97,6 +105,7 @@ function requestInStore<T>(
 export function createIndexedDbStorePersistence<T>(
   storeName: string,
   databaseFactory?: IDBFactory,
+  namespace: LocalDataNamespace = ANONYMOUS_LOCAL_DATA_NAMESPACE,
 ): IndexedDbStorePersistence<T> & {
   addMany: (values: readonly T[]) => Promise<void>
 } {
@@ -107,7 +116,7 @@ export function createIndexedDbStorePersistence<T>(
       if (!resolvedFactory) {
         return Promise.reject(new Error('IndexedDB is not available.'))
       }
-      databasePromise = openAppDatabase(resolvedFactory)
+      databasePromise = openAppDatabase(resolvedFactory, namespace)
       void databasePromise.catch(() => {
         databasePromise = undefined
       })

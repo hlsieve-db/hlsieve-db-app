@@ -7,6 +7,14 @@ import {
   STORE_SAVED_SEARCH_PRESETS,
   STORE_TOURNAMENT_REPORTS,
 } from '../domain/decks/constants'
+import { DB_NAME } from '../domain/decks/constants'
+import {
+  ANONYMOUS_LOCAL_DATA_NAMESPACE,
+  indexedDbNameForNamespace,
+  userLocalDataNamespace,
+  USER_ID_MAX_LENGTH,
+  type LocalDataNamespace,
+} from '../domain/storage/localDataNamespace'
 import {
   createIndexedDbStorePersistence,
   upgradeAppDatabaseSchema,
@@ -240,5 +248,268 @@ describe('application IndexedDB batch writes', () => {
     expect([...records.values()]).toEqual([existing])
     expect(transactionStores).toEqual([STORE_DECKS])
     expect(transactionStores).not.toContain(STORE_TOURNAMENT_REPORTS)
+  })
+})
+
+type FakeRecord = { id: string; name?: string }
+
+/**
+ * An in-memory IndexedDB stand-in that, unlike the batch fixture above, keeps
+ * a separate record set per database name. That separation is the whole point
+ * of the namespace work, so the fake has to model it.
+ */
+function namespacedFactory(
+  seed: Record<string, Record<string, FakeRecord[]>> = {},
+) {
+  const databases = new Map<string, Map<string, Map<string, FakeRecord>>>()
+  const openedNames: string[] = []
+
+  const recordsFor = (databaseName: string, storeName: string) => {
+    let stores = databases.get(databaseName)
+    if (!stores) {
+      stores = new Map()
+      databases.set(databaseName, stores)
+    }
+    let records = stores.get(storeName)
+    if (!records) {
+      records = new Map()
+      stores.set(storeName, records)
+    }
+    return records
+  }
+
+  for (const [databaseName, stores] of Object.entries(seed)) {
+    for (const [storeName, values] of Object.entries(stores)) {
+      const records = recordsFor(databaseName, storeName)
+      for (const value of values) records.set(value.id, value)
+    }
+  }
+
+  const makeDatabase = (databaseName: string) =>
+    ({
+      objectStoreNames: { contains: () => true },
+      transaction: (storeName: string) => {
+        const records = recordsFor(databaseName, storeName)
+        const requests: { onsuccess: (() => void) | null; result: unknown }[] =
+          []
+        const settle = (result: unknown) => {
+          const request = { onsuccess: null as (() => void) | null, result }
+          requests.push(request)
+          return request as unknown as IDBRequest
+        }
+        const transaction = {
+          error: null,
+          objectStore: () => ({
+            get: (id: string) => settle(records.get(id)),
+            getAll: () => settle([...records.values()]),
+            put: (value: FakeRecord) => {
+              records.set(value.id, value)
+              return settle(undefined)
+            },
+            delete: (id: string) => {
+              records.delete(id)
+              return settle(undefined)
+            },
+          }),
+          oncomplete: null as (() => void) | null,
+          onerror: null as (() => void) | null,
+          onabort: null as (() => void) | null,
+        }
+        queueMicrotask(() => {
+          requests.forEach((request) => request.onsuccess?.())
+          transaction.oncomplete?.()
+        })
+        return transaction
+      },
+    }) as unknown as IDBDatabase
+
+  const factory = {
+    open: (databaseName: string) => {
+      openedNames.push(databaseName)
+      const request = {
+        result: makeDatabase(databaseName),
+        onsuccess: null as (() => void) | null,
+        onerror: null,
+        onblocked: null,
+        onupgradeneeded: null,
+      }
+      queueMicrotask(() => request.onsuccess?.())
+      return request
+    },
+  }
+
+  return {
+    factory: factory as unknown as IDBFactory,
+    openedNames,
+    recordsIn: (databaseName: string, storeName: string) => [
+      ...recordsFor(databaseName, storeName).values(),
+    ],
+  }
+}
+
+function deckPersistence(factory: IDBFactory, namespace?: LocalDataNamespace) {
+  return createIndexedDbStorePersistence<FakeRecord>(
+    STORE_DECKS,
+    factory,
+    namespace,
+  )
+}
+
+describe('local data namespaces', () => {
+  it('keeps the original database name for anonymous visitors', () => {
+    expect(indexedDbNameForNamespace(ANONYMOUS_LOCAL_DATA_NAMESPACE)).toBe(
+      DB_NAME,
+    )
+    expect(DB_NAME).toBe('holocard-db')
+  })
+
+  it('derives a distinct database name per user', () => {
+    const userA = indexedDbNameForNamespace(userLocalDataNamespace('user-a'))
+    const userB = indexedDbNameForNamespace(userLocalDataNamespace('user-b'))
+
+    expect(userA).toBe('holocard-db--user-a')
+    expect(userB).toBe('holocard-db--user-b')
+    expect(userA).not.toBe(userB)
+    expect(userA).not.toBe(DB_NAME)
+  })
+
+  it('accepts a Supabase-style uuid', () => {
+    const userId = '3f6d2a1e-9c84-4b17-8c2a-1d5f7e0b9a33'
+    expect(indexedDbNameForNamespace(userLocalDataNamespace(userId))).toBe(
+      `${DB_NAME}--${userId}`,
+    )
+  })
+
+  it.each([
+    ['empty', ''],
+    ['whitespace only', '   '],
+    ['leading space', ' abc'],
+    ['slash', 'a/b'],
+    ['colon', 'a:b'],
+    ['unicode', 'ユーザー'],
+    ['too long', 'a'.repeat(USER_ID_MAX_LENGTH + 1)],
+  ])(
+    'refuses a user id that would produce a confusing database name: %s',
+    (_label, userId) => {
+      expect(() => userLocalDataNamespace(userId)).toThrow()
+      expect(() =>
+        indexedDbNameForNamespace({ kind: 'user', userId }),
+      ).toThrow()
+    },
+  )
+})
+
+describe('namespaced IndexedDB persistence', () => {
+  it('opens the original database when no namespace is given', async () => {
+    const { factory, openedNames } = namespacedFactory()
+
+    await deckPersistence(factory).getAll()
+
+    expect(openedNames).toEqual([DB_NAME])
+  })
+
+  it('reads decks written before namespaces existed', async () => {
+    const legacyDeck = { id: 'deck-1', name: '既存デッキ' }
+    const { factory } = namespacedFactory({
+      [DB_NAME]: { [STORE_DECKS]: [legacyDeck] },
+    })
+
+    const persistence = deckPersistence(factory)
+
+    expect(await persistence.getAll()).toEqual([legacyDeck])
+    expect(await persistence.get('deck-1')).toEqual(legacyDeck)
+  })
+
+  it('opens a separate database per namespace', async () => {
+    const { factory, openedNames } = namespacedFactory()
+
+    await deckPersistence(factory, ANONYMOUS_LOCAL_DATA_NAMESPACE).getAll()
+    await deckPersistence(factory, userLocalDataNamespace('user-a')).getAll()
+
+    expect(openedNames).toEqual([DB_NAME, 'holocard-db--user-a'])
+  })
+
+  it('never shows one namespace the decks of another', async () => {
+    const { factory } = namespacedFactory()
+    const anonymous = deckPersistence(factory, ANONYMOUS_LOCAL_DATA_NAMESPACE)
+    const userA = deckPersistence(factory, userLocalDataNamespace('user-a'))
+    const userB = deckPersistence(factory, userLocalDataNamespace('user-b'))
+
+    await anonymous.put({ id: 'anon-deck', name: '匿名' })
+    await userA.put({ id: 'a-deck', name: 'A' })
+    await userB.put({ id: 'b-deck', name: 'B' })
+
+    expect(await anonymous.getAll()).toEqual([
+      { id: 'anon-deck', name: '匿名' },
+    ])
+    expect(await userA.getAll()).toEqual([{ id: 'a-deck', name: 'A' }])
+    expect(await userB.getAll()).toEqual([{ id: 'b-deck', name: 'B' }])
+    expect(await userA.get('anon-deck')).toBeUndefined()
+    expect(await userB.get('a-deck')).toBeUndefined()
+    expect(await anonymous.get('b-deck')).toBeUndefined()
+  })
+
+  it('keeps the same deck id independent in each namespace', async () => {
+    const { factory } = namespacedFactory()
+    const anonymous = deckPersistence(factory, ANONYMOUS_LOCAL_DATA_NAMESPACE)
+    const userA = deckPersistence(factory, userLocalDataNamespace('user-a'))
+
+    await anonymous.put({ id: 'shared-id', name: '匿名側' })
+    await userA.put({ id: 'shared-id', name: 'A側' })
+
+    expect(await anonymous.get('shared-id')).toEqual({
+      id: 'shared-id',
+      name: '匿名側',
+    })
+    expect(await userA.get('shared-id')).toEqual({
+      id: 'shared-id',
+      name: 'A側',
+    })
+  })
+
+  it('confines an update to the namespace that made it', async () => {
+    const { factory } = namespacedFactory({
+      [DB_NAME]: { [STORE_DECKS]: [{ id: 'shared-id', name: '匿名側' }] },
+      'holocard-db--user-a': {
+        [STORE_DECKS]: [{ id: 'shared-id', name: 'A側' }],
+      },
+    })
+    const anonymous = deckPersistence(factory, ANONYMOUS_LOCAL_DATA_NAMESPACE)
+    const userA = deckPersistence(factory, userLocalDataNamespace('user-a'))
+
+    await userA.put({ id: 'shared-id', name: 'A側を更新' })
+
+    expect(await anonymous.get('shared-id')).toEqual({
+      id: 'shared-id',
+      name: '匿名側',
+    })
+    expect(await userA.get('shared-id')).toEqual({
+      id: 'shared-id',
+      name: 'A側を更新',
+    })
+  })
+
+  it('confines a delete to the namespace that made it', async () => {
+    const { factory, recordsIn } = namespacedFactory({
+      [DB_NAME]: { [STORE_DECKS]: [{ id: 'shared-id', name: '匿名側' }] },
+      'holocard-db--user-a': {
+        [STORE_DECKS]: [{ id: 'shared-id', name: 'A側' }],
+      },
+      'holocard-db--user-b': {
+        [STORE_DECKS]: [{ id: 'shared-id', name: 'B側' }],
+      },
+    })
+
+    await deckPersistence(factory, userLocalDataNamespace('user-a')).delete(
+      'shared-id',
+    )
+
+    expect(recordsIn('holocard-db--user-a', STORE_DECKS)).toEqual([])
+    expect(recordsIn(DB_NAME, STORE_DECKS)).toEqual([
+      { id: 'shared-id', name: '匿名側' },
+    ])
+    expect(recordsIn('holocard-db--user-b', STORE_DECKS)).toEqual([
+      { id: 'shared-id', name: 'B側' },
+    ])
   })
 })

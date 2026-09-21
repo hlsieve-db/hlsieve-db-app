@@ -10,6 +10,7 @@ import {
   createIndexedDbStorePersistence,
   type IndexedDbStorePersistence,
 } from './appDatabase'
+import type { LocalDataNamespace } from '../domain/storage/localDataNamespace'
 
 export type TournamentReportPersistenceAdapter = Omit<
   IndexedDbStorePersistence<SavedTournamentReport>,
@@ -90,10 +91,12 @@ export function createTournamentReportRepository(
 
 export function createIndexedDbTournamentReportPersistence(
   databaseFactory?: IDBFactory,
+  namespace?: LocalDataNamespace,
 ): TournamentReportPersistenceAdapter {
   return createIndexedDbStorePersistence(
     STORE_TOURNAMENT_REPORTS,
     databaseFactory,
+    namespace,
   )
 }
 

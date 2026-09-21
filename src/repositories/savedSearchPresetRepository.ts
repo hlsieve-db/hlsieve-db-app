@@ -10,6 +10,7 @@ import {
   createIndexedDbStorePersistence,
   type IndexedDbStorePersistence,
 } from './appDatabase'
+import type { LocalDataNamespace } from '../domain/storage/localDataNamespace'
 
 export type SavedSearchPresetPersistenceAdapter = Omit<
   IndexedDbStorePersistence<SavedSearchPreset>,
@@ -83,10 +84,12 @@ export function createSavedSearchPresetRepository(
 
 export function createIndexedDbSavedSearchPresetPersistence(
   databaseFactory?: IDBFactory,
+  namespace?: LocalDataNamespace,
 ): SavedSearchPresetPersistenceAdapter {
   return createIndexedDbStorePersistence(
     STORE_SAVED_SEARCH_PRESETS,
     databaseFactory,
+    namespace,
   )
 }
 

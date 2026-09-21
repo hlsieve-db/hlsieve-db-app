@@ -5,6 +5,7 @@ import {
   createIndexedDbStorePersistence,
   type IndexedDbStorePersistence,
 } from './appDatabase'
+import type { LocalDataNamespace } from '../domain/storage/localDataNamespace'
 
 export type DeckRepository = {
   listDecks: () => Promise<Deck[]>
@@ -59,8 +60,13 @@ export function createDeckRepository(
 
 export function createIndexedDbDeckPersistence(
   databaseFactory?: IDBFactory,
+  namespace?: LocalDataNamespace,
 ): DeckPersistenceAdapter {
-  return createIndexedDbStorePersistence(STORE_DECKS, databaseFactory)
+  return createIndexedDbStorePersistence(
+    STORE_DECKS,
+    databaseFactory,
+    namespace,
+  )
 }
 
 export const deckRepository = createDeckRepository(

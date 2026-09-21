@@ -4,6 +4,7 @@ import {
   createIndexedDbStorePersistence,
   type IndexedDbStorePersistence,
 } from './appDatabase'
+import type { LocalDataNamespace } from '../domain/storage/localDataNamespace'
 
 export type FavoriteCardPersistenceAdapter = Omit<
   IndexedDbStorePersistence<FavoriteCard>,
@@ -69,8 +70,13 @@ export function createFavoriteCardRepository(
 
 export function createIndexedDbFavoriteCardPersistence(
   databaseFactory?: IDBFactory,
+  namespace?: LocalDataNamespace,
 ): FavoriteCardPersistenceAdapter {
-  return createIndexedDbStorePersistence(STORE_FAVORITE_CARDS, databaseFactory)
+  return createIndexedDbStorePersistence(
+    STORE_FAVORITE_CARDS,
+    databaseFactory,
+    namespace,
+  )
 }
 
 export const favoriteCardRepository = createFavoriteCardRepository(

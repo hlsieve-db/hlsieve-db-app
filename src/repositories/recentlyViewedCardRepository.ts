@@ -5,6 +5,7 @@ import {
   type RecentlyViewedCard,
 } from '../domain/recentlyViewed/types'
 import { openAppDatabase } from './appDatabase'
+import type { LocalDataNamespace } from '../domain/storage/localDataNamespace'
 
 export type RecentlyViewedCardPersistenceAdapter = {
   getAll: () => Promise<unknown[]>
@@ -69,6 +70,7 @@ export function createRecentlyViewedCardRepository(
 
 export function createIndexedDbRecentlyViewedCardPersistence(
   databaseFactory?: IDBFactory,
+  namespace?: LocalDataNamespace,
 ): RecentlyViewedCardPersistenceAdapter {
   let databasePromise: Promise<IDBDatabase> | undefined
   const getDatabase = () => {
@@ -76,7 +78,7 @@ export function createIndexedDbRecentlyViewedCardPersistence(
       const factory = databaseFactory ?? globalThis.indexedDB
       if (!factory)
         return Promise.reject(new Error('IndexedDB is not available.'))
-      databasePromise = openAppDatabase(factory)
+      databasePromise = openAppDatabase(factory, namespace)
       void databasePromise.catch(() => {
         databasePromise = undefined
       })
