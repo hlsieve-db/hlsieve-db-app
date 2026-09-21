@@ -25,6 +25,7 @@ export function AccountPage() {
   const {
     state,
     isCloudSyncAvailable,
+    isEmailSignInAvailable,
     signInWithGoogle,
     sendMagicLink,
     signOut,
@@ -138,38 +139,42 @@ export function AccountPage() {
                 : 'Googleでログイン'}
             </button>
 
-            <form
-              className="account-page__magic-link"
-              onSubmit={submitMagicLink}
-            >
-              <label htmlFor="account-email">メールアドレス</label>
-              <input
-                id="account-email"
-                type="email"
-                inputMode="email"
-                lang="ja"
-                autoComplete="email"
-                autoCapitalize="none"
-                value={email}
-                placeholder="you@example.com"
-                onChange={(event) => setEmail(event.currentTarget.value)}
-              />
-              <button
-                className="button button--secondary"
-                type="submit"
-                disabled={pending !== undefined}
+            {isEmailSignInAvailable && (
+              <form
+                className="account-page__magic-link"
+                onSubmit={submitMagicLink}
               >
-                {pending === 'magic-link'
-                  ? '送信しています…'
-                  : 'ログインリンクをメールで送信'}
-              </button>
-            </form>
+                <label htmlFor="account-email">メールアドレス</label>
+                <input
+                  id="account-email"
+                  type="email"
+                  inputMode="email"
+                  lang="ja"
+                  autoComplete="email"
+                  autoCapitalize="none"
+                  value={email}
+                  placeholder="you@example.com"
+                  onChange={(event) => setEmail(event.currentTarget.value)}
+                />
+                <button
+                  className="button button--secondary"
+                  type="submit"
+                  disabled={pending !== undefined}
+                >
+                  {pending === 'magic-link'
+                    ? '送信しています…'
+                    : 'ログインリンクをメールで送信'}
+                </button>
+              </form>
+            )}
 
-            <p aria-live="polite" className="account-page__status">
-              {sentTo
-                ? `${sentTo} にログインリンクを送信しました。メールを確認してください。`
-                : ''}
-            </p>
+            {isEmailSignInAvailable && (
+              <p aria-live="polite" className="account-page__status">
+                {sentTo
+                  ? `${sentTo} にログインリンクを送信しました。メールを確認してください。`
+                  : ''}
+              </p>
+            )}
           </section>
         )}
       </div>

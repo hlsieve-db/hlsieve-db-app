@@ -13,6 +13,8 @@ export type AuthContextValue = AuthActions & {
   state: AuthState
   /** False when Cloud Sync is not configured, so no account UI should act. */
   isCloudSyncAvailable: boolean
+  /** False until a deployment has its own SMTP for the email login link. */
+  isEmailSignInAvailable: boolean
 }
 
 export const AuthContext = createContext<AuthContextValue | undefined>(

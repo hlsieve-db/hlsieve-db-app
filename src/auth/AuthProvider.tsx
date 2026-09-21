@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 
 import { AuthContext, type AuthContextValue } from './authContextValue'
+import { isEmailSignInEnabled } from '../lib/supabaseClient'
 import {
   createSupabaseAuthSource,
   type AuthActionResult,
@@ -62,6 +63,7 @@ export function AuthProvider({ children, authSource }: AuthProviderProps) {
     return {
       state,
       isCloudSyncAvailable: source !== null,
+      isEmailSignInAvailable: source !== null && isEmailSignInEnabled(),
       signInWithGoogle: source ? source.signInWithGoogle : unavailable,
       sendMagicLink: source ? source.sendMagicLink : unavailable,
       signOut: source ? source.signOut : unavailable,

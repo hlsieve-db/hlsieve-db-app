@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AuthProvider } from '../auth/AuthProvider'
 import type { AuthActionResult, AuthSource, AuthUser } from '../auth/authSource'
@@ -39,6 +39,14 @@ function renderAccount(authSource: AuthSource | null) {
   )
 }
 
+// The email link is only offered where a deployment has its own SMTP, so the
+// tests that exercise it opt in the same way a deployment would.
+function enableEmailSignIn() {
+  vi.stubEnv('VITE_SUPABASE_EMAIL_SIGN_IN', 'true')
+}
+
+afterEach(() => vi.unstubAllEnvs())
+
 const signInButton = () =>
   screen.getByRole('button', { name: 'Googleでログイン' })
 const sendButton = () =>
@@ -64,6 +72,8 @@ describe('account page without Cloud Sync configured', () => {
 })
 
 describe('account page while signed out', () => {
+  beforeEach(enableEmailSignIn)
+
   it('does not claim that decks will be synced', async () => {
     const auth = fakeAuthSource(undefined)
     renderAccount(auth.source)
@@ -291,5 +301,47 @@ describe('account page while signed in', () => {
       'うまくいきませんでした',
     )
     expect(screen.getByRole('heading', { name: 'ログイン中' })).toBeVisible()
+  })
+})
+
+describe('email sign-in before a deployment has its own SMTP', () => {
+  // Supabase's built-in mail only reaches project members and is heavily rate
+  // limited, so offering the field would be offering something that does not
+  // work. Google stays available on its own.
+  it('hides the email form until it is switched on', async () => {
+    const auth = fakeAuthSource(undefined)
+    renderAccount(auth.source)
+
+    await screen.findByRole('heading', { name: 'ログイン' })
+    expect(
+      screen.getByRole('button', { name: 'Googleでログイン' }),
+    ).toBeVisible()
+    expect(screen.queryByLabelText('メールアドレス')).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'ログインリンクをメールで送信' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('shows it once the deployment switches it on', async () => {
+    enableEmailSignIn()
+    const auth = fakeAuthSource(undefined)
+    renderAccount(auth.source)
+
+    await screen.findByRole('heading', { name: 'ログイン' })
+    expect(screen.getByLabelText('メールアドレス')).toBeVisible()
+  })
+
+  it.each([
+    ['unset', undefined],
+    ['false', 'false'],
+    ['empty', ''],
+    ['not the literal true', '1'],
+  ])('stays hidden when the flag is %s', async (_label, value) => {
+    if (value !== undefined) vi.stubEnv('VITE_SUPABASE_EMAIL_SIGN_IN', value)
+    const auth = fakeAuthSource(undefined)
+    renderAccount(auth.source)
+
+    await screen.findByRole('heading', { name: 'ログイン' })
+    expect(screen.queryByLabelText('メールアドレス')).not.toBeInTheDocument()
   })
 })

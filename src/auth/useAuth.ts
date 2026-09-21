@@ -11,6 +11,7 @@ const unavailable = async () => ({ ok: false, reason: 'unavailable' }) as const
 const LOCAL_ONLY: AuthContextValue = {
   state: { status: 'anonymous' },
   isCloudSyncAvailable: false,
+  isEmailSignInAvailable: false,
   signInWithGoogle: unavailable,
   sendMagicLink: unavailable,
   signOut: unavailable,

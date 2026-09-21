@@ -31,3 +31,12 @@ export function isCloudSyncConfigured(): boolean {
 export function resetSupabaseClientForTests(): void {
   client = undefined
 }
+
+/**
+ * Whether the email login link may be offered. Supabase's built-in mail is
+ * rate limited and only delivers to project members, so the field stays
+ * hidden until a deployment has its own SMTP configured and sets this.
+ */
+export function isEmailSignInEnabled(): boolean {
+  return import.meta.env.VITE_SUPABASE_EMAIL_SIGN_IN?.trim() === 'true'
+}
