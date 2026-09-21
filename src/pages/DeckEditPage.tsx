@@ -7,6 +7,7 @@ import {
   type FormEvent,
   type ReactNode,
 } from 'react'
+import { useAppRepositories } from '../repositories/useAppRepositories'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
@@ -59,10 +60,7 @@ import {
 import { buildDeckShareUrl } from '../domain/share/deckShareCodec'
 import { useDeckSaveQueue } from '../hooks/useDeckSaveQueue'
 import { useDocumentMetadata } from '../hooks/useDocumentMetadata'
-import {
-  deckRepository,
-  type DeckRepository,
-} from '../repositories/deckRepository'
+import { type DeckRepository } from '../repositories/deckRepository'
 import { loadCardPrintingsData } from '../repositories/loadCardPrintingsData'
 import { loadCardsData } from '../repositories/loadCardsData'
 
@@ -925,10 +923,13 @@ function DeckEditor({
 }
 
 export function DeckEditPage({
-  repository = deckRepository,
+  repository: repositoryProp,
   loadCards = loadCardsData,
   loadPrintings = loadCardPrintingsData,
 }: DeckEditPageProps) {
+  const repositories = useAppRepositories()
+  const repository = repositoryProp ?? repositories.decks
+  const { namespace } = repositories
   const { deckId } = useParams<'deckId'>()
   const [state, setState] = useState<DeckLoadState>({ status: 'loading' })
   const [loadAttempt, setLoadAttempt] = useState(0)
@@ -939,7 +940,7 @@ export function DeckEditPage({
     void repository.getDeck(deckId).then(
       (deck) => {
         if (!active) return
-        if (deck) writeSelectedDeckId(deck.id)
+        if (deck) writeSelectedDeckId(deck.id, window.localStorage, namespace)
         setState(deck ? { status: 'loaded', deck } : { status: 'not-found' })
       },
       () => {
@@ -949,7 +950,7 @@ export function DeckEditPage({
     return () => {
       active = false
     }
-  }, [deckId, loadAttempt, repository])
+  }, [deckId, loadAttempt, namespace, repository])
 
   const retryLoad = () => {
     setState({ status: 'loading' })

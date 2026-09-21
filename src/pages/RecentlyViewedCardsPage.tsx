@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useAppRepositories } from '../repositories/useAppRepositories'
 import { Link } from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
@@ -9,10 +10,7 @@ import type { RecentlyViewedCard } from '../domain/recentlyViewed/types'
 import { RECENTLY_VIEWED_METADATA } from '../domain/site/metadata'
 import { useDocumentMetadata } from '../hooks/useDocumentMetadata'
 import { loadCardsData } from '../repositories/loadCardsData'
-import {
-  recentlyViewedCardRepository,
-  type RecentlyViewedCardRepository,
-} from '../repositories/recentlyViewedCardRepository'
+import { type RecentlyViewedCardRepository } from '../repositories/recentlyViewedCardRepository'
 import { formatViewedAt } from '../utils/formatViewedAt'
 
 type PageState =
@@ -25,12 +23,14 @@ type PageState =
   | { status: 'error' }
 
 export function RecentlyViewedCardsPage({
-  repository = recentlyViewedCardRepository,
+  repository: repositoryProp,
   loadCards = loadCardsData,
 }: {
   repository?: RecentlyViewedCardRepository
   loadCards?: () => Promise<CardsDataFile>
 }) {
+  const repositories = useAppRepositories()
+  const repository = repositoryProp ?? repositories.recentlyViewedCards
   const [state, setState] = useState<PageState>({ status: 'loading' })
   const [loadAttempt, setLoadAttempt] = useState(0)
   const [mutationError, setMutationError] = useState('')

@@ -9,33 +9,45 @@ vi.mock('./repositories/loadCardsData', () => ({
   loadCardsData: vi.fn(() => new Promise(() => undefined)),
 }))
 
-vi.mock('./repositories/deckRepository', () => ({
-  deckRepository: {
-    listDecks: vi.fn(async () => []),
-    getDeck: vi.fn(async () => undefined),
-    saveDeck: vi.fn(async () => undefined),
-    deleteDeck: vi.fn(async () => undefined),
-  },
-}))
-
-vi.mock('./repositories/tournamentReportRepository', () => ({
-  tournamentReportRepository: {
-    listReports: vi.fn(async () => []),
-    getReport: vi.fn(async () => undefined),
-    createReport: vi.fn(),
-    updateReport: vi.fn(),
-    deleteReport: vi.fn(),
-    importReports: vi.fn(),
-  },
-}))
-
-vi.mock('./repositories/favoriteCardRepository', () => ({
-  favoriteCardRepository: {
-    listFavorites: vi.fn(async () => []),
-    getFavorite: vi.fn(async () => undefined),
-    addFavorite: vi.fn(),
-    removeFavorite: vi.fn(),
-  },
+// The app now builds every local store from one factory, so stubbing that is
+// enough to keep these route tests away from IndexedDB.
+vi.mock('./repositories/appRepositories', () => ({
+  createAppRepositories: () => ({
+    namespace: { kind: 'anonymous' },
+    decks: {
+      listDecks: vi.fn(async () => []),
+      getDeck: vi.fn(async () => undefined),
+      saveDeck: vi.fn(async () => undefined),
+      deleteDeck: vi.fn(async () => undefined),
+      importDecks: vi.fn(async () => undefined),
+    },
+    favoriteCards: {
+      listFavorites: vi.fn(async () => []),
+      getFavorite: vi.fn(async () => undefined),
+      addFavorite: vi.fn(),
+      removeFavorite: vi.fn(),
+    },
+    savedSearchPresets: {
+      listPresets: vi.fn(async () => []),
+      getPreset: vi.fn(async () => undefined),
+      createPreset: vi.fn(),
+      removePreset: vi.fn(),
+    },
+    tournamentReports: {
+      listReports: vi.fn(async () => []),
+      getReport: vi.fn(async () => undefined),
+      createReport: vi.fn(),
+      updateReport: vi.fn(),
+      deleteReport: vi.fn(),
+      importReports: vi.fn(),
+    },
+    recentlyViewedCards: {
+      list: vi.fn(async () => []),
+      recordView: vi.fn(),
+      remove: vi.fn(),
+      clear: vi.fn(),
+    },
+  }),
 }))
 
 describe('App', () => {

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useAppRepositories } from '../repositories/useAppRepositories'
 import { Link } from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
@@ -16,10 +17,7 @@ import type { Deck } from '../domain/decks/types'
 import { DECK_COMPARISON_METADATA } from '../domain/site/metadata'
 import { formatOshiLabel } from '../domain/tournamentReport/oshi'
 import { useDocumentMetadata } from '../hooks/useDocumentMetadata'
-import {
-  deckRepository,
-  type DeckRepository,
-} from '../repositories/deckRepository'
+import { type DeckRepository } from '../repositories/deckRepository'
 import { loadCardsData } from '../repositories/loadCardsData'
 
 type LoadState =
@@ -309,9 +307,11 @@ function ComparisonResult({
 }
 
 export function DeckComparePage({
-  repository = deckRepository,
+  repository: repositoryProp,
   loadCards = loadCardsData,
 }: DeckComparePageProps) {
+  const repositories = useAppRepositories()
+  const repository = repositoryProp ?? repositories.decks
   useDocumentMetadata(DECK_COMPARISON_METADATA)
   const [state, setState] = useState<LoadState>({ status: 'loading' })
   const [beforeId, setBeforeId] = useState('')

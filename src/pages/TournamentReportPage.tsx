@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useAppRepositories } from '../repositories/useAppRepositories'
 import { Link, useSearchParams } from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
@@ -51,10 +52,7 @@ import type {
 } from '../domain/tournamentReport/types'
 import { useDocumentMetadata } from '../hooks/useDocumentMetadata'
 import { loadCardsData } from '../repositories/loadCardsData'
-import {
-  tournamentReportRepository,
-  type TournamentReportRepository,
-} from '../repositories/tournamentReportRepository'
+import { type TournamentReportRepository } from '../repositories/tournamentReportRepository'
 
 type CardDataState =
   | { status: 'loading' }
@@ -216,8 +214,10 @@ export function TournamentReportPage({
   downloadFile = downloadImageFile,
   shareNavigator,
   createShareFile,
-  repository = tournamentReportRepository,
+  repository: repositoryProp,
 }: TournamentReportPageProps) {
+  const repositories = useAppRepositories()
+  const repository = repositoryProp ?? repositories.tournamentReports
   useDocumentMetadata(TOURNAMENT_REPORT_METADATA)
   const [searchParams, setSearchParams] = useSearchParams()
   const requestedReportId = searchParams.get('id')?.trim() || undefined

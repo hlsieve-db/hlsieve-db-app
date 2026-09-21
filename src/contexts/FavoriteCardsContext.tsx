@@ -5,12 +5,10 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { useAppRepositories } from '../repositories/useAppRepositories'
 
 import type { FavoriteCard } from '../domain/favorites/types'
-import {
-  favoriteCardRepository,
-  type FavoriteCardRepository,
-} from '../repositories/favoriteCardRepository'
+import { type FavoriteCardRepository } from '../repositories/favoriteCardRepository'
 import {
   FavoriteCardsContext,
   type FavoriteCardsStatus,
@@ -18,11 +16,13 @@ import {
 
 export function FavoriteCardsProvider({
   children,
-  repository = favoriteCardRepository,
+  repository: repositoryProp,
 }: {
   children: ReactNode
   repository?: FavoriteCardRepository
 }) {
+  const repositories = useAppRepositories()
+  const repository = repositoryProp ?? repositories.favoriteCards
   const [status, setStatus] = useState<FavoriteCardsStatus>('loading')
   const [favorites, setFavorites] = useState<FavoriteCard[]>([])
   const [pendingCardNumbers, setPendingCardNumbers] = useState<Set<string>>(

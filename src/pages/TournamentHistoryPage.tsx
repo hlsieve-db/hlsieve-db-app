@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useAppRepositories } from '../repositories/useAppRepositories'
 import { Link } from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
@@ -26,10 +27,7 @@ import {
 } from '../domain/tournamentReport/oshi'
 import { useDocumentMetadata } from '../hooks/useDocumentMetadata'
 import { loadCardsData } from '../repositories/loadCardsData'
-import {
-  tournamentReportRepository,
-  type TournamentReportRepository,
-} from '../repositories/tournamentReportRepository'
+import { type TournamentReportRepository } from '../repositories/tournamentReportRepository'
 
 type HistoryState =
   | { status: 'loading' }
@@ -66,12 +64,14 @@ function formatEventDate(value: string): string {
 }
 
 export function TournamentHistoryPage({
-  repository = tournamentReportRepository,
+  repository: repositoryProp,
   loadCards = loadCardsData,
   now = () => new Date(),
   createImportId = () => crypto.randomUUID(),
   downloadFile = downloadJsonFile,
 }: TournamentHistoryPageProps) {
+  const repositories = useAppRepositories()
+  const repository = repositoryProp ?? repositories.tournamentReports
   useDocumentMetadata(TOURNAMENT_HISTORY_METADATA)
   const [state, setState] = useState<HistoryState>({ status: 'loading' })
   const [oshiCards, setOshiCards] = useState<Card[]>([])

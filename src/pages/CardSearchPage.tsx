@@ -7,6 +7,7 @@ import {
   type ChangeEvent,
   type CompositionEvent,
 } from 'react'
+import { useAppRepositories } from '../repositories/useAppRepositories'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
@@ -29,20 +30,14 @@ import {
   type SearchUrlState,
 } from '../domain/search/searchUrlState'
 import { loadCardsData } from '../repositories/loadCardsData'
-import {
-  deckRepository,
-  type DeckRepository,
-} from '../repositories/deckRepository'
+import { type DeckRepository } from '../repositories/deckRepository'
 import { useSavedDeckQuickEdit } from '../hooks/useSavedDeckQuickEdit'
 import { useDocumentMetadata } from '../hooks/useDocumentMetadata'
 import { DEFAULT_DOCUMENT_TITLE } from '../domain/site/constants'
 import { cardSearchDetailState } from '../domain/navigation/cardDetailReturnState'
 import { CARD_DATA_UPDATE_HISTORY } from '../domain/updates/history'
 import type { CardDataUpdateEntry } from '../domain/updates/types'
-import {
-  savedSearchPresetRepository,
-  type SavedSearchPresetRepository,
-} from '../repositories/savedSearchPresetRepository'
+import { type SavedSearchPresetRepository } from '../repositories/savedSearchPresetRepository'
 
 type CardDataState =
   | { status: 'loading' }
@@ -63,10 +58,14 @@ function searchString(params: URLSearchParams): string {
 
 export function CardSearchPage({
   loadCards = loadCardsData,
-  repository = deckRepository,
+  repository: repositoryProp,
   updateHistory = CARD_DATA_UPDATE_HISTORY,
-  searchPresetRepository = savedSearchPresetRepository,
+  searchPresetRepository: searchPresetRepositoryProp,
 }: CardSearchPageProps) {
+  const repositories = useAppRepositories()
+  const repository = repositoryProp ?? repositories.decks
+  const searchPresetRepository =
+    searchPresetRepositoryProp ?? repositories.savedSearchPresets
   const location = useLocation()
   const navigate = useNavigate()
   const urlState = useMemo(

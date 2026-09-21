@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useAppRepositories } from '../repositories/useAppRepositories'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
@@ -20,10 +21,7 @@ import type {
   DeckShareDecodeErrorCode,
   SharedDeckPayloadV1,
 } from '../domain/share/types'
-import {
-  deckRepository,
-  type DeckRepository,
-} from '../repositories/deckRepository'
+import { type DeckRepository } from '../repositories/deckRepository'
 import { loadCardsData } from '../repositories/loadCardsData'
 import { useDocumentMetadata } from '../hooks/useDocumentMetadata'
 
@@ -72,10 +70,12 @@ function SharedDeckCardImage({ card }: { card?: Card }) {
 }
 
 export function SharedDeckPage({
-  repository = deckRepository,
+  repository: repositoryProp,
   loadCards = loadCardsData,
   createLocalDeck = createDeckFromSharedPayload,
 }: SharedDeckPageProps) {
+  const repositories = useAppRepositories()
+  const repository = repositoryProp ?? repositories.decks
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const encoded = searchParams.get('d')

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useAppRepositories } from '../repositories/useAppRepositories'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
@@ -15,10 +16,7 @@ import {
   type DeckImportPlan,
 } from '../domain/decks/backup'
 import type { Deck } from '../domain/decks/types'
-import {
-  deckRepository,
-  type DeckBackupRepository,
-} from '../repositories/deckRepository'
+import { type DeckBackupRepository } from '../repositories/deckRepository'
 import { useDocumentMetadata } from '../hooks/useDocumentMetadata'
 
 type DeckListState =
@@ -52,12 +50,14 @@ function downloadJsonFile(filename: string, contents: string): void {
 }
 
 export function SavedDecksPage({
-  repository = deckRepository,
+  repository: repositoryProp,
   createNewDeck = createDeck,
   now = () => new Date(),
   createImportId = () => crypto.randomUUID(),
   downloadFile = downloadJsonFile,
 }: SavedDecksPageProps) {
+  const repositories = useAppRepositories()
+  const repository = repositoryProp ?? repositories.decks
   const navigate = useNavigate()
   const [state, setState] = useState<DeckListState>({ status: 'loading' })
   const [loadAttempt, setLoadAttempt] = useState(0)

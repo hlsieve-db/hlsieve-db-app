@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useAppRepositories } from '../repositories/useAppRepositories'
 import { Link } from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
@@ -24,10 +25,7 @@ import {
 } from '../domain/tournamentReport/oshi'
 import { useDocumentMetadata } from '../hooks/useDocumentMetadata'
 import { loadCardsData } from '../repositories/loadCardsData'
-import {
-  tournamentReportRepository,
-  type TournamentReportRepository,
-} from '../repositories/tournamentReportRepository'
+import { type TournamentReportRepository } from '../repositories/tournamentReportRepository'
 
 type LoadState =
   | { status: 'loading' }
@@ -58,10 +56,12 @@ function StatBlock({ label, stats }: { label: string; stats: MatchStats }) {
 }
 
 export function TournamentStatsPage({
-  repository = tournamentReportRepository,
+  repository: repositoryProp,
   loadCards = loadCardsData,
   today = localTodayDateOnly,
 }: TournamentStatsPageProps) {
+  const repositories = useAppRepositories()
+  const repository = repositoryProp ?? repositories.tournamentReports
   useDocumentMetadata(TOURNAMENT_STATS_METADATA)
   const [state, setState] = useState<LoadState>({ status: 'loading' })
   const [oshiCards, setOshiCards] = useState<Card[]>([])

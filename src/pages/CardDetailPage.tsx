@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useAppRepositories } from '../repositories/useAppRepositories'
 import {
   Link,
   useLocation,
@@ -34,10 +35,7 @@ import type {
 } from '../domain/cards/types'
 import { loadCardPrintingsData } from '../repositories/loadCardPrintingsData'
 import { loadCardsData } from '../repositories/loadCardsData'
-import {
-  deckRepository,
-  type DeckRepository,
-} from '../repositories/deckRepository'
+import { type DeckRepository } from '../repositories/deckRepository'
 import { useSavedDeckQuickEdit } from '../hooks/useSavedDeckQuickEdit'
 import { useDocumentMetadata } from '../hooks/useDocumentMetadata'
 import { buildCardDetailMetadata } from '../domain/site/metadata'
@@ -46,10 +44,7 @@ import {
   readCardDetailReturnState,
   type CardDetailReturnState,
 } from '../domain/navigation/cardDetailReturnState'
-import {
-  recentlyViewedCardRepository,
-  type RecentlyViewedCardRepository,
-} from '../repositories/recentlyViewedCardRepository'
+import { type RecentlyViewedCardRepository } from '../repositories/recentlyViewedCardRepository'
 
 type CardDataState =
   | { status: 'loading' }
@@ -646,9 +641,13 @@ function LoadedCardDetail({
 export function CardDetailPage({
   loadCards = loadCardsData,
   loadPrintings = loadCardPrintingsData,
-  repository = deckRepository,
-  recentlyViewedRepository = recentlyViewedCardRepository,
+  repository: repositoryProp,
+  recentlyViewedRepository: recentlyViewedRepositoryProp,
 }: CardDetailPageProps) {
+  const repositories = useAppRepositories()
+  const repository = repositoryProp ?? repositories.decks
+  const recentlyViewedRepository =
+    recentlyViewedRepositoryProp ?? repositories.recentlyViewedCards
   const { cardNumber } = useParams<'cardNumber'>()
   const location = useLocation()
   const navigationType = useNavigationType()

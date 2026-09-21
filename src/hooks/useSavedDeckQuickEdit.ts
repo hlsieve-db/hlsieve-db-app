@@ -12,12 +12,16 @@ import {
 } from '../domain/decks/selectedDeckPreference'
 import type { Deck } from '../domain/decks/types'
 import type { DeckRepository } from '../repositories/deckRepository'
+import { useAppRepositories } from '../repositories/useAppRepositories'
 import { useDeckSaveQueue } from './useDeckSaveQueue'
 
 export type SavedDecksState =
   { status: 'loading' } | { status: 'loaded' } | { status: 'error' }
 
 export function useSavedDeckQuickEdit(repository: DeckRepository) {
+  // The preference is stored per account, so it follows whichever namespace
+  // the active repositories belong to.
+  const { namespace } = useAppRepositories()
   const [state, setState] = useState<SavedDecksState>({ status: 'loading' })
   const [decks, setDecks] = useState<Deck[]>([])
   const [selectedDeckId, setSelectedDeckIdState] = useState<string>()
@@ -33,14 +37,15 @@ export function useSavedDeckQuickEdit(repository: DeckRepository) {
         if (!active) return
         const resolvedId = resolveSelectedDeckId(
           loadedDecks,
-          readSelectedDeckId(),
+          readSelectedDeckId(window.localStorage, namespace),
         )
         decksRef.current = loadedDecks
         selectedDeckIdRef.current = resolvedId
         setDecks(loadedDecks)
         setSelectedDeckIdState(resolvedId)
         setState({ status: 'loaded' })
-        if (resolvedId) writeSelectedDeckId(resolvedId)
+        if (resolvedId)
+          writeSelectedDeckId(resolvedId, window.localStorage, namespace)
       },
       () => {
         if (active) setState({ status: 'error' })
@@ -49,19 +54,22 @@ export function useSavedDeckQuickEdit(repository: DeckRepository) {
     return () => {
       active = false
     }
-  }, [loadAttempt, repository])
+  }, [loadAttempt, namespace, repository])
 
   const selectedDeck = useMemo(
     () => decks.find((deck) => deck.id === selectedDeckId),
     [decks, selectedDeckId],
   )
 
-  const selectDeck = useCallback((deckId: string) => {
-    if (!decksRef.current.some((deck) => deck.id === deckId)) return
-    selectedDeckIdRef.current = deckId
-    setSelectedDeckIdState(deckId)
-    writeSelectedDeckId(deckId)
-  }, [])
+  const selectDeck = useCallback(
+    (deckId: string) => {
+      if (!decksRef.current.some((deck) => deck.id === deckId)) return
+      selectedDeckIdRef.current = deckId
+      setSelectedDeckIdState(deckId)
+      writeSelectedDeckId(deckId, window.localStorage, namespace)
+    },
+    [namespace],
+  )
 
   const changeQuantity = useCallback(
     (cardNumber: string, delta: 1 | -1) => {
