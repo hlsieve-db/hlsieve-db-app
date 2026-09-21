@@ -20,8 +20,20 @@ create function auth.uid() returns uuid language sql stable as $$
   select nullif(current_setting('hlsieve.uid', true), '')::uuid;
 $$;
 
-create role authenticated;
-create role anon;
+-- Roles belong to the cluster rather than the database, so they may already be
+-- there from an earlier run. Creating them unconditionally would report an
+-- error that is not one of the failures this script is looking for.
+do $$
+begin
+  if not exists (select from pg_roles where rolname = 'authenticated') then
+    create role authenticated;
+  end if;
+  if not exists (select from pg_roles where rolname = 'anon') then
+    create role anon;
+  end if;
+end
+$$;
+
 grant usage on schema public, auth to authenticated, anon;
 grant execute on function auth.uid() to authenticated, anon;
 
