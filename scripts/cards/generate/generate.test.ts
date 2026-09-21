@@ -686,6 +686,18 @@ describe('generation report', () => {
   })
 })
 
+/** Builds an array with real holes without using a banned sparse literal. */
+function sparseArray(
+  length: number,
+  entries: Record<number, unknown> = {},
+): unknown[] {
+  const values = new Array<unknown>(length)
+  for (const [index, value] of Object.entries(entries)) {
+    values[Number(index)] = value
+  }
+  return values
+}
+
 describe('serializeDataFile', () => {
   it('round-trips JSON, retains Japanese, and adds one trailing newline', () => {
     const data = expectSuccess(
@@ -739,6 +751,52 @@ describe('serializeDataFile', () => {
       })
     },
   )
+
+  it.each([
+    ['hole between values', { value: sparseArray(3, { 0: 1, 2: 3 }) }],
+    ['unassigned array', { value: sparseArray(3) }],
+    ['nested hole', { value: [sparseArray(3, { 0: 1, 2: 2 })] }],
+    ['trailing hole', { value: sparseArray(2, { 0: 1 }) }],
+  ])('refuses to serialize a snapshot containing a %s', (_label, value) => {
+    expect(serializeDataFile(value)).toMatchObject({
+      ok: false,
+      errors: [expect.objectContaining({ code: 'INVALID_JSON_VALUE' })],
+    })
+  })
+
+  it('stops a sparse array before it can produce a snapshot whose dataVersion will not match', () => {
+    // The hash covers the stableStringify form while the file would be
+    // written from JSON.stringify, which turns the hole into null. Letting
+    // this through publishes a snapshot that fails its own revalidation.
+    const payload = {
+      format: 'x',
+      formatVersion: 1,
+      cards: [{ tags: sparseArray(3, { 0: 'a', 2: 'c' }) }],
+    }
+    expect(serializeDataFile(payload)).toEqual({
+      ok: false,
+      errors: [
+        {
+          code: 'INVALID_JSON_VALUE',
+          message: 'Cannot serialize sparse array hole at $.cards[0].tags[1]',
+        },
+      ],
+    })
+  })
+
+  it('reports the offending index for a deleted array element', () => {
+    const values = [1, 2, 3]
+    delete values[1]
+    expect(serializeDataFile({ value: values })).toEqual({
+      ok: false,
+      errors: [
+        {
+          code: 'INVALID_JSON_VALUE',
+          message: 'Cannot serialize sparse array hole at $.value[1]',
+        },
+      ],
+    })
+  })
 
   it('rejects a cyclic reference', () => {
     const cyclic: Record<string, unknown> = { a: 1 }

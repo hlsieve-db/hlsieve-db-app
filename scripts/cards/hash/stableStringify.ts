@@ -61,9 +61,15 @@ function serialize(
   ancestors.add(value)
   try {
     if (Array.isArray(value)) {
-      return `[${value
-        .map((entry, index) => serialize(entry, `${path}[${index}]`, ancestors))
-        .join(',')}]`
+      const parts: string[] = []
+      for (let index = 0; index < value.length; index += 1) {
+        const itemPath = `${path}[${index}]`
+        // map() skips holes, so a hole used to serialize to nothing between
+        // the commas and produced a string JSON.parse cannot read.
+        if (!(index in value)) unsupported(itemPath, 'sparse array hole')
+        parts.push(serialize(value[index], itemPath, ancestors))
+      }
+      return `[${parts.join(',')}]`
     }
 
     assertPlainObject(value, path)
@@ -118,9 +124,11 @@ function assertSerializable(
   ancestors.add(container)
   try {
     if (Array.isArray(container)) {
-      container.forEach((entry, index) =>
-        assertSerializable(entry, `${path}[${index}]`, ancestors),
-      )
+      for (let index = 0; index < container.length; index += 1) {
+        const itemPath = `${path}[${index}]`
+        if (!(index in container)) unsupported(itemPath, 'sparse array hole')
+        assertSerializable(container[index], itemPath, ancestors)
+      }
       return
     }
 

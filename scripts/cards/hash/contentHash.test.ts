@@ -502,12 +502,39 @@ describe('FUWAMOCO full fixture pipeline', () => {
   })
 })
 
+/**
+ * Builds an array with real holes. Written this way rather than as a sparse
+ * literal because the lint rule that bans those literals is exactly the
+ * hazard these tests cover.
+ */
+function sparseArray(
+  length: number,
+  entries: Record<number, unknown> = {},
+): unknown[] {
+  const values = new Array<unknown>(length)
+  for (const [index, value] of Object.entries(entries)) {
+    values[Number(index)] = value
+  }
+  return values
+}
+
+function deletedElementArray(): unknown[] {
+  const values = [1, 2, 3]
+  delete values[1]
+  return values
+}
+
 describe('assertJsonSerializable', () => {
   // The gate and the serializer must accept and reject exactly the same
   // values, with the same message, or serializeDataFile would start letting
   // through data that stableStringify (and therefore the hash) rejects.
   const fixtures: [string, unknown][] = [
     ['plain nested value', { a: [1, { b: 'x', c: null }], d: true }],
+    ['sparse array hole', { a: sparseArray(3, { 0: 1, 2: 3 }) }],
+    ['array with no elements assigned', { a: sparseArray(3) }],
+    ['nested sparse array', { a: [sparseArray(3, { 0: 1, 2: 2 })] }],
+    ['trailing sparse hole', { a: sparseArray(2, { 0: 1 }) }],
+    ['array with a deleted element', { a: deletedElementArray() }],
     ['empty object', {} as unknown],
     ['empty array', [] as unknown],
     ['null prototype object', Object.create(null) as unknown],
@@ -591,5 +618,46 @@ describe('assertJsonSerializable', () => {
     expect(() =>
       assertJsonSerializable({ a: Number.NaN }, '$.cards[3]'),
     ).toThrow('Cannot serialize non-finite number NaN at $.cards[3].a')
+  })
+})
+
+describe('sparse array rejection', () => {
+  // A hole is not a value: JSON.stringify turns it into null, while
+  // stableStringify used to emit nothing between the commas, producing a
+  // string that is not valid JSON and does not describe what gets written.
+  it.each([
+    ['hole between values', { a: sparseArray(3, { 0: 1, 2: 3 }) }, '$.a[1]'],
+    ['unassigned array', { a: sparseArray(3) }, '$.a[0]'],
+    ['deleted element', { a: deletedElementArray() }, '$.a[1]'],
+    ['nested hole', { a: [sparseArray(3, { 0: 1, 2: 2 })] }, '$.a[0][1]'],
+    ['trailing hole', { a: sparseArray(2, { 0: 1 }) }, '$.a[1]'],
+  ])('rejects a %s', (_label, value, path) => {
+    const message = `Cannot serialize sparse array hole at ${path}`
+    expect(() => stableStringify(value)).toThrow(message)
+    expect(() => assertJsonSerializable(value)).toThrow(message)
+  })
+
+  it('separates holes from explicit undefined and from null', () => {
+    expect(() =>
+      stableStringify({ a: sparseArray(3, { 0: 1, 2: 3 }) }),
+    ).toThrow('Cannot serialize sparse array hole at $.a[1]')
+    expect(() => stableStringify({ a: [1, undefined, 3] })).toThrow(
+      'Cannot serialize undefined at $.a[1]',
+    )
+    expect(stableStringify({ a: [1, null, 3] })).toBe('{"a":[1,null,3]}')
+  })
+
+  it('never emits a string that JSON.parse would reject', () => {
+    const dense = { a: [1, null, 3], b: [{ c: 'x' }], d: [] }
+    expect(() => JSON.parse(stableStringify(dense))).not.toThrow()
+  })
+
+  it('leaves dense arrays byte-for-byte unchanged', () => {
+    expect(stableStringify({ a: [1, null, 3] })).toBe('{"a":[1,null,3]}')
+    expect(stableStringify({ a: [] })).toBe('{"a":[]}')
+    expect(stableStringify([[1, 2], [3]])).toBe('[[1,2],[3]]')
+    expect(stableStringify({ z: 1, a: { y: 2, b: 3 } })).toBe(
+      '{"a":{"b":3,"y":2},"z":1}',
+    )
   })
 })
