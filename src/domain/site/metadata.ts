@@ -114,6 +114,14 @@ export const RECENTLY_VIEWED_METADATA: PageMetadata = {
   robots: 'noindex,follow',
 }
 
+export const ACCOUNT_METADATA: PageMetadata = {
+  title: 'アカウント | HLSieve DB',
+  description:
+    'HLSieve DBのアカウント設定です。ログインしてもデッキはこれまでどおりこの端末に保存されます。',
+  canonicalPath: '/account',
+  robots: 'noindex,follow',
+}
+
 export const DISCLAIMER_METADATA: PageMetadata = {
   title: '利用条件 | HLSieve DB',
   description:

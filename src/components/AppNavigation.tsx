@@ -2,12 +2,14 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 
 import {
+  ACCOUNT_NAV_ITEM,
   activeNavigationGroup,
   NAV_GROUPS,
   UPDATES_NAV_ITEM,
   type NavigationGroupKey,
 } from '../domain/navigation/navigation'
 import type { ThemePreference } from '../domain/theme/theme'
+import { useAuth } from '../auth/useAuth'
 import { useTheme } from '../hooks/useTheme'
 
 function ThemeControl({
@@ -37,6 +39,9 @@ function ThemeControl({
 
 export function AppNavigation() {
   const { preference, setPreference } = useTheme()
+  // Hidden until a deployment is actually set up for accounts, so nobody is
+  // led to a page that can only tell them the feature is unavailable.
+  const { isCloudSyncAvailable } = useAuth()
   const location = useLocation()
   const locationKey = `${location.pathname}${location.search}`
   const [openGroupState, setOpenGroupState] = useState<{
@@ -166,6 +171,15 @@ export function AppNavigation() {
             >
               {UPDATES_NAV_ITEM.label}
             </NavLink>
+            {isCloudSyncAvailable && (
+              <NavLink
+                className="primary-navigation__updates"
+                to={ACCOUNT_NAV_ITEM.to}
+                onClick={() => setOpenGroupState(undefined)}
+              >
+                {ACCOUNT_NAV_ITEM.label}
+              </NavLink>
+            )}
           </nav>
 
           <ThemeControl preference={preference} setPreference={setPreference} />
@@ -202,7 +216,9 @@ export function AppNavigation() {
               <h2
                 id="mobile-other"
                 className={
-                  location.pathname === UPDATES_NAV_ITEM.to
+                  location.pathname === UPDATES_NAV_ITEM.to ||
+                  (isCloudSyncAvailable &&
+                    location.pathname === ACCOUNT_NAV_ITEM.to)
                     ? 'is-active'
                     : undefined
                 }
@@ -215,6 +231,14 @@ export function AppNavigation() {
               >
                 {UPDATES_NAV_ITEM.label}
               </NavLink>
+              {isCloudSyncAvailable && (
+                <NavLink
+                  to={ACCOUNT_NAV_ITEM.to}
+                  onClick={() => setMobileOpenLocation(undefined)}
+                >
+                  {ACCOUNT_NAV_ITEM.label}
+                </NavLink>
+              )}
             </section>
           </nav>
         )}

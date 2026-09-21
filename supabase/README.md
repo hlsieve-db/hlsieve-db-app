@@ -48,8 +48,9 @@ would still let every check pass.
 
 ## Conventions
 
-- The frontend uses the anon key only. The service role key never reaches the
+- The frontend uses the publishable key only. The secret key never reaches the
   browser, which is a static bundle on Cloudflare Pages and cannot hide one.
+  (The `anon` role the policies mention is a Postgres role, not an API key.)
 - `user_id` defaults to `auth.uid()` and is checked again by the policies, so a
   client cannot claim another account's row by sending its id.
 - A deck is stored as the `Deck` object the app already has. Sync bookkeeping

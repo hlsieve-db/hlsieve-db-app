@@ -92,6 +92,12 @@ export const UPDATES_NAV_ITEM = {
   to: '/updates',
 } as const
 
+export const ACCOUNT_NAV_ITEM = {
+  label: 'アカウント',
+  shortLabel: 'アカウント',
+  to: '/account',
+} as const
+
 export function activeNavigationGroup(
   pathname: string,
 ): NavigationGroupKey | undefined {

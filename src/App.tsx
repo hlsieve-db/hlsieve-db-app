@@ -3,6 +3,7 @@ import { AuthGate } from './auth/AuthGate'
 import { AuthProvider } from './auth/AuthProvider'
 import { namespaceForAuthState, namespaceKey } from './auth/authState'
 import { useAuth } from './auth/useAuth'
+import { AccountPage } from './pages/AccountPage'
 import { AppFooter } from './components/AppFooter'
 import { FavoriteCardsProvider } from './contexts/FavoriteCardsContext'
 import { AppRepositoriesProvider } from './repositories/AppRepositoriesProvider'
@@ -57,6 +58,7 @@ function AppRoutes() {
           <Route path="/tournament-stats" element={<TournamentStatsPage />} />
           <Route path="/disclaimer" element={<DisclaimerPage />} />
           <Route path="/contact" element={<ContactPage />} />
+          <Route path="/account" element={<AccountPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
         <AppFooter />

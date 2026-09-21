@@ -1,14 +1,21 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 import { getSupabaseClient } from '../lib/supabaseClient'
+import { authRedirectUrl } from './authRedirect'
 
 /**
- * The only thing the app needs from an auth provider: who is signed in, and a
- * way to hear about it changing. Keeping it this small lets the tests supply a
- * fake instead of reaching the network, and keeps the Supabase SDK out of the
- * rest of the codebase.
+ * The only things the app needs from an auth provider. Keeping it this small
+ * lets the tests supply a fake instead of reaching the network, and keeps the
+ * Supabase SDK out of the rest of the codebase.
  */
-export type AuthUser = { id: string }
+export type AuthUser = { id: string; email?: string }
+
+/** Enough for the UI to choose a message without reading SDK internals. */
+export type AuthFailureReason =
+  'unavailable' | 'invalid-email' | 'rate-limited' | 'failed'
+
+export type AuthActionResult =
+  { ok: true } | { ok: false; reason: AuthFailureReason }
 
 export type AuthSource = {
   /**
@@ -19,7 +26,31 @@ export type AuthSource = {
   getSessionUser: () => Promise<AuthUser | undefined>
   /** Returns an unsubscribe function. */
   subscribe: (listener: (user: AuthUser | undefined) => void) => () => void
-  signOut: () => Promise<void>
+  signInWithGoogle: () => Promise<AuthActionResult>
+  sendMagicLink: (email: string) => Promise<AuthActionResult>
+  signOut: () => Promise<AuthActionResult>
+}
+
+type SupabaseFailure = { status?: number; message?: string } | null
+
+/**
+ * Sorts a provider error into the handful of cases the UI words differently.
+ * The message itself is never shown, so nothing from the provider leaks into
+ * the page.
+ */
+export function classifyAuthFailure(error: SupabaseFailure): AuthFailureReason {
+  if (error?.status === 429) return 'rate-limited'
+  if (error?.status === 400 && /email/i.test(error.message ?? '')) {
+    return 'invalid-email'
+  }
+  return 'failed'
+}
+
+function userFromSession(
+  session: { user: { id: string; email?: string } } | null | undefined,
+): AuthUser | undefined {
+  if (!session?.user.id) return undefined
+  return { id: session.user.id, email: session.user.email }
 }
 
 /** Null when Cloud Sync is not configured, which means anonymous forever. */
@@ -35,20 +66,40 @@ export function createSupabaseAuthSource(
       // or the project is unavailable. Whether the token is still honoured is
       // decided by the database through RLS when a request is actually made.
       const { data } = await client.auth.getSession()
-      const id = data.session?.user.id
-      return id ? { id } : undefined
+      return userFromSession(data.session)
     },
     subscribe(listener) {
       const { data } = client.auth.onAuthStateChange((_event, session) => {
         // The SDK warns against awaiting other Supabase calls inside this
-        // callback, so it only hands the id to React and returns.
-        const id = session?.user.id
-        listener(id ? { id } : undefined)
+        // callback, so it only hands the user to React and returns.
+        listener(userFromSession(session))
       })
       return () => data.subscription.unsubscribe()
     },
+    async signInWithGoogle() {
+      const { error } = await client.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: authRedirectUrl() },
+      })
+      return error
+        ? { ok: false, reason: classifyAuthFailure(error) }
+        : { ok: true }
+    },
+    async sendMagicLink(email) {
+      const { error } = await client.auth.signInWithOtp({
+        email,
+        // A first-time address is welcome to create an account this way.
+        options: { shouldCreateUser: true, emailRedirectTo: authRedirectUrl() },
+      })
+      return error
+        ? { ok: false, reason: classifyAuthFailure(error) }
+        : { ok: true }
+    },
     async signOut() {
-      await client.auth.signOut()
+      const { error } = await client.auth.signOut()
+      return error
+        ? { ok: false, reason: classifyAuthFailure(error) }
+        : { ok: true }
     },
   }
 }

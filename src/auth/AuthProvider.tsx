@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 
 import { AuthContext, type AuthContextValue } from './authContextValue'
-import { createSupabaseAuthSource, type AuthSource } from './authSource'
+import {
+  createSupabaseAuthSource,
+  type AuthActionResult,
+  type AuthSource,
+} from './authSource'
 import type { AuthState } from './authState'
 
 export type AuthProviderProps = {
@@ -47,16 +51,22 @@ export function AuthProvider({ children, authSource }: AuthProviderProps) {
     }
   }, [source])
 
-  const value = useMemo<AuthContextValue>(
-    () => ({
+  const value = useMemo<AuthContextValue>(() => {
+    // Without a configured project every action is a no-op that says so,
+    // rather than a crash or a silent success.
+    const unavailable = async (): Promise<AuthActionResult> => ({
+      ok: false,
+      reason: 'unavailable',
+    })
+
+    return {
       state,
       isCloudSyncAvailable: source !== null,
-      signOut: async () => {
-        await source?.signOut()
-      },
-    }),
-    [source, state],
-  )
+      signInWithGoogle: source ? source.signInWithGoogle : unavailable,
+      sendMagicLink: source ? source.sendMagicLink : unavailable,
+      signOut: source ? source.signOut : unavailable,
+    }
+  }, [source, state])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

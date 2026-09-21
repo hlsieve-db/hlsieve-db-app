@@ -4,10 +4,12 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
  * Cloud Sync is optional, so the keys may simply be absent. When they are, the
  * app runs exactly as it always has: everything local, no account.
  */
-function readConfig(): { url: string; anonKey: string } | undefined {
+function readConfig(): { url: string; publishableKey: string } | undefined {
   const url = import.meta.env.VITE_SUPABASE_URL?.trim()
-  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim()
-  return url && anonKey ? { url, anonKey } : undefined
+  // The publishable key is meant to ship in the browser. Its counterpart, the
+  // secret key, must never appear here or anywhere else in this bundle.
+  const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim()
+  return url && publishableKey ? { url, publishableKey } : undefined
 }
 
 let client: SupabaseClient | null | undefined
@@ -16,7 +18,7 @@ let client: SupabaseClient | null | undefined
 export function getSupabaseClient(): SupabaseClient | null {
   if (client === undefined) {
     const config = readConfig()
-    client = config ? createClient(config.url, config.anonKey) : null
+    client = config ? createClient(config.url, config.publishableKey) : null
   }
   return client
 }

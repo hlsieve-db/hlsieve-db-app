@@ -44,7 +44,9 @@ function fakeAuthSource(initial?: AuthUser) {
         listeners.delete(listener)
       }
     },
-    signOut: vi.fn(async () => undefined),
+    signInWithGoogle: vi.fn(async () => ({ ok: true }) as const),
+    sendMagicLink: vi.fn(async () => ({ ok: true }) as const),
+    signOut: vi.fn(async () => ({ ok: true }) as const),
   }
 
   return {
@@ -377,7 +379,9 @@ describe('offline restore of a previously signed-in account', () => {
     const broken: AuthSource = {
       getSessionUser: () => Promise.reject(new Error('storage unreadable')),
       subscribe: () => () => undefined,
-      signOut: async () => undefined,
+      signInWithGoogle: async () => ({ ok: true }) as const,
+      sendMagicLink: async () => ({ ok: true }) as const,
+      signOut: async () => ({ ok: true }) as const,
     }
     renderApp(broken)
 
