@@ -113,15 +113,32 @@ begin
     raise exception 'Unsupported deck share payload version.'
       using errcode = 'invalid_parameter_value';
   end if;
+
+  -- Exactly the three keys the share contract defines, no more. Without this
+  -- a caller reaching the function directly could attach anything it liked to
+  -- a snapshot, including the account fields the design says are never stored.
+  if (select pg_catalog.array_agg(key order by key)
+        from pg_catalog.jsonb_object_keys(deck) as key)
+     is distinct from array['entries', 'name', 'v'] then
+    raise exception 'A deck share payload holds keys outside the share format.'
+      using errcode = 'invalid_parameter_value';
+  end if;
+
+  -- The name rules the browser applies: a string, not blank, carrying no
+  -- surrounding whitespace, and within the deck name limit.
+  --
   -- coalesce, because jsonb_typeof of an absent key is SQL NULL rather than
   -- 'null', and a NULL comparison would let a payload with no name through.
   -- It is left unqualified because coalesce is a SQL construct resolved by the
   -- parser, not a function the empty search_path could hide.
   if coalesce(pg_catalog.jsonb_typeof(deck -> 'name'), 'absent') <> 'string'
-     or pg_catalog.length(pg_catalog.btrim(deck ->> 'name')) = 0 then
+     or pg_catalog.length(pg_catalog.btrim(deck ->> 'name')) = 0
+     or deck ->> 'name' <> pg_catalog.btrim(deck ->> 'name')
+     or pg_catalog.length(deck ->> 'name') > 100 then
     raise exception 'A deck share payload needs a name.'
       using errcode = 'invalid_parameter_value';
   end if;
+
   if coalesce(pg_catalog.jsonb_typeof(deck -> 'entries'), 'absent')
        <> 'array' then
     raise exception 'A deck share payload needs an entries array.'
@@ -131,6 +148,60 @@ begin
     raise exception 'A deck share payload holds too many entries.'
       using errcode = 'invalid_parameter_value';
   end if;
+
+  -- Entries must be objects before anything asks for their keys:
+  -- jsonb_object_keys raises on a scalar or an array, which would surface a
+  -- raw Postgres error instead of the rejection below.
+  if exists (
+    select 1
+      from pg_catalog.jsonb_array_elements(deck -> 'entries') as entry
+     where pg_catalog.jsonb_typeof(entry) <> 'object'
+  ) then
+    raise exception 'A deck share payload holds a malformed entry.'
+      using errcode = 'invalid_parameter_value';
+  end if;
+
+  -- Each entry checked the way the browser checks it. quantity deliberately
+  -- has no upper bound beyond the largest exact integer JavaScript can hold,
+  -- because the share codec only asks for a safe integer of at least one and
+  -- inventing a ceiling here would reject payloads the browser accepts.
+  --
+  -- The quantity comparisons sit in a CASE so the cast is only reached once
+  -- the value is known to be a number; a bare OR chain has no guaranteed
+  -- evaluation order and would error on a string instead of rejecting it.
+  if exists (
+    select 1
+      from pg_catalog.jsonb_array_elements(deck -> 'entries') as entry
+     where (select pg_catalog.array_agg(key order by key)
+              from pg_catalog.jsonb_object_keys(entry) as key)
+           is distinct from array['cardNumber', 'quantity']
+        or pg_catalog.jsonb_typeof(entry -> 'cardNumber') <> 'string'
+        or pg_catalog.length(pg_catalog.btrim(entry ->> 'cardNumber')) = 0
+        or entry ->> 'cardNumber' <> pg_catalog.btrim(entry ->> 'cardNumber')
+        or pg_catalog.length(entry ->> 'cardNumber') > 100
+        or case
+             when pg_catalog.jsonb_typeof(entry -> 'quantity') <> 'number'
+               then true
+             else (entry ->> 'quantity')::numeric < 1
+               or (entry ->> 'quantity')::numeric > 9007199254740991
+               or (entry ->> 'quantity')::numeric
+                    <> pg_catalog.trunc((entry ->> 'quantity')::numeric)
+           end
+  ) then
+    raise exception 'A deck share payload holds a malformed entry.'
+      using errcode = 'invalid_parameter_value';
+  end if;
+
+  -- One row per card, as the browser requires.
+  if (select pg_catalog.count(*)
+        from pg_catalog.jsonb_array_elements(deck -> 'entries') as entry)
+     <> (select pg_catalog.count(distinct entry ->> 'cardNumber')
+           from pg_catalog.jsonb_array_elements(deck -> 'entries') as entry)
+  then
+    raise exception 'A deck share payload repeats a card number.'
+      using errcode = 'invalid_parameter_value';
+  end if;
+
   if pg_catalog.length(deck::text) > 12000 then
     raise exception 'A deck share payload is too large.'
       using errcode = 'invalid_parameter_value';

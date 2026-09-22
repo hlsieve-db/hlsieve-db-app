@@ -174,6 +174,115 @@ select public.create_deck_share('{"v":1,"name":"A","entries":"x"}'::jsonb);
 \echo '--- rejects an absent version (expect: error)'
 select public.create_deck_share('{"name":"A","entries":[]}'::jsonb);
 
+-- Top level shape. The browser sends exactly three keys; a caller reaching the
+-- function directly must not be able to attach anything else, least of all the
+-- account fields the snapshot is specified never to hold.
+\echo '--- rejects an extra top level key (expect: error)'
+select public.create_deck_share(
+  '{"v":1,"name":"A","entries":[],"note":"x"}'::jsonb);
+
+\echo '--- rejects smuggled account fields (expect: error, error, error)'
+select public.create_deck_share(
+  '{"v":1,"name":"A","entries":[],"email":"a@example.test"}'::jsonb);
+select public.create_deck_share(
+  '{"v":1,"name":"A","entries":[],"user_id":"11111111-1111-1111-1111-111111111111"}'::jsonb);
+select public.create_deck_share(
+  '{"v":1,"name":"A","entries":[],"userId":"someone"}'::jsonb);
+
+\echo '--- rejects a name with surrounding whitespace (expect: error)'
+select public.create_deck_share('{"v":1,"name":" A ","entries":[]}'::jsonb);
+
+\echo '--- rejects a name past the deck name limit of 100 (expect: error)'
+select public.create_deck_share(jsonb_build_object(
+  'v', 1, 'name', repeat('a', 101), 'entries', '[]'::jsonb));
+
+\echo '--- accepts a name of exactly 100 (expect: t)'
+select public.create_deck_share(jsonb_build_object(
+  'v', 1, 'name', repeat('a', 100), 'entries', '[]'::jsonb))
+  ~ '^[A-Za-z0-9]{8}$' as name_at_limit_ok;
+
+-- Entry shape.
+\echo '--- rejects an entry that is not an object (expect: error, error)'
+select public.create_deck_share('{"v":1,"name":"A","entries":["x"]}'::jsonb);
+select public.create_deck_share('{"v":1,"name":"A","entries":[[]]}'::jsonb);
+
+\echo '--- rejects an extra key on an entry (expect: error)'
+select public.create_deck_share(
+  '{"v":1,"name":"A","entries":[{"cardNumber":"x","quantity":1,"foil":true}]}'::jsonb);
+
+\echo '--- rejects a missing cardNumber (expect: error)'
+select public.create_deck_share(
+  '{"v":1,"name":"A","entries":[{"quantity":1}]}'::jsonb);
+
+\echo '--- rejects a missing quantity (expect: error)'
+select public.create_deck_share(
+  '{"v":1,"name":"A","entries":[{"cardNumber":"x"}]}'::jsonb);
+
+\echo '--- rejects a cardNumber that is not a string (expect: error)'
+select public.create_deck_share(
+  '{"v":1,"name":"A","entries":[{"cardNumber":5,"quantity":1}]}'::jsonb);
+
+\echo '--- rejects a blank or untrimmed cardNumber (expect: error, error, error)'
+select public.create_deck_share(
+  '{"v":1,"name":"A","entries":[{"cardNumber":"","quantity":1}]}'::jsonb);
+select public.create_deck_share(
+  '{"v":1,"name":"A","entries":[{"cardNumber":"   ","quantity":1}]}'::jsonb);
+select public.create_deck_share(
+  '{"v":1,"name":"A","entries":[{"cardNumber":" x ","quantity":1}]}'::jsonb);
+
+\echo '--- rejects a cardNumber past 100 characters (expect: error)'
+select public.create_deck_share(jsonb_build_object(
+  'v', 1, 'name', 'A', 'entries',
+  jsonb_build_array(jsonb_build_object(
+    'cardNumber', repeat('x', 101), 'quantity', 1))));
+
+\echo '--- accepts a cardNumber of exactly 100 (expect: t)'
+select public.create_deck_share(jsonb_build_object(
+  'v', 1, 'name', 'A', 'entries',
+  jsonb_build_array(jsonb_build_object(
+    'cardNumber', repeat('x', 100), 'quantity', 1))))
+  ~ '^[A-Za-z0-9]{8}$' as card_number_at_limit_ok;
+
+-- quantity: a safe integer of at least one. There is no upper bound in the
+-- share codec beyond that, so none is invented here.
+\echo '--- rejects a non-numeric quantity (expect: error, error, error)'
+select public.create_deck_share(
+  '{"v":1,"name":"A","entries":[{"cardNumber":"x","quantity":"1"}]}'::jsonb);
+select public.create_deck_share(
+  '{"v":1,"name":"A","entries":[{"cardNumber":"x","quantity":null}]}'::jsonb);
+select public.create_deck_share(
+  '{"v":1,"name":"A","entries":[{"cardNumber":"x","quantity":true}]}'::jsonb);
+
+\echo '--- rejects a fractional, zero or negative quantity (expect: error x3)'
+select public.create_deck_share(
+  '{"v":1,"name":"A","entries":[{"cardNumber":"x","quantity":1.5}]}'::jsonb);
+select public.create_deck_share(
+  '{"v":1,"name":"A","entries":[{"cardNumber":"x","quantity":0}]}'::jsonb);
+select public.create_deck_share(
+  '{"v":1,"name":"A","entries":[{"cardNumber":"x","quantity":-1}]}'::jsonb);
+
+\echo '--- rejects a quantity past the safe integer range (expect: error)'
+select public.create_deck_share(
+  '{"v":1,"name":"A","entries":[{"cardNumber":"x","quantity":9007199254740992}]}'::jsonb);
+
+\echo '--- accepts the largest safe integer, as the codec does (expect: t)'
+select public.create_deck_share(
+  '{"v":1,"name":"A","entries":[{"cardNumber":"x","quantity":9007199254740991}]}'::jsonb)
+  ~ '^[A-Za-z0-9]{8}$' as max_safe_quantity_ok;
+
+\echo '--- rejects a repeated card number (expect: error)'
+select public.create_deck_share(
+  '{"v":1,"name":"A","entries":[{"cardNumber":"x","quantity":1},{"cardNumber":"x","quantity":2}]}'::jsonb);
+
+\echo '--- one malformed entry rejects the whole payload (expect: error)'
+select public.create_deck_share(
+  '{"v":1,"name":"A","entries":[{"cardNumber":"ok","quantity":1},{"cardNumber":"bad","quantity":0}]}'::jsonb);
+
+\echo '--- accepts a payload the browser would produce (expect: t)'
+select public.create_deck_share(
+  '{"v":1,"name":"わたしのデッキ","entries":[{"cardNumber":"hBP04-042","quantity":4},{"cardNumber":"hSD01-001","quantity":1}]}'::jsonb)
+  ~ '^[A-Za-z0-9]{8}$' as realistic_payload_ok;
+
 \echo '--- rejects more entries than the share contract allows (expect: error)'
 select public.create_deck_share(jsonb_build_object(
   'v', 1, 'name', 'A',
@@ -183,12 +292,20 @@ select public.create_deck_share(jsonb_build_object(
 \echo '--- accepts exactly the contract maximum of 200 entries (expect: t)'
 select public.create_deck_share(jsonb_build_object(
   'v', 1, 'name', 'A',
-  'entries', (select jsonb_agg(jsonb_build_object('cardNumber', 'x', 'quantity', 1))
-                from generate_series(1, 200)))) ~ '^[A-Za-z0-9]{8}$' as max_entries_ok;
+  'entries', (select jsonb_agg(jsonb_build_object(
+                       'cardNumber', 'card-' || n, 'quantity', 1))
+                from generate_series(1, 200) as n)))
+  ~ '^[A-Za-z0-9]{8}$' as max_entries_ok;
 
 \echo '--- rejects a payload past the size the client also refuses (expect: error)'
+-- Valid in every other respect: 200 distinct entries with the longest card
+-- numbers the contract allows come to roughly 27000 characters.
 select public.create_deck_share(jsonb_build_object(
-  'v', 1, 'name', repeat('a', 13000), 'entries', '[]'::jsonb));
+  'v', 1, 'name', 'A',
+  'entries', (select jsonb_agg(jsonb_build_object(
+                       'cardNumber', rpad('card-' || n, 100, 'x'),
+                       'quantity', 1))
+                from generate_series(1, 200) as n)));
 
 -- --------------------------------------------------------------- snapshot
 \echo '--- a stored share is immutable through the API (expect: error)'
