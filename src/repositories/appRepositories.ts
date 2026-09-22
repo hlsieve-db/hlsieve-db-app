@@ -50,6 +50,15 @@ export type AppRepositories = {
    * until the account asks for it.
    */
   cloudDecks: CloudDeckRepository | null
+  /**
+   * The deck store without the cloud sync wrapper.
+   *
+   * Only restoring from the cloud uses it. Writing a restored deck through the
+   * wrapped repository would push it straight back to the account it just came
+   * from, so the one operation whose writes originate in the cloud bypasses the
+   * upload. Everything else in the app should use `decks`.
+   */
+  localDecks: DeckBackupRepository
 }
 
 /**
@@ -71,9 +80,14 @@ export function createAppRepositories(
         ? createSupabaseCloudDeckRepository()
         : null
 
+  const local = createDeckRepository(
+    createIndexedDbDeckPersistence(databaseFactory, namespace),
+  )
+
   return {
     namespace,
     cloudDecks: cloud,
+    localDecks: local,
     /**
      * Wrapped so every save and delete reaches the account, wherever it comes
      * from. The wrapper writes locally first and never rolls that back, so a
@@ -84,9 +98,7 @@ export function createAppRepositories(
      * the bundle being rebuilt.
      */
     decks: withCloudDeckSync({
-      decks: createDeckRepository(
-        createIndexedDbDeckPersistence(databaseFactory, namespace),
-      ),
+      decks: local,
       cloudDecks: cloud,
       isSyncEnabled: () => isCloudSyncEnabled(namespace),
     }),

@@ -153,7 +153,7 @@ describe('PrivacyPolicyPage', () => {
       ).toBeVisible()
       expect(
         screen.getByText(
-          /「クラウド同期を有効にする」操作を明示的に行った場合に限り/,
+          /この端末のデッキをクラウドへ保存する操作を明示的に行った場合に限り/,
         ),
       ).toBeVisible()
     })
@@ -184,14 +184,56 @@ describe('PrivacyPolicyPage', () => {
       ).toBeVisible()
     })
 
-    // Upload only, so it must not suggest the two sides are kept in step.
-    it('says nothing is downloaded to this device', () => {
+    // Restoring downloads, so the policy has to describe that too, including
+    // that it overwrites and that it can delete.
+    it('describes restoring as an explicit action that can overwrite', () => {
       renderPage()
       expect(
         screen.getByText(
-          /クラウド上のデッキがこの端末へ取り込まれることはありません/,
+          /「クラウドから復元」も、利用者ご自身が操作した場合にのみ実行します/,
         ),
       ).toBeVisible()
+      expect(
+        screen.getByText(/同じIDのデッキがクラウドの内容で置き換わり/),
+      ).toBeVisible()
+    })
+
+    // The rule that keeps restoring non-destructive.
+    it('says a deck the cloud does not have is never deleted by restoring', () => {
+      renderPage()
+      expect(
+        screen.getByText(
+          /クラウドに存在しないこの端末のデッキは、復元によって削除されることはありません/,
+        ),
+      ).toBeVisible()
+    })
+
+    // Setting up reads both sides before anything moves, which is what stops a
+    // second device overwriting an account it has never looked at.
+    it('says looking at the setup screen moves nothing', () => {
+      renderPage()
+      expect(
+        screen.getByText(
+          /設定を開いて内容を確認している間も、デッキの送信や取り込みは行いません/,
+        ),
+      ).toBeVisible()
+    })
+
+    it('says both sides holding decks leads to a confirmation', () => {
+      renderPage()
+      expect(
+        screen.getByText(
+          /両方にデッキがある場合は、どちらの内容を使うかを確認したうえで実行します/,
+        ),
+      ).toBeVisible()
+    })
+
+    // The claim that is now false must not survive anywhere on the page.
+    it('no longer claims nothing is downloaded', () => {
+      renderPage()
+      expect(pageText()).not.toContain(
+        'クラウド上のデッキがこの端末へ取り込まれることはありません',
+      )
     })
 
     it('says there is no deletion screen yet, and points at contact', () => {

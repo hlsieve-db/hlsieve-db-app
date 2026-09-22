@@ -75,9 +75,17 @@ function renderSetup({
   userId?: string
 } = {}) {
   const namespace = userLocalDataNamespace(userId)
+  // The wrapped and unwrapped stores are distinct objects, so a test can prove
+  // a restore writes through the one that does not upload.
+  const local = {
+    listDecks: vi.fn(async () => localDecks),
+    saveDeck: vi.fn(async () => undefined),
+    deleteDeck: vi.fn(async () => undefined),
+  }
   const repositories = {
     namespace,
     decks: { listDecks: vi.fn(async () => localDecks) },
+    localDecks: local,
     cloudDecks,
   } as unknown as AppRepositories
 
@@ -86,13 +94,13 @@ function renderSetup({
       <CloudSyncSetup storage={storage} />
     </AppRepositoriesContext.Provider>,
   )
-  return { ...result, cloudDecks, storage, namespace, repositories }
+  return { ...result, cloudDecks, storage, namespace, repositories, local }
 }
 
 const setupButton = () =>
   screen.getByRole('button', { name: 'クラウド同期を設定' })
 const enableButton = () =>
-  screen.getByRole('button', { name: 'クラウド同期を有効にする' })
+  screen.getByRole('button', { name: 'この端末のデッキをクラウドへ保存' })
 
 describe('when there is no cloud repository', () => {
   // Anonymous, or a deployment with no Supabase configured.
@@ -170,7 +178,9 @@ describe('enabling sync', () => {
     const { storage, namespace, cloudDecks } = renderSetup()
     fireEvent.click(setupButton())
     fireEvent.click(
-      await screen.findByRole('button', { name: 'クラウド同期を有効にする' }),
+      await screen.findByRole('button', {
+        name: 'この端末のデッキをクラウドへ保存',
+      }),
     )
 
     expect(await screen.findByText('有効')).toBeVisible()
@@ -183,7 +193,9 @@ describe('enabling sync', () => {
     renderSetup()
     fireEvent.click(setupButton())
     fireEvent.click(
-      await screen.findByRole('button', { name: 'クラウド同期を有効にする' }),
+      await screen.findByRole('button', {
+        name: 'この端末のデッキをクラウドへ保存',
+      }),
     )
     await screen.findByText('有効')
 
@@ -210,7 +222,9 @@ describe('enabling sync', () => {
 
     fireEvent.click(setupButton())
     fireEvent.click(
-      await screen.findByRole('button', { name: 'クラウド同期を有効にする' }),
+      await screen.findByRole('button', {
+        name: 'この端末のデッキをクラウドへ保存',
+      }),
     )
 
     expect(await screen.findByText(/同期しています/)).toBeVisible()
@@ -247,7 +261,9 @@ describe('when an upload fails', () => {
     })
     fireEvent.click(setupButton())
     fireEvent.click(
-      await screen.findByRole('button', { name: 'クラウド同期を有効にする' }),
+      await screen.findByRole('button', {
+        name: 'この端末のデッキをクラウドへ保存',
+      }),
     )
 
     expect(await screen.findByText('同期できませんでした。')).toBeVisible()
@@ -273,7 +289,9 @@ describe('when an upload fails', () => {
 
     fireEvent.click(setupButton())
     fireEvent.click(
-      await screen.findByRole('button', { name: 'クラウド同期を有効にする' }),
+      await screen.findByRole('button', {
+        name: 'この端末のデッキをクラウドへ保存',
+      }),
     )
     await screen.findByText('同期できませんでした。')
     expect(readCloudSyncState(storage, namespace).status).toBe('not_started')
@@ -281,7 +299,9 @@ describe('when an upload fails', () => {
     failing = false
     fireEvent.click(screen.getByRole('button', { name: '再試行' }))
     fireEvent.click(
-      await screen.findByRole('button', { name: 'クラウド同期を有効にする' }),
+      await screen.findByRole('button', {
+        name: 'この端末のデッキをクラウドへ保存',
+      }),
     )
 
     expect(await screen.findByText('有効')).toBeVisible()
@@ -294,7 +314,9 @@ describe('when an upload fails', () => {
     renderSetup({ cloudDecks: failingUpload('forbidden') })
     fireEvent.click(setupButton())
     fireEvent.click(
-      await screen.findByRole('button', { name: 'クラウド同期を有効にする' }),
+      await screen.findByRole('button', {
+        name: 'この端末のデッキをクラウドへ保存',
+      }),
     )
     await screen.findByText('同期できませんでした。')
 
@@ -319,7 +341,9 @@ describe('an account that already enabled sync', () => {
       screen.queryByRole('button', { name: 'クラウド同期を設定' }),
     ).not.toBeInTheDocument()
     expect(
-      screen.queryByRole('button', { name: 'クラウド同期を有効にする' }),
+      screen.queryByRole('button', {
+        name: 'この端末のデッキをクラウドへ保存',
+      }),
     ).not.toBeInTheDocument()
     expect(cloudDecks?.upsert).not.toHaveBeenCalled()
     expect(cloudDecks?.listAll).not.toHaveBeenCalled()
@@ -376,7 +400,9 @@ describe('when the cloud cannot be read', () => {
 
     expect(readCloudSyncState(storage, namespace).status).toBe('not_started')
     expect(
-      screen.queryByRole('button', { name: 'クラウド同期を有効にする' }),
+      screen.queryByRole('button', {
+        name: 'この端末のデッキをクラウドへ保存',
+      }),
     ).not.toBeInTheDocument()
   })
 
@@ -445,7 +471,9 @@ describe('nothing is sent before the reporter agrees', () => {
     const { cloudDecks } = renderSetup()
     fireEvent.click(setupButton())
     fireEvent.click(
-      await screen.findByRole('button', { name: 'クラウド同期を有効にする' }),
+      await screen.findByRole('button', {
+        name: 'この端末のデッキをクラウドへ保存',
+      }),
     )
     await screen.findByText('有効')
 
@@ -463,5 +491,352 @@ describe('nothing is sent before the reporter agrees', () => {
     expect(cloudDecks?.listAll).not.toHaveBeenCalled()
     expect(cloudDecks?.upsert).not.toHaveBeenCalled()
     expect(cloudDecks?.tombstone).not.toHaveBeenCalled()
+  })
+})
+
+describe('restoring from the cloud', () => {
+  const enabledStorage = () =>
+    memoryStorage({
+      'hlsieve:cloud-sync--user-a': '{"version":1,"status":"enabled"}',
+    })
+
+  const restoreButton = () =>
+    screen.getByRole('button', { name: 'クラウドから復元' })
+
+  // Only an account that has turned sync on is offered it.
+  it('is not offered before sync is enabled', () => {
+    renderSetup()
+
+    expect(
+      screen.queryByRole('button', { name: 'クラウドから復元' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('reads nothing until it is asked to', () => {
+    const { cloudDecks } = renderSetup({ storage: enabledStorage() })
+
+    expect(restoreButton()).toBeVisible()
+    expect(cloudDecks?.listAll).not.toHaveBeenCalled()
+  })
+
+  // Nothing here to overwrite, so there is nothing to ask about.
+  it('restores straight away when this device has no decks', async () => {
+    const { local } = renderSetup({
+      storage: enabledStorage(),
+      localDecks: [],
+      cloudDecks: cloudRepository(async () => ({
+        ok: true,
+        value: [cloudRecord('a'), cloudRecord('b')],
+      })),
+    })
+
+    fireEvent.click(restoreButton())
+
+    expect(
+      await screen.findByText(/デッキ2個を取り込み、0個を削除しました/),
+    ).toBeVisible()
+    expect(local.saveDeck).toHaveBeenCalledTimes(2)
+  })
+
+  // Taking the cloud copy overwrites what is here, so it asks first.
+  it('asks before overwriting decks that are already here', async () => {
+    const { local } = renderSetup({
+      storage: enabledStorage(),
+      localDecks: [deck('a')],
+      cloudDecks: cloudRepository(async () => ({
+        ok: true,
+        value: [cloudRecord('a')],
+      })),
+    })
+
+    fireEvent.click(restoreButton())
+
+    expect(await screen.findByText('この端末のデッキ: 1件')).toBeVisible()
+    expect(screen.getByText('取り込むデッキ: 1件')).toBeVisible()
+    expect(screen.getByText('削除するデッキ: 0件')).toBeVisible()
+    // Nothing is written while the question is on screen.
+    expect(local.saveDeck).not.toHaveBeenCalled()
+  })
+
+  it('writes nothing when the reporter keeps this device', async () => {
+    const { local } = renderSetup({
+      storage: enabledStorage(),
+      localDecks: [deck('a')],
+      cloudDecks: cloudRepository(async () => ({
+        ok: true,
+        value: [cloudRecord('a')],
+      })),
+    })
+    fireEvent.click(restoreButton())
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'この端末を維持する' }),
+    )
+
+    expect(local.saveDeck).not.toHaveBeenCalled()
+    expect(local.deleteDeck).not.toHaveBeenCalled()
+    expect(restoreButton()).toBeVisible()
+  })
+
+  it('applies the plan once the reporter confirms', async () => {
+    const { local } = renderSetup({
+      storage: enabledStorage(),
+      localDecks: [deck('a'), deck('gone')],
+      cloudDecks: cloudRepository(async () => ({
+        ok: true,
+        value: [
+          cloudRecord('a'),
+          cloudRecord('gone', '2026-09-22T05:00:00.000000+00:00'),
+        ],
+      })),
+    })
+    fireEvent.click(restoreButton())
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'クラウドから復元する' }),
+    )
+
+    expect(
+      await screen.findByText(/デッキ1個を取り込み、1個を削除しました/),
+    ).toBeVisible()
+    expect(local.saveDeck).toHaveBeenCalledTimes(1)
+    expect(local.deleteDeck).toHaveBeenCalledWith('gone')
+  })
+
+  // Restored decks came from the account, so sending them back would be a
+  // pointless round trip.
+  it('writes through the store that does not upload', async () => {
+    const { local, cloudDecks } = renderSetup({
+      storage: enabledStorage(),
+      localDecks: [],
+      cloudDecks: cloudRepository(async () => ({
+        ok: true,
+        value: [cloudRecord('a')],
+      })),
+    })
+
+    fireEvent.click(restoreButton())
+    await screen.findByText(/デッキ1個を取り込み/)
+
+    expect(local.saveDeck).toHaveBeenCalledTimes(1)
+    expect(cloudDecks?.upsert).not.toHaveBeenCalled()
+    expect(cloudDecks?.tombstone).not.toHaveBeenCalled()
+  })
+
+  it('reports a cloud failure and offers a retry', async () => {
+    const { local } = renderSetup({
+      storage: enabledStorage(),
+      cloudDecks: cloudRepository(async () => ({
+        ok: false,
+        reason: 'network',
+      })),
+    })
+
+    fireEvent.click(restoreButton())
+
+    expect(
+      await screen.findByText('クラウドから復元できませんでした。'),
+    ).toBeVisible()
+    expect(screen.getByText('クラウドに接続できませんでした。')).toBeVisible()
+    expect(screen.getByRole('button', { name: '再試行' })).toBeVisible()
+    expect(local.saveDeck).not.toHaveBeenCalled()
+  })
+})
+
+/**
+ * Sync being off is a fact about this device, not the account. A second device
+ * signing into an account that already syncs starts at 未設定 too, so setting
+ * up must look at the cloud before deciding anything.
+ */
+describe('first activation on a device', () => {
+  const setup = () => screen.getByRole('button', { name: 'クラウド同期を設定' })
+  const TOMBSTONED = '2026-09-22T05:00:00.000000+00:00'
+
+  // CASE A: the account has never synced, so this device seeds it.
+  it('uploads when the account holds no rows at all', async () => {
+    const { cloudDecks, local, storage, namespace } = renderSetup({
+      localDecks: [deck('a'), deck('b')],
+      cloudDecks: cloudRepository(async () => ({ ok: true, value: [] })),
+    })
+
+    fireEvent.click(setup())
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'この端末のデッキをクラウドへ保存',
+      }),
+    )
+
+    expect(await screen.findByText('有効')).toBeVisible()
+    expect(cloudDecks?.upsert).toHaveBeenCalledTimes(2)
+    expect(local.saveDeck).not.toHaveBeenCalled()
+    expect(readCloudSyncState(storage, namespace).status).toBe('enabled')
+  })
+
+  // CASE B: the account has decks and this device has none, so nothing here
+  // can be lost.
+  it('restores when this device has no decks', async () => {
+    const { cloudDecks, local, storage, namespace } = renderSetup({
+      localDecks: [],
+      cloudDecks: cloudRepository(async () => ({
+        ok: true,
+        value: [cloudRecord('a'), cloudRecord('b')],
+      })),
+    })
+
+    fireEvent.click(setup())
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'クラウドのデッキをこの端末へ取り込む',
+      }),
+    )
+
+    expect(await screen.findByText('有効')).toBeVisible()
+    expect(local.saveDeck).toHaveBeenCalledTimes(2)
+    expect(cloudDecks?.upsert).not.toHaveBeenCalled()
+    expect(readCloudSyncState(storage, namespace).status).toBe('enabled')
+  })
+
+  // CASE C: both sides hold data, so neither direction may be assumed.
+  it('asks which side wins when both hold decks', async () => {
+    renderSetup({
+      localDecks: [deck('a')],
+      cloudDecks: cloudRepository(async () => ({
+        ok: true,
+        value: [cloudRecord('b')],
+      })),
+    })
+
+    fireEvent.click(setup())
+
+    expect(
+      await screen.findByRole('button', { name: 'クラウドから復元' }),
+    ).toBeVisible()
+    expect(
+      screen.getByRole('button', { name: 'この端末のデッキをクラウドへ反映' }),
+    ).toBeVisible()
+    expect(screen.getByText('この端末のデッキ: 1件')).toBeVisible()
+    expect(screen.getByText('クラウド上のデッキ: 1件')).toBeVisible()
+  })
+
+  // The heart of the fix: reading is allowed, writing is not, until the
+  // reporter picks a side.
+  it('writes nothing on either side before the choice', async () => {
+    const { cloudDecks, local, storage, namespace } = renderSetup({
+      localDecks: [deck('a')],
+      cloudDecks: cloudRepository(async () => ({
+        ok: true,
+        value: [cloudRecord('b')],
+      })),
+    })
+
+    fireEvent.click(setup())
+    await screen.findByRole('button', { name: 'クラウドから復元' })
+
+    expect(cloudDecks?.upsert).not.toHaveBeenCalled()
+    expect(cloudDecks?.tombstone).not.toHaveBeenCalled()
+    expect(local.saveDeck).not.toHaveBeenCalled()
+    expect(local.deleteDeck).not.toHaveBeenCalled()
+    // Reading is what it is allowed to do.
+    expect(cloudDecks?.listAll).toHaveBeenCalledTimes(1)
+    expect(local.listDecks).toHaveBeenCalled()
+    expect(readCloudSyncState(storage, namespace).status).toBe('not_started')
+  })
+
+  // An account whose decks were all deleted still holds rows, and uploading
+  // over them would resurrect them, so it is not treated as never synced.
+  it('asks even when every cloud row is a tombstone', async () => {
+    renderSetup({
+      localDecks: [deck('a')],
+      cloudDecks: cloudRepository(async () => ({
+        ok: true,
+        value: [cloudRecord('gone', TOMBSTONED)],
+      })),
+    })
+
+    fireEvent.click(setup())
+
+    expect(
+      await screen.findByRole('button', { name: 'クラウドから復元' }),
+    ).toBeVisible()
+  })
+
+  it('restores on request, deleting only the tombstoned local deck', async () => {
+    const { local, cloudDecks } = renderSetup({
+      localDecks: [deck('keep'), deck('gone')],
+      cloudDecks: cloudRepository(async () => ({
+        ok: true,
+        value: [cloudRecord('a'), cloudRecord('gone', TOMBSTONED)],
+      })),
+    })
+
+    fireEvent.click(setup())
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'クラウドから復元' }),
+    )
+    await screen.findByText('有効')
+
+    expect(local.saveDeck).toHaveBeenCalledTimes(1)
+    expect(local.deleteDeck).toHaveBeenCalledWith('gone')
+    // The local-only deck the cloud never knew about is untouched.
+    expect(local.deleteDeck).not.toHaveBeenCalledWith('keep')
+    expect(cloudDecks?.upsert).not.toHaveBeenCalled()
+  })
+
+  it('uploads on request, leaving cloud-only rows in place', async () => {
+    const { local, cloudDecks } = renderSetup({
+      localDecks: [deck('a')],
+      cloudDecks: cloudRepository(async () => ({
+        ok: true,
+        value: [cloudRecord('cloud-only')],
+      })),
+    })
+
+    fireEvent.click(setup())
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'この端末のデッキをクラウドへ反映',
+      }),
+    )
+    await screen.findByText('有効')
+
+    expect(cloudDecks?.upsert).toHaveBeenCalledTimes(1)
+    // Absence is never read as deletion, in either direction.
+    expect(cloudDecks?.tombstone).not.toHaveBeenCalled()
+    expect(local.deleteDeck).not.toHaveBeenCalled()
+  })
+
+  it('does not enable sync when the upload fails part way', async () => {
+    const { storage, namespace } = renderSetup({
+      localDecks: [deck('a')],
+      cloudDecks: cloudRepository(
+        async () => ({ ok: true, value: [] }),
+        async () => ({ ok: false as const, reason: 'network' as const }),
+      ),
+    })
+
+    fireEvent.click(setup())
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'この端末のデッキをクラウドへ保存',
+      }),
+    )
+
+    expect(await screen.findByText('同期できませんでした。')).toBeVisible()
+    expect(readCloudSyncState(storage, namespace).status).toBe('not_started')
+    expect(screen.getByText('未設定')).toBeVisible()
+  })
+
+  it('reports a failure to read the cloud, and offers a retry', async () => {
+    const { cloudDecks, local } = renderSetup({
+      cloudDecks: cloudRepository(async () => ({
+        ok: false,
+        reason: 'network',
+      })),
+    })
+
+    fireEvent.click(setup())
+
+    expect(await screen.findByText('同期できませんでした。')).toBeVisible()
+    expect(screen.getByRole('button', { name: '再試行' })).toBeVisible()
+    expect(cloudDecks?.upsert).not.toHaveBeenCalled()
+    expect(local.saveDeck).not.toHaveBeenCalled()
   })
 })

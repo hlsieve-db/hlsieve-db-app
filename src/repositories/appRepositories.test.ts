@@ -101,6 +101,8 @@ describe('the rest of the bundle', () => {
       'cloudDecks',
       'decks',
       'favoriteCards',
+      // The deck store without the cloud sync wrapper, used only by restoring.
+      'localDecks',
       'namespace',
       'recentlyViewedCards',
       'savedSearchPresets',
@@ -111,5 +113,14 @@ describe('the rest of the bundle', () => {
     expect(repositories.savedSearchPresets).toBeDefined()
     expect(repositories.tournamentReports).toBeDefined()
     expect(repositories.recentlyViewedCards).toBeDefined()
+  })
+
+  // Restoring writes through localDecks so it does not upload what it just
+  // downloaded, which only works while the two are different objects.
+  it('exposes the unwrapped deck store separately from the wrapped one', () => {
+    const repositories = createAppRepositories(ANONYMOUS_LOCAL_DATA_NAMESPACE)
+
+    expect(repositories.localDecks).toBeDefined()
+    expect(repositories.decks).not.toBe(repositories.localDecks)
   })
 })

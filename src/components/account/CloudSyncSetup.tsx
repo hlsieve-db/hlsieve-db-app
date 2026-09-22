@@ -1,6 +1,11 @@
 import { useState } from 'react'
 
 import {
+  applyCloudDeckRestore,
+  readCloudDeckRestorePlan,
+  type CloudDeckRestorePlan,
+} from '../../cloud/cloudDeckRestore'
+import {
   syncLocalDecksToCloud,
   type CloudDeckSyncFailure,
   type CloudDeckSyncProgress,
@@ -14,13 +19,16 @@ import {
 import { useAppRepositories } from '../../repositories/useAppRepositories'
 
 /**
- * Deciding whether to turn Cloud Sync on, and nothing more.
+ * Turning Cloud Sync on, and bringing an account's decks back down later.
  *
- * Nothing here uploads, downloads or merges a deck. Opening this panel reads
- * how many decks are on each side so the choice is an informed one, and
- * turning sync on records the choice; moving the decks themselves is a later
- * phase. That is why the finished state says the account is ready to sync
- * rather than that it has synced.
+ * The first time matters most, because the account and the device can each
+ * already hold decks and the wrong default destroys one of them. Sync being off
+ * is a fact about this device, not about the account: a second device signing
+ * into an account that already syncs starts here too, so setting up cannot
+ * assume the cloud is empty.
+ *
+ * So it reads both sides first and decides nothing on its own when both hold
+ * data. Nothing is written until the reporter picks a direction.
  */
 
 /** One message per failure, none of them carrying anything the server said. */
@@ -34,13 +42,33 @@ const FAILURE_MESSAGES: Record<CloudDeckSyncFailure, string> = {
   failed: 'クラウド情報の取得に失敗しました。',
 }
 
-type Counts = { local: number; cloud: number }
+/**
+ * What setting up found, and therefore what it may do.
+ *
+ * upload   the account holds no rows at all, so this device's decks become its
+ *          starting point
+ * restore  the account holds rows and this device has no decks, so there is
+ *          nothing here to lose
+ * choose   both sides hold data, and only the reporter can say which wins
+ */
+type Decision = {
+  kind: 'upload' | 'restore' | 'choose'
+  plan: CloudDeckRestorePlan
+}
 
-type Panel =
+type Activation =
   | { step: 'idle' }
-  | { step: 'loading' }
-  | { step: 'counted'; counts: Counts }
-  | { step: 'syncing'; progress: CloudDeckSyncProgress }
+  | { step: 'reading' }
+  | { step: 'ready'; decision: Decision }
+  | { step: 'working'; progress: CloudDeckSyncProgress }
+  | { step: 'error'; reason: CloudDeckSyncFailure }
+
+type Restore =
+  | { step: 'idle' }
+  | { step: 'reading' }
+  | { step: 'confirming'; plan: CloudDeckRestorePlan }
+  | { step: 'applying'; progress: CloudDeckSyncProgress }
+  | { step: 'done'; restored: number; removed: number }
   | { step: 'error'; reason: CloudDeckSyncFailure }
 
 export type CloudSyncSetupProps = {
@@ -50,71 +78,124 @@ export type CloudSyncSetupProps = {
 
 export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
   const repositories = useAppRepositories()
-  const { namespace, decks, cloudDecks } = repositories
+  const { namespace, decks, localDecks, cloudDecks } = repositories
   const store = storage ?? window.localStorage
 
   const [status, setStatus] = useState<CloudSyncStatus>(
     () => readCloudSyncState(store, namespace).status,
   )
-  const [panel, setPanel] = useState<Panel>({ step: 'idle' })
-  const [uploaded, setUploaded] = useState<number>()
+  const [activation, setActivation] = useState<Activation>({ step: 'idle' })
+  const [outcome, setOutcome] = useState<string>()
+  const [restore, setRestore] = useState<Restore>({ step: 'idle' })
 
   // Without a repository there is no account or no configured project, and
   // nothing to offer.
   if (!cloudDecks) return null
 
-  const openSetup = async () => {
-    setPanel({ step: 'loading' })
-    // Read only. Counting is the whole point of this step: the account should
-    // see what is on each side before agreeing to anything.
-    const cloud = await cloudDecks.listAll()
-    if (!cloud.ok) {
-      setPanel({ step: 'error', reason: cloud.reason })
-      return
-    }
-    let local: number
-    try {
-      local = (await decks.listDecks()).length
-    } catch {
-      setPanel({ step: 'error', reason: 'failed' })
-      return
-    }
-    setPanel({
-      step: 'counted',
-      counts: {
-        local,
-        // Tombstones are rows, not decks. Counting them would tell the account
-        // it has decks in the cloud that it deleted.
-        cloud: cloud.value.filter((record) => record.deletedAt === null).length,
-      },
-    })
-  }
-
-  const enable = async () => {
-    setPanel({ step: 'syncing', progress: { completed: 0, total: 0 } })
-    const result = await syncLocalDecksToCloud({
-      decks,
-      cloudDecks,
-      onProgress: (progress) => setPanel({ step: 'syncing', progress }),
-    })
-
-    if (!result.ok) {
-      // The choice is only recorded once every deck is safely in the account,
-      // so a partial upload leaves the account able to try again rather than
-      // believing it is already syncing.
-      setPanel({ step: 'error', reason: result.reason })
-      return
-    }
-
+  const markEnabled = (summary: string) => {
+    // Only ever once the decks are where they belong. A partial run leaves the
+    // account able to try again rather than believing it is already syncing.
     writeCloudSyncState(
       { version: CLOUD_SYNC_STATE_VERSION, status: 'enabled' },
       store,
       namespace,
     )
-    setUploaded(result.uploaded)
+    setOutcome(summary)
     setStatus('enabled')
-    setPanel({ step: 'idle' })
+    setActivation({ step: 'idle' })
   }
+
+  /** Reads both sides and works out which of the three cases this is. */
+  const openSetup = async () => {
+    setActivation({ step: 'reading' })
+    const result = await readCloudDeckRestorePlan({
+      decks: localDecks,
+      cloudDecks,
+    })
+    if (!result.ok) {
+      setActivation({ step: 'error', reason: result.reason })
+      return
+    }
+    const { plan } = result
+    // Rows rather than active decks: an account whose decks were all deleted
+    // still holds tombstones, and uploading over them would resurrect them.
+    const kind =
+      plan.cloudRowCount === 0
+        ? 'upload'
+        : plan.localCount === 0
+          ? 'restore'
+          : 'choose'
+    setActivation({ step: 'ready', decision: { kind, plan } })
+  }
+
+  const runUpload = async () => {
+    setActivation({ step: 'working', progress: { completed: 0, total: 0 } })
+    const result = await syncLocalDecksToCloud({
+      decks,
+      cloudDecks,
+      onProgress: (progress) => setActivation({ step: 'working', progress }),
+    })
+    if (!result.ok) {
+      setActivation({ step: 'error', reason: result.reason })
+      return
+    }
+    markEnabled(`デッキ${result.uploaded}個を保存しました。`)
+  }
+
+  const runRestore = async (plan: CloudDeckRestorePlan) => {
+    setActivation({ step: 'working', progress: { completed: 0, total: 0 } })
+    // Through the unwrapped store: these decks came from the account, so
+    // sending them back would be a pointless round trip.
+    const result = await applyCloudDeckRestore(plan, {
+      decks: localDecks,
+      onProgress: (progress) => setActivation({ step: 'working', progress }),
+    })
+    if (!result.ok) {
+      setActivation({ step: 'error', reason: result.reason })
+      return
+    }
+    markEnabled(
+      `デッキ${result.restored}個を取り込み、${result.removed}個を削除しました。`,
+    )
+  }
+
+  const applyRestore = async (plan: CloudDeckRestorePlan) => {
+    setRestore({ step: 'applying', progress: { completed: 0, total: 0 } })
+    const result = await applyCloudDeckRestore(plan, {
+      decks: localDecks,
+      onProgress: (progress) => setRestore({ step: 'applying', progress }),
+    })
+    setRestore(
+      result.ok
+        ? { step: 'done', restored: result.restored, removed: result.removed }
+        : { step: 'error', reason: result.reason },
+    )
+  }
+
+  const startRestore = async () => {
+    setRestore({ step: 'reading' })
+    const result = await readCloudDeckRestorePlan({
+      decks: localDecks,
+      cloudDecks,
+    })
+    if (!result.ok) {
+      setRestore({ step: 'error', reason: result.reason })
+      return
+    }
+    // Nothing here to overwrite, so there is nothing to ask about.
+    if (result.plan.localCount === 0) {
+      await applyRestore(result.plan)
+      return
+    }
+    setRestore({ step: 'confirming', plan: result.plan })
+  }
+
+  const counts = (plan: CloudDeckRestorePlan) => (
+    <ul className="account-cloud-sync__counts">
+      <li>この端末のデッキ: {plan.localCount}件</li>
+      <li>クラウド上のデッキ: {plan.restore.length}件</li>
+    </ul>
+  )
 
   return (
     <section
@@ -130,7 +211,87 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
             <strong>有効</strong>
           </p>
           <p>クラウド同期が有効になりました。</p>
-          {uploaded !== undefined && <p>デッキ{uploaded}個を保存しました。</p>}
+          {outcome !== undefined && <p>{outcome}</p>}
+
+          <div className="account-cloud-sync__restore">
+            <h3>クラウドから復元</h3>
+            {restore.step === 'idle' && (
+              <>
+                <p>
+                  このアカウントのクラウド上のデッキを、この端末へ取り込みます。
+                </p>
+                <button
+                  className="button button--secondary"
+                  type="button"
+                  onClick={() => void startRestore()}
+                >
+                  クラウドから復元
+                </button>
+              </>
+            )}
+
+            {restore.step === 'reading' && (
+              <p role="status">クラウドのデッキを確認しています…</p>
+            )}
+
+            {restore.step === 'confirming' && (
+              <>
+                <ul className="account-cloud-sync__counts">
+                  <li>この端末のデッキ: {restore.plan.localCount}件</li>
+                  <li>取り込むデッキ: {restore.plan.restore.length}件</li>
+                  <li>削除するデッキ: {restore.plan.remove.length}件</li>
+                </ul>
+                <p>
+                  同じIDのデッキはクラウドの内容で置き換わります。クラウドにないこの端末のデッキは、そのまま残ります。
+                </p>
+                <button
+                  className="button"
+                  type="button"
+                  onClick={() => void applyRestore(restore.plan)}
+                >
+                  クラウドから復元する
+                </button>
+                <button
+                  className="button button--secondary"
+                  type="button"
+                  onClick={() => setRestore({ step: 'idle' })}
+                >
+                  この端末を維持する
+                </button>
+              </>
+            )}
+
+            {restore.step === 'applying' && (
+              <p role="status">
+                復元しています… {restore.progress.completed} /{' '}
+                {restore.progress.total}
+              </p>
+            )}
+
+            {restore.step === 'done' && (
+              <p>
+                デッキ{restore.restored}個を取り込み、{restore.removed}
+                個を削除しました。
+              </p>
+            )}
+
+            {restore.step === 'error' && (
+              <div
+                className="status-message status-message--error"
+                role="alert"
+              >
+                <p>クラウドから復元できませんでした。</p>
+                <p>{FAILURE_MESSAGES[restore.reason]}</p>
+                <button
+                  className="button"
+                  type="button"
+                  onClick={() => void startRestore()}
+                >
+                  再試行
+                </button>
+              </div>
+            )}
+          </div>
         </>
       ) : (
         <>
@@ -139,7 +300,7 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
             <strong>未設定</strong>
           </p>
 
-          {panel.step === 'idle' && (
+          {activation.step === 'idle' && (
             <>
               <p>
                 クラウド同期を設定すると、このアカウントでデッキを同期できるようになります。設定を始めても、その時点でデッキが送信されることはありません。
@@ -154,43 +315,86 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
             </>
           )}
 
-          {panel.step === 'loading' && (
+          {activation.step === 'reading' && (
             <p role="status">デッキの数を確認しています…</p>
           )}
 
-          {panel.step === 'counted' && (
-            <>
-              <ul className="account-cloud-sync__counts">
-                <li>この端末のデッキ: {panel.counts.local}件</li>
-                <li>クラウド上のデッキ: {panel.counts.cloud}件</li>
-              </ul>
-              <p>
-                クラウド同期を有効にすると、この端末のデッキをこのアカウントのクラウド領域へ保存します。クラウド上のデッキがこの端末へ取り込まれることはありません。
-              </p>
-              <button
-                className="button"
-                type="button"
-                onClick={() => void enable()}
-              >
-                クラウド同期を有効にする
-              </button>
-            </>
-          )}
+          {activation.step === 'ready' &&
+            activation.decision.kind === 'upload' && (
+              <>
+                {counts(activation.decision.plan)}
+                <p>
+                  クラウドにはまだデッキがありません。この端末のデッキをクラウドへ保存します。
+                </p>
+                <button
+                  className="button"
+                  type="button"
+                  onClick={() => void runUpload()}
+                >
+                  この端末のデッキをクラウドへ保存
+                </button>
+              </>
+            )}
 
-          {panel.step === 'syncing' && (
+          {activation.step === 'ready' &&
+            activation.decision.kind === 'restore' && (
+              <>
+                {counts(activation.decision.plan)}
+                <p>
+                  この端末にはデッキがありません。クラウドのデッキをこの端末へ取り込みます。
+                </p>
+                <button
+                  className="button"
+                  type="button"
+                  onClick={() => void runRestore(activation.decision.plan)}
+                >
+                  クラウドのデッキをこの端末へ取り込む
+                </button>
+              </>
+            )}
+
+          {/* Both sides hold decks, so neither direction is safe to assume.
+              The labels say what each one does rather than which side wins. */}
+          {activation.step === 'ready' &&
+            activation.decision.kind === 'choose' && (
+              <>
+                {counts(activation.decision.plan)}
+                <p>
+                  この端末とクラウドの両方にデッキがあります。どちらの内容を使うか選んでください。同じIDのデッキは、選んだ側の内容で置き換わります。
+                </p>
+                <button
+                  className="button"
+                  type="button"
+                  onClick={() => void runRestore(activation.decision.plan)}
+                >
+                  クラウドから復元
+                </button>
+                <button
+                  className="button"
+                  type="button"
+                  onClick={() => void runUpload()}
+                >
+                  この端末のデッキをクラウドへ反映
+                </button>
+                <p>
+                  どちらを選んでも、もう一方にしかないデッキが削除されることはありません。
+                </p>
+              </>
+            )}
+
+          {activation.step === 'working' && (
             <p role="status">
-              同期しています… {panel.progress.completed} /{' '}
-              {panel.progress.total}
+              同期しています… {activation.progress.completed} /{' '}
+              {activation.progress.total}
             </p>
           )}
 
-          {panel.step === 'error' && (
+          {activation.step === 'error' && (
             <div className="status-message status-message--error" role="alert">
               <p>同期できませんでした。</p>
-              <p>{FAILURE_MESSAGES[panel.reason]}</p>
-              {/* Every upload is an upsert keyed by the deck's own id, so
-                  retrying rewrites what already went up rather than
-                  duplicating it. */}
+              <p>{FAILURE_MESSAGES[activation.reason]}</p>
+              {/* Every upload is an upsert and every restore writes the cloud's
+                  own copy, so retrying repeats work rather than duplicating. */}
               <button
                 className="button"
                 type="button"
