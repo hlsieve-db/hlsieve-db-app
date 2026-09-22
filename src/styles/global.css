@@ -3642,6 +3642,17 @@ main {
   padding-right: 46px;
 }
 
+/* Only useful where a soft keyboard is on screen, so it is off by default and
+   turned on at phone widths, the way .mobile-filter-bar is. */
+.oshi-combobox__ime-hint {
+  display: none;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
 .oshi-combobox__clear {
   position: absolute;
   top: 50%;
@@ -5087,6 +5098,12 @@ main {
 
 .account-page__status:empty {
   display: none;
+}
+
+@media (max-width: 767px) {
+  .oshi-combobox__ime-hint {
+    display: block;
+  }
 }
 
 @media (max-width: 767px) {

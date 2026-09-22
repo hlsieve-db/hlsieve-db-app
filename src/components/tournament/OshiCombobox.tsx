@@ -23,6 +23,7 @@ export function OshiCombobox({
 }: OshiComboboxProps) {
   const inputId = useId()
   const listboxId = `${inputId}-listbox`
+  const imeHintId = `${inputId}-ime-hint`
   const selectedCard = cards.find(
     (card) => card.cardNumber === selectedCardNumber,
   )
@@ -65,7 +66,14 @@ export function OshiCombobox({
           aria-autocomplete="list"
           aria-controls={listboxId}
           aria-expanded={isOpen}
+          // The field takes Japanese names and readings, so the browser's
+          // Latin text services only get in the way. None of this can choose
+          // the on-screen keyboard: a page cannot switch it, so the hint below
+          // tells the reader how to do it instead.
+          autoCorrect="off"
+          spellCheck={false}
           autoComplete="off"
+          aria-describedby={imeHintId}
           disabled={disabled}
           placeholder={
             disabled ? 'カードデータを読み込み中…' : '名前・読み・カード番号'
@@ -96,6 +104,13 @@ export function OshiCombobox({
           </button>
         )}
       </div>
+      {/* Shown only at phone widths, where the keyboard is on screen and often
+          opens in English. Selecting the candidate from the list below works
+          without switching at all, so this is a shortcut rather than a
+          requirement. */}
+      <p className="oshi-combobox__ime-hint" id={imeHintId}>
+        英字キーボードの場合は、🌐から「日本語かな」を選択してください
+      </p>
       {isOpen && !disabled && (
         <div className="oshi-combobox__options" id={listboxId} role="listbox">
           {matches.length === 0 ? (
