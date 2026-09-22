@@ -8,6 +8,11 @@ import {
   type TournamentExportPreset,
   type TournamentReportImagePage,
 } from './imageReport'
+import {
+  resolveOshiCard,
+  resolveOshiDisplayName,
+  selfOshiEntry,
+} from './oshiEntry'
 import type { TournamentReport } from './types'
 
 const FONT_FAMILY =
@@ -232,10 +237,11 @@ function formatImageSelfOshi(
   report: TournamentReport,
   oshiCards: readonly Card[],
 ): string | undefined {
-  const card = oshiCards.find(
-    (candidate) => candidate.cardNumber === report.selfOshiCardNumber,
-  )
-  if (!card) return undefined
+  const entry = selfOshiEntry(report)
+  const card = resolveOshiCard(entry, oshiCards)
+  // Only a resolved card can supply colours and a number. Free text that names
+  // no card is still printed, just without the extra detail.
+  if (!card) return resolveOshiDisplayName(entry, oshiCards)
   const colors = card.colors.map((color) => CARD_COLOR_LABELS[color]).join('/')
   return `${card.name}${colors ? `【${colors}】` : ''}（${card.cardNumber}）`
 }

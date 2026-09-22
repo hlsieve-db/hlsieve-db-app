@@ -1,11 +1,16 @@
 import type { Card } from '../../domain/cards/types'
+import {
+  buildOshiEntry,
+  opponentOshiEntry,
+  resolveOshiDisplayName,
+} from '../../domain/tournamentReport/oshiEntry'
+import { MAX_OSHI_NAME_LENGTH } from '../../domain/tournamentReport/report'
 import type {
   InitiativeChoiceResult,
   MatchResult,
   PlayOrder,
   TournamentRound,
 } from '../../domain/tournamentReport/types'
-import { OshiCombobox } from './OshiCombobox'
 
 type RoundEditorProps = {
   label: string
@@ -40,14 +45,28 @@ export function RoundEditor({
         回戦を削除
       </button>
 
-      <OshiCombobox
-        label={`${label} 対戦相手の推し`}
-        cards={oshiCards}
-        selectedCardNumber={round.opponentOshiCardNumber}
-        onChange={(opponentOshiCardNumber) =>
-          onChange({ ...round, opponentOshiCardNumber })
-        }
-      />
+      <label className="tournament-round__oshi">
+        <span>{`${label} 対戦相手の推し`}</span>
+        {/* Plain text, matching the tournament name field. A typed card name
+            still records the card, which is what the opponent statistics group
+            by. */}
+        <input
+          type="text"
+          inputMode="text"
+          maxLength={MAX_OSHI_NAME_LENGTH}
+          value={
+            resolveOshiDisplayName(opponentOshiEntry(round), oshiCards) ?? ''
+          }
+          onChange={(event) => {
+            const entry = buildOshiEntry(event.currentTarget.value, oshiCards)
+            onChange({
+              ...round,
+              opponentOshiName: entry.name,
+              opponentOshiCardNumber: entry.cardNumber,
+            })
+          }}
+        />
+      </label>
 
       <fieldset className="tournament-round__choice">
         <legend>先攻・後攻</legend>

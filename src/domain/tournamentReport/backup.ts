@@ -129,6 +129,7 @@ function sameRound(
   right: SavedTournamentReport['report']['swissRounds'][number],
 ): boolean {
   return (
+    left.opponentOshiName === right.opponentOshiName &&
     left.opponentOshiCardNumber === right.opponentOshiCardNumber &&
     left.playOrder === right.playOrder &&
     left.initiativeChoiceResult === right.initiativeChoiceResult &&
@@ -160,6 +161,7 @@ export function hasSameTournamentReportContent(
     a.placement === b.placement &&
     a.participantCount === b.participantCount &&
     a.eventDate === b.eventDate &&
+    a.selfOshiName === b.selfOshiName &&
     a.selfOshiCardNumber === b.selfOshiCardNumber &&
     sameRounds(a.swissRounds, b.swissRounds) &&
     sameRounds(a.tournamentRounds, b.tournamentRounds)

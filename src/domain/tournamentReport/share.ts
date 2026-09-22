@@ -1,5 +1,10 @@
 import type { Card } from '../cards/types'
 import { SITE_NAME, SITE_ORIGIN } from '../site/constants'
+import {
+  resolveOshiCard,
+  resolveOshiDisplayName,
+  selfOshiEntry,
+} from './oshiEntry'
 import { formatOshiLabel } from './oshi'
 import {
   formatTournamentResultSummary,
@@ -85,15 +90,17 @@ export function buildTournamentShareText(
   const tournamentName = truncate(report.tournamentName, SHARE_FIELD_MAX_LENGTH)
   const placement = truncate(report.placement, SHARE_FIELD_MAX_LENGTH)
   const heading = [tournamentName, placement].filter(Boolean).join(' ')
-  const selfOshi = oshiCards.find(
-    (card) => card.cardNumber === report.selfOshiCardNumber,
-  )
+  const selfEntry = selfOshiEntry(report)
+  const selfOshi = resolveOshiCard(selfEntry, oshiCards)
+  const selfOshiText = selfOshi
+    ? formatOshiLabel(selfOshi, oshiCards)
+    : resolveOshiDisplayName(selfEntry, oshiCards)
   const swissSummary = summarizeTournamentRounds(report.swissRounds)
   const tournamentSummary = summarizeTournamentRounds(report.tournamentRounds)
 
   return [
     heading || undefined,
-    selfOshi ? `使用推し：${formatOshiLabel(selfOshi, oshiCards)}` : undefined,
+    selfOshiText ? `使用推し：${selfOshiText}` : undefined,
     swissSummary.completedRounds > 0
       ? `Swiss ${formatTournamentResultSummary(swissSummary)}`
       : undefined,

@@ -34,6 +34,9 @@ function isRound(value: unknown): value is TournamentRound {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const round = value as Record<string, unknown>
   return (
+    isOptionalString(round.opponentOshiName) &&
+    (round.opponentOshiName === undefined ||
+      round.opponentOshiName.trim().length > 0) &&
     isOptionalString(round.opponentOshiCardNumber) &&
     (round.opponentOshiCardNumber === undefined ||
       round.opponentOshiCardNumber.trim().length > 0) &&
@@ -58,6 +61,9 @@ function isReport(value: unknown): value is TournamentReport {
         Number(report.participantCount) >= 1 &&
         Number(report.participantCount) <= MAX_REPORT_PARTICIPANTS)) &&
     (report.eventDate === undefined || isEventDate(report.eventDate)) &&
+    isOptionalString(report.selfOshiName) &&
+    (report.selfOshiName === undefined ||
+      report.selfOshiName.trim().length > 0) &&
     isOptionalString(report.selfOshiCardNumber) &&
     (report.selfOshiCardNumber === undefined ||
       report.selfOshiCardNumber.trim().length > 0) &&

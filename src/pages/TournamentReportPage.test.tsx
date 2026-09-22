@@ -112,16 +112,14 @@ function makeImageFile(
   }
 }
 
-async function selectOshi(label: string, query: string, optionName: RegExp) {
-  const input = await screen.findByRole('combobox', { name: label })
-  fireEvent.focus(input)
-  fireEvent.change(input, { target: { value: query } })
-  fireEvent.click(await screen.findByRole('option', { name: optionName }))
-}
-
-function listboxFor(combobox: HTMLElement): HTMLElement | null {
-  const id = combobox.getAttribute('aria-controls')
-  return id ? document.getElementById(id) : null
+/**
+ * The oshi field is a plain text input, so setting one is just typing. An exact
+ * card name is what makes the report record the card behind the text.
+ */
+async function setOshi(label: string, text: string) {
+  const input = await screen.findByLabelText(label)
+  fireEvent.change(input, { target: { value: text } })
+  return input
 }
 
 async function openImageDialog(imageOptions: ImageTestOptions = {}) {
@@ -160,25 +158,23 @@ describe('TournamentReportPage', () => {
       '大会名未入力',
     )
     expect(container.querySelector('.report-preview')).toHaveTextContent(
-      '未選択',
+      '未入力',
     )
-    expect(await screen.findByText('推しホロメン候補 4件')).toBeVisible()
-    expect(
-      screen.getByRole('combobox', { name: '自分の推しホロメン（必須）' }),
-    ).toHaveAttribute('type', 'text')
-    expect(
-      screen.getByRole('combobox', { name: '自分の推しホロメン（必須）' }),
-    ).toHaveAttribute('inputmode', 'text')
+    expect(screen.getByLabelText('自分の推しホロメン（必須）')).toHaveAttribute(
+      'type',
+      'text',
+    )
+    expect(screen.getByLabelText('自分の推しホロメン（必須）')).toHaveAttribute(
+      'inputmode',
+      'text',
+    )
   })
 
   it('uses standard text input semantics for opponent Oshi', async () => {
     renderPage()
-    await screen.findByText('推しホロメン候補 4件')
     fireEvent.click(screen.getByRole('button', { name: '＋ 回戦を追加' }))
 
-    const opponent = screen.getByRole('combobox', {
-      name: 'R1 対戦相手の推し',
-    })
+    const opponent = screen.getByLabelText('R1 対戦相手の推し')
     expect(opponent).toHaveAttribute('type', 'text')
     expect(opponent).toHaveAttribute('inputmode', 'text')
   })
@@ -198,11 +194,7 @@ describe('TournamentReportPage', () => {
     fireEvent.change(screen.getByLabelText('開催日（任意）'), {
       target: { value: '2026-09-12' },
     })
-    await selectOshi(
-      '自分の推しホロメン（必須）',
-      'ぺこら',
-      /兎田ぺこら.*PEKORA-001/,
-    )
+    await setOshi('自分の推しホロメン（必須）', '兎田ぺこら')
 
     const preview = container.querySelector('.report-preview')
     expect(preview).toHaveTextContent('ホロカ交流会')
@@ -214,15 +206,10 @@ describe('TournamentReportPage', () => {
 
   it('adds, edits, summarizes, and removes a Swiss round', async () => {
     const { container } = renderPage()
-    await screen.findByText('推しホロメン候補 4件')
     fireEvent.click(screen.getByRole('button', { name: '＋ 回戦を追加' }))
 
     const round = screen.getByRole('group', { name: 'R1' })
-    await selectOshi(
-      'R1 対戦相手の推し',
-      'MARINE-R',
-      /宝鐘マリン 【赤】.*MARINE-R/,
-    )
+    await setOshi('R1 対戦相手の推し', '兎田ぺこら')
     fireEvent.click(
       within(
         within(round).getByRole('group', { name: '先攻・後攻' }),
@@ -245,7 +232,9 @@ describe('TournamentReportPage', () => {
     const preview = container.querySelector('.report-preview')
     expect(preview).toHaveTextContent('Swiss1-0')
     expect(preview).toHaveTextContent('R1')
-    expect(preview).toHaveTextContent('宝鐘マリン 【赤】')
+    // A unique card name still resolves to the card, so the preview keeps
+    // showing the full label rather than only the typed text.
+    expect(preview).toHaveTextContent('兎田ぺこら')
     expect(preview).toHaveTextContent('先攻')
     expect(preview).toHaveTextContent('⚀○')
     expect(preview).toHaveTextContent('○ WIN')
@@ -256,7 +245,6 @@ describe('TournamentReportPage', () => {
 
   it('supports optional initiative, losses, and tournament summaries', async () => {
     const { container } = renderPage()
-    await screen.findByText('推しホロメン候補 4件')
     fireEvent.click(
       screen.getByRole('button', { name: '＋ トーナメント戦を追加' }),
     )
@@ -295,7 +283,6 @@ describe('TournamentReportPage', () => {
 
   it('supports DRAW in Swiss and tournament inputs, previews, and summaries', async () => {
     const { container } = renderPage()
-    await screen.findByText('推しホロメン候補 4件')
     fireEvent.click(screen.getByRole('button', { name: '＋ 回戦を追加' }))
     fireEvent.click(
       screen.getByRole('button', { name: '＋ トーナメント戦を追加' }),
@@ -330,7 +317,6 @@ describe('TournamentReportPage', () => {
 
   it('enforces Swiss max 10 and tournament max 4 in the UI', async () => {
     renderPage()
-    await screen.findByText('推しホロメン候補 4件')
     const addSwiss = screen.getByRole('button', { name: '＋ 回戦を追加' })
     const addTournament = screen.getByRole('button', {
       name: '＋ トーナメント戦を追加',
@@ -345,20 +331,18 @@ describe('TournamentReportPage', () => {
     expect(screen.getByRole('group', { name: 'T4' })).toBeVisible()
   })
 
-  it('searches Oshi by cardNumber and distinguishes same-name colors', async () => {
+  // Two oshi cards are named 宝鐘マリン, so the name alone cannot say which.
+  // Guessing one would file the report under a card nobody chose.
+  it('records a name shared by several cards as text alone', async () => {
     renderPage()
-    const input = await screen.findByRole('combobox', {
-      name: '自分の推しホロメン（必須）',
-    })
-    fireEvent.focus(input)
-    fireEvent.change(input, { target: { value: 'MARINE' } })
+    await setOshi('自分の推しホロメン（必須）', '宝鐘マリン')
 
-    expect(
-      screen.getByRole('option', { name: /宝鐘マリン 【赤】.*MARINE-R/ }),
-    ).toBeVisible()
-    expect(
-      screen.getByRole('option', { name: /宝鐘マリン 【青】.*MARINE-B/ }),
-    ).toBeVisible()
+    expect(screen.getByLabelText('自分の推しホロメン（必須）')).toHaveValue(
+      '宝鐘マリン',
+    )
+    // No colour or card number is invented in the preview.
+    expect(screen.queryByText(/MARINE-R/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/MARINE-B/)).not.toBeInTheDocument()
   })
 
   it('validates participant count and exposes indexable metadata', async () => {
@@ -951,9 +935,8 @@ describe('TournamentReportPage', () => {
     )
   })
 
-  it('gives every Oshi input the same Japanese-IME-safe semantics', async () => {
+  it('gives every Oshi input the same plain text semantics as 大会名', async () => {
     renderPage()
-    await screen.findByText('推しホロメン候補 4件')
 
     fireEvent.click(screen.getByRole('button', { name: '＋ 回戦を追加' }))
     fireEvent.click(screen.getByRole('button', { name: '＋ 回戦を追加' }))
@@ -973,17 +956,12 @@ describe('TournamentReportPage', () => {
       'T1 対戦相手の推し',
       'T2 対戦相手の推し',
     ]
-    const comboboxes = comboboxNames.map((name) =>
-      screen.getByRole('combobox', { name }),
-    )
+    const comboboxes = comboboxNames.map((name) => screen.getByLabelText(name))
     expect(comboboxes).toHaveLength(comboboxNames.length)
 
     comboboxes.forEach((combobox) => {
       expect(combobox).toHaveAttribute('type', 'text')
       expect(combobox).toHaveAttribute('inputmode', 'text')
-      expect(combobox).toHaveAttribute('lang', 'ja')
-      expect(combobox).toHaveAttribute('autocapitalize', 'none')
-      expect(combobox).toHaveAttribute('autocomplete', 'off')
       expect(combobox).not.toHaveAttribute('pattern')
       expect(combobox).not.toHaveAttribute('enterkeyhint')
     })
@@ -994,423 +972,26 @@ describe('TournamentReportPage', () => {
       expect(opponent.getAttribute('inputmode')).toBe(
         selfOshi.getAttribute('inputmode'),
       )
-      expect(opponent.getAttribute('lang')).toBe(selfOshi.getAttribute('lang'))
-      expect(opponent.getAttribute('autocapitalize')).toBe(
-        selfOshi.getAttribute('autocapitalize'),
+    })
+
+    // The whole point of the change: identical to the tournament name field.
+    const tournamentName = screen.getByLabelText('大会名（必須）')
+    comboboxes.forEach((field) => {
+      expect(field.getAttribute('type')).toBe(
+        tournamentName.getAttribute('type'),
       )
-      expect(opponent.getAttribute('autocomplete')).toBe(
-        selfOshi.getAttribute('autocomplete'),
+      expect(field.getAttribute('inputmode')).toBe(
+        tournamentName.getAttribute('inputmode'),
+      )
+      expect(field.getAttribute('lang')).toBe(
+        tournamentName.getAttribute('lang'),
+      )
+      expect(field.getAttribute('autocapitalize')).toBe(
+        tournamentName.getAttribute('autocapitalize'),
+      )
+      expect(field.getAttribute('autocomplete')).toBe(
+        tournamentName.getAttribute('autocomplete'),
       )
     })
-  })
-
-  it('searches and selects Japanese readings in a dynamically added round', async () => {
-    renderPage()
-    await screen.findByText('推しホロメン候補 4件')
-    fireEvent.click(screen.getByRole('button', { name: '＋ 回戦を追加' }))
-    fireEvent.click(screen.getByRole('button', { name: '＋ 回戦を追加' }))
-
-    const opponent = screen.getByRole('combobox', {
-      name: 'R2 対戦相手の推し',
-    })
-    fireEvent.focus(opponent)
-    fireEvent.change(opponent, { target: { value: 'うさだ' } })
-
-    const option = await screen.findByRole('option', { name: /兎田ぺこら/ })
-    fireEvent.click(option)
-    expect(opponent).toHaveValue('兎田ぺこら（PEKORA-001）')
-    expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
-  })
-
-  it('keeps IME composition intact and does not commit on a composing Enter', async () => {
-    renderPage()
-    await screen.findByText('推しホロメン候補 4件')
-    fireEvent.click(screen.getByRole('button', { name: '＋ 回戦を追加' }))
-
-    const opponent = screen.getByRole('combobox', {
-      name: 'R1 対戦相手の推し',
-    })
-    fireEvent.focus(opponent)
-    fireEvent.compositionStart(opponent)
-    fireEvent.change(opponent, { target: { value: 'あず' } })
-    fireEvent.keyDown(opponent, { key: 'Enter', isComposing: true })
-
-    expect(opponent).toHaveValue('あず')
-    expect(screen.getByRole('listbox')).toBeVisible()
-
-    fireEvent.compositionEnd(opponent, { data: 'あずき' })
-    fireEvent.change(opponent, { target: { value: 'あずき' } })
-    expect(opponent).toHaveValue('あずき')
-
-    fireEvent.click(await screen.findByRole('option', { name: /AZKi/ }))
-    expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
-  })
-
-  it('opens the full candidate list on focus before anything is typed', async () => {
-    renderPage()
-    await screen.findByText('推しホロメン候補 4件')
-
-    const selfOshi = screen.getByRole('combobox', {
-      name: '自分の推しホロメン（必須）',
-    })
-    expect(selfOshi).toHaveAttribute('aria-expanded', 'false')
-    expect(listboxFor(selfOshi)).toBeNull()
-
-    fireEvent.focus(selfOshi)
-    expect(selfOshi).toHaveAttribute('aria-expanded', 'true')
-    const listbox = listboxFor(selfOshi)
-    expect(listbox).not.toBeNull()
-    // Every Oshi candidate is reachable without typing a single character.
-    expect(within(listbox as HTMLElement).getAllByRole('option')).toHaveLength(
-      4,
-    )
-    expect(selfOshi).toHaveValue('')
-  })
-
-  it('selects an Oshi by tapping a candidate without any typing', async () => {
-    renderPage()
-    await screen.findByText('推しホロメン候補 4件')
-
-    const selfOshi = screen.getByRole('combobox', {
-      name: '自分の推しホロメン（必須）',
-    })
-    fireEvent.focus(selfOshi)
-    const option = within(listboxFor(selfOshi) as HTMLElement).getByRole(
-      'option',
-      { name: /兎田ぺこら/ },
-    )
-    fireEvent.mouseDown(option)
-    fireEvent.click(option)
-
-    expect(selfOshi).toHaveValue('兎田ぺこら（PEKORA-001）')
-    expect(selfOshi).toHaveAttribute('aria-expanded', 'false')
-    expect(listboxFor(selfOshi)).toBeNull()
-  })
-
-  it('reopens every candidate when refocusing an Oshi that is already set', async () => {
-    renderPage()
-    await screen.findByText('推しホロメン候補 4件')
-
-    const selfOshi = screen.getByRole('combobox', {
-      name: '自分の推しホロメン（必須）',
-    })
-    fireEvent.focus(selfOshi)
-    fireEvent.click(
-      within(listboxFor(selfOshi) as HTMLElement).getByRole('option', {
-        name: /兎田ぺこら/,
-      }),
-    )
-    expect(selfOshi).toHaveValue('兎田ぺこら（PEKORA-001）')
-
-    fireEvent.focus(selfOshi)
-    const reopened = listboxFor(selfOshi)
-    expect(reopened).not.toBeNull()
-    // The displayed label must not filter the list down to the current pick.
-    expect(within(reopened as HTMLElement).getAllByRole('option')).toHaveLength(
-      4,
-    )
-    expect(selfOshi).toHaveValue('兎田ぺこら（PEKORA-001）')
-  })
-
-  it('opens the candidate list on focus for dynamically added rounds', async () => {
-    renderPage()
-    await screen.findByText('推しホロメン候補 4件')
-
-    fireEvent.click(screen.getByRole('button', { name: '＋ 回戦を追加' }))
-    fireEvent.click(screen.getByRole('button', { name: '＋ 回戦を追加' }))
-    fireEvent.click(screen.getByRole('button', { name: '＋ 回戦を追加' }))
-    fireEvent.click(
-      screen.getByRole('button', { name: '＋ トーナメント戦を追加' }),
-    )
-    fireEvent.click(
-      screen.getByRole('button', { name: '＋ トーナメント戦を追加' }),
-    )
-
-    const names = [
-      'R1 対戦相手の推し',
-      'R2 対戦相手の推し',
-      'R3 対戦相手の推し',
-      'T1 対戦相手の推し',
-      'T2 対戦相手の推し',
-    ]
-    names.forEach((name) => {
-      const combobox = screen.getByRole('combobox', { name })
-      expect(combobox).toHaveAttribute('aria-expanded', 'false')
-      fireEvent.focus(combobox)
-      expect(combobox).toHaveAttribute('aria-expanded', 'true')
-      const listbox = listboxFor(combobox)
-      expect(listbox).not.toBeNull()
-      expect(
-        within(listbox as HTMLElement).getAllByRole('option'),
-      ).toHaveLength(4)
-    })
-
-    const secondRound = screen.getByRole('combobox', {
-      name: 'R2 対戦相手の推し',
-    })
-    fireEvent.click(
-      within(listboxFor(secondRound) as HTMLElement).getByRole('option', {
-        name: /AZKi/,
-      }),
-    )
-    expect(secondRound).toHaveValue('AZKi（OSHI-001）')
-  })
-
-  it('narrows the candidate list once a query is typed', async () => {
-    renderPage()
-    await screen.findByText('推しホロメン候補 4件')
-    fireEvent.click(screen.getByRole('button', { name: '＋ 回戦を追加' }))
-
-    const opponent = screen.getByRole('combobox', {
-      name: 'R1 対戦相手の推し',
-    })
-    fireEvent.focus(opponent)
-    expect(
-      within(listboxFor(opponent) as HTMLElement).getAllByRole('option'),
-    ).toHaveLength(4)
-
-    fireEvent.change(opponent, { target: { value: 'うさだ' } })
-    const filtered = within(listboxFor(opponent) as HTMLElement).getAllByRole(
-      'option',
-    )
-    expect(filtered).toHaveLength(1)
-    expect(filtered[0]).toHaveTextContent('兎田ぺこら')
-  })
-
-  it('closes the candidate list on Escape without clearing the value', async () => {
-    renderPage()
-    await screen.findByText('推しホロメン候補 4件')
-
-    const selfOshi = screen.getByRole('combobox', {
-      name: '自分の推しホロメン（必須）',
-    })
-    fireEvent.focus(selfOshi)
-    fireEvent.click(
-      within(listboxFor(selfOshi) as HTMLElement).getByRole('option', {
-        name: /AZKi/,
-      }),
-    )
-    fireEvent.focus(selfOshi)
-    expect(listboxFor(selfOshi)).not.toBeNull()
-
-    fireEvent.keyDown(selfOshi, { key: 'Escape' })
-    expect(selfOshi).toHaveAttribute('aria-expanded', 'false')
-    expect(listboxFor(selfOshi)).toBeNull()
-    expect(selfOshi).toHaveValue('AZKi（OSHI-001）')
-  })
-
-  it('only offers a clear button once the Oshi field has a value', async () => {
-    renderPage()
-    await screen.findByText('推しホロメン候補 4件')
-
-    const selfOshi = screen.getByRole('combobox', {
-      name: '自分の推しホロメン（必須）',
-    })
-    expect(
-      screen.queryByRole('button', {
-        name: '自分の推しホロメン（必須）をクリア',
-      }),
-    ).not.toBeInTheDocument()
-
-    fireEvent.focus(selfOshi)
-    fireEvent.click(
-      within(listboxFor(selfOshi) as HTMLElement).getByRole('option', {
-        name: /AZKi/,
-      }),
-    )
-
-    const clear = screen.getByRole('button', {
-      name: '自分の推しホロメン（必須）をクリア',
-    })
-    expect(clear).toBeVisible()
-    expect(clear).toHaveAttribute('type', 'button')
-  })
-
-  it('clears the selected Oshi from the input, the report, and the listbox', async () => {
-    renderPage()
-    await screen.findByText('推しホロメン候補 4件')
-
-    const selfOshi = screen.getByRole('combobox', {
-      name: '自分の推しホロメン（必須）',
-    })
-    fireEvent.focus(selfOshi)
-    fireEvent.click(
-      within(listboxFor(selfOshi) as HTMLElement).getByRole('option', {
-        name: /AZKi/,
-      }),
-    )
-    expect(selfOshi).toHaveValue('AZKi（OSHI-001）')
-    expect(screen.getByText('使用推し').nextElementSibling).toHaveTextContent(
-      'AZKi',
-    )
-
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: '自分の推しホロメン（必須）をクリア',
-      }),
-    )
-
-    expect(selfOshi).toHaveValue('')
-    // The report itself must drop the card number, not just the input.
-    expect(screen.getByText('使用推し').nextElementSibling).toHaveTextContent(
-      '未選択',
-    )
-    expect(
-      screen.queryByRole('button', {
-        name: '自分の推しホロメン（必須）をクリア',
-      }),
-    ).not.toBeInTheDocument()
-
-    const listbox = listboxFor(selfOshi)
-    expect(listbox).not.toBeNull()
-    const options = within(listbox as HTMLElement).getAllByRole('option')
-    expect(options).toHaveLength(4)
-    options.forEach((option) =>
-      expect(option).toHaveAttribute('aria-selected', 'false'),
-    )
-    expect(selfOshi).toHaveFocus()
-    expect(selfOshi).toHaveAttribute('aria-expanded', 'true')
-  })
-
-  it('clears a half-typed query as well as a selection', async () => {
-    renderPage()
-    await screen.findByText('推しホロメン候補 4件')
-    fireEvent.click(screen.getByRole('button', { name: '＋ 回戦を追加' }))
-
-    const opponent = screen.getByRole('combobox', {
-      name: 'R1 対戦相手の推し',
-    })
-    fireEvent.focus(opponent)
-    fireEvent.change(opponent, { target: { value: 'うさだ' } })
-    expect(
-      within(listboxFor(opponent) as HTMLElement).getAllByRole('option'),
-    ).toHaveLength(1)
-
-    fireEvent.click(
-      screen.getByRole('button', { name: 'R1 対戦相手の推しをクリア' }),
-    )
-
-    expect(opponent).toHaveValue('')
-    expect(
-      within(listboxFor(opponent) as HTMLElement).getAllByRole('option'),
-    ).toHaveLength(4)
-  })
-
-  it('clears every Oshi field including dynamically added rounds', async () => {
-    renderPage()
-    await screen.findByText('推しホロメン候補 4件')
-
-    fireEvent.click(screen.getByRole('button', { name: '＋ 回戦を追加' }))
-    fireEvent.click(screen.getByRole('button', { name: '＋ 回戦を追加' }))
-    fireEvent.click(
-      screen.getByRole('button', { name: '＋ トーナメント戦を追加' }),
-    )
-    fireEvent.click(
-      screen.getByRole('button', { name: '＋ トーナメント戦を追加' }),
-    )
-
-    const names = [
-      '自分の推しホロメン（必須）',
-      'R1 対戦相手の推し',
-      'R2 対戦相手の推し',
-      'T1 対戦相手の推し',
-      'T2 対戦相手の推し',
-    ]
-
-    names.forEach((name) => {
-      const combobox = screen.getByRole('combobox', { name })
-      expect(
-        screen.queryByRole('button', { name: `${name}をクリア` }),
-      ).not.toBeInTheDocument()
-
-      fireEvent.focus(combobox)
-      fireEvent.click(
-        within(listboxFor(combobox) as HTMLElement).getByRole('option', {
-          name: /兎田ぺこら/,
-        }),
-      )
-      expect(combobox).toHaveValue('兎田ぺこら（PEKORA-001）')
-
-      fireEvent.click(screen.getByRole('button', { name: `${name}をクリア` }))
-      expect(combobox).toHaveValue('')
-      expect(
-        screen.queryByRole('button', { name: `${name}をクリア` }),
-      ).not.toBeInTheDocument()
-    })
-  })
-
-  it('offers no clear button while the card data is still loading', () => {
-    renderPage()
-
-    const selfOshi = screen.getByRole('combobox', {
-      name: '自分の推しホロメン（必須）',
-    })
-    expect(selfOshi).toBeDisabled()
-    expect(
-      screen.queryByRole('button', {
-        name: '自分の推しホロメン（必須）をクリア',
-      }),
-    ).not.toBeInTheDocument()
-  })
-
-  it('lists candidates in Japanese reading order in every Oshi field', async () => {
-    renderPage()
-    await screen.findByText('推しホロメン候補 4件')
-
-    fireEvent.click(screen.getByRole('button', { name: '＋ 回戦を追加' }))
-    fireEvent.click(screen.getByRole('button', { name: '＋ 回戦を追加' }))
-    fireEvent.click(
-      screen.getByRole('button', { name: '＋ トーナメント戦を追加' }),
-    )
-    fireEvent.click(
-      screen.getByRole('button', { name: '＋ トーナメント戦を追加' }),
-    )
-
-    // These fixtures give AZKi and both 宝鐘マリン the reading あずき, so this
-    // exercises all three tie-breaks at once: reading (あずき before
-    // うさだぺこら), then name, then the canonical colour order (赤 before 青).
-    const expected = [
-      'AZKi（OSHI-001）',
-      '宝鐘マリン 【赤】（MARINE-R）',
-      '宝鐘マリン 【青】（MARINE-B）',
-      '兎田ぺこら（PEKORA-001）',
-    ]
-
-    const names = [
-      '自分の推しホロメン（必須）',
-      'R1 対戦相手の推し',
-      'R2 対戦相手の推し',
-      'T1 対戦相手の推し',
-      'T2 対戦相手の推し',
-    ]
-
-    names.forEach((name) => {
-      const combobox = screen.getByRole('combobox', { name })
-      fireEvent.focus(combobox)
-      const options = within(listboxFor(combobox) as HTMLElement).getAllByRole(
-        'option',
-      )
-      expect(options.map((option) => option.textContent)).toEqual(expected)
-    })
-  })
-
-  it('keeps the reading order after the candidates are filtered', async () => {
-    renderPage()
-    await screen.findByText('推しホロメン候補 4件')
-    fireEvent.click(screen.getByRole('button', { name: '＋ 回戦を追加' }))
-
-    const opponent = screen.getByRole('combobox', {
-      name: 'R1 対戦相手の推し',
-    })
-    fireEvent.focus(opponent)
-    fireEvent.change(opponent, { target: { value: 'まりん' } })
-
-    const options = within(listboxFor(opponent) as HTMLElement).getAllByRole(
-      'option',
-    )
-    expect(options.map((option) => option.textContent)).toEqual([
-      '宝鐘マリン 【赤】（MARINE-R）',
-      '宝鐘マリン 【青】（MARINE-B）',
-    ])
   })
 })

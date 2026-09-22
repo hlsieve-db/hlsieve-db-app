@@ -4,7 +4,6 @@ import { Link, useSearchParams } from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
 import { TournamentLocalNavigation } from '../components/TournamentLocalNavigation'
-import { OshiCombobox } from '../components/tournament/OshiCombobox'
 import { RoundEditor } from '../components/tournament/RoundEditor'
 import {
   TournamentReportImageDialog,
@@ -13,6 +12,12 @@ import {
 import type { Card, CardsDataFile } from '../domain/cards/types'
 import { TOURNAMENT_REPORT_METADATA } from '../domain/site/metadata'
 import { formatTournamentReportText } from '../domain/tournamentReport/formatText'
+import {
+  buildOshiEntry,
+  resolveOshiCard,
+  resolveOshiDisplayName,
+  selfOshiEntry,
+} from '../domain/tournamentReport/oshiEntry'
 import {
   DEFAULT_TOURNAMENT_EXPORT_PRESET,
   TOURNAMENT_EXPORT_PRESETS,
@@ -38,6 +43,7 @@ import {
   createDefaultTournamentReport,
   createTournamentRound,
   formatTournamentResultSummary,
+  MAX_OSHI_NAME_LENGTH,
   MAX_PLACEMENT_LENGTH,
   MAX_REPORT_PARTICIPANTS,
   MAX_SWISS_REPORT_ROUNDS,
@@ -319,12 +325,21 @@ export function TournamentReportPage({
     [cardData],
   )
   const validationErrors = useMemo(
-    () => validateTournamentReport(report, oshiCards),
-    [oshiCards, report],
+    () => validateTournamentReport(report),
+    [report],
   )
-  const selfOshi = oshiCards.find(
-    (card) => card.cardNumber === report.selfOshiCardNumber,
-  )
+  const selfOshi = resolveOshiCard(selfOshiEntry(report), oshiCards)
+  /**
+   * Clears the stored card number whenever the text stops naming one card, so
+   * an edited report never keeps a card the reporter no longer typed.
+   */
+  const buildSelfOshi = (value: string, cards: readonly Card[]) => {
+    const entry = buildOshiEntry(value, cards)
+    return {
+      selfOshiName: entry.name,
+      selfOshiCardNumber: entry.cardNumber,
+    }
+  }
   const swissSummary = summarizeTournamentRounds(report.swissRounds)
   const tournamentSummary = summarizeTournamentRounds(report.tournamentRounds)
   const reportText = useMemo(
@@ -648,27 +663,31 @@ export function TournamentReportPage({
               </label>
             </div>
 
-            <OshiCombobox
-              label="自分の推しホロメン（必須）"
-              cards={oshiCards}
-              selectedCardNumber={report.selfOshiCardNumber}
-              disabled={cardData.status !== 'loaded'}
-              onChange={(selfOshiCardNumber) =>
-                setReport((current) => ({ ...current, selfOshiCardNumber }))
-              }
-            />
-            {cardData.status === 'loaded' && (
-              <p className="report-field-help">
-                推しホロメン候補 {oshiCards.length}件
-              </p>
-            )}
-            {cardData.status === 'loaded' &&
-              report.selfOshiCardNumber &&
-              !selfOshi && (
-                <p className="report-load-error">
-                  保存された推しは現在のカードデータでは確認できません。記録は保持されています。
-                </p>
-              )}
+            <div className="report-basic-fields">
+              <label>
+                <span>自分の推しホロメン（必須）</span>
+                {/* A plain text field, matching the tournament name above in
+                    attributes and styling. Typing a card name still records the
+                    card behind the scenes, which is what keeps the statistics
+                    grouped by oshi. */}
+                <input
+                  type="text"
+                  inputMode="text"
+                  maxLength={MAX_OSHI_NAME_LENGTH}
+                  value={
+                    resolveOshiDisplayName(selfOshiEntry(report), oshiCards) ??
+                    ''
+                  }
+                  onChange={(event) => {
+                    const value = event.currentTarget.value
+                    setReport((current) => ({
+                      ...current,
+                      ...buildSelfOshi(value, oshiCards),
+                    }))
+                  }}
+                />
+              </label>
+            </div>
             {cardData.status === 'error' && (
               <p className="report-load-error" role="alert">
                 カードデータを読み込めませんでした。
@@ -790,7 +809,12 @@ export function TournamentReportPage({
               <div>
                 <dt>使用推し</dt>
                 <dd>
-                  {selfOshi ? formatOshiLabel(selfOshi, oshiCards) : '未選択'}
+                  {selfOshi
+                    ? formatOshiLabel(selfOshi, oshiCards)
+                    : (resolveOshiDisplayName(
+                        selfOshiEntry(report),
+                        oshiCards,
+                      ) ?? '未入力')}
                 </dd>
               </div>
               {Number.isFinite(report.participantCount) && (

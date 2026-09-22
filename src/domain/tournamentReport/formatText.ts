@@ -1,4 +1,10 @@
 import type { Card } from '../cards/types'
+import {
+  opponentOshiEntry,
+  resolveOshiCard,
+  resolveOshiDisplayName,
+  selfOshiEntry,
+} from './oshiEntry'
 import { formatOshiLabel } from './oshi'
 import {
   formatTournamentResultSummary,
@@ -35,12 +41,16 @@ function formatRoundLine(
   round: TournamentRound,
   oshiCards: readonly Card[],
 ): string {
-  const opponent = oshiCards.find(
-    (card) => card.cardNumber === round.opponentOshiCardNumber,
-  )
+  const entry = opponentOshiEntry(round)
+  const opponent = resolveOshiCard(entry, oshiCards)
   return [
     label,
-    opponent ? formatOshiLabel(opponent, oshiCards) : undefined,
+    // The card label carries the colours and number, so it is preferred where
+    // the entry still names a card. Otherwise the typed text is what was
+    // recorded and is printed as it stands.
+    opponent
+      ? formatOshiLabel(opponent, oshiCards)
+      : resolveOshiDisplayName(entry, oshiCards),
     round.playOrder ? PLAY_ORDER_TEXT[round.playOrder] : undefined,
     round.initiativeChoiceResult
       ? INITIATIVE_TEXT[round.initiativeChoiceResult]
@@ -83,6 +93,7 @@ export function hasTournamentReportTextContent(
     report.placement.trim() ||
     report.participantCount !== undefined ||
     report.eventDate ||
+    report.selfOshiName?.trim() ||
     report.selfOshiCardNumber ||
     report.swissRounds.some(isNonEmptyRound) ||
     report.tournamentRounds.some(isNonEmptyRound),
@@ -106,12 +117,12 @@ export function formatTournamentReportText(
       ? `開催日：${formatEventDate(report.eventDate)}`
       : undefined,
   ].filter((value): value is string => value !== undefined)
-  const selfOshi = oshiCards.find(
-    (card) => card.cardNumber === report.selfOshiCardNumber,
-  )
-  const identitySection = selfOshi
-    ? `使用推し：${formatOshiLabel(selfOshi, oshiCards)}`
-    : undefined
+  const selfEntry = selfOshiEntry(report)
+  const selfOshi = resolveOshiCard(selfEntry, oshiCards)
+  const selfOshiText = selfOshi
+    ? formatOshiLabel(selfOshi, oshiCards)
+    : resolveOshiDisplayName(selfEntry, oshiCards)
+  const identitySection = selfOshiText ? `使用推し：${selfOshiText}` : undefined
   const swissSection = formatRoundSection(
     'Swiss',
     'R',

@@ -76,7 +76,6 @@ describe('tournament report domain', () => {
         validReport({
           swissRounds: [{}, { initiativeChoiceResult: 'won_choice' }],
         }),
-        [oshi],
       ),
     ).toEqual([])
   })
@@ -85,7 +84,6 @@ describe('tournament report domain', () => {
     expect(
       validateTournamentReport(
         validReport({ swissRounds: Array.from({ length: 11 }, () => ({})) }),
-        [oshi],
       ),
     ).toContain('Swissは最大10回戦です。')
     expect(
@@ -93,7 +91,6 @@ describe('tournament report domain', () => {
         validReport({
           tournamentRounds: Array.from({ length: 5 }, () => ({})),
         }),
-        [oshi],
       ),
     ).toContain('決勝トーナメントは最大4回戦です。')
   })
@@ -114,16 +111,61 @@ describe('tournament report domain', () => {
         },
       ],
     })
-    const errors = validateTournamentReport(report, [oshi])
+    const errors = validateTournamentReport(report)
 
     expect(errors).toContain('大会名を入力してください。')
     expect(errors).toContain('順位は50文字以内で入力してください。')
     expect(errors).toContain('参加人数は1〜100,000の整数で入力してください。')
     expect(errors).toContain('開催日を正しい日付で入力してください。')
-    expect(errors).toContain('自分の推しホロメンが無効です。')
-    expect(errors).toContain('R1の対戦相手の推しが無効です。')
     expect(errors).toContain('R1の先攻・後攻が無効です。')
     expect(errors).toContain('R1の手番選択権が無効です。')
     expect(errors).toContain('R1の勝敗が無効です。')
+    // The oshi is free text now, so a card number that matches nothing is not
+    // an error. A report already written stays valid when a card leaves the
+    // data, which is the point of not validating against the card list.
+    expect(errors).not.toContain('自分の推しホロメンが無効です。')
+    expect(errors).not.toContain('R1の対戦相手の推しが無効です。')
+  })
+
+  describe('the oshi is required but free text', () => {
+    it('accepts a name that matches no card', () => {
+      const errors = validateTournamentReport(
+        validReport({
+          selfOshiName: 'しらぬひと',
+          selfOshiCardNumber: undefined,
+        }),
+      )
+
+      expect(errors).toEqual([])
+    })
+
+    it('still requires something to be entered', () => {
+      const errors = validateTournamentReport(
+        validReport({ selfOshiName: undefined, selfOshiCardNumber: undefined }),
+      )
+
+      expect(errors).toContain('自分の推しホロメンを入力してください。')
+    })
+
+    it('rejects whitespace alone', () => {
+      const errors = validateTournamentReport(
+        validReport({ selfOshiName: '   ', selfOshiCardNumber: undefined }),
+      )
+
+      expect(errors).toContain('自分の推しホロメンを入力してください。')
+    })
+
+    // A report saved before the field became free text carries only a number,
+    // and was valid then, so it stays valid now.
+    it('accepts an older report holding only a card number', () => {
+      const errors = validateTournamentReport(
+        validReport({
+          selfOshiName: undefined,
+          selfOshiCardNumber: oshi.cardNumber,
+        }),
+      )
+
+      expect(errors).toEqual([])
+    })
   })
 })

@@ -1,4 +1,3 @@
-import type { Card } from '../cards/types'
 import type {
   TournamentReport,
   TournamentResultSummary,
@@ -9,6 +8,7 @@ export const MAX_SWISS_REPORT_ROUNDS = 10
 export const MAX_TOURNAMENT_REPORT_ROUNDS = 4
 export const MAX_TOURNAMENT_NAME_LENGTH = 100
 export const MAX_PLACEMENT_LENGTH = 50
+export const MAX_OSHI_NAME_LENGTH = 50
 export const MAX_REPORT_PARTICIPANTS = 100_000
 
 const PLAY_ORDERS = new Set(['first', 'second'])
@@ -68,17 +68,17 @@ function isValidIsoDate(value: string): boolean {
   )
 }
 
-function validateRound(
-  round: TournamentRound,
-  label: string,
-  validOshiCardNumbers: ReadonlySet<string>,
-): string[] {
+function validateRound(round: TournamentRound, label: string): string[] {
   const errors: string[] = []
+  // The opponent oshi is free text, so there is nothing to validate it
+  // against. A card number may still be attached when the text named one, and
+  // an older report may carry one on its own; neither has to resolve, because
+  // a card can leave the data without invalidating a report already written.
   if (
-    round.opponentOshiCardNumber !== undefined &&
-    !validOshiCardNumbers.has(round.opponentOshiCardNumber)
+    round.opponentOshiName !== undefined &&
+    round.opponentOshiName.trim().length === 0
   ) {
-    errors.push(`${label}の対戦相手の推しが無効です。`)
+    errors.push(`${label}の対戦相手の推しを入力してください。`)
   }
   if (round.playOrder !== undefined && !PLAY_ORDERS.has(round.playOrder)) {
     errors.push(`${label}の先攻・後攻が無効です。`)
@@ -95,16 +95,12 @@ function validateRound(
   return errors
 }
 
-export function validateTournamentReport(
-  report: TournamentReport,
-  oshiCards: readonly Card[],
-): string[] {
+/**
+ * The oshi is free text, so there is no card list to validate against and none
+ * is taken. A report stays valid when a card leaves the data.
+ */
+export function validateTournamentReport(report: TournamentReport): string[] {
   const errors: string[] = []
-  const validOshiCardNumbers = new Set(
-    oshiCards
-      .filter((card) => card.cardType === 'oshi')
-      .map((card) => card.cardNumber),
-  )
 
   if (report.tournamentName.trim().length === 0) {
     errors.push('大会名を入力してください。')
@@ -129,10 +125,11 @@ export function validateTournamentReport(
   if (report.eventDate !== undefined && !isValidIsoDate(report.eventDate)) {
     errors.push('開催日を正しい日付で入力してください。')
   }
-  if (!report.selfOshiCardNumber) {
-    errors.push('自分の推しホロメンを選択してください。')
-  } else if (!validOshiCardNumbers.has(report.selfOshiCardNumber)) {
-    errors.push('自分の推しホロメンが無効です。')
+  // Still required, but any non-empty text satisfies it now. An older report
+  // carrying only a card number counts as filled in, so reports that were
+  // valid before stay valid.
+  if (!report.selfOshiName?.trim() && !report.selfOshiCardNumber) {
+    errors.push('自分の推しホロメンを入力してください。')
   }
   if (report.swissRounds.length > MAX_SWISS_REPORT_ROUNDS) {
     errors.push(`Swissは最大${MAX_SWISS_REPORT_ROUNDS}回戦です。`)
@@ -144,10 +141,10 @@ export function validateTournamentReport(
   }
 
   report.swissRounds.forEach((round, index) => {
-    errors.push(...validateRound(round, `R${index + 1}`, validOshiCardNumbers))
+    errors.push(...validateRound(round, `R${index + 1}`))
   })
   report.tournamentRounds.forEach((round, index) => {
-    errors.push(...validateRound(round, `T${index + 1}`, validOshiCardNumbers))
+    errors.push(...validateRound(round, `T${index + 1}`))
   })
 
   return errors
