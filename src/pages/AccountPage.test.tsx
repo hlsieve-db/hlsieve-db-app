@@ -52,6 +52,43 @@ const signInButton = () =>
 const sendButton = () =>
   screen.getByRole('button', { name: 'ログインリンクをメールで送信' })
 
+// The panel itself is covered in CloudSyncSetup.test.tsx; these check only
+// that the page shows it to the right visitors.
+describe('the cloud sync panel on the account page', () => {
+  it('is absent for a signed out visitor', async () => {
+    renderAccount(fakeAuthSource(undefined).source)
+    await screen.findByRole('heading', { name: 'ログイン' })
+
+    expect(
+      screen.queryByRole('heading', { name: 'クラウド同期' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('is absent when Cloud Sync is not configured at all', async () => {
+    renderAccount(null)
+    await screen.findByRole('heading', {
+      name: 'アカウント機能は利用できません',
+    })
+
+    expect(
+      screen.queryByRole('heading', { name: 'クラウド同期' }),
+    ).not.toBeInTheDocument()
+  })
+
+  // Signed in, but with no cloud repository in the surrounding provider, the
+  // panel renders nothing of its own accord. The page still must not crash.
+  it('renders for a signed in account without breaking the page', async () => {
+    renderAccount(fakeAuthSource({ id: 'user-a' }).source)
+
+    expect(
+      await screen.findByRole('heading', { name: 'ログイン中' }),
+    ).toBeVisible()
+    expect(
+      screen.getByText('デッキはまだクラウドへ送信されていません。'),
+    ).toBeVisible()
+  })
+})
+
 describe('account page without Cloud Sync configured', () => {
   it('explains the situation and offers nothing to press', async () => {
     renderAccount(null)

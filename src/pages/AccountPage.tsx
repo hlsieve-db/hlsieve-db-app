@@ -3,6 +3,7 @@ import { useState, type FormEvent } from 'react'
 import { useAuth } from '../auth/useAuth'
 import type { AuthFailureReason } from '../auth/authSource'
 import { AppNavigation } from '../components/AppNavigation'
+import { CloudSyncSetup } from '../components/account/CloudSyncSetup'
 import { ACCOUNT_METADATA } from '../domain/site/metadata'
 import { useDocumentMetadata } from '../hooks/useDocumentMetadata'
 
@@ -119,6 +120,12 @@ export function AccountPage() {
               {pending === 'sign-out' ? 'ログアウトしています…' : 'ログアウト'}
             </button>
           </section>
+        )}
+
+        {/* Only for a signed in account. The panel renders nothing of its own
+            accord when there is no cloud repository. */}
+        {isCloudSyncAvailable && state.status === 'authenticated' && (
+          <CloudSyncSetup />
         )}
 
         {isCloudSyncAvailable && state.status !== 'authenticated' && (
