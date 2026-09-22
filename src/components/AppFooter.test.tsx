@@ -27,5 +27,10 @@ describe('AppFooter', () => {
       'href',
       '/contact',
     )
+    // Google requires the OAuth privacy policy to be reachable from the home
+    // page, and the footer is on every page.
+    expect(
+      screen.getByRole('link', { name: 'プライバシーポリシー' }),
+    ).toHaveAttribute('href', '/privacy')
   })
 })

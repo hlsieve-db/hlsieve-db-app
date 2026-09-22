@@ -19,6 +19,7 @@ export function buildSitemap(cardNumbers: readonly string[]): string {
     '/tournament-report',
     '/updates',
     '/contact',
+    '/privacy',
     ...[...new Set(cardNumbers)]
       .sort((left, right) => left.localeCompare(right, 'en'))
       .map((cardNumber) => `/cards/${encodeURIComponent(cardNumber)}`),

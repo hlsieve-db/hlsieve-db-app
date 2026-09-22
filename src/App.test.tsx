@@ -143,6 +143,34 @@ describe('App', () => {
     )
   })
 
+  // Google fetches this page during OAuth verification, unauthenticated, and
+  // reaches it from the home page footer.
+  it('routes to the privacy policy from the footer without signing in', () => {
+    render(
+      <MemoryRouter initialEntries={['/cards']}>
+        <App />
+      </MemoryRouter>,
+    )
+
+    fireEvent.click(screen.getByRole('link', { name: 'プライバシーポリシー' }))
+    expect(
+      screen.getByRole('heading', { name: 'プライバシーポリシー' }),
+    ).toBeVisible()
+    expect(document.title).toBe('プライバシーポリシー | HLSieve DB')
+    expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute(
+      'content',
+      'index,follow',
+    )
+    // Nothing gates the page: the policy body itself renders while signed out,
+    // with no sign-in control standing in front of it.
+    expect(
+      screen.getByText(/Googleアカウントのパスワードは取得も保存もしません/),
+    ).toBeVisible()
+    expect(
+      screen.queryByRole('button', { name: /ログイン/ }),
+    ).not.toBeInTheDocument()
+  })
+
   it('canonicalizes parameterized card searches to the Cards route', () => {
     render(
       <MemoryRouter initialEntries={['/cards?q=AZKi&page=2']}>

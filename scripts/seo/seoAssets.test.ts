@@ -24,8 +24,8 @@ describe('production SEO assets', () => {
 
     expect(cards.cards).toHaveLength(1381)
     expect(sitemap).toBe(expected)
-    expect(locations).toHaveLength(1389)
-    expect(new Set(locations)).toHaveProperty('size', 1389)
+    expect(locations).toHaveLength(1390)
+    expect(new Set(locations)).toHaveProperty('size', 1390)
     expect(locations[0]).toBe(`${SITE_ORIGIN}/cards`)
     expect(locations[1]).toBe(`${SITE_ORIGIN}/qa`)
     expect(locations[2]).toBe(`${SITE_ORIGIN}/probability`)
@@ -34,7 +34,8 @@ describe('production SEO assets', () => {
     expect(locations[5]).toBe(`${SITE_ORIGIN}/tournament-report`)
     expect(locations[6]).toBe(`${SITE_ORIGIN}/updates`)
     expect(locations[7]).toBe(`${SITE_ORIGIN}/contact`)
-    expect(locations.slice(8)).toEqual(
+    expect(locations[8]).toBe(`${SITE_ORIGIN}/privacy`)
+    expect(locations.slice(9)).toEqual(
       cards.cards
         .map((card) => `${SITE_ORIGIN}/cards/${card.cardNumber}`)
         .sort((left, right) => left.localeCompare(right, 'en')),

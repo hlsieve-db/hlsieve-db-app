@@ -130,6 +130,17 @@ export const DISCLAIMER_METADATA: PageMetadata = {
   robots: 'noindex,follow',
 }
 
+// Indexable, unlike the disclaimer: Google requires the OAuth privacy policy to
+// be reachable by anyone without signing in, and nothing here argues for
+// keeping it out of search.
+export const PRIVACY_METADATA: PageMetadata = {
+  title: 'プライバシーポリシー | HLSieve DB',
+  description:
+    'HLSieve DBにおける利用者情報およびGoogleログイン情報の取扱いについて説明します。',
+  canonicalPath: '/privacy',
+  robots: 'index,follow',
+}
+
 export const CONTACT_METADATA: PageMetadata = {
   title: 'お問い合わせ | HLSieve DB',
   description:

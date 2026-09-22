@@ -12,6 +12,7 @@ import {
   FAVORITES_METADATA,
   RECENTLY_VIEWED_METADATA,
   MULLIGAN_METADATA,
+  PRIVACY_METADATA,
   PROBABILITY_METADATA,
   QA_SEARCH_METADATA,
   resolvePageMetadata,
@@ -206,6 +207,11 @@ export function buildPrerenderRoutes(
       routePath: '/contact',
       outputPath: 'contact.html',
       html: renderMetadataHtml(template, CONTACT_METADATA),
+    },
+    {
+      routePath: '/privacy',
+      outputPath: 'privacy.html',
+      html: renderMetadataHtml(template, PRIVACY_METADATA),
     },
     {
       routePath: '/deck-compare',

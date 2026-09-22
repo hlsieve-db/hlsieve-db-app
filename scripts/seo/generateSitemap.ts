@@ -10,11 +10,9 @@ const sitemapPath = resolve('public/sitemap.xml')
 const robotsPath = resolve('public/robots.txt')
 const cardsData = JSON.parse(await readFile(cardsPath, 'utf8')) as CardsDataFile
 
-await writeFile(
-  sitemapPath,
-  buildSitemap(cardsData.cards.map((card) => card.cardNumber)),
-  'utf8',
-)
+const sitemap = buildSitemap(cardsData.cards.map((card) => card.cardNumber))
+
+await writeFile(sitemapPath, sitemap, 'utf8')
 await writeFile(
   robotsPath,
   `User-agent: *\nAllow: /\n\nSitemap: ${SITE_ORIGIN}/sitemap.xml\n`,
@@ -22,5 +20,7 @@ await writeFile(
 )
 
 console.log(
-  `Generated ${sitemapPath} with ${cardsData.cards.length + 7} URLs and ${robotsPath}.`,
+  // Counted from the output rather than from the card total plus a literal,
+  // which was already one short of the static paths it stood for.
+  `Generated ${sitemapPath} with ${sitemap.match(/<loc>/g)?.length ?? 0} URLs and ${robotsPath}.`,
 )

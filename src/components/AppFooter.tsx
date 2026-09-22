@@ -14,6 +14,8 @@ export function AppFooter() {
         <Link to="/contact">お問い合わせ</Link>
         {' · '}
         <Link to="/disclaimer">利用条件</Link>
+        {' · '}
+        <Link to="/privacy">プライバシーポリシー</Link>
       </p>
     </footer>
   )
