@@ -45,20 +45,20 @@ function memoryStorage(initial: Record<string, string> = {}) {
   }
 }
 
-/** Every mutation is present so a test can prove it was never called. */
 function cloudRepository(
   listAll: () => Promise<CloudDeckResult<CloudDeckRecord[]>>,
+  upsert: (deck: Deck) => Promise<CloudDeckResult<CloudDeckRecord>> = async (
+    deck,
+  ) => ({ ok: true as const, value: cloudRecord(deck.id) }),
 ): CloudDeckRepository {
   return {
     listAll: vi.fn(listAll),
     listUpdatedSince: vi.fn(async () => ({ ok: true as const, value: [] })),
-    upsert: vi.fn(async () => ({
-      ok: false as const,
-      reason: 'failed' as const,
-    })),
+    upsert: vi.fn(upsert),
+    // Present so a test can prove the first sync never deletes anything.
     tombstone: vi.fn(async () => ({
       ok: false as const,
-      reason: 'failed' as const,
+      reason: 'not-found' as const,
     })),
   }
 }
@@ -166,30 +166,58 @@ describe('starting setup', () => {
 })
 
 describe('enabling sync', () => {
-  it('records the choice for this account', async () => {
-    const { storage, namespace } = renderSetup()
+  it('uploads the local decks and then records the choice', async () => {
+    const { storage, namespace, cloudDecks } = renderSetup()
     fireEvent.click(setupButton())
     fireEvent.click(
       await screen.findByRole('button', { name: 'クラウド同期を有効にする' }),
     )
 
+    expect(await screen.findByText('有効')).toBeVisible()
     expect(readCloudSyncState(storage, namespace).status).toBe('enabled')
-    expect(screen.getByText('有効')).toBeVisible()
+    expect(cloudDecks?.upsert).toHaveBeenCalledTimes(2)
+    expect(screen.getByText('デッキ2個を保存しました。')).toBeVisible()
   })
 
-  // Enabling prepares; it does not sync. Saying otherwise would be a claim the
-  // code cannot back until a later phase.
-  it('says it is ready rather than done', async () => {
+  it('says what it actually did, without overclaiming', async () => {
     renderSetup()
     fireEvent.click(setupButton())
     fireEvent.click(
       await screen.findByRole('button', { name: 'クラウド同期を有効にする' }),
     )
+    await screen.findByText('有効')
 
-    expect(screen.getByText(/同期の準備ができました/)).toBeVisible()
+    expect(screen.getByText('クラウド同期が有効になりました。')).toBeVisible()
+    // Nothing is downloaded, so it must not suggest the two sides now match.
     const text = document.body.textContent ?? ''
-    expect(text).not.toContain('同期完了')
-    expect(text).not.toContain('現在同期されています')
+    expect(text).not.toContain('同期が完了')
+    expect(text).not.toContain('最新の状態')
+  })
+
+  it('shows progress while the decks are going up', async () => {
+    let release: (() => void) | undefined
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const cloudDecks = cloudRepository(
+      async () => ({ ok: true, value: [] }),
+      async (value) => {
+        await gate
+        return { ok: true as const, value: cloudRecord(value.id) }
+      },
+    )
+    renderSetup({ cloudDecks, localDecks: [deck('a'), deck('b'), deck('c')] })
+
+    fireEvent.click(setupButton())
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'クラウド同期を有効にする' }),
+    )
+
+    expect(await screen.findByText(/同期しています/)).toBeVisible()
+    expect(screen.getByText(/0 . 3/)).toBeVisible()
+
+    release?.()
+    expect(await screen.findByText('有効')).toBeVisible()
   })
 
   it('shows the enabled state again on a later render', () => {
@@ -202,6 +230,99 @@ describe('enabling sync', () => {
     expect(
       screen.queryByRole('button', { name: 'クラウド同期を設定' }),
     ).not.toBeInTheDocument()
+  })
+})
+
+describe('when an upload fails', () => {
+  const failingUpload = (reason: string) =>
+    cloudRepository(
+      async () => ({ ok: true, value: [] }),
+      async () => ({ ok: false as const, reason: reason as never }),
+    )
+
+  // A partial upload must not leave the account believing it is syncing.
+  it('does not enable sync, and offers a retry', async () => {
+    const { storage, namespace } = renderSetup({
+      cloudDecks: failingUpload('network'),
+    })
+    fireEvent.click(setupButton())
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'クラウド同期を有効にする' }),
+    )
+
+    expect(await screen.findByText('同期できませんでした。')).toBeVisible()
+    expect(screen.getByText('クラウドに接続できませんでした。')).toBeVisible()
+    expect(readCloudSyncState(storage, namespace).status).toBe('not_started')
+    expect(screen.getByText('未設定')).toBeVisible()
+    expect(screen.getByRole('button', { name: '再試行' })).toBeVisible()
+  })
+
+  it('keeps the decks that did go up, and can be retried', async () => {
+    let failing = true
+    const cloudDecks = cloudRepository(
+      async () => ({ ok: true, value: [] }),
+      async (value) =>
+        failing && value.id === 'b'
+          ? { ok: false as const, reason: 'network' as const }
+          : { ok: true as const, value: cloudRecord(value.id) },
+    )
+    const { storage, namespace } = renderSetup({
+      cloudDecks,
+      localDecks: [deck('a'), deck('b')],
+    })
+
+    fireEvent.click(setupButton())
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'クラウド同期を有効にする' }),
+    )
+    await screen.findByText('同期できませんでした。')
+    expect(readCloudSyncState(storage, namespace).status).toBe('not_started')
+
+    failing = false
+    fireEvent.click(screen.getByRole('button', { name: '再試行' }))
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'クラウド同期を有効にする' }),
+    )
+
+    expect(await screen.findByText('有効')).toBeVisible()
+    expect(readCloudSyncState(storage, namespace).status).toBe('enabled')
+    // a is written twice across the two runs, which an upsert makes harmless.
+    expect(cloudDecks.upsert).toHaveBeenCalledTimes(4)
+  })
+
+  it('shows no raw database detail', async () => {
+    renderSetup({ cloudDecks: failingUpload('forbidden') })
+    fireEvent.click(setupButton())
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'クラウド同期を有効にする' }),
+    )
+    await screen.findByText('同期できませんでした。')
+
+    const text = document.body.textContent ?? ''
+    ;['PGRST', 'supabase', '42501', 'permission denied'].forEach((fragment) =>
+      expect(text).not.toContain(fragment),
+    )
+  })
+})
+
+// The first sync happens once. An account that already enabled it is not
+// asked again, and nothing is re-uploaded on a later visit.
+describe('an account that already enabled sync', () => {
+  it('is not offered the first sync again, and uploads nothing', () => {
+    const storage = memoryStorage({
+      'hlsieve:cloud-sync--user-a': '{"version":1,"status":"enabled"}',
+    })
+    const { cloudDecks } = renderSetup({ storage })
+
+    expect(screen.getByText('有効')).toBeVisible()
+    expect(
+      screen.queryByRole('button', { name: 'クラウド同期を設定' }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'クラウド同期を有効にする' }),
+    ).not.toBeInTheDocument()
+    expect(cloudDecks?.upsert).not.toHaveBeenCalled()
+    expect(cloudDecks?.listAll).not.toHaveBeenCalled()
   })
 })
 
@@ -297,32 +418,40 @@ describe('when the cloud cannot be read', () => {
   })
 })
 
-// The whole point of this phase: the account can decide, and nothing moves.
-describe('no cloud deck is written anywhere in this flow', () => {
-  it('never upserts or tombstones, through the entire decision', async () => {
+// Decks move only when the reporter says so, and only upwards.
+describe('nothing is sent before the reporter agrees', () => {
+  it('writes nothing until the enable button is pressed', async () => {
     const { cloudDecks, storage, namespace } = renderSetup()
 
-    // Rendering.
     expect(cloudDecks?.upsert).not.toHaveBeenCalled()
-    expect(cloudDecks?.tombstone).not.toHaveBeenCalled()
 
-    // Opening setup.
+    // Counting reads; it does not write.
     fireEvent.click(setupButton())
     await screen.findByText('この端末のデッキ: 2件')
     expect(cloudDecks?.upsert).not.toHaveBeenCalled()
-    expect(cloudDecks?.tombstone).not.toHaveBeenCalled()
 
-    // Enabling.
+    // Enabling is the first thing that sends anything.
     fireEvent.click(enableButton())
     await waitFor(() =>
       expect(readCloudSyncState(storage, namespace).status).toBe('enabled'),
     )
-    expect(cloudDecks?.upsert).not.toHaveBeenCalled()
-    expect(cloudDecks?.tombstone).not.toHaveBeenCalled()
+    expect(cloudDecks?.upsert).toHaveBeenCalledTimes(2)
+  })
 
-    // Only the read used to count.
-    expect(cloudDecks?.listAll).toHaveBeenCalledTimes(1)
+  // The first sync only uploads. Nothing is deleted and nothing is pulled
+  // down, which is what keeps it safe to run without asking anyone to resolve
+  // a conflict.
+  it('never deletes or downloads', async () => {
+    const { cloudDecks } = renderSetup()
+    fireEvent.click(setupButton())
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'クラウド同期を有効にする' }),
+    )
+    await screen.findByText('有効')
+
+    expect(cloudDecks?.tombstone).not.toHaveBeenCalled()
     expect(cloudDecks?.listUpdatedSince).not.toHaveBeenCalled()
+    expect(cloudDecks?.listAll).toHaveBeenCalledTimes(1)
   })
 
   it('writes nothing after an already enabled account renders again', () => {

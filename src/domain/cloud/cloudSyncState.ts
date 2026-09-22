@@ -96,3 +96,16 @@ export function writeCloudSyncState(
     // Blocked storage only costs the choice being remembered next time.
   }
 }
+
+/**
+ * Whether this account has agreed to sync, which is the one condition on every
+ * save and delete reaching the cloud. Read at the moment of the write rather
+ * than captured, so enabling takes effect at once and disabling stops the next
+ * write.
+ */
+export function isCloudSyncEnabled(
+  namespace?: LocalDataNamespace,
+  storage?: Pick<Storage, 'getItem'>,
+): boolean {
+  return readCloudSyncState(storage, namespace).status === 'enabled'
+}

@@ -2,6 +2,8 @@ import {
   createSupabaseCloudDeckRepository,
   type CloudDeckRepository,
 } from '../cloud/cloudDeckRepository'
+import { withCloudDeckSync } from '../cloud/cloudSyncedDeckRepository'
+import { isCloudSyncEnabled } from '../domain/cloud/cloudSyncState'
 import {
   ANONYMOUS_LOCAL_DATA_NAMESPACE,
   type LocalDataNamespace,
@@ -60,19 +62,34 @@ export function createAppRepositories(
   /** Supplied by tests; production resolves the Supabase repository itself. */
   cloudDecks?: CloudDeckRepository | null,
 ): AppRepositories {
+  // An anonymous visitor has no account to sync with, so there is nothing to
+  // build even where Supabase is configured.
+  const cloud =
+    cloudDecks !== undefined
+      ? cloudDecks
+      : namespace.kind === 'user'
+        ? createSupabaseCloudDeckRepository()
+        : null
+
   return {
     namespace,
-    // An anonymous visitor has no account to sync with, so there is nothing to
-    // build even where Supabase is configured.
-    cloudDecks:
-      cloudDecks !== undefined
-        ? cloudDecks
-        : namespace.kind === 'user'
-          ? createSupabaseCloudDeckRepository()
-          : null,
-    decks: createDeckRepository(
-      createIndexedDbDeckPersistence(databaseFactory, namespace),
-    ),
+    cloudDecks: cloud,
+    /**
+     * Wrapped so every save and delete reaches the account, wherever it comes
+     * from. The wrapper writes locally first and never rolls that back, so a
+     * cloud failure costs the copy rather than the edit.
+     *
+     * The setting is read on each call rather than captured, so enabling sync
+     * takes effect immediately and disabling it stops the next write, without
+     * the bundle being rebuilt.
+     */
+    decks: withCloudDeckSync({
+      decks: createDeckRepository(
+        createIndexedDbDeckPersistence(databaseFactory, namespace),
+      ),
+      cloudDecks: cloud,
+      isSyncEnabled: () => isCloudSyncEnabled(namespace),
+    }),
     favoriteCards: createFavoriteCardRepository(
       createIndexedDbFavoriteCardPersistence(databaseFactory, namespace),
     ),

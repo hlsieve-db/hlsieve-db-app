@@ -1,6 +1,10 @@
 import { useState } from 'react'
 
-import type { CloudDeckFailure } from '../../cloud/cloudDeckRepository'
+import {
+  syncLocalDecksToCloud,
+  type CloudDeckSyncFailure,
+  type CloudDeckSyncProgress,
+} from '../../cloud/cloudDeckSync'
 import {
   CLOUD_SYNC_STATE_VERSION,
   readCloudSyncState,
@@ -20,7 +24,8 @@ import { useAppRepositories } from '../../repositories/useAppRepositories'
  */
 
 /** One message per failure, none of them carrying anything the server said. */
-const FAILURE_MESSAGES: Record<CloudDeckFailure, string> = {
+const FAILURE_MESSAGES: Record<CloudDeckSyncFailure, string> = {
+  unavailable: 'この環境ではクラウド同期を利用できません。',
   unauthenticated: 'ログイン状態を確認してください。',
   network: 'クラウドに接続できませんでした。',
   forbidden: 'クラウドデータへアクセスできません。',
@@ -35,7 +40,8 @@ type Panel =
   | { step: 'idle' }
   | { step: 'loading' }
   | { step: 'counted'; counts: Counts }
-  | { step: 'error'; reason: CloudDeckFailure }
+  | { step: 'syncing'; progress: CloudDeckSyncProgress }
+  | { step: 'error'; reason: CloudDeckSyncFailure }
 
 export type CloudSyncSetupProps = {
   /** Supplied by tests that render the panel on its own. */
@@ -51,6 +57,7 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
     () => readCloudSyncState(store, namespace).status,
   )
   const [panel, setPanel] = useState<Panel>({ step: 'idle' })
+  const [uploaded, setUploaded] = useState<number>()
 
   // Without a repository there is no account or no configured project, and
   // nothing to offer.
@@ -83,15 +90,28 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
     })
   }
 
-  const enable = () => {
-    // Recording the choice is all that happens. No deck is written here, and
-    // the repository's upsert and tombstone are not called anywhere in this
-    // component.
+  const enable = async () => {
+    setPanel({ step: 'syncing', progress: { completed: 0, total: 0 } })
+    const result = await syncLocalDecksToCloud({
+      decks,
+      cloudDecks,
+      onProgress: (progress) => setPanel({ step: 'syncing', progress }),
+    })
+
+    if (!result.ok) {
+      // The choice is only recorded once every deck is safely in the account,
+      // so a partial upload leaves the account able to try again rather than
+      // believing it is already syncing.
+      setPanel({ step: 'error', reason: result.reason })
+      return
+    }
+
     writeCloudSyncState(
       { version: CLOUD_SYNC_STATE_VERSION, status: 'enabled' },
       store,
       namespace,
     )
+    setUploaded(result.uploaded)
     setStatus('enabled')
     setPanel({ step: 'idle' })
   }
@@ -109,9 +129,8 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
             <span>状態：</span>
             <strong>有効</strong>
           </p>
-          <p>
-            同期の準備ができました。デッキの同期はこのあとの更新で利用できるようになります。
-          </p>
+          <p>クラウド同期が有効になりました。</p>
+          {uploaded !== undefined && <p>デッキ{uploaded}個を保存しました。</p>}
         </>
       ) : (
         <>
@@ -146,17 +165,32 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
                 <li>クラウド上のデッキ: {panel.counts.cloud}件</li>
               </ul>
               <p>
-                クラウド同期を有効にすると、今後デッキをこのアカウントと同期できるようになります。有効にした時点ではまだデッキの送受信は行いません。
+                クラウド同期を有効にすると、この端末のデッキをこのアカウントのクラウド領域へ保存します。クラウド上のデッキがこの端末へ取り込まれることはありません。
               </p>
-              <button className="button" type="button" onClick={enable}>
+              <button
+                className="button"
+                type="button"
+                onClick={() => void enable()}
+              >
                 クラウド同期を有効にする
               </button>
             </>
           )}
 
+          {panel.step === 'syncing' && (
+            <p role="status">
+              同期しています… {panel.progress.completed} /{' '}
+              {panel.progress.total}
+            </p>
+          )}
+
           {panel.step === 'error' && (
             <div className="status-message status-message--error" role="alert">
+              <p>同期できませんでした。</p>
               <p>{FAILURE_MESSAGES[panel.reason]}</p>
+              {/* Every upload is an upsert keyed by the deck's own id, so
+                  retrying rewrites what already went up rather than
+                  duplicating it. */}
               <button
                 className="button"
                 type="button"

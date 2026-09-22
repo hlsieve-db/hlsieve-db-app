@@ -6,6 +6,7 @@ import {
 } from '../storage/localDataNamespace'
 import {
   cloudSyncStateStorageKey,
+  isCloudSyncEnabled,
   readCloudSyncState,
   writeCloudSyncState,
 } from './cloudSyncState'
@@ -128,5 +129,45 @@ describe('accounts are separate', () => {
     expect(
       JSON.parse(storage.values.get('hlsieve:cloud-sync--user-a') ?? ''),
     ).toEqual({ version: 1, status: 'enabled' })
+  })
+})
+
+// This predicate is the single condition on every save and delete reaching the
+// cloud, so it is worth pinning separately from the state it reads.
+describe('whether saves and deletes should reach the cloud', () => {
+  it('is false until the account has enabled sync', () => {
+    expect(isCloudSyncEnabled(userA, memoryStorage())).toBe(false)
+  })
+
+  it('is true once the account has enabled sync', () => {
+    const storage = memoryStorage({
+      'hlsieve:cloud-sync--user-a': '{"version":1,"status":"enabled"}',
+    })
+
+    expect(isCloudSyncEnabled(userA, storage)).toBe(true)
+  })
+
+  it('is false for another account that has not enabled it', () => {
+    const storage = memoryStorage({
+      'hlsieve:cloud-sync--user-a': '{"version":1,"status":"enabled"}',
+    })
+
+    expect(isCloudSyncEnabled(userB, storage)).toBe(false)
+  })
+
+  // An anonymous visitor has no account to sync with.
+  it('is false for an anonymous visitor', () => {
+    expect(
+      isCloudSyncEnabled(ANONYMOUS_LOCAL_DATA_NAMESPACE, memoryStorage()),
+    ).toBe(false)
+  })
+
+  // A damaged value must not be read as consent to upload.
+  it('is false for a value that cannot be read', () => {
+    const storage = memoryStorage({
+      'hlsieve:cloud-sync--user-a': 'not json',
+    })
+
+    expect(isCloudSyncEnabled(userA, storage)).toBe(false)
   })
 })

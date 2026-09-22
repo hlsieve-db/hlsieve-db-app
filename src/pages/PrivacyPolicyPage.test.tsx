@@ -105,7 +105,9 @@ describe('PrivacyPolicyPage', () => {
 
     it('says there is no self-service deletion yet, and points at contact', () => {
       renderPage()
-      const paragraph = screen.getByText(/削除するための専用の画面は用意して/)
+      const paragraph = screen.getByText(
+        /共有用スナップショットを削除するための専用の画面/,
+      )
       expect(paragraph).toBeVisible()
       expect(
         within(paragraph).getByRole('link', { name: 'お問い合わせページ' }),
@@ -139,12 +141,86 @@ describe('PrivacyPolicyPage', () => {
     })
   })
 
+  // Cloud Sync is the first thing that sends an ordinary deck to a server, so
+  // the policy has to describe it before the feature ships.
+  describe('the cloud sync disclosure', () => {
+    it('says the upload happens only on an explicit action', () => {
+      renderPage()
+      expect(
+        screen.getByRole('heading', {
+          name: '6. クラウド同期を有効にした場合',
+        }),
+      ).toBeVisible()
+      expect(
+        screen.getByText(
+          /「クラウド同期を有効にする」操作を明示的に行った場合に限り/,
+        ),
+      ).toBeVisible()
+    })
+
+    it('lists exactly what is stored', () => {
+      renderPage()
+      expect(
+        screen.getByText(
+          /デッキのID、デッキ名、カード番号、枚数、および作成日時・更新日時/,
+        ),
+      ).toBeVisible()
+    })
+
+    it('says the decks are isolated per account', () => {
+      renderPage()
+      expect(
+        screen.getByText(/他の利用者が閲覧・変更できないようにしています/),
+      ).toBeVisible()
+    })
+
+    // The sentence that was true before Cloud Sync and must stay true.
+    it('repeats that signing in alone sends nothing', () => {
+      renderPage()
+      expect(
+        screen.getByText(
+          /ログインしただけでは、デッキがクラウドへ送信されることはありません/,
+        ),
+      ).toBeVisible()
+    })
+
+    // Upload only, so it must not suggest the two sides are kept in step.
+    it('says nothing is downloaded to this device', () => {
+      renderPage()
+      expect(
+        screen.getByText(
+          /クラウド上のデッキがこの端末へ取り込まれることはありません/,
+        ),
+      ).toBeVisible()
+    })
+
+    it('says there is no deletion screen yet, and points at contact', () => {
+      renderPage()
+      const paragraph = screen.getByText(/クラウドから削除するための専用の画面/)
+      expect(paragraph).toBeVisible()
+      expect(
+        within(paragraph).getByRole('link', { name: 'お問い合わせページ' }),
+      ).toHaveAttribute('href', '/contact')
+    })
+
+    it('keeps it distinct from the short share snapshot', () => {
+      renderPage()
+      expect(
+        screen.getByText(/短い共有リンクのスナップショットとは別のもの/),
+      ).toBeVisible()
+    })
+
+    it('no longer describes cloud sync as a future possibility', () => {
+      renderPage()
+      const text = pageText()
+      expect(text).not.toContain('今後クラウド同期機能を提供する場合')
+    })
+  })
+
   it('names Supabase as the authentication backend', () => {
     renderPage()
     expect(screen.getByText(/認証の基盤としてSupabaseを利用/)).toBeVisible()
-    expect(
-      screen.getByText(/今後クラウド同期機能を提供する場合は/),
-    ).toBeVisible()
+    expect(screen.getByText(/クラウド同期の対象を広げる場合/)).toBeVisible()
   })
 
   it('links to the contact page rather than inlining an address', () => {
