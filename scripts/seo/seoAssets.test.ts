@@ -42,6 +42,13 @@ describe('production SEO assets', () => {
     )
   })
 
+  // Short shares are user generated and unbounded in number, so they belong in
+  // neither the sitemap nor the prerendered routes.
+  it('excludes short deck share links entirely', async () => {
+    const sitemap = await readFile(publicPath('sitemap.xml'), 'utf8')
+    expect(sitemap).not.toContain('/s/')
+  })
+
   it('excludes non-indexable and parameterized URLs from the sitemap', async () => {
     const sitemap = await readFile(publicPath('sitemap.xml'), 'utf8')
     const locations = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map(

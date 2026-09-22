@@ -22,6 +22,7 @@ import { ProbabilityPage } from './pages/ProbabilityPage'
 import { QaSearchPage } from './pages/QaSearchPage'
 import { SavedDecksPage } from './pages/SavedDecksPage'
 import { SharedDeckPage } from './pages/SharedDeckPage'
+import { ShortSharePage } from './pages/ShortSharePage'
 import { SwissPage } from './pages/SwissPage'
 import { TournamentReportPage } from './pages/TournamentReportPage'
 import { TournamentHistoryPage } from './pages/TournamentHistoryPage'
@@ -43,6 +44,7 @@ function AppRoutes() {
           <Route path="/favorites" element={<FavoriteCardsPage />} />
           <Route path="/recent" element={<RecentlyViewedCardsPage />} />
           <Route path="/deck/share" element={<SharedDeckPage />} />
+          <Route path="/s/:shareId" element={<ShortSharePage />} />
           <Route path="/decks" element={<SavedDecksPage />} />
           <Route path="/deck-compare" element={<DeckComparePage />} />
           <Route path="/decks/:deckId" element={<DeckEditPage />} />

@@ -64,6 +64,19 @@ function failure(code: DeckShareDecodeErrorCode): DeckShareDecodeResult {
   return { ok: false, error: { code } }
 }
 
+/**
+ * Validates an already-parsed payload against the share contract.
+ *
+ * Exported so the short share route checks exactly what the long URL checks.
+ * A snapshot read back from the server is no more trusted than one arriving in
+ * a query string: both are data someone else may have written.
+ */
+export function validateSharedDeckPayload(
+  value: unknown,
+): DeckShareDecodeResult {
+  return validatePayload(value)
+}
+
 function validatePayload(value: unknown): DeckShareDecodeResult {
   if (!isRecord(value)) return failure('invalid_payload')
   if (!Object.hasOwn(value, 'v')) return failure('invalid_payload')
@@ -115,7 +128,15 @@ function validatePayload(value: unknown): DeckShareDecodeResult {
   }
 }
 
-export function encodeDeckSharePayload(deck: Deck): string {
+/**
+ * The share payload for a deck, with the same checks the long URL applies.
+ *
+ * Shared by both links so a deck the long URL refuses cannot slip into a short
+ * one, and so neither route grows a second way of serialising a deck. Note
+ * that entries keep their stored order: display sorting belongs to the view,
+ * not to the wire format.
+ */
+export function buildDeckSharePayload(deck: Deck): SharedDeckPayloadV1 {
   if (
     !isDeck(deck) ||
     deck.name !== deck.name.trim() ||
@@ -137,10 +158,14 @@ export function encodeDeckSharePayload(deck: Deck): string {
       quantity,
     })),
   }
-  const json = JSON.stringify(payload)
-  if (json.length > MAX_SHARED_DECK_JSON_LENGTH) {
+  if (JSON.stringify(payload).length > MAX_SHARED_DECK_JSON_LENGTH) {
     throw new Error('Deck share payload exceeds the technical size limit.')
   }
+  return payload
+}
+
+export function encodeDeckSharePayload(deck: Deck): string {
+  const json = JSON.stringify(buildDeckSharePayload(deck))
   const encoded = toBase64Url(json)
   if (encoded.length > MAX_SHARED_DECK_ENCODED_LENGTH) {
     throw new Error('Encoded deck share payload exceeds the technical limit.')

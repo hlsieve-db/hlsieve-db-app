@@ -46,6 +46,23 @@ Run it as a role that neither owns the table nor is a superuser, as the script
 does with `set role`. Those two bypass row level security, so a broken policy
 would still let every check pass.
 
+## Checking the short deck share rules
+
+`tests/deck_shares_matrix.sql` covers the other half: that nothing can reach
+`deck_shares` except through the two functions, that the payload checks hold,
+and that a colliding id is reallocated rather than surfacing an error.
+
+```sh
+docker run --rm -d --name hlsieve-pg -e POSTGRES_PASSWORD=x postgres:16-alpine
+docker cp supabase hlsieve-pg:/work
+docker exec -u postgres hlsieve-pg   psql -v ON_ERROR_STOP=0 -f /work/tests/deck_shares_matrix.sql
+docker rm -f hlsieve-pg
+```
+
+It needs no auth stubs: a share belongs to nobody, and creating one works
+signed out. Its last section replaces the id generator with a stub to reach the
+retry path and does not put it back, so discard the container afterwards.
+
 ## Conventions
 
 - The frontend uses the publishable key only. The secret key never reaches the

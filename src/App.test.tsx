@@ -171,6 +171,26 @@ describe('App', () => {
     ).not.toBeInTheDocument()
   })
 
+  // The route exists whether or not a server is configured; with none, the
+  // page says short links are unavailable rather than failing to resolve.
+  it('routes /s/:shareId to the short share page as noindex', async () => {
+    render(
+      <MemoryRouter initialEntries={['/s/Ab3xK9pQ']}>
+        <App />
+      </MemoryRouter>,
+    )
+
+    expect(
+      await screen.findByRole('heading', { name: '共有デッキ' }),
+    ).toBeVisible()
+    expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute(
+      'content',
+      'noindex,follow',
+    )
+    // The long share route is untouched and still its own page.
+    expect(document.head.querySelector('link[rel="canonical"]')).toBeNull()
+  })
+
   it('canonicalizes parameterized card searches to the Cards route', () => {
     render(
       <MemoryRouter initialEntries={['/cards?q=AZKi&page=2']}>

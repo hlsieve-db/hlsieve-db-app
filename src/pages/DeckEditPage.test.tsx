@@ -21,6 +21,20 @@ import type {
 } from '../domain/cards/types'
 import { SELECTED_DECK_STORAGE_KEY } from '../domain/decks/selectedDeckPreference'
 import type { Deck } from '../domain/decks/types'
+import { AuthProvider } from '../auth/AuthProvider'
+import type { AuthSource } from '../auth/authSource'
+import type { DeckShareSource } from '../share/deckShareSource'
+
+/** A resolved session, so the editor sees an authenticated visitor. */
+function signedInAuthSource(): AuthSource {
+  return {
+    getSessionUser: async () => ({ id: 'user-a' }),
+    subscribe: () => () => undefined,
+    signInWithGoogle: async () => ({ ok: true }),
+    sendMagicLink: async () => ({ ok: true }),
+    signOut: async () => ({ ok: true }),
+  }
+}
 import { decodeDeckSharePayload } from '../domain/share/deckShareCodec'
 import type { DeckRepository } from '../repositories/deckRepository'
 import { DeckEditPage } from './DeckEditPage'
@@ -149,31 +163,44 @@ function renderPage({
   loadCards = vi.fn(async () => cardsData()),
   loadPrintings = vi.fn(async () => printingsData()),
   path = '/decks/deck-1',
+  // Null by default, which is a build with no Supabase: the long share URL is
+  // then the whole feature, exactly as it was before short links existed.
+  shareSource = null,
+  // Signed out by default, which is what every existing test assumes.
+  authSource = null,
 }: {
   deckRepository?: DeckRepository
   loadCards?: () => Promise<CardsDataFile>
   loadPrintings?: () => Promise<CardPrintingsDataFile>
   path?: string
+  shareSource?: DeckShareSource | null
+  authSource?: AuthSource | null
 } = {}) {
   render(
-    <MemoryRouter initialEntries={[path]}>
-      <Routes>
-        <Route
-          path="/decks/:deckId"
-          element={
-            <DeckEditPage
-              repository={deckRepository}
-              loadCards={loadCards}
-              loadPrintings={loadPrintings}
-            />
-          }
-        />
-        <Route path="/decks" element={<p>Deck list destination</p>} />
-        <Route path="/cards/:cardNumber" element={<CardDetailDestination />} />
-      </Routes>
-    </MemoryRouter>,
+    <AuthProvider authSource={authSource}>
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route
+            path="/decks/:deckId"
+            element={
+              <DeckEditPage
+                repository={deckRepository}
+                loadCards={loadCards}
+                loadPrintings={loadPrintings}
+                shareSource={shareSource}
+              />
+            }
+          />
+          <Route path="/decks" element={<p>Deck list destination</p>} />
+          <Route
+            path="/cards/:cardNumber"
+            element={<CardDetailDestination />}
+          />
+        </Routes>
+      </MemoryRouter>
+    </AuthProvider>,
   )
-  return { deckRepository, loadCards, loadPrintings }
+  return { deckRepository, loadCards, loadPrintings, shareSource }
 }
 
 function CardDetailDestination() {
@@ -1069,6 +1096,175 @@ describe('DeckEditPage editor operations', () => {
     fireEvent.click(within(alert).getByRole('button', { name: '再試行' }))
     expect(await screen.findByLabelText('カード検索')).toBeVisible()
     expect(loadCards).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe('DeckEditPage short share link', () => {
+  function source(overrides: Partial<DeckShareSource> = {}): DeckShareSource {
+    return {
+      createShare: vi.fn(async () => ({
+        ok: true as const,
+        shareId: 'Ab3xK9pQ',
+      })),
+      loadShare: vi.fn(async () => ({
+        ok: false as const,
+        reason: 'not-found' as const,
+      })),
+      ...overrides,
+    }
+  }
+
+  async function openShare(
+    shareSource: DeckShareSource | null,
+    { signedIn = true }: { signedIn?: boolean } = {},
+  ) {
+    renderPage({
+      shareSource,
+      authSource: signedIn ? signedInAuthSource() : null,
+    })
+    fireEvent.click(
+      await screen.findByRole('button', { name: '共有リンクを作成' }),
+    )
+    if (signedIn && shareSource) {
+      // The session resolves asynchronously; wait for it before acting.
+      await waitFor(() =>
+        expect(
+          screen.getByRole('button', { name: '短いリンクを作成' }),
+        ).toBeEnabled(),
+      )
+    }
+  }
+
+  // Anonymous creation would let anyone fill the database with 12KB rows, and
+  // the same database holds the cloud decks.
+  describe('while signed out', () => {
+    it('cannot create a short link, and says why', async () => {
+      await openShare(source(), { signedIn: false })
+
+      expect(
+        screen.getByRole('button', { name: '短いリンクを作成' }),
+      ).toBeDisabled()
+      expect(
+        screen.getByText(/短い共有リンクの作成にはログインが必要です/),
+      ).toBeVisible()
+    })
+
+    it('can still create the long share URL, which needs no account', async () => {
+      const shareSource = source()
+      await openShare(shareSource, { signedIn: false })
+
+      const value = (screen.getByLabelText('共有URL') as HTMLInputElement).value
+      expect(new URL(value).pathname).toBe('/deck/share')
+      expect(new URL(value).searchParams.get('d')).toBeTruthy()
+      // Nothing was sent anywhere to produce it.
+      expect(shareSource.createShare).not.toHaveBeenCalled()
+    })
+  })
+
+  it('reports a sign-in rejection from the database distinctly', async () => {
+    await openShare(
+      source({
+        createShare: vi.fn(async () => ({
+          ok: false as const,
+          reason: 'sign-in-required' as const,
+        })),
+      }),
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: '短いリンクを作成' }))
+
+    expect(
+      await screen.findByText(/短い共有リンクの作成にはログインが必要です/),
+    ).toBeVisible()
+  })
+
+  // Without a server there is nothing to offer, and the long URL still works.
+  it('offers no short link when Supabase is not configured', async () => {
+    await openShare(null)
+
+    expect(screen.getByLabelText('共有URL')).toBeVisible()
+    expect(
+      screen.queryByRole('button', { name: '短いリンクを作成' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('creates a short link from the same payload as the long URL', async () => {
+    const shareSource = source()
+    await openShare(shareSource)
+
+    fireEvent.click(screen.getByRole('button', { name: '短いリンクを作成' }))
+
+    const input = (await screen.findByLabelText(
+      '短い共有URL',
+    )) as HTMLInputElement
+    const url = new URL(input.value)
+    expect(url.origin).toBe(window.location.origin)
+    expect(url.pathname).toBe('/s/Ab3xK9pQ')
+    expect(url.search).toBe('')
+
+    // The payload sent matches what the long URL carries, rather than a second
+    // serialisation of the deck.
+    const longUrl = new URL(
+      (screen.getByLabelText('共有URL') as HTMLInputElement).value,
+    )
+    const decoded = decodeDeckSharePayload(longUrl.searchParams.get('d') ?? '')
+    expect(shareSource.createShare).toHaveBeenCalledWith(
+      decoded.ok ? decoded.value : undefined,
+    )
+  })
+
+  it('says the snapshot is fixed at creation time', async () => {
+    await openShare(source())
+    fireEvent.click(screen.getByRole('button', { name: '短いリンクを作成' }))
+    await screen.findByLabelText('短い共有URL')
+
+    expect(
+      screen.getByText(
+        /あとでデッキを編集しても、このリンクの内容は変わりません/,
+      ),
+    ).toBeVisible()
+    // No promise is made about how long it is kept.
+    expect(document.body.textContent ?? '').not.toContain('永久')
+  })
+
+  it('reports a size rejection separately from a general failure', async () => {
+    await openShare(
+      source({
+        createShare: vi.fn(async () => ({
+          ok: false as const,
+          reason: 'too-large' as const,
+        })),
+      }),
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: '短いリンクを作成' }))
+
+    expect(
+      await screen.findByText(/短いリンクのサイズ上限を超えています/),
+    ).toBeVisible()
+    // The long URL is still on screen as the way through.
+    expect(screen.getByLabelText('共有URL')).toBeVisible()
+  })
+
+  it('reports a network failure without leaking database detail', async () => {
+    await openShare(
+      source({
+        createShare: vi.fn(async () => ({
+          ok: false as const,
+          reason: 'failed' as const,
+        })),
+      }),
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: '短いリンクを作成' }))
+
+    expect(
+      await screen.findByText(/短いリンクを作成できませんでした/),
+    ).toBeVisible()
+    const text = document.body.textContent ?? ''
+    ;['PGRST', 'SQLSTATE', '22023', 'supabase'].forEach((fragment) =>
+      expect(text).not.toContain(fragment),
+    )
   })
 })
 

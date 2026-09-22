@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
 
@@ -62,6 +62,81 @@ describe('PrivacyPolicyPage', () => {
       '選択中のデッキ',
       'テーマ等の表示設定',
     ])
+  })
+
+  // A short share is the one thing that sends deck data to a server, so the
+  // policy has to say so before the feature ships.
+  describe('the short share disclosure', () => {
+    it('says the upload happens only on an explicit action', () => {
+      renderPage()
+      expect(
+        screen.getByRole('heading', {
+          name: '5. 短い共有リンクを作成した場合',
+        }),
+      ).toBeVisible()
+      expect(
+        screen.getByText(
+          /明示的に行った場合に限り[\s\S]*クラウド上に保存します/,
+        ),
+      ).toBeVisible()
+    })
+
+    it('says what the snapshot contains', () => {
+      renderPage()
+      expect(screen.getByText(/デッキ名、カード番号、枚数など/)).toBeVisible()
+    })
+
+    it('says account information is not included', () => {
+      renderPage()
+      expect(
+        screen.getByText(
+          /アカウント情報は、共有用スナップショットには含めません/,
+        ),
+      ).toBeVisible()
+    })
+
+    it('says anyone holding the link can view it, without overstating it', () => {
+      renderPage()
+      expect(screen.getByText(/短い共有リンクを知っている方は/)).toBeVisible()
+      expect(
+        screen.getByText(/秘密の情報を保管するための手段として提供するもので/),
+      ).toBeVisible()
+    })
+
+    it('says there is no self-service deletion yet, and points at contact', () => {
+      renderPage()
+      const paragraph = screen.getByText(/削除するための専用の画面は用意して/)
+      expect(paragraph).toBeVisible()
+      expect(
+        within(paragraph).getByRole('link', { name: 'お問い合わせページ' }),
+      ).toHaveAttribute('href', '/contact')
+    })
+
+    it('keeps the long share URL described as needing no cloud storage', () => {
+      renderPage()
+      expect(
+        screen.getByText(/従来の共有URLは、クラウドへの保存を必要としません/),
+      ).toBeVisible()
+    })
+
+    // The sentence was true before short shares and is still true: signing in
+    // alone uploads nothing.
+    it('keeps the login-alone wording unchanged', () => {
+      renderPage()
+      expect(
+        screen.getByText(
+          /ログインしただけでは、既存のデッキ等が自動的にクラウドへ送信されることはありません/,
+        ),
+      ).toBeVisible()
+    })
+
+    it('does not promise the snapshot is kept forever or is private storage', () => {
+      renderPage()
+      const text = pageText()
+      expect(text).not.toContain('永久')
+      expect(text).not.toContain('非公開で保管')
+      expect(text).not.toContain('安全に保管されます')
+    })
   })
 
   it('names Supabase as the authentication backend', () => {

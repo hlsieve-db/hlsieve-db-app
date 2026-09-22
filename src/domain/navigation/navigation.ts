@@ -39,7 +39,9 @@ export const NAV_GROUPS: readonly NavigationGroup[] = [
     matches: (pathname) =>
       pathname.startsWith('/decks') ||
       pathname === '/deck-compare' ||
-      pathname === '/deck/share',
+      pathname === '/deck/share' ||
+      // Short share links are the same kind of page as the long ones.
+      pathname.startsWith('/s/'),
     items: [
       { label: '保存デッキ', shortLabel: '保存デッキ', to: '/decks' },
       { label: 'デッキ比較', shortLabel: 'デッキ比較', to: '/deck-compare' },

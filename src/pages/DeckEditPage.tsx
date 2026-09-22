@@ -10,6 +10,7 @@ import {
 import { useAppRepositories } from '../repositories/useAppRepositories'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 
+import { useAuth } from '../auth/useAuth'
 import { AppNavigation } from '../components/AppNavigation'
 import { DeckAnalysisSummary } from '../components/decks/DeckAnalysisSummary'
 import { DeckLegalitySummary } from '../components/decks/DeckLegalitySummary'
@@ -57,7 +58,16 @@ import {
   DEFAULT_SEARCH_URL_STATE,
   type SearchUrlState,
 } from '../domain/search/searchUrlState'
-import { buildDeckShareUrl } from '../domain/share/deckShareCodec'
+import {
+  buildDeckShareUrl,
+  buildDeckSharePayload,
+} from '../domain/share/deckShareCodec'
+import { buildShortShareUrl } from '../domain/share/shortShare'
+import {
+  createSupabaseDeckShareSource,
+  type DeckShareSource,
+  type ShortShareCreateFailure,
+} from '../share/deckShareSource'
 import { useDeckSaveQueue } from '../hooks/useDeckSaveQueue'
 import { useDocumentMetadata } from '../hooks/useDocumentMetadata'
 import { type DeckRepository } from '../repositories/deckRepository'
@@ -87,6 +97,28 @@ type DeckEditPageProps = {
   repository?: DeckRepository
   loadCards?: () => Promise<CardsDataFile>
   loadPrintings?: () => Promise<CardPrintingsDataFile>
+  /** Null stands for a build with no Supabase configured. */
+  shareSource?: DeckShareSource | null
+}
+
+/** Short link creation, which is the only part of sharing that needs a server. */
+type ShortShareState =
+  | { status: 'idle' }
+  | { status: 'creating' }
+  | { status: 'created'; url: string }
+  | { status: 'error'; reason: ShortShareCreateFailure }
+
+function shortShareErrorMessage(reason: ShortShareCreateFailure): string {
+  if (reason === 'sign-in-required') {
+    return '短い共有リンクの作成にはログインが必要です。'
+  }
+  if (reason === 'too-large') {
+    return 'このデッキは短いリンクのサイズ上限を超えています。上のURLをご利用ください。'
+  }
+  if (reason === 'invalid-deck') {
+    return 'このデッキからは短いリンクを作成できませんでした。'
+  }
+  return '短いリンクを作成できませんでした。時間をおいて再度お試しください。'
 }
 
 function DeckEditFallbackMetadata() {
@@ -187,11 +219,15 @@ function DeckEditor({
   repository,
   loadCards,
   loadPrintings,
+  shareSource,
+  isSignedIn,
 }: {
   initialDeck: Deck
   repository: DeckRepository
   loadCards: () => Promise<CardsDataFile>
   loadPrintings: () => Promise<CardPrintingsDataFile>
+  shareSource: DeckShareSource | null
+  isSignedIn: boolean
 }) {
   const location = useLocation()
   const navigate = useNavigate()
@@ -211,6 +247,9 @@ function DeckEditor({
   )
   const [isShareLinkVisible, setIsShareLinkVisible] = useState(false)
   const [copyResult, setCopyResult] = useState<CopyResult>()
+  const [shortShare, setShortShare] = useState<ShortShareState>({
+    status: 'idle',
+  })
   const [deckTextCopyStatus, setDeckTextCopyStatus] =
     useState<DeckTextCopyStatus>()
   const deckRef = useRef(initialDeck)
@@ -457,6 +496,39 @@ function DeckEditor({
     }
   }
 
+  const createShortShare = async () => {
+    if (!shareSource) return
+    setShortShare({ status: 'creating' })
+    let payload
+    try {
+      // The same payload the long URL carries, so a deck one link refuses is
+      // refused by the other.
+      payload = buildDeckSharePayload(deck)
+    } catch {
+      setShortShare({ status: 'error', reason: 'invalid-deck' })
+      return
+    }
+    const result = await shareSource.createShare(payload)
+    setShortShare(
+      result.ok
+        ? {
+            status: 'created',
+            url: buildShortShareUrl(result.shareId, window.location.origin),
+          }
+        : { status: 'error', reason: result.reason },
+    )
+  }
+
+  const copyShortShare = async () => {
+    if (shortShare.status !== 'created') return
+    try {
+      await navigator.clipboard.writeText(shortShare.url)
+      setCopyResult({ status: 'copied', url: shortShare.url })
+    } catch {
+      setCopyResult({ status: 'error', url: shortShare.url })
+    }
+  }
+
   const copyDeckText = async () => {
     if (!deckText || deck.entries.length === 0) return
     try {
@@ -560,6 +632,71 @@ function DeckEditor({
             <p role="alert">
               現在のデッキから共有リンクを作成できませんでした。
             </p>
+          )}
+
+          {/* Offered only where a server is configured. Without one the long
+              URL above is still the whole feature, exactly as before. */}
+          {shareSource && shareLink?.ok === true && (
+            <div className="deck-share__short">
+              {/* Kept visible while signed out, so the option is discoverable
+                  and the requirement is explained, rather than the button
+                  silently not being there. The long URL above needs no
+                  account and is unaffected. */}
+              <button
+                type="button"
+                className="button button--secondary"
+                disabled={!isSignedIn || shortShare.status === 'creating'}
+                onClick={() => void createShortShare()}
+              >
+                {shortShare.status === 'creating'
+                  ? '短いリンクを作成しています…'
+                  : '短いリンクを作成'}
+              </button>
+              {!isSignedIn && (
+                <p className="deck-share__short-note">
+                  短い共有リンクの作成にはログインが必要です。上の共有URLはログインなしで利用できます。
+                </p>
+              )}
+              {shortShare.status === 'created' && (
+                <div className="deck-share__link">
+                  <label htmlFor="deck-short-share-url">短い共有URL</label>
+                  <div>
+                    <input
+                      id="deck-short-share-url"
+                      type="text"
+                      readOnly
+                      value={shortShare.url}
+                      onFocus={(event) => event.currentTarget.select()}
+                    />
+                    <button
+                      type="button"
+                      className="button"
+                      onClick={() => void copyShortShare()}
+                    >
+                      コピー
+                    </button>
+                  </div>
+                  <p>
+                    作成した時点のデッキ内容を保存します。あとでデッキを編集しても、このリンクの内容は変わりません。
+                  </p>
+                  <p
+                    className="deck-share__copy-status"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    {copyResult?.url === shortShare.url &&
+                      copyResult.status === 'copied' &&
+                      'コピーしました'}
+                    {copyResult?.url === shortShare.url &&
+                      copyResult.status === 'error' &&
+                      'コピーできませんでした。表示中のURLを手動でコピーしてください。'}
+                  </p>
+                </div>
+              )}
+              {shortShare.status === 'error' && (
+                <p role="alert">{shortShareErrorMessage(shortShare.reason)}</p>
+              )}
+            </div>
           )}
         </section>
         <section
@@ -926,7 +1063,17 @@ export function DeckEditPage({
   repository: repositoryProp,
   loadCards = loadCardsData,
   loadPrintings = loadCardPrintingsData,
+  shareSource: shareSourceProp,
 }: DeckEditPageProps) {
+  const { state: authState } = useAuth()
+  // Resolved once: a test supplies a fake, and a build with no keys gets null.
+  const shareSource = useMemo(
+    () =>
+      shareSourceProp === undefined
+        ? createSupabaseDeckShareSource()
+        : shareSourceProp,
+    [shareSourceProp],
+  )
   const repositories = useAppRepositories()
   const repository = repositoryProp ?? repositories.decks
   const { namespace } = repositories
@@ -995,6 +1142,8 @@ export function DeckEditPage({
           repository={repository}
           loadCards={loadCards}
           loadPrintings={loadPrintings}
+          shareSource={shareSource}
+          isSignedIn={authState.status === 'authenticated'}
         />
       )}
     </main>

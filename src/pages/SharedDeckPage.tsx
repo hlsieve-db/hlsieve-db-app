@@ -1,50 +1,28 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { useAppRepositories } from '../repositories/useAppRepositories'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useMemo } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
-import { DeckLegalitySummary } from '../components/decks/DeckLegalitySummary'
-import { DECK_ZONE_LABELS } from '../components/decks/constants'
-import { CARD_TYPE_LABELS } from '../domain/cards/constants'
-import type { Card, CardsDataFile } from '../domain/cards/types'
-import { getDeckZone, validateDeckLegality } from '../domain/decks/legality'
-import type { Deck, DeckEntry, DeckZone } from '../domain/decks/types'
-import {
-  getDeckDisplayCategory,
-  sortDeckEntriesForDisplay,
-} from '../domain/decks/displayOrder'
-import {
-  createDeckFromSharedPayload,
-  decodeDeckSharePayload,
-} from '../domain/share/deckShareCodec'
+import { SharedDeckView } from '../components/decks/SharedDeckView'
+import type { CardsDataFile } from '../domain/cards/types'
+import type { Deck } from '../domain/decks/types'
+import { decodeDeckSharePayload } from '../domain/share/deckShareCodec'
 import type {
   DeckShareDecodeErrorCode,
   SharedDeckPayloadV1,
 } from '../domain/share/types'
 import { type DeckRepository } from '../repositories/deckRepository'
-import { loadCardsData } from '../repositories/loadCardsData'
 import { useDocumentMetadata } from '../hooks/useDocumentMetadata'
 
-type CardLoadState =
-  | { source: string; status: 'loading' }
-  | { source: string; status: 'loaded'; data: CardsDataFile }
-  | { source: string; status: 'error' }
-
-type ImportState = {
-  source: string
-  status: 'idle' | 'saving' | 'error'
-}
+/**
+ * The long share link, which carries the whole deck in the URL. It needs no
+ * server, so it keeps working in a build with no Supabase configured, and
+ * every link ever issued stays readable.
+ */
 
 type SharedDeckPageProps = {
   repository?: DeckRepository
   loadCards?: () => Promise<CardsDataFile>
   createLocalDeck?: (payload: SharedDeckPayloadV1) => Deck
-}
-
-type SharedDeckEntryGroup = {
-  key: DeckZone | 'unknown'
-  label: string
-  entries: DeckEntry[]
 }
 
 function decodeErrorMessage(code: DeckShareDecodeErrorCode): string {
@@ -57,52 +35,17 @@ function decodeErrorMessage(code: DeckShareDecodeErrorCode): string {
   return '壊れた共有データのため開けません。'
 }
 
-function SharedDeckCardImage({ card }: { card?: Card }) {
-  return (
-    <div className="deck-card-image">
-      {card?.imageUrl ? (
-        <img src={card.imageUrl} alt="" loading="lazy" decoding="async" />
-      ) : (
-        <span>画像なし</span>
-      )}
-    </div>
-  )
-}
-
 export function SharedDeckPage({
-  repository: repositoryProp,
-  loadCards = loadCardsData,
-  createLocalDeck = createDeckFromSharedPayload,
+  repository,
+  loadCards,
+  createLocalDeck,
 }: SharedDeckPageProps) {
-  const repositories = useAppRepositories()
-  const repository = repositoryProp ?? repositories.decks
-  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const encoded = searchParams.get('d')
   const decoded = useMemo(
     () => (encoded === null ? undefined : decodeDeckSharePayload(encoded)),
     [encoded],
   )
-  const [cardsState, setCardsState] = useState<CardLoadState>({
-    source: encoded ?? '',
-    status: 'loading',
-  })
-  const [cardsLoadAttempt, setCardsLoadAttempt] = useState(0)
-  const [importState, setImportState] = useState<ImportState>({
-    source: encoded ?? '',
-    status: 'idle',
-  })
-  const pendingImport = useRef<{ source: string; deck: Deck } | undefined>(
-    undefined,
-  )
-  const source = encoded ?? ''
-  const activeCardsState = useMemo<CardLoadState>(
-    () =>
-      cardsState.source === source ? cardsState : { source, status: 'loading' },
-    [cardsState, source],
-  )
-  const activeImportState =
-    importState.source === source ? importState.status : 'idle'
 
   useDocumentMetadata({
     title:
@@ -112,102 +55,6 @@ export function SharedDeckPage({
     canonicalPath: '/deck/share',
     robots: 'noindex,follow',
   })
-
-  useEffect(() => {
-    if (decoded?.ok !== true) return
-    let active = true
-    void loadCards().then(
-      (data) => {
-        if (active) setCardsState({ source, status: 'loaded', data })
-      },
-      () => {
-        if (active) setCardsState({ source, status: 'error' })
-      },
-    )
-    return () => {
-      active = false
-    }
-  }, [cardsLoadAttempt, decoded, loadCards, source])
-
-  const cardsByNumber = useMemo(
-    () =>
-      new Map(
-        activeCardsState.status === 'loaded'
-          ? activeCardsState.data.cards.map((card) => [card.cardNumber, card])
-          : [],
-      ),
-    [activeCardsState],
-  )
-
-  const previewDeck = useMemo<Deck | undefined>(
-    () =>
-      decoded?.ok === true
-        ? {
-            id: 'shared-preview',
-            name: decoded.value.name,
-            entries: decoded.value.entries,
-            createdAt: '1970-01-01T00:00:00.000Z',
-            updatedAt: '1970-01-01T00:00:00.000Z',
-          }
-        : undefined,
-    [decoded],
-  )
-
-  const legality = useMemo(
-    () =>
-      previewDeck && activeCardsState.status === 'loaded'
-        ? validateDeckLegality(previewDeck, activeCardsState.data.cards)
-        : undefined,
-    [activeCardsState, previewDeck],
-  )
-
-  const entryGroups = useMemo<SharedDeckEntryGroup[]>(() => {
-    if (!previewDeck || activeCardsState.status !== 'loaded') return []
-    const groupedEntries: Record<DeckZone | 'unknown', DeckEntry[]> = {
-      oshi: [],
-      main: [],
-      cheer: [],
-      unknown: [],
-    }
-    for (const entry of sortDeckEntriesForDisplay(
-      previewDeck.entries,
-      cardsByNumber,
-    )) {
-      const card = cardsByNumber.get(entry.cardNumber)
-      groupedEntries[
-        card && getDeckDisplayCategory(card) !== 'unknown'
-          ? getDeckZone(card)
-          : 'unknown'
-      ].push(entry)
-    }
-    return (['oshi', 'main', 'cheer', 'unknown'] as const)
-      .filter((key) => groupedEntries[key].length > 0)
-      .map((key) => ({
-        key,
-        label: DECK_ZONE_LABELS[key],
-        entries: groupedEntries[key],
-      }))
-  }, [activeCardsState.status, cardsByNumber, previewDeck])
-
-  const retryCards = () => {
-    setCardsState({ source, status: 'loading' })
-    setCardsLoadAttempt((attempt) => attempt + 1)
-  }
-
-  const importDeck = async (payload: SharedDeckPayloadV1) => {
-    setImportState({ source, status: 'saving' })
-    try {
-      const deck =
-        pendingImport.current?.source === source
-          ? pendingImport.current.deck
-          : createLocalDeck(payload)
-      pendingImport.current = { source, deck }
-      await repository.saveDeck(deck)
-      navigate(`/decks/${encodeURIComponent(deck.id)}`)
-    } catch {
-      setImportState({ source, status: 'error' })
-    }
-  }
 
   return (
     <main id="main-content" className="deck-page shared-deck-page">
@@ -233,118 +80,13 @@ export function SharedDeckPage({
       )}
 
       {decoded?.ok === true && (
-        <>
-          <section className="shared-deck-heading">
-            <p className="shared-deck-heading__eyebrow">
-              共有デッキのプレビュー
-            </p>
-            <h1>{decoded.value.name}</h1>
-            <p>内容を確認してから、新しいローカルデッキとして保存できます。</p>
-          </section>
-
-          {activeCardsState.status === 'loading' && (
-            <p className="status-message" role="status">
-              カードデータを読み込んでいます…
-            </p>
-          )}
-          {activeCardsState.status === 'error' && (
-            <div className="status-message status-message--error" role="alert">
-              <p>カードデータを読み込めませんでした。</p>
-              <button type="button" className="button" onClick={retryCards}>
-                再試行
-              </button>
-            </div>
-          )}
-
-          {activeCardsState.status === 'loaded' && legality && previewDeck && (
-            <>
-              <DeckLegalitySummary
-                result={legality}
-                cardsByNumber={cardsByNumber}
-              />
-              <section className="deck-panel" aria-labelledby="shared-entries">
-                <h2 id="shared-entries">カード構成</h2>
-                {previewDeck.entries.length === 0 ? (
-                  <p>カードが含まれていません。</p>
-                ) : (
-                  <div className="shared-deck-zones">
-                    {entryGroups.map((group) => (
-                      <section
-                        className="shared-deck-zone"
-                        aria-labelledby={`shared-deck-zone-${group.key}`}
-                        key={group.key}
-                      >
-                        <h3 id={`shared-deck-zone-${group.key}`}>
-                          {group.label}
-                          <span>
-                            {group.entries.reduce(
-                              (total, entry) => total + entry.quantity,
-                              0,
-                            )}
-                            枚
-                          </span>
-                        </h3>
-                        <ul className="shared-deck-entries">
-                          {group.entries.map((entry) => {
-                            const card = cardsByNumber.get(entry.cardNumber)
-                            return (
-                              <li key={entry.cardNumber}>
-                                <SharedDeckCardImage card={card} />
-                                <div>
-                                  <h4>{card?.name ?? entry.cardNumber}</h4>
-                                  <p>{entry.cardNumber}</p>
-                                  <p>
-                                    {card
-                                      ? CARD_TYPE_LABELS[card.cardType]
-                                      : DECK_ZONE_LABELS.unknown}
-                                  </p>
-                                  {!card && (
-                                    <p
-                                      className="deck-entry__warning"
-                                      role="alert"
-                                    >
-                                      現在のカードデータに存在しないカードです
-                                    </p>
-                                  )}
-                                </div>
-                                <strong>{entry.quantity}枚</strong>
-                              </li>
-                            )
-                          })}
-                        </ul>
-                      </section>
-                    ))}
-                  </div>
-                )}
-              </section>
-
-              <section
-                className="shared-deck-import"
-                aria-label="共有デッキのインポート"
-              >
-                <h2>このデッキを使う</h2>
-                <p>
-                  同じ名前のデッキがあっても、新しいローカルデッキとして追加します。
-                </p>
-                <button
-                  type="button"
-                  className="button"
-                  disabled={activeImportState === 'saving'}
-                  onClick={() => void importDeck(decoded.value)}
-                >
-                  {activeImportState === 'saving'
-                    ? '追加中…'
-                    : '自分のデッキに追加'}
-                </button>
-                {activeImportState === 'error' && (
-                  <p role="alert">
-                    デッキを保存できませんでした。再度ボタンを押してください。
-                  </p>
-                )}
-              </section>
-            </>
-          )}
-        </>
+        <SharedDeckView
+          payload={decoded.value}
+          source={encoded ?? ''}
+          repository={repository}
+          loadCards={loadCards}
+          createLocalDeck={createLocalDeck}
+        />
       )}
     </main>
   )
