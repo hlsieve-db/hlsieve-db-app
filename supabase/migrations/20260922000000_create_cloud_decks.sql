@@ -88,3 +88,15 @@ create policy decks_update_own on public.decks
 -- No delete policy on purpose. Removing a deck is an update that sets
 -- deleted_at, and closing an account removes the rows through the cascade on
 -- auth.users, so no client ever needs to delete a row directly.
+
+-- Row level security narrows what a caller may reach; it does not grant the
+-- privilege to reach it. This project was created with "automatically expose
+-- new tables" off, so nothing is granted implicitly and the table privileges
+-- have to be spelled out here.
+--
+-- Delete is withheld deliberately, which makes the missing delete policy above
+-- a second lock rather than the only one. Nothing is granted to anon: an
+-- anonymous caller has no business reaching this table at all.
+grant select, insert, update
+  on table public.decks
+  to authenticated;

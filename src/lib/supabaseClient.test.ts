@@ -27,6 +27,34 @@ describe('Supabase client when Cloud Sync is not configured', () => {
   })
 })
 
+// Without this the suite is a different suite on a machine that has Cloud Sync
+// configured locally: .env.local would build a real client and every test below
+// that expects the anonymous path would fail. The blanking lives in
+// vite.config.ts, and this locks it in so removing it fails here rather than
+// only on a developer's machine.
+describe('test environment isolation', () => {
+  it.each([
+    'VITE_SUPABASE_URL',
+    'VITE_SUPABASE_PUBLISHABLE_KEY',
+    'VITE_SUPABASE_EMAIL_SIGN_IN',
+  ])('does not inherit %s from the developer machine', (key) => {
+    expect(import.meta.env[key]).toBeFalsy()
+  })
+
+  it('restores the unconfigured default after a stub is removed', () => {
+    vi.stubEnv('VITE_SUPABASE_URL', 'https://example.invalid')
+    vi.stubEnv('VITE_SUPABASE_PUBLISHABLE_KEY', 'sb_publishable_test')
+    resetSupabaseClientForTests()
+    expect(isCloudSyncConfigured()).toBe(true)
+
+    vi.unstubAllEnvs()
+    resetSupabaseClientForTests()
+    // Restoring must land on the blanked value, not on whatever .env.local has,
+    // or one configured test would leak into every test that follows it.
+    expect(isCloudSyncConfigured()).toBe(false)
+  })
+})
+
 describe('Supabase key configuration', () => {
   afterEach(() => {
     vi.unstubAllEnvs()

@@ -43,8 +43,12 @@ insert into auth.users (id) values
 
 \ir ../migrations/20260922000000_create_cloud_decks.sql
 
--- Supabase grants these to both roles automatically; row level security, not
--- the grant, is what keeps an anonymous caller out.
+-- Deliberately wider than production, which grants select/insert/update to
+-- authenticated and nothing to anon. Every assertion below is about row level
+-- security, so the table privileges are opened up first to stop a statement
+-- failing earlier at the privilege layer and hiding a broken policy. Do not
+-- narrow this to match production: tests/rls_production_check.sql is what
+-- checks the privileges the migration actually grants.
 grant select, insert, update, delete on public.decks to authenticated, anon;
 
 -- ---------------------------------------------------------------- user A

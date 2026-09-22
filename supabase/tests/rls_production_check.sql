@@ -1,4 +1,6 @@
--- Checks the decks policies against a REAL Supabase project.
+-- Checks the effective access control on public.decks against a REAL Supabase
+-- project: the table privileges the migration grants and the row level
+-- security policies on top of them, which are what a caller actually meets.
 --
 -- Unlike tests/rls_matrix.sql, this creates nothing: no auth schema, no
 -- auth.users rows, no roles, no policies. It only reads auth.users, and every
@@ -34,6 +36,7 @@ declare
 
   visible int;
   touched int;
+  priv text;
 begin
   -- ------------------------------------------------------------- preflight
   if user_a = '00000000-0000-0000-0000-000000000000'::uuid
@@ -50,6 +53,37 @@ begin
   if not exists (select 1 from auth.users where id = user_b) then
     raise exception 'user_b is not an account in this project.';
   end if;
+
+  -- ------------------------------------------------- table privileges
+  -- Row level security narrows what a caller may reach; the grant decides
+  -- whether it may reach the table at all. Checking the grants here catches
+  -- the case the row checks below cannot see: policies that are correct while
+  -- the privileges underneath them are wider than intended.
+  --
+  -- has_table_privilege is used rather than information_schema.role_table_grants
+  -- because it answers the effective question, following role membership, and
+  -- it does not hide rows whose grantor is a role this session cannot see.
+  if to_regrole('authenticated') is null or to_regrole('anon') is null then
+    raise exception
+      'The authenticated and anon roles are missing; this is not a Supabase project.';
+  end if;
+
+  foreach priv in array array['select', 'insert', 'update'] loop
+    if not has_table_privilege('authenticated', 'public.decks', priv) then
+      raise exception 'authenticated is missing % on public.decks.', priv;
+    end if;
+  end loop;
+
+  if has_table_privilege('authenticated', 'public.decks', 'delete') then
+    raise exception
+      'authenticated holds delete on public.decks; the migration grants only select, insert and update.';
+  end if;
+
+  foreach priv in array array['select', 'insert', 'update', 'delete'] loop
+    if has_table_privilege('anon', 'public.decks', priv) then
+      raise exception 'anon holds % on public.decks; it should hold nothing.', priv;
+    end if;
+  end loop;
 
   -- ---------------------------------------------------------------- user A
   -- The SQL editor is not a PostgREST request, so the identity is asserted
@@ -86,12 +120,16 @@ begin
     raise exception 'A cannot tombstone its own deck.';
   end if;
 
-  delete from public.decks where user_id = user_a and id = deck_a;
-  get diagnostics touched = row_count;
-  if touched <> 0 then
-    raise exception
-      'A deleted a row; there should be no delete policy on public.decks.';
-  end if;
+  -- Delete is refused by the grant before row level security is consulted, so
+  -- this raises rather than reporting zero rows. The absence of a delete policy
+  -- is the second lock underneath, and tests/rls_matrix.sql is what exercises
+  -- that layer on its own.
+  begin
+    delete from public.decks where user_id = user_a and id = deck_a;
+    raise exception 'A was able to run a physical delete on its own row.';
+  exception
+    when insufficient_privilege then null;
+  end;
 
   begin
     insert into public.decks (user_id, id, deck)
@@ -126,9 +164,12 @@ begin
   get diagnostics touched = row_count;
   if touched <> 0 then raise exception 'B updated a deck of A.'; end if;
 
-  delete from public.decks where id = deck_a;
-  get diagnostics touched = row_count;
-  if touched <> 0 then raise exception 'B deleted a deck of A.'; end if;
+  begin
+    delete from public.decks where id = deck_a;
+    raise exception 'B was able to run a physical delete.';
+  exception
+    when insufficient_privilege then null;
+  end;
 
   -- Ids are only unique per account, so B may hold one A also uses.
   insert into public.decks (id, deck) values (deck_sh, '{"name":"B"}');
@@ -151,26 +192,39 @@ begin
     raise exception 'auth.uid() is still set for an anonymous caller.';
   end if;
 
-  select count(*) into visible from public.decks;
-  if visible <> 0 then
-    raise exception 'An anonymous caller can read % deck row(s).', visible;
-  end if;
+  -- anon holds no privilege on the table at all, so each of the four reaches
+  -- the privilege layer and stops there. Returning zero rows instead would mean
+  -- the grant is wider than the migration asks for, which is a failure even
+  -- though no row escaped.
+  begin
+    select count(*) into visible from public.decks;
+    raise exception
+      'An anonymous caller was able to read public.decks (% row(s)).', visible;
+  exception
+    when insufficient_privilege then null;
+  end;
 
   begin
     insert into public.decks (user_id, id, deck)
       values (user_a, '__hlsieve_rls_check_anon__', '{}');
     raise exception 'An anonymous caller inserted a row.';
   exception
-    when insufficient_privilege or not_null_violation then null;
+    when insufficient_privilege then null;
   end;
 
-  update public.decks set deck = '{"name":"anon"}' where id = deck_a;
-  get diagnostics touched = row_count;
-  if touched <> 0 then raise exception 'An anonymous caller updated a row.'; end if;
+  begin
+    update public.decks set deck = '{"name":"anon"}' where id = deck_a;
+    raise exception 'An anonymous caller was able to update public.decks.';
+  exception
+    when insufficient_privilege then null;
+  end;
 
-  delete from public.decks where id = deck_a;
-  get diagnostics touched = row_count;
-  if touched <> 0 then raise exception 'An anonymous caller deleted a row.'; end if;
+  begin
+    delete from public.decks where id = deck_a;
+    raise exception 'An anonymous caller was able to delete from public.decks.';
+  exception
+    when insufficient_privilege then null;
+  end;
 
   reset role;
   raise notice 'All production RLS checks passed. Rolling back, nothing kept.';
