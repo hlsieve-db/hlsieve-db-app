@@ -74,6 +74,7 @@ function build({
   enabled?: boolean
 } = {}) {
   const events: CloudDeckSyncEvent[] = []
+  const uploaded = vi.fn()
   let notify: (() => void) | undefined
   const repository = withCloudDeckSync({
     decks,
@@ -83,12 +84,13 @@ function build({
       events.push(event)
       notify?.()
     },
+    onUploadSuccess: uploaded,
   })
   const nextEvent = () =>
     new Promise<void>((resolve) => {
       notify = resolve
     })
-  return { repository, decks, cloudDecks, events, nextEvent }
+  return { repository, decks, cloudDecks, events, nextEvent, uploaded }
 }
 
 describe('saving a deck', () => {
@@ -480,5 +482,98 @@ describe('remembering what could not be sent', () => {
 
     await expect(repository.saveDeck(deck('a'))).resolves.toBeUndefined()
     expect(decks.saveDeck).toHaveBeenCalledTimes(1)
+  })
+})
+
+/**
+ * The panel says when this device last got something up. It may only say so
+ * where something actually did: a local save whose send failed is exactly the
+ * case the reporter needs told apart from a save that worked.
+ */
+describe('reporting that a change reached the account', () => {
+  it('reports an accepted save', async () => {
+    const { repository, nextEvent, uploaded } = build()
+    const pending = nextEvent()
+
+    await repository.saveDeck(deck('a'))
+    await pending
+
+    expect(uploaded).toHaveBeenCalledTimes(1)
+  })
+
+  it('reports an accepted delete', async () => {
+    const { repository, nextEvent, uploaded } = build()
+    const pending = nextEvent()
+
+    await repository.deleteDeck('a')
+    await pending
+
+    expect(uploaded).toHaveBeenCalledTimes(1)
+  })
+
+  it('says nothing when the save was refused', async () => {
+    const cloudDecks = cloudRepository({
+      upsert: vi.fn(async () => ({
+        ok: false as const,
+        reason: 'network' as const,
+      })),
+    })
+    const { repository, nextEvent, uploaded } = build({ cloudDecks })
+    const pending = nextEvent()
+
+    await repository.saveDeck(deck('a'))
+    await pending
+
+    expect(uploaded).not.toHaveBeenCalled()
+  })
+
+  it('says nothing when the delete was refused', async () => {
+    const cloudDecks = cloudRepository({
+      tombstone: vi.fn(async () => ({
+        ok: false as const,
+        reason: 'network' as const,
+      })),
+    })
+    const { repository, nextEvent, uploaded } = build({ cloudDecks })
+    const pending = nextEvent()
+
+    await repository.deleteDeck('a')
+    await pending
+
+    expect(uploaded).not.toHaveBeenCalled()
+  })
+
+  it('says nothing when the request never resolved into a result', async () => {
+    const cloudDecks = cloudRepository({
+      upsert: vi.fn(async () => {
+        throw new Error('offline')
+      }),
+    })
+    const { repository, nextEvent, uploaded } = build({ cloudDecks })
+    const pending = nextEvent()
+
+    await repository.saveDeck(deck('a'))
+    await pending
+
+    expect(uploaded).not.toHaveBeenCalled()
+  })
+
+  // Nothing was sent, so nothing can be reported as having arrived.
+  it('says nothing when sync is off', async () => {
+    const { repository, uploaded } = build({ enabled: false })
+
+    await repository.saveDeck(deck('a'))
+    await Promise.resolve()
+
+    expect(uploaded).not.toHaveBeenCalled()
+  })
+
+  it('says nothing when there is no cloud repository', async () => {
+    const { repository, uploaded } = build({ cloudDecks: null })
+
+    await repository.saveDeck(deck('a'))
+    await Promise.resolve()
+
+    expect(uploaded).not.toHaveBeenCalled()
   })
 })

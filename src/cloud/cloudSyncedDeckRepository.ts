@@ -58,6 +58,12 @@ export type CloudSyncedDeckRepositoryOptions = {
     record: (deckId: DeckId, operation: PendingDeckSyncOperation) => void
     clear: (deckId: DeckId) => void
   }
+  /**
+   * Called when a change was accepted by the account, so the panel can say
+   * when this device last got something up. Never called for a local save
+   * whose send failed: that is the case the reporter most needs told apart.
+   */
+  onUploadSuccess?: () => void
 }
 
 export function withCloudDeckSync({
@@ -66,6 +72,7 @@ export function withCloudDeckSync({
   isSyncEnabled,
   onSyncResult,
   pending,
+  onUploadSuccess,
 }: CloudSyncedDeckRepositoryOptions): DeckBackupRepository {
   const shouldSync = () => Boolean(cloudDecks) && isSyncEnabled()
 
@@ -79,8 +86,12 @@ export function withCloudDeckSync({
     operation: PendingDeckSyncOperation,
     ok: boolean,
   ) => {
-    if (ok) pending?.clear(deckId)
-    else pending?.record(deckId, operation)
+    if (ok) {
+      pending?.clear(deckId)
+      // Both a save and a delete count: each one is this device getting the
+      // account to agree with it.
+      onUploadSuccess?.()
+    } else pending?.record(deckId, operation)
   }
 
   const push = (deckValues: readonly Deck[]) => {

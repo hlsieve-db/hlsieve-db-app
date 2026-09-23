@@ -77,14 +77,16 @@ function run({
   const getDeck = vi.fn(async (id: string) =>
     decks.find((value) => value.id === id),
   )
+  const uploaded = vi.fn()
   const result = retryPendingDeckSync({
     decks: { getDeck },
     cloudDecks,
     isSyncEnabled: () => enabled,
     namespace,
     storage,
+    onUploadSuccess: uploaded,
   })
-  return { result, storage, getDeck, cloudDecks, namespace }
+  return { result, storage, getDeck, cloudDecks, namespace, uploaded }
 }
 
 const remaining = (
@@ -356,5 +358,89 @@ describe('accounts are separate', () => {
     expect(cloudDecks.upsert).toHaveBeenCalledWith(deck('b'))
     // The other account's queue is untouched.
     expect(readPendingDeckSync(storage, userA)).toEqual({ a: 'upsert' })
+  })
+})
+
+/**
+ * Reported per entry rather than per run, so a retry that sends some of the
+ * queue and then fails still records that this device got something up.
+ */
+describe('reporting what actually reached the account', () => {
+  it('reports each entry that was accepted', async () => {
+    const { result, uploaded } = run({
+      queue: { a: 'upsert', b: 'tombstone' },
+      decks: [deck('a')],
+    })
+    await result
+
+    expect(uploaded).toHaveBeenCalledTimes(2)
+  })
+
+  it('reports the entries sent before a failure, and no more', async () => {
+    const cloudDecks = cloudRepository({
+      upsert: vi.fn(async (value: Deck) =>
+        value.id === 'a'
+          ? { ok: true as const, value: record('a') }
+          : { ok: false as const, reason: 'network' as const },
+      ),
+    })
+    const { result, uploaded } = run({
+      queue: { a: 'upsert', b: 'upsert' },
+      decks: [deck('a'), deck('b')],
+      cloudDecks,
+    })
+    await result
+
+    expect(uploaded).toHaveBeenCalledTimes(1)
+  })
+
+  it('reports nothing when the first entry is refused', async () => {
+    const cloudDecks = cloudRepository({
+      upsert: vi.fn(async () => ({
+        ok: false as const,
+        reason: 'network' as const,
+      })),
+    })
+    const { result, uploaded } = run({ queue: { a: 'upsert' }, cloudDecks })
+    await result
+
+    expect(uploaded).not.toHaveBeenCalled()
+  })
+
+  // The entry is resolved, but nothing went up: the account never had the row.
+  it('reports nothing for a tombstone the account does not know about', async () => {
+    const cloudDecks = cloudRepository({
+      tombstone: vi.fn(async () => ({
+        ok: false as const,
+        reason: 'not-found' as const,
+      })),
+    })
+    const { result, uploaded } = run({ queue: { a: 'tombstone' }, cloudDecks })
+    await expect(result).resolves.toEqual({
+      ok: true,
+      completed: 1,
+      remaining: 0,
+    })
+
+    expect(uploaded).not.toHaveBeenCalled()
+  })
+
+  // Dropped without sending, so there is nothing to report either.
+  it('reports nothing for an upsert whose deck is gone', async () => {
+    const { result, cloudDecks, uploaded } = run({
+      queue: { gone: 'upsert' },
+      decks: [],
+    })
+    await result
+
+    expect(cloudDecks?.upsert).not.toHaveBeenCalled()
+    expect(uploaded).not.toHaveBeenCalled()
+  })
+
+  it('reports nothing when sync is off', async () => {
+    const { result, uploaded } = run({ queue: { a: 'upsert' }, enabled: false })
+    await result
+
+    expect(uploaded).not.toHaveBeenCalled()
   })
 })

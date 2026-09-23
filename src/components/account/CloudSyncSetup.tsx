@@ -1,5 +1,7 @@
 import { useState } from 'react'
 
+import { namespaceKey } from '../../auth/authState'
+
 import {
   applyCloudDeckRestore,
   readCloudDeckRestorePlan,
@@ -16,9 +18,15 @@ import {
   writeCloudSyncState,
   type CloudSyncStatus,
 } from '../../domain/cloud/cloudSyncState'
+import {
+  readCloudUploadStatus,
+  recordCloudUploadSuccess,
+} from '../../domain/cloud/cloudUploadStatus'
 import { pendingDeckSyncCount } from '../../domain/cloud/pendingDeckSync'
 import { CloudDeckSyncRetry } from '../../cloud/CloudDeckSyncRetry'
 import { useAppRepositories } from '../../repositories/useAppRepositories'
+import { unsentChangeMessage } from './unsentChangeMessage'
+import { formatDateTime } from '../../utils/formatDateTime'
 
 /**
  * Turning Cloud Sync on, and bringing an account's decks back down later.
@@ -73,6 +81,19 @@ type Restore =
   | { step: 'done'; restored: number; removed: number }
   | { step: 'error'; reason: CloudDeckSyncFailure }
 
+/**
+ * What this device still owes the account, and when it last managed to send
+ * something. Held together and stamped with the account so a switch cannot
+ * show one account's numbers under another's name.
+ */
+type SyncStatusView = {
+  account: string
+  pending: number
+  lastUpload: string | null
+  retrying: boolean
+  retryFailed: boolean
+}
+
 export type CloudSyncSetupProps = {
   /** Supplied by tests that render the panel on its own. */
   storage?: Pick<Storage, 'getItem' | 'setItem'>
@@ -89,11 +110,38 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
   const [activation, setActivation] = useState<Activation>({ step: 'idle' })
   const [outcome, setOutcome] = useState<string>()
   const [restore, setRestore] = useState<Restore>({ step: 'idle' })
-  // Recounted after each retry attempt, so the line disappears on its own once
-  // everything has gone up.
-  const [pending, setPending] = useState(() =>
-    pendingDeckSyncCount(store, namespace),
-  )
+  // Stamped with the account it describes, so switching shows the new
+  // account's own state rather than the previous one's count, time or
+  // "sending" line. The stamp is the whole isolation: nothing here is keyed by
+  // anything a switch leaves behind.
+  const accountKey = namespaceKey(namespace)
+  const freshView = (): SyncStatusView => ({
+    account: accountKey,
+    // From the queue, never stored alongside it, so the number and the work
+    // it describes cannot disagree.
+    pending: pendingDeckSyncCount(store, namespace),
+    lastUpload: readCloudUploadStatus(store, namespace).lastUploadSuccessAt,
+    // Both transient. A reload has no attempt running and no failed attempt
+    // to report, so neither is kept anywhere.
+    retrying: false,
+    retryFailed: false,
+  })
+  const [view, setView] = useState(freshView)
+  const current = view.account === accountKey ? view : freshView()
+
+  const update = (patch: Partial<SyncStatusView>) =>
+    setView((previous) => ({
+      ...(previous.account === accountKey ? previous : freshView()),
+      ...patch,
+      account: accountKey,
+    }))
+
+  /** Only ever called where a deck actually reached the account. */
+  const noteUploadSuccess = () => {
+    const at = new Date().toISOString()
+    recordCloudUploadSuccess(at, store, namespace)
+    update({ lastUpload: at })
+  }
 
   // Without a repository there is no account or no configured project, and
   // nothing to offer.
@@ -142,6 +190,8 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
       cloudDecks,
       onProgress: (progress) => setActivation({ step: 'working', progress }),
     })
+    // Whatever was accepted was accepted, even if the run stopped partway.
+    if (result.uploaded > 0) noteUploadSuccess()
     if (!result.ok) {
       setActivation({ step: 'error', reason: result.reason })
       return
@@ -224,13 +274,39 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
               panel to recount afterwards. Renders nothing itself. */}
           <CloudDeckSyncRetry
             storage={storage}
-            onRetried={() => setPending(pendingDeckSyncCount(store, namespace))}
+            onRetryingChange={(retrying) => update({ retrying })}
+            onRetried={(retryOutcome) =>
+              update({
+                pending: pendingDeckSyncCount(store, namespace),
+                lastUpload: readCloudUploadStatus(store, namespace)
+                  .lastUploadSuccessAt,
+                retrying: false,
+                retryFailed: retryOutcome === 'failed',
+              })
+            }
           />
-          {pending > 0 && (
-            <p className="account-cloud-sync__pending">
-              未同期の変更 {pending}件。通信が回復すると自動的に送信します。
-            </p>
-          )}
+
+          {/* What this device still owes the account, and when it last managed
+              to send something. Deliberately not phrased as being in sync:
+              nothing is pulled down on its own, so the account can hold changes
+              this device has never seen. */}
+          <div className="account-cloud-sync__status">
+            {current.pending === 0 ? (
+              <p>この端末からの未送信の変更はありません</p>
+            ) : (
+              <>
+                <p className="account-cloud-sync__pending">
+                  未送信の変更 {current.pending}件
+                </p>
+                <p role={current.retrying ? 'status' : undefined}>
+                  {unsentChangeMessage(current)}
+                </p>
+              </>
+            )}
+            {current.lastUpload !== null && (
+              <p>最終送信: {formatDateTime(current.lastUpload)}</p>
+            )}
+          </div>
 
           <div className="account-cloud-sync__restore">
             <h3>クラウドから復元</h3>

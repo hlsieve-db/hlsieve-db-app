@@ -12,6 +12,10 @@ import { userLocalDataNamespace } from '../../domain/storage/localDataNamespace'
 import { AppRepositoriesContext } from '../../repositories/appRepositoriesContext'
 import type { AppRepositories } from '../../repositories/appRepositories'
 import { CloudSyncSetup } from './CloudSyncSetup'
+import {
+  UNSENT_CHANGE_MESSAGES,
+  unsentChangeMessage,
+} from './unsentChangeMessage'
 
 function deck(id: string): Deck {
   return {
@@ -862,13 +866,16 @@ describe('unsent changes in the account panel', () => {
       }),
     })
 
-    expect(screen.getByText(/未同期の変更 2件/)).toBeVisible()
+    expect(screen.getByText(/未送信の変更 2件/)).toBeVisible()
   })
 
-  it('says nothing when everything has gone up', () => {
+  it('says so plainly when everything has gone up', () => {
     renderSetup({ storage: enabledStorage() })
 
-    expect(screen.queryByText(/未同期の変更/)).not.toBeInTheDocument()
+    expect(
+      screen.getByText('この端末からの未送信の変更はありません'),
+    ).toBeVisible()
+    expect(screen.queryByText(/未送信の変更 \d+件/)).not.toBeInTheDocument()
   })
 
   // The count belongs to the account, like the queue behind it.
@@ -881,7 +888,10 @@ describe('unsent changes in the account panel', () => {
       }),
     })
 
-    expect(screen.queryByText(/未同期の変更/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/未送信の変更 \d+件/)).not.toBeInTheDocument()
+    expect(
+      screen.getByText('この端末からの未送信の変更はありません'),
+    ).toBeVisible()
   })
 
   // Only a signed in account that turned sync on has a queue to report.
@@ -892,7 +902,7 @@ describe('unsent changes in the account panel', () => {
       }),
     })
 
-    expect(screen.queryByText(/未同期の変更/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/未送信の変更/)).not.toBeInTheDocument()
   })
 
   it('shows no raw database detail alongside the count', () => {
@@ -903,7 +913,7 @@ describe('unsent changes in the account panel', () => {
     })
 
     const text = document.body.textContent ?? ''
-    expect(text).toContain('未同期の変更 1件')
+    expect(text).toContain('未送信の変更 1件')
     ;['PGRST', 'supabase', '42501', 'permission denied'].forEach((fragment) =>
       expect(text).not.toContain(fragment),
     )
@@ -933,6 +943,449 @@ describe('restoring never queues anything', () => {
     expect(
       storage.values.get('hlsieve:cloud-sync-pending--user-a'),
     ).toBeUndefined()
-    expect(screen.queryByText(/未同期の変更/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/未送信の変更 \d+件/)).not.toBeInTheDocument()
+  })
+})
+
+/**
+ * What this device still owes the account, and when it last managed to send.
+ *
+ * Deliberately never phrased as being in sync: nothing is pulled down on its
+ * own, so the account can hold changes this device has never seen, and an "up
+ * to date" reading would be a promise the app cannot keep.
+ */
+describe('the state of this device s changes', () => {
+  const ENABLED_A = '{"version":1,"status":"enabled"}'
+  const statusKeyA = 'hlsieve:cloud-sync-status--user-a'
+  const pendingKeyA = 'hlsieve:cloud-sync-pending--user-a'
+  const AT = '2026-09-23T00:15:00.000Z'
+
+  const pendingFor = (operations: Record<string, string>) =>
+    JSON.stringify({ version: 1, operations })
+
+  const statusFor = (lastUploadSuccessAt: string | null) =>
+    JSON.stringify({ version: 1, lastUploadSuccessAt })
+
+  /** The panel on its own, so a test can hand it a second account. */
+  function panel({
+    userId = 'user-a',
+    storage,
+    cloudDecks = cloudRepository(async () => ({ ok: true, value: [] })),
+    localDecks = [deck('a')],
+  }: {
+    userId?: string
+    storage: ReturnType<typeof memoryStorage>
+    cloudDecks?: CloudDeckRepository
+    localDecks?: Deck[]
+  }) {
+    const namespace = userLocalDataNamespace(userId)
+    const local = {
+      listDecks: vi.fn(async () => localDecks),
+      getDeck: vi.fn(async (id: string) => localDecks.find((d) => d.id === id)),
+      saveDeck: vi.fn(async () => undefined),
+      deleteDeck: vi.fn(async () => undefined),
+    }
+    return (
+      <AppRepositoriesContext.Provider
+        value={
+          {
+            namespace,
+            decks: { listDecks: vi.fn(async () => localDecks) },
+            localDecks: local,
+            cloudDecks,
+          } as unknown as AppRepositories
+        }
+      >
+        <CloudSyncSetup storage={storage} />
+      </AppRepositoriesContext.Provider>
+    )
+  }
+
+  /** An upload that finishes when the test says so. */
+  function held() {
+    let release: ((value: CloudDeckResult<CloudDeckRecord>) => void) | undefined
+    const promise = new Promise<CloudDeckResult<CloudDeckRecord>>((resolve) => {
+      release = resolve
+    })
+    return {
+      promise,
+      succeed: () => release?.({ ok: true, value: cloudRecord('a') }),
+    }
+  }
+
+  it('says there is nothing waiting when the queue is empty', () => {
+    render(
+      panel({
+        storage: memoryStorage({ 'hlsieve:cloud-sync--user-a': ENABLED_A }),
+      }),
+    )
+
+    expect(
+      screen.getByText('この端末からの未送信の変更はありません'),
+    ).toBeVisible()
+  })
+
+  it('counts what is waiting', async () => {
+    const attempt = held()
+    const storage = memoryStorage({
+      'hlsieve:cloud-sync--user-a': ENABLED_A,
+      [pendingKeyA]: pendingFor({ a: 'upsert', b: 'tombstone' }),
+    })
+
+    render(
+      panel({
+        storage,
+        cloudDecks: cloudRepository(
+          async () => ({ ok: true, value: [] }),
+          () => attempt.promise,
+        ),
+      }),
+    )
+
+    expect(screen.getByText('未送信の変更 2件')).toBeVisible()
+    attempt.succeed()
+  })
+
+  /**
+   * Which line goes with the count. Pinned as a rule rather than through the
+   * panel, because a mounted panel starts an attempt at once: the waiting line
+   * is what it shows before that attempt, and after an account switch, and
+   * neither state can be held still in the DOM.
+   */
+  describe('choosing the line that goes with the count', () => {
+    it('says an attempt is under way while one is', () => {
+      expect(unsentChangeMessage({ retrying: true, retryFailed: false })).toBe(
+        UNSENT_CHANGE_MESSAGES.retrying,
+      )
+      // A previous failure does not change what is happening now.
+      expect(unsentChangeMessage({ retrying: true, retryFailed: true })).toBe(
+        UNSENT_CHANGE_MESSAGES.retrying,
+      )
+    })
+
+    it('says it will go on its own when nothing has failed yet', () => {
+      expect(unsentChangeMessage({ retrying: false, retryFailed: false })).toBe(
+        UNSENT_CHANGE_MESSAGES.waiting,
+      )
+    })
+
+    it('says it will be tried again after a failure', () => {
+      expect(unsentChangeMessage({ retrying: false, retryFailed: true })).toBe(
+        UNSENT_CHANGE_MESSAGES.failed,
+      )
+    })
+
+    // None of them may suggest the account and this device agree.
+    it('never claims either side is up to date', () => {
+      for (const message of Object.values(UNSENT_CHANGE_MESSAGES)) {
+        for (const claim of ['同期済み', '最新', 'すべて同期', '一致']) {
+          expect(message).not.toContain(claim)
+        }
+      }
+    })
+  })
+
+  it('says so while an attempt is under way', async () => {
+    const attempt = held()
+    const storage = memoryStorage({
+      'hlsieve:cloud-sync--user-a': ENABLED_A,
+      [pendingKeyA]: pendingFor({ a: 'upsert' }),
+    })
+
+    render(
+      panel({
+        storage,
+        cloudDecks: cloudRepository(
+          async () => ({ ok: true, value: [] }),
+          () => attempt.promise,
+        ),
+      }),
+    )
+
+    expect(await screen.findByText('再送しています…')).toBeVisible()
+    attempt.succeed()
+    await waitFor(() =>
+      expect(
+        screen.getByText('この端末からの未送信の変更はありません'),
+      ).toBeVisible(),
+    )
+  })
+
+  it('keeps the change and says it will try again after a failure', async () => {
+    const storage = memoryStorage({
+      'hlsieve:cloud-sync--user-b': ENABLED_A,
+      'hlsieve:cloud-sync-pending--user-b': pendingFor({ a: 'upsert' }),
+    })
+
+    render(
+      panel({
+        userId: 'user-b',
+        storage,
+        cloudDecks: cloudRepository(
+          async () => ({ ok: true, value: [] }),
+          async () => ({ ok: false, reason: 'network' }),
+        ),
+      }),
+    )
+
+    expect(
+      await screen.findByText(
+        'まだ送信できていない変更があります。通信が回復すると再試行します。',
+      ),
+    ).toBeVisible()
+    expect(screen.getByText('未送信の変更 1件')).toBeVisible()
+    // Still queued for the next attempt.
+    expect(
+      JSON.parse(
+        storage.values.get('hlsieve:cloud-sync-pending--user-b') ?? '',
+      ),
+    ).toEqual({ version: 1, operations: { a: 'upsert' } })
+  })
+
+  it('shows when this device last got something up', () => {
+    const storage = memoryStorage({
+      'hlsieve:cloud-sync--user-a': ENABLED_A,
+      [statusKeyA]: statusFor(AT),
+    })
+
+    render(panel({ storage }))
+
+    expect(screen.getByText(/最終送信: 2026\/09\/23/)).toBeVisible()
+  })
+
+  it('still shows it after a reload', () => {
+    const storage = memoryStorage({
+      'hlsieve:cloud-sync--user-a': ENABLED_A,
+      [statusKeyA]: statusFor(AT),
+    })
+    const first = render(panel({ storage }))
+    first.unmount()
+
+    render(
+      panel({ storage: memoryStorage(Object.fromEntries(storage.values)) }),
+    )
+
+    expect(screen.getByText(/最終送信: 2026\/09\/23/)).toBeVisible()
+  })
+
+  // A run that sends some and then fails has both facts to report, and the
+  // unsent ones matter more.
+  it('leads with what is still waiting even after something went up', async () => {
+    const storage = memoryStorage({
+      'hlsieve:cloud-sync--user-a': ENABLED_A,
+      [pendingKeyA]: pendingFor({ a: 'upsert', b: 'upsert' }),
+    })
+
+    render(
+      panel({
+        storage,
+        localDecks: [deck('a'), deck('b')],
+        cloudDecks: cloudRepository(
+          async () => ({ ok: true, value: [] }),
+          async (value: Deck) =>
+            value.id === 'a'
+              ? { ok: true, value: cloudRecord('a') }
+              : { ok: false, reason: 'network' },
+        ),
+      }),
+    )
+
+    expect(await screen.findByText('未送信の変更 1件')).toBeVisible()
+    expect(screen.getByText(/最終送信: /)).toBeVisible()
+    expect(
+      screen.queryByText('この端末からの未送信の変更はありません'),
+    ).not.toBeInTheDocument()
+  })
+
+  it('shows nothing rather than a bad date when the stored value is damaged', () => {
+    const storage = memoryStorage({
+      'hlsieve:cloud-sync--user-a': ENABLED_A,
+      [statusKeyA]: '{"version":1,"lastUploadSuccessAt":"yesterday"}',
+    })
+
+    render(panel({ storage }))
+
+    expect(screen.queryByText(/最終送信/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Invalid Date/)).not.toBeInTheDocument()
+  })
+
+  // The time belongs to the account, like the queue behind it.
+  it('does not show another account s upload time', () => {
+    const storage = memoryStorage({
+      'hlsieve:cloud-sync--user-b': ENABLED_A,
+      [statusKeyA]: statusFor(AT),
+    })
+
+    render(panel({ userId: 'user-b', storage }))
+
+    expect(screen.queryByText(/最終送信/)).not.toBeInTheDocument()
+  })
+
+  // An attempt running for the account just left must not make the account now
+  // on screen look busy.
+  it('does not carry a running attempt across an account switch', async () => {
+    const attempt = held()
+    const storage = memoryStorage({
+      'hlsieve:cloud-sync--user-a': ENABLED_A,
+      'hlsieve:cloud-sync--user-b': ENABLED_A,
+      [pendingKeyA]: pendingFor({ a: 'upsert' }),
+    })
+    const cloudDecks = cloudRepository(
+      async () => ({ ok: true, value: [] }),
+      () => attempt.promise,
+    )
+
+    const view = render(panel({ storage, cloudDecks }))
+    await screen.findByText('再送しています…')
+
+    view.rerender(panel({ userId: 'user-b', storage, cloudDecks }))
+
+    expect(screen.queryByText('再送しています…')).not.toBeInTheDocument()
+    expect(
+      screen.getByText('この端末からの未送信の変更はありません'),
+    ).toBeVisible()
+    attempt.succeed()
+  })
+
+  it('records the time when setting up sends this device s decks', async () => {
+    const storage = memoryStorage()
+
+    render(panel({ storage }))
+    fireEvent.click(screen.getByRole('button', { name: 'クラウド同期を設定' }))
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'この端末のデッキをクラウドへ保存',
+      }),
+    )
+
+    expect(await screen.findByText(/最終送信: /)).toBeVisible()
+    expect(storage.values.get(statusKeyA)).toBeDefined()
+  })
+
+  // Reading both sides sends nothing, so there is nothing to record.
+  it('records nothing from opening the setup screen', async () => {
+    const storage = memoryStorage()
+
+    render(panel({ storage }))
+    fireEvent.click(screen.getByRole('button', { name: 'クラウド同期を設定' }))
+    await screen.findByText('この端末のデッキ: 1件')
+
+    expect(storage.values.get(statusKeyA)).toBeUndefined()
+  })
+
+  // A restore came down rather than going up.
+  it('records nothing from a restore', async () => {
+    const storage = memoryStorage({ 'hlsieve:cloud-sync--user-a': ENABLED_A })
+
+    render(
+      panel({
+        storage,
+        localDecks: [],
+        cloudDecks: cloudRepository(async () => ({
+          ok: true,
+          value: [cloudRecord('a')],
+        })),
+      }),
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'クラウドから復元' }))
+    await screen.findByText(/デッキ1個を取り込み/)
+
+    expect(storage.values.get(statusKeyA)).toBeUndefined()
+    expect(screen.queryByText(/最終送信/)).not.toBeInTheDocument()
+  })
+
+  it('says none of this before sync is enabled', () => {
+    render(panel({ storage: memoryStorage({ [statusKeyA]: statusFor(AT) }) }))
+
+    expect(screen.queryByText(/最終送信/)).not.toBeInTheDocument()
+    expect(
+      screen.queryByText('この端末からの未送信の変更はありません'),
+    ).not.toBeInTheDocument()
+  })
+
+  it('says nothing at all with no cloud repository', () => {
+    const storage = memoryStorage({
+      'hlsieve:cloud-sync--user-a': ENABLED_A,
+      [statusKeyA]: statusFor(AT),
+    })
+
+    render(
+      <AppRepositoriesContext.Provider
+        value={
+          {
+            namespace: userLocalDataNamespace('user-a'),
+            decks: { listDecks: vi.fn(async () => []) },
+            localDecks: { listDecks: vi.fn(async () => []) },
+            cloudDecks: null,
+          } as unknown as AppRepositories
+        }
+      >
+        <CloudSyncSetup storage={storage} />
+      </AppRepositoriesContext.Provider>,
+    )
+
+    expect(screen.queryByText(/最終送信/)).not.toBeInTheDocument()
+    expect(screen.queryByText('クラウド同期')).not.toBeInTheDocument()
+  })
+
+  // Only the queue knows how much is waiting. A second copy of the number
+  // could disagree with the work it describes.
+  it('keeps no count of its own beside the queue', async () => {
+    const storage = memoryStorage({
+      'hlsieve:cloud-sync--user-a': ENABLED_A,
+      [pendingKeyA]: pendingFor({ a: 'upsert' }),
+    })
+
+    render(panel({ storage }))
+    await waitFor(() =>
+      expect(
+        screen.getByText('この端末からの未送信の変更はありません'),
+      ).toBeVisible(),
+    )
+
+    expect([...storage.values.keys()].sort()).toEqual([
+      'hlsieve:cloud-sync--user-a',
+      pendingKeyA,
+      statusKeyA,
+    ])
+    expect(JSON.parse(storage.values.get(statusKeyA) ?? '')).toEqual({
+      version: 1,
+      lastUploadSuccessAt: expect.any(String),
+    })
+  })
+
+  // Nothing is pulled down automatically, so the panel must not suggest the
+  // two sides agree.
+  it('never claims this device is up to date with the account', async () => {
+    const storage = memoryStorage({
+      'hlsieve:cloud-sync--user-a': ENABLED_A,
+      [statusKeyA]: statusFor(AT),
+      [pendingKeyA]: pendingFor({ a: 'upsert' }),
+    })
+
+    render(
+      panel({
+        storage,
+        cloudDecks: cloudRepository(
+          async () => ({ ok: true, value: [] }),
+          async () => ({ ok: false, reason: 'network' }),
+        ),
+      }),
+    )
+    await screen.findByText(
+      'まだ送信できていない変更があります。通信が回復すると再試行します。',
+    )
+
+    const text = document.body.textContent ?? ''
+    for (const claim of [
+      '同期済み',
+      '最新です',
+      '最新の状態',
+      'すべて同期',
+      'クラウドと一致',
+      '最終同期',
+    ]) {
+      expect(text).not.toContain(claim)
+    }
   })
 })

@@ -270,6 +270,17 @@ describe('PrivacyPolicyPage', () => {
       ).toBeVisible()
     })
 
+    // The panel shows when this device last got something up, which means a
+    // date is kept on the device and belongs in the list of what is stored.
+    it('says the last successful send time is kept on the device', () => {
+      renderPage()
+      expect(
+        screen.getByText(
+          /最後にクラウドへ送信できた日時をこの端末に保存し、アカウント画面で表示します/,
+        ),
+      ).toBeVisible()
+    })
+
     // Retrying must not become a back door around the login-alone promise.
     it('says retrying never sends a deck the reporter did not change', () => {
       renderPage()

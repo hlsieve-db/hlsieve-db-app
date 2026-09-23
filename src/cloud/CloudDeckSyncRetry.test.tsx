@@ -506,3 +506,168 @@ describe('when the device store itself fails', () => {
     expect(readPendingDeckSync(storage, userA)).toEqual({ a: 'upsert' })
   })
 })
+
+/**
+ * The account panel shows when this device last got something up, and whether
+ * an attempt is under way. Both come from here, because this is the only place
+ * that knows an attempt happened at all.
+ */
+describe('what it tells the panel', () => {
+  const statusKeyA = 'hlsieve:cloud-sync-status--user-a'
+
+  function mount(
+    storage: ReturnType<typeof memoryStorage>,
+    cloudDecks: CloudDeckRepository,
+    props: {
+      namespace?: LocalDataNamespace
+      onRetried?: (outcome: 'ok' | 'failed') => void
+      onRetryingChange?: (retrying: boolean) => void
+    } = {},
+  ) {
+    const { namespace = userA, ...rest } = props
+    return (
+      <AppRepositoriesContext.Provider
+        value={
+          {
+            namespace,
+            localDecks: { getDeck: vi.fn(async (id: string) => deck(id)) },
+            cloudDecks,
+          } as unknown as AppRepositories
+        }
+      >
+        <CloudDeckSyncRetry storage={storage} {...rest} />
+      </AppRepositoriesContext.Provider>
+    )
+  }
+
+  function enabledWithPending() {
+    const storage = memoryStorage({ 'hlsieve:cloud-sync--user-a': ENABLED })
+    writePendingDeckSync({ a: 'upsert' }, storage, userA)
+    return storage
+  }
+
+  it('records the time a queued change finally got up', async () => {
+    const storage = enabledWithPending()
+
+    render(mount(storage, cloudRepository()))
+
+    await waitFor(() => expect(storage.values.get(statusKeyA)).toBeDefined())
+    const stored: unknown = JSON.parse(storage.values.get(statusKeyA) ?? '')
+    expect(stored).toEqual({
+      version: 1,
+      lastUploadSuccessAt: expect.any(String),
+    })
+  })
+
+  it('records nothing when the send was refused', async () => {
+    const storage = enabledWithPending()
+    const onRetried = vi.fn()
+    const cloudDecks = cloudRepository({
+      upsert: vi.fn(async () => ({
+        ok: false as const,
+        reason: 'network' as const,
+      })),
+    })
+
+    render(mount(storage, cloudDecks, { onRetried }))
+
+    await waitFor(() => expect(onRetried).toHaveBeenCalledWith('failed'))
+    expect(storage.values.get(statusKeyA)).toBeUndefined()
+  })
+
+  it('says an attempt started and then finished', async () => {
+    const storage = enabledWithPending()
+    const seen: boolean[] = []
+
+    render(
+      mount(storage, cloudRepository(), {
+        onRetryingChange: (retrying) => seen.push(retrying),
+      }),
+    )
+
+    await waitFor(() => expect(seen).toEqual([true, false]))
+  })
+
+  it('reports a finished attempt as done', async () => {
+    const storage = enabledWithPending()
+    const onRetried = vi.fn()
+
+    render(mount(storage, cloudRepository(), { onRetried }))
+
+    await waitFor(() => expect(onRetried).toHaveBeenCalledWith('ok'))
+  })
+
+  // A store that will not open leaves the change queued, which is the same
+  // thing for the reporter as a refused send.
+  it('reports a store failure as not sent', async () => {
+    const storage = enabledWithPending()
+    const onRetried = vi.fn()
+
+    render(
+      <AppRepositoriesContext.Provider
+        value={
+          {
+            namespace: userA,
+            localDecks: {
+              getDeck: vi.fn(async () => {
+                throw new Error('indexeddb unavailable')
+              }),
+            },
+            cloudDecks: cloudRepository(),
+          } as unknown as AppRepositories
+        }
+      >
+        <CloudDeckSyncRetry storage={storage} onRetried={onRetried} />
+      </AppRepositoriesContext.Provider>,
+    )
+
+    await waitFor(() => expect(onRetried).toHaveBeenCalledWith('failed'))
+  })
+
+  // An attempt for the account that has just been left must not make the
+  // account now on screen look busy.
+  it('says nothing about an account that has gone', async () => {
+    const storage = enabledWithPending()
+    let release: (() => void) | undefined
+    const held = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const cloudDecks = cloudRepository({
+      upsert: vi.fn(async (value: Deck) => {
+        await held
+        return { ok: true as const, value: record(value.id) }
+      }),
+    })
+    const onRetryingChange = vi.fn()
+    const onRetried = vi.fn()
+
+    const a = render(
+      mount(storage, cloudDecks, { onRetryingChange, onRetried }),
+    )
+    await waitFor(() => expect(onRetryingChange).toHaveBeenCalledWith(true))
+    a.unmount()
+    release?.()
+    await waitFor(() => expect(readPendingDeckSync(storage, userA)).toEqual({}))
+
+    expect(onRetryingChange).not.toHaveBeenCalledWith(false)
+    expect(onRetried).not.toHaveBeenCalled()
+  })
+
+  // The time belongs to the account whose change went up.
+  it('records the time under the account that sent it', async () => {
+    const storage = memoryStorage({
+      'hlsieve:cloud-sync--user-b': ENABLED,
+    })
+    const userB = userLocalDataNamespace('user-b')
+    writePendingDeckSync({ b: 'upsert' }, storage, userB)
+
+    render(mount(storage, cloudRepository(), { namespace: userB }))
+
+    await waitFor(() =>
+      expect(
+        storage.values.get('hlsieve:cloud-sync-status--user-b'),
+      ).toBeDefined(),
+    )
+    expect(storage.values.get(statusKeyA)).toBeUndefined()
+  })
+})

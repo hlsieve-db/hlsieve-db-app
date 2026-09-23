@@ -45,6 +45,13 @@ export type PendingDeckSyncRetryOptions = {
   isSyncEnabled: () => boolean
   namespace?: LocalDataNamespace
   storage?: Pick<Storage, 'getItem' | 'setItem'>
+  /**
+   * Called each time an entry actually reached the account, so a run that
+   * sends some entries and then fails still records that this device got
+   * something up. Not called for an entry that was resolved without sending:
+   * a tombstone the account never had, and an upsert whose deck is gone.
+   */
+  onUploadSuccess?: () => void
 }
 
 const nothingToDo: PendingDeckSyncRetryResult = {
@@ -59,6 +66,7 @@ export async function retryPendingDeckSync({
   isSyncEnabled,
   namespace,
   storage,
+  onUploadSuccess,
 }: PendingDeckSyncRetryOptions): Promise<PendingDeckSyncRetryResult> {
   if (!cloudDecks || !isSyncEnabled()) return nothingToDo
 
@@ -83,6 +91,7 @@ export async function retryPendingDeckSync({
           remaining: entries.length - completed,
         }
       }
+      if (result.ok) onUploadSuccess?.()
       clearPendingDeckSync(deckId, store, namespace)
       completed += 1
       continue
@@ -114,6 +123,7 @@ export async function retryPendingDeckSync({
         remaining: entries.length - completed,
       }
     }
+    onUploadSuccess?.()
     clearPendingDeckSync(deckId, store, namespace)
     completed += 1
   }

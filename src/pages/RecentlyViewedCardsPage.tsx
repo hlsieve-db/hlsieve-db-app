@@ -11,7 +11,7 @@ import { RECENTLY_VIEWED_METADATA } from '../domain/site/metadata'
 import { useDocumentMetadata } from '../hooks/useDocumentMetadata'
 import { loadCardsData } from '../repositories/loadCardsData'
 import { type RecentlyViewedCardRepository } from '../repositories/recentlyViewedCardRepository'
-import { formatViewedAt } from '../utils/formatViewedAt'
+import { formatDateTime } from '../utils/formatDateTime'
 
 type PageState =
   | { status: 'loading' }
@@ -201,7 +201,7 @@ export function RecentlyViewedCardsPage({
                     <p>
                       閲覧日時:{' '}
                       <time dateTime={record.viewedAt}>
-                        {formatViewedAt(record.viewedAt)}
+                        {formatDateTime(record.viewedAt)}
                       </time>
                     </p>
                     <button

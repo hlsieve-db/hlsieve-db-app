@@ -4,6 +4,7 @@ import {
 } from '../cloud/cloudDeckRepository'
 import { withCloudDeckSync } from '../cloud/cloudSyncedDeckRepository'
 import { isCloudSyncEnabled } from '../domain/cloud/cloudSyncState'
+import { recordCloudUploadSuccess } from '../domain/cloud/cloudUploadStatus'
 import {
   clearPendingDeckSync,
   recordPendingDeckSync,
@@ -112,6 +113,10 @@ export function createAppRepositories(
           recordPendingDeckSync(deckId, operation, undefined, namespace),
         clear: (deckId) => clearPendingDeckSync(deckId, undefined, namespace),
       },
+      // Recorded per account too, so the panel shows this account's last
+      // successful send and never another's.
+      onUploadSuccess: () =>
+        recordCloudUploadSuccess(undefined, undefined, namespace),
     }),
     favoriteCards: createFavoriteCardRepository(
       createIndexedDbFavoriteCardPersistence(databaseFactory, namespace),
