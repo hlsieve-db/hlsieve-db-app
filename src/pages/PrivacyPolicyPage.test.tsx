@@ -45,7 +45,7 @@ describe('PrivacyPolicyPage', () => {
     ).toBeVisible()
     expect(
       screen.getByText(
-        /ログインしただけでは、既存のデッキ等が自動的にクラウドへ送信されることはありません/,
+        /ログインしただけで、新たなデッキがクラウドへの送信対象になることはありません。クラウド同期を有効にしたあとに送信できなかった変更の再送については/,
       ),
     ).toBeVisible()
     const stored = screen
@@ -121,13 +121,12 @@ describe('PrivacyPolicyPage', () => {
       ).toBeVisible()
     })
 
-    // The sentence was true before short shares and is still true: signing in
-    // alone uploads nothing.
-    it('keeps the login-alone wording unchanged', () => {
+    // Signing in alone still adds nothing to what is sent.
+    it('keeps the login-alone promise', () => {
       renderPage()
       expect(
         screen.getByText(
-          /ログインしただけでは、既存のデッキ等が自動的にクラウドへ送信されることはありません/,
+          /ログインしただけで、新たなデッキがクラウドへの送信対象になることはありません。クラウド同期を有効にしたあとに送信できなかった変更の再送については/,
         ),
       ).toBeVisible()
     })
@@ -174,12 +173,14 @@ describe('PrivacyPolicyPage', () => {
       ).toBeVisible()
     })
 
-    // The sentence that was true before Cloud Sync and must stay true.
-    it('repeats that signing in alone sends nothing', () => {
+    // Signing in cannot pull a deck into sync that was never in it. The page
+    // must say that without implying nothing is ever sent unprompted, which
+    // the retry queue makes false.
+    it('repeats that signing in alone adds nothing to what is sent', () => {
       renderPage()
       expect(
         screen.getByText(
-          /ログインしただけでは、デッキがクラウドへ送信されることはありません/,
+          /ログインしただけで、新たなデッキがクラウドへの送信対象になることはありません。クラウド同期の設定を開いて/,
         ),
       ).toBeVisible()
     })
@@ -226,6 +227,69 @@ describe('PrivacyPolicyPage', () => {
           /両方にデッキがある場合は、どちらの内容を使うかを確認したうえで実行します/,
         ),
       ).toBeVisible()
+    })
+
+    // A change that could not be sent is kept on the device until it can be,
+    // which is a fact about what the device stores and belongs in the policy.
+    it('says an unsent change is kept on the device and retried', () => {
+      renderPage()
+      expect(
+        screen.getByText(
+          /その場では送信できないことがあります[\s\S]*この端末内に再送待ちとして記録/,
+        ),
+      ).toBeVisible()
+    })
+
+    // The retry runs by itself, so the policy must not leave a reporter
+    // expecting to be asked first.
+    it('says the retry happens without being asked for, including after a login', () => {
+      renderPage()
+      expect(
+        screen.getByText(
+          /次にアプリを開いたときや通信が回復したときに、利用者の操作を求めずに自動で送信することがあります/,
+        ),
+      ).toBeVisible()
+      expect(
+        screen.getByText(
+          /ログインの直後にこの自動送信が行われることもあります/,
+        ),
+      ).toBeVisible()
+    })
+
+    // What the queue holds is an id and a verb, not a deck, and the policy
+    // describes what is stored rather than overstating it.
+    it('says only the deck id and the kind of change are kept, not the contents', () => {
+      renderPage()
+      expect(
+        screen.getByText(
+          /対象のデッキのIDと、保存・削除のどちらであるかだけです/,
+        ),
+      ).toBeVisible()
+      expect(
+        screen.getByText(/デッキ名やカード番号などの内容は記録せず/),
+      ).toBeVisible()
+    })
+
+    // Retrying must not become a back door around the login-alone promise.
+    it('says retrying never sends a deck the reporter did not change', () => {
+      renderPage()
+      expect(
+        screen.getByText(
+          /すでに変更されたデッキに限って行われます。ログインしただけで、新たなデッキが送信対象に加わることはありません/,
+        ),
+      ).toBeVisible()
+    })
+
+    // The old wording read as a promise that nothing moves unless the reporter
+    // picks an action, which the retry contradicts.
+    it('no longer claims every send follows an explicit choice', () => {
+      renderPage()
+      expect(pageText()).not.toContain(
+        '実際の送信・取り込みは、利用者がいずれかの操作を選んだときにはじめて行われます',
+      )
+      expect(pageText()).not.toContain(
+        'ログインしただけでは、デッキがクラウドへ送信されることはありません',
+      )
     })
 
     // The claim that is now false must not survive anywhere on the page.

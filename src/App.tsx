@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AuthGate } from './auth/AuthGate'
+import { CloudDeckSyncRetry } from './cloud/CloudDeckSyncRetry'
 import { AuthProvider } from './auth/AuthProvider'
 import { namespaceForAuthState, namespaceKey } from './auth/authState'
 import { useAuth } from './auth/useAuth'
@@ -37,6 +38,9 @@ function AppRoutes() {
     // instead of reusing state loaded for the previous one.
     <AppRepositoriesProvider key={namespaceKey(namespaceForAuthState(state))}>
       <FavoriteCardsProvider>
+        {/* Finishes sending deck changes that failed earlier. Renders nothing,
+            and sends nothing that the reporter did not already change. */}
+        <CloudDeckSyncRetry />
         <Routes>
           <Route path="/" element={<Navigate to="/cards" replace />} />
           <Route path="/cards" element={<CardSearchPage />} />

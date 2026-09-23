@@ -5,6 +5,10 @@ import {
 import { withCloudDeckSync } from '../cloud/cloudSyncedDeckRepository'
 import { isCloudSyncEnabled } from '../domain/cloud/cloudSyncState'
 import {
+  clearPendingDeckSync,
+  recordPendingDeckSync,
+} from '../domain/cloud/pendingDeckSync'
+import {
   ANONYMOUS_LOCAL_DATA_NAMESPACE,
   type LocalDataNamespace,
 } from '../domain/storage/localDataNamespace'
@@ -101,6 +105,13 @@ export function createAppRepositories(
       decks: local,
       cloudDecks: cloud,
       isSyncEnabled: () => isCloudSyncEnabled(namespace),
+      // Namespaced, so one account's unsent changes are never retried for
+      // another and never while signed out.
+      pending: {
+        record: (deckId, operation) =>
+          recordPendingDeckSync(deckId, operation, undefined, namespace),
+        clear: (deckId) => clearPendingDeckSync(deckId, undefined, namespace),
+      },
     }),
     favoriteCards: createFavoriteCardRepository(
       createIndexedDbFavoriteCardPersistence(databaseFactory, namespace),

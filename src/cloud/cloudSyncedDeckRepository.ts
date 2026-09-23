@@ -1,3 +1,4 @@
+import type { PendingDeckSyncOperation } from '../domain/cloud/pendingDeckSync'
 import type { Deck, DeckId } from '../domain/decks/types'
 import type { DeckBackupRepository } from '../repositories/deckRepository'
 import type {
@@ -24,6 +25,11 @@ import type {
  * keystroke-driven save wait for the network, and offline would mean each save
  * hanging until a timeout. The push is started and the caller returns; what
  * happened to it arrives through onSyncResult.
+ *
+ * A send that fails is recorded as pending so it can be finished later, and a
+ * send that succeeds clears any pending entry for that deck, including one left
+ * by an earlier failure. The queue itself lives outside this file: the wrapper
+ * knows the intent, not where it is kept.
  */
 
 export type CloudDeckSyncEvent =
@@ -44,6 +50,14 @@ export type CloudSyncedDeckRepositoryOptions = {
   isSyncEnabled: () => boolean
   /** Observability; nothing in the app depends on the outcome. */
   onSyncResult?: (event: CloudDeckSyncEvent) => void
+  /**
+   * Where unsent changes are remembered. Omitted, a failure is reported and
+   * forgotten, which is what the app did before there was a queue.
+   */
+  pending?: {
+    record: (deckId: DeckId, operation: PendingDeckSyncOperation) => void
+    clear: (deckId: DeckId) => void
+  }
 }
 
 export function withCloudDeckSync({
@@ -51,14 +65,30 @@ export function withCloudDeckSync({
   cloudDecks,
   isSyncEnabled,
   onSyncResult,
+  pending,
 }: CloudSyncedDeckRepositoryOptions): DeckBackupRepository {
   const shouldSync = () => Boolean(cloudDecks) && isSyncEnabled()
+
+  /**
+   * One place decides what a finished send means for the queue, so a success
+   * can never leave a stale entry behind and a failure can never fail to
+   * record one.
+   */
+  const settle = (
+    deckId: DeckId,
+    operation: PendingDeckSyncOperation,
+    ok: boolean,
+  ) => {
+    if (ok) pending?.clear(deckId)
+    else pending?.record(deckId, operation)
+  }
 
   const push = (deckValues: readonly Deck[]) => {
     if (!cloudDecks) return
     for (const deck of deckValues) {
       void cloudDecks.upsert(deck).then(
-        (result) =>
+        (result) => {
+          settle(deck.id, 'upsert', result.ok)
           onSyncResult?.(
             result.ok
               ? { kind: 'saved', deckId: deck.id, ok: true }
@@ -68,16 +98,20 @@ export function withCloudDeckSync({
                   ok: false,
                   reason: result.reason,
                 },
-          ),
+          )
+        },
         // A rejected promise is the same outcome as a refused request as far
-        // as the local store is concerned: nothing to undo.
-        () =>
+        // as the local store is concerned: nothing to undo, and still an
+        // unsent change.
+        () => {
+          settle(deck.id, 'upsert', false)
           onSyncResult?.({
             kind: 'saved',
             deckId: deck.id,
             ok: false,
             reason: 'network',
-          }),
+          })
+        },
       )
     }
   }
@@ -100,7 +134,8 @@ export function withCloudDeckSync({
       // still holds the deck cannot bring it back by syncing later, which is
       // the whole reason the account has no delete privilege.
       void cloudDecks.tombstone(id).then(
-        (result) =>
+        (result) => {
+          settle(id, 'tombstone', result.ok)
           onSyncResult?.(
             result.ok
               ? { kind: 'deleted', deckId: id, ok: true }
@@ -110,14 +145,17 @@ export function withCloudDeckSync({
                   ok: false,
                   reason: result.reason,
                 },
-          ),
-        () =>
+          )
+        },
+        () => {
+          settle(id, 'tombstone', false)
           onSyncResult?.({
             kind: 'deleted',
             deckId: id,
             ok: false,
             reason: 'network',
-          }),
+          })
+        },
       )
     },
 

@@ -16,6 +16,8 @@ import {
   writeCloudSyncState,
   type CloudSyncStatus,
 } from '../../domain/cloud/cloudSyncState'
+import { pendingDeckSyncCount } from '../../domain/cloud/pendingDeckSync'
+import { CloudDeckSyncRetry } from '../../cloud/CloudDeckSyncRetry'
 import { useAppRepositories } from '../../repositories/useAppRepositories'
 
 /**
@@ -87,6 +89,11 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
   const [activation, setActivation] = useState<Activation>({ step: 'idle' })
   const [outcome, setOutcome] = useState<string>()
   const [restore, setRestore] = useState<Restore>({ step: 'idle' })
+  // Recounted after each retry attempt, so the line disappears on its own once
+  // everything has gone up.
+  const [pending, setPending] = useState(() =>
+    pendingDeckSyncCount(store, namespace),
+  )
 
   // Without a repository there is no account or no configured project, and
   // nothing to offer.
@@ -212,6 +219,18 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
           </p>
           <p>クラウド同期が有効になりました。</p>
           {outcome !== undefined && <p>{outcome}</p>}
+
+          {/* Retries what could not be sent when it was changed, and tells this
+              panel to recount afterwards. Renders nothing itself. */}
+          <CloudDeckSyncRetry
+            storage={storage}
+            onRetried={() => setPending(pendingDeckSyncCount(store, namespace))}
+          />
+          {pending > 0 && (
+            <p className="account-cloud-sync__pending">
+              未同期の変更 {pending}件。通信が回復すると自動的に送信します。
+            </p>
+          )}
 
           <div className="account-cloud-sync__restore">
             <h3>クラウドから復元</h3>

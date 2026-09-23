@@ -322,3 +322,163 @@ describe('reads are untouched', () => {
     expect(cloudDecks?.listUpdatedSince).not.toHaveBeenCalled()
   })
 })
+
+/**
+ * A send that fails is remembered so it can be finished later. The wrapper only
+ * knows the intent; where it is kept is the caller's business, which is what
+ * these fakes stand in for.
+ */
+describe('remembering what could not be sent', () => {
+  function withPending({
+    decks = localRepository(),
+    cloudDecks = cloudRepository() as CloudDeckRepository | null,
+    enabled = true,
+  } = {}) {
+    const recorded: [string, string][] = []
+    const cleared: string[] = []
+    let notify: (() => void) | undefined
+    const repository = withCloudDeckSync({
+      decks,
+      cloudDecks,
+      isSyncEnabled: () => enabled,
+      pending: {
+        record: (deckId, operation) => {
+          recorded.push([deckId, operation])
+          notify?.()
+        },
+        clear: (deckId) => {
+          cleared.push(deckId)
+          notify?.()
+        },
+      },
+    })
+    const settled = () =>
+      new Promise<void>((resolve) => {
+        notify = resolve
+      })
+    return { repository, decks, cloudDecks, recorded, cleared, settled }
+  }
+
+  it('records an upsert when a save cannot be sent', async () => {
+    const cloudDecks = cloudRepository({
+      upsert: vi.fn(async () => ({
+        ok: false as const,
+        reason: 'network' as const,
+      })),
+    })
+    const { repository, recorded, settled } = withPending({ cloudDecks })
+    const done = settled()
+
+    await repository.saveDeck(deck('a'))
+    await done
+
+    expect(recorded).toEqual([['a', 'upsert']])
+  })
+
+  it('records a tombstone when a delete cannot be sent', async () => {
+    const cloudDecks = cloudRepository({
+      tombstone: vi.fn(async () => ({
+        ok: false as const,
+        reason: 'network' as const,
+      })),
+    })
+    const { repository, recorded, settled } = withPending({ cloudDecks })
+    const done = settled()
+
+    await repository.deleteDeck('a')
+    await done
+
+    expect(recorded).toEqual([['a', 'tombstone']])
+  })
+
+  it('records an upsert when the push rejects outright', async () => {
+    const cloudDecks = cloudRepository({
+      upsert: vi.fn(async () => {
+        throw new Error('offline')
+      }),
+    })
+    const { repository, recorded, settled } = withPending({ cloudDecks })
+    const done = settled()
+
+    await repository.saveDeck(deck('a'))
+    await done
+
+    expect(recorded).toEqual([['a', 'upsert']])
+  })
+
+  // A save that gets through means the account is up to date for that deck,
+  // whatever an earlier failure left behind.
+  it('clears the entry when a save does get through', async () => {
+    const { repository, cleared, recorded, settled } = withPending()
+    const done = settled()
+
+    await repository.saveDeck(deck('a'))
+    await done
+
+    expect(cleared).toEqual(['a'])
+    expect(recorded).toEqual([])
+  })
+
+  it('clears the entry when a delete does get through', async () => {
+    const { repository, cleared, settled } = withPending()
+    const done = settled()
+
+    await repository.deleteDeck('a')
+    await done
+
+    expect(cleared).toEqual(['a'])
+  })
+
+  // A failed local write is not a change at all, so there is nothing to send
+  // later and nothing to remember.
+  it('remembers nothing when the local save fails', async () => {
+    const decks = localRepository({
+      saveDeck: vi.fn(async () => {
+        throw new Error('quota exceeded')
+      }),
+    })
+    const { repository, recorded, cleared } = withPending({ decks })
+
+    await expect(repository.saveDeck(deck('a'))).rejects.toThrow()
+
+    expect(recorded).toEqual([])
+    expect(cleared).toEqual([])
+  })
+
+  it('remembers nothing when the local delete fails', async () => {
+    const decks = localRepository({
+      deleteDeck: vi.fn(async () => {
+        throw new Error('blocked')
+      }),
+    })
+    const { repository, recorded, cleared } = withPending({ decks })
+
+    await expect(repository.deleteDeck('a')).rejects.toThrow()
+
+    expect(recorded).toEqual([])
+    expect(cleared).toEqual([])
+  })
+
+  // Nothing was attempted, so there is nothing outstanding.
+  it('remembers nothing while sync is off', async () => {
+    const { repository, recorded, cleared } = withPending({ enabled: false })
+
+    await repository.saveDeck(deck('a'))
+    await repository.deleteDeck('a')
+
+    expect(recorded).toEqual([])
+    expect(cleared).toEqual([])
+  })
+
+  it('works without a queue at all', async () => {
+    const decks = localRepository()
+    const repository = withCloudDeckSync({
+      decks,
+      cloudDecks: cloudRepository(),
+      isSyncEnabled: () => true,
+    })
+
+    await expect(repository.saveDeck(deck('a'))).resolves.toBeUndefined()
+    expect(decks.saveDeck).toHaveBeenCalledTimes(1)
+  })
+})

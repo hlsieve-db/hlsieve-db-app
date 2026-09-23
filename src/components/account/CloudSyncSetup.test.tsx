@@ -79,6 +79,7 @@ function renderSetup({
   // a restore writes through the one that does not upload.
   const local = {
     listDecks: vi.fn(async () => localDecks),
+    getDeck: vi.fn(async (id: string) => localDecks.find((d) => d.id === id)),
     saveDeck: vi.fn(async () => undefined),
     deleteDeck: vi.fn(async () => undefined),
   }
@@ -838,5 +839,100 @@ describe('first activation on a device', () => {
     expect(screen.getByRole('button', { name: '再試行' })).toBeVisible()
     expect(cloudDecks?.upsert).not.toHaveBeenCalled()
     expect(local.saveDeck).not.toHaveBeenCalled()
+  })
+})
+
+describe('unsent changes in the account panel', () => {
+  const enabledStorage = (extra: Record<string, string> = {}) =>
+    memoryStorage({
+      'hlsieve:cloud-sync--user-a': '{"version":1,"status":"enabled"}',
+      ...extra,
+    })
+
+  const pendingFor = (operations: Record<string, string>) =>
+    JSON.stringify({ version: 1, operations })
+
+  it('says how many changes are waiting', () => {
+    renderSetup({
+      storage: enabledStorage({
+        'hlsieve:cloud-sync-pending--user-a': pendingFor({
+          a: 'upsert',
+          b: 'tombstone',
+        }),
+      }),
+    })
+
+    expect(screen.getByText(/未同期の変更 2件/)).toBeVisible()
+  })
+
+  it('says nothing when everything has gone up', () => {
+    renderSetup({ storage: enabledStorage() })
+
+    expect(screen.queryByText(/未同期の変更/)).not.toBeInTheDocument()
+  })
+
+  // The count belongs to the account, like the queue behind it.
+  it('does not show another account s unsent changes', () => {
+    renderSetup({
+      userId: 'user-b',
+      storage: memoryStorage({
+        'hlsieve:cloud-sync--user-b': '{"version":1,"status":"enabled"}',
+        'hlsieve:cloud-sync-pending--user-a': pendingFor({ a: 'upsert' }),
+      }),
+    })
+
+    expect(screen.queryByText(/未同期の変更/)).not.toBeInTheDocument()
+  })
+
+  // Only a signed in account that turned sync on has a queue to report.
+  it('says nothing before sync is enabled', () => {
+    renderSetup({
+      storage: memoryStorage({
+        'hlsieve:cloud-sync-pending--user-a': pendingFor({ a: 'upsert' }),
+      }),
+    })
+
+    expect(screen.queryByText(/未同期の変更/)).not.toBeInTheDocument()
+  })
+
+  it('shows no raw database detail alongside the count', () => {
+    renderSetup({
+      storage: enabledStorage({
+        'hlsieve:cloud-sync-pending--user-a': pendingFor({ a: 'upsert' }),
+      }),
+    })
+
+    const text = document.body.textContent ?? ''
+    expect(text).toContain('未同期の変更 1件')
+    ;['PGRST', 'supabase', '42501', 'permission denied'].forEach((fragment) =>
+      expect(text).not.toContain(fragment),
+    )
+  })
+})
+
+describe('restoring never queues anything', () => {
+  // Restored decks come from the account, so there is nothing to send back and
+  // nothing that could have failed to send.
+  it('leaves the queue empty after a restore', async () => {
+    const storage = memoryStorage({
+      'hlsieve:cloud-sync--user-a': '{"version":1,"status":"enabled"}',
+    })
+    const { local } = renderSetup({
+      storage,
+      localDecks: [],
+      cloudDecks: cloudRepository(async () => ({
+        ok: true,
+        value: [cloudRecord('a')],
+      })),
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'クラウドから復元' }))
+    await screen.findByText(/デッキ1個を取り込み/)
+
+    expect(local.saveDeck).toHaveBeenCalledTimes(1)
+    expect(
+      storage.values.get('hlsieve:cloud-sync-pending--user-a'),
+    ).toBeUndefined()
+    expect(screen.queryByText(/未同期の変更/)).not.toBeInTheDocument()
   })
 })
