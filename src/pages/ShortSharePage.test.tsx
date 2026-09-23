@@ -181,7 +181,11 @@ describe('short share preview', () => {
     renderPage()
     await screen.findByRole('heading', { name: '短縮共有デッキ' })
 
-    expect(document.title).toBe('短縮共有デッキ | HLSieve DB')
+    // The title is what is under test and an effect writes it, so it is what
+    // the test waits for. The heading above only proves the render committed.
+    await waitFor(() =>
+      expect(document.title).toBe('短縮共有デッキ | HLSieve DB'),
+    )
     expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute(
       'content',
       'noindex,follow',
@@ -194,6 +198,11 @@ describe('short share preview', () => {
     renderPage()
     await screen.findByRole('heading', { name: '短縮共有デッキ' })
 
+    // Waiting for the title first, because an absent canonical link is also
+    // what the page looks like before the metadata effect has run at all.
+    await waitFor(() =>
+      expect(document.title).toBe('短縮共有デッキ | HLSieve DB'),
+    )
     expect(document.head.querySelector('link[rel="canonical"]')).toBeNull()
   })
 })

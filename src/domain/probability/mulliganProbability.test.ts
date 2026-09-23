@@ -1,10 +1,21 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { calculateAtLeastOneProbability } from './atLeastOneProbability'
 import {
   calculateMulliganProbability,
   getMulliganValidationErrors,
 } from './mulliganProbability'
+
+/**
+ * Every test here is a finite calculation with no waiting in it, and the
+ * property test below runs thousands of cases. The work is deterministic, but
+ * a full-suite run shares the machine with every other file, and this one has
+ * been measured at over five seconds under that load while passing in about
+ * three on its own. Raising the limit for this file only keeps the failure
+ * signal meaningful: a timeout here should mean the calculation got slower, not
+ * that the machine was busy. The suite-wide limit is deliberately left alone.
+ */
+vi.setConfig({ testTimeout: 10_000 })
 
 describe('calculateMulliganProbability', () => {
   it('calculates N=50, K=4, H=7, M=5 with the specified redraw pool', () => {

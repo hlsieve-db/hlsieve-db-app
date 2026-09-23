@@ -743,7 +743,10 @@ describe('DeckEditPage editor operations', () => {
       loadCards: vi.fn(async () => cardsData([...cards, qaOnlyCard])),
       loadPrintings: vi.fn(async () => printingsData([...cards, qaOnlyCard])),
     })
-    const search = await screen.findByLabelText('カード検索')
+    // Gated on the loaded data, or the absence asserted below would also hold
+    // for a picker that has not received any cards yet.
+    await screen.findByText('10件')
+    const search = screen.getByLabelText('カード検索')
     const includeQa = screen.getByLabelText('Q&Aを含める')
     const picker = screen.getByRole('region', { name: 'カードを追加' })
 
@@ -781,7 +784,11 @@ describe('DeckEditPage editor operations', () => {
 
   it('shows an empty search result without inventing search semantics', async () => {
     renderPage()
-    const search = await screen.findByLabelText('カード検索')
+    // The count appears with the loaded card data, and so does the line below.
+    // The search input renders before either, so waiting for it would leave
+    // the assertion racing the load.
+    await screen.findByText('9件')
+    const search = screen.getByLabelText('カード検索')
     fireEvent.change(search, { target: { value: '存在しない語' } })
     expect(screen.getByText('条件に一致するカードがありません。')).toBeVisible()
   })

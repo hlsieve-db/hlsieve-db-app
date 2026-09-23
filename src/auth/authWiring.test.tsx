@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import { useEffect } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -220,36 +220,45 @@ describe('repository bundle per account', () => {
   it('builds a new bundle for each account and reuses it otherwise', async () => {
     const auth = fakeAuthSource()
     const seen: string[] = []
-    const { rerender } = render(
+    // Stable across renders, so the probe's effect re-runs only when the
+    // bundle itself is a new object. A second entry then means a new bundle
+    // rather than a new callback, which is what this test is about.
+    const onBundle = (id: string) => seen.push(id)
+    // A fresh element each time, so the re-render below really re-renders the
+    // provider rather than letting React skip an identical element.
+    const tree = () => (
       <AuthProvider authSource={auth.source}>
         <AuthGate>
           <AppRepositoriesProvider>
-            <BundleProbe onBundle={(id) => seen.push(id)} />
+            <BundleProbe onBundle={onBundle} />
           </AppRepositoriesProvider>
         </AuthGate>
-      </AuthProvider>,
+      </AuthProvider>
     )
+    const { rerender } = render(tree())
     auth.settleInitial(USER_A)
-    await screen.findByTestId('ns')
 
-    rerender(
-      <AuthProvider authSource={auth.source}>
-        <AuthGate>
-          <AppRepositoriesProvider>
-            <BundleProbe onBundle={(id) => seen.push(id)} />
-          </AppRepositoriesProvider>
-        </AuthGate>
-      </AuthProvider>,
-    )
+    // Waiting on the effect rather than on the text it renders beside. The
+    // bundle is what is under test and the effect is the only thing that
+    // reports it, so waiting for the DOM would let the assertions run in the
+    // gap between React committing the render and running passive effects.
+    await waitFor(() => expect(seen).toEqual(['holocard-db--user-a']))
+    expect(screen.getByTestId('ns')).toHaveTextContent('user:user-a')
+
+    rerender(tree())
+    // Lets the re-render finish, including anything it scheduled, so that
+    // finding no second bundle is a fact about completed work rather than
+    // about work that has not started yet.
+    await act(async () => {})
 
     // A plain re-render must not throw away the open database handles.
-    expect(new Set(seen)).toEqual(new Set(['holocard-db--user-a']))
+    expect(seen).toEqual(['holocard-db--user-a'])
 
     auth.emit(USER_B)
     await waitFor(() =>
-      expect(screen.getByTestId('ns')).toHaveTextContent('user:user-b'),
+      expect(seen).toEqual(['holocard-db--user-a', 'holocard-db--user-b']),
     )
-    expect(seen).toContain('holocard-db--user-b')
+    expect(screen.getByTestId('ns')).toHaveTextContent('user:user-b')
   })
 })
 
