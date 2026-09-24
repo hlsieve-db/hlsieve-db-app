@@ -195,7 +195,9 @@ describe('PrivacyPolicyPage', () => {
         ),
       ).toBeVisible()
       expect(
-        screen.getByText(/同じIDのデッキがクラウドの内容で置き換わり/),
+        screen.getByText(
+          /内容が異なる場合は、デッキごとにどちらの内容を使うかを確認したうえで実行します/,
+        ),
       ).toBeVisible()
     })
 
@@ -205,6 +207,17 @@ describe('PrivacyPolicyPage', () => {
       expect(
         screen.getByText(
           /クラウドに存在しないこの端末のデッキは、復元によって削除されることはありません/,
+        ),
+      ).toBeVisible()
+    })
+
+    // A deletion recorded in the account is applied to this device only if the
+    // reporter says so, so the policy must not promise it happens by itself.
+    it('says a recorded deletion is applied only after being confirmed', () => {
+      renderPage()
+      expect(
+        screen.getByText(
+          /クラウド上で削除済みとして記録されているデッキをこの端末からも削除するかどうかも、同じように確認します/,
         ),
       ).toBeVisible()
     })
@@ -224,7 +237,7 @@ describe('PrivacyPolicyPage', () => {
       renderPage()
       expect(
         screen.getByText(
-          /両方にデッキがある場合は、どちらの内容を使うかを確認したうえで実行します/,
+          /両方にあり、内容が異なる場合は、デッキごとにどちらの内容を使うかを確認したうえで実行します/,
         ),
       ).toBeVisible()
     })

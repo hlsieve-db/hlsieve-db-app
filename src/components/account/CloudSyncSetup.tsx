@@ -4,9 +4,15 @@ import { namespaceKey } from '../../auth/authState'
 
 import {
   applyCloudDeckRestore,
-  readCloudDeckRestorePlan,
   type CloudDeckRestorePlan,
 } from '../../cloud/cloudDeckRestore'
+import {
+  applyDeckReconciliation,
+  readCloudDeckPlans,
+  type DeckConflictChoice,
+  type DeckConflictResolutions,
+  type DeckReconciliationPlan,
+} from '../../cloud/deckReconciliation'
 import {
   syncLocalDecksToCloud,
   type CloudDeckSyncFailure,
@@ -22,8 +28,13 @@ import {
   readCloudUploadStatus,
   recordCloudUploadSuccess,
 } from '../../domain/cloud/cloudUploadStatus'
-import { pendingDeckSyncCount } from '../../domain/cloud/pendingDeckSync'
+import {
+  clearPendingDeckSync,
+  pendingDeckSyncCount,
+  recordPendingDeckSync,
+} from '../../domain/cloud/pendingDeckSync'
 import { CloudDeckSyncRetry } from '../../cloud/CloudDeckSyncRetry'
+import { DeckConflictChooser } from './DeckConflictChooser'
 import { useAppRepositories } from '../../repositories/useAppRepositories'
 import { unsentChangeMessage } from './unsentChangeMessage'
 import { formatDateTime } from '../../utils/formatDateTime'
@@ -73,6 +84,29 @@ type Activation =
   | { step: 'working'; progress: CloudDeckSyncProgress }
   | { step: 'error'; reason: CloudDeckSyncFailure }
 
+/**
+ * The per-deck questions, which either flow can arrive at.
+ *
+ * `direction` is the flow it came from, and decides one thing: turning sync on
+ * is the moment the account should end up with what this device has, so decks
+ * only this device holds are sent as well. Restoring sends nothing of its own.
+ */
+type Reconciliation = {
+  /**
+   * The account the questions were asked about, stamped for the same reason the
+   * status view is: switching accounts must not leave the previous account's
+   * decks on screen, or let an answer be applied to the wrong account.
+   */
+  account: string
+  direction: 'activation' | 'restore'
+  plan: DeckReconciliationPlan
+  resolutions: DeckConflictResolutions
+  applying: boolean
+  /** Set when the last apply could not finish, so the reporter can try again. */
+  failure?: CloudDeckSyncFailure
+  unresolved?: number
+}
+
 type Restore =
   | { step: 'idle' }
   | { step: 'reading' }
@@ -110,6 +144,7 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
   const [activation, setActivation] = useState<Activation>({ step: 'idle' })
   const [outcome, setOutcome] = useState<string>()
   const [restore, setRestore] = useState<Restore>({ step: 'idle' })
+  const [pendingConflicts, setConflicts] = useState<Reconciliation>()
   // Stamped with the account it describes, so switching shows the new
   // account's own state rather than the previous one's count, time or
   // "sending" line. The stamp is the whole isolation: nothing here is keyed by
@@ -128,6 +163,8 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
   })
   const [view, setView] = useState(freshView)
   const current = view.account === accountKey ? view : freshView()
+  const conflicts =
+    pendingConflicts?.account === accountKey ? pendingConflicts : undefined
 
   const update = (patch: Partial<SyncStatusView>) =>
     setView((previous) => ({
@@ -160,10 +197,14 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
     setActivation({ step: 'idle' })
   }
 
-  /** Reads both sides and works out which of the three cases this is. */
+  /**
+   * Reads both sides and works out which of the three cases this is, unless the
+   * two sides disagree about a deck, which is a question no case can answer.
+   */
   const openSetup = async () => {
     setActivation({ step: 'reading' })
-    const result = await readCloudDeckRestorePlan({
+    setConflicts(undefined)
+    const result = await readCloudDeckPlans({
       decks: localDecks,
       cloudDecks,
     })
@@ -171,7 +212,13 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
       setActivation({ step: 'error', reason: result.reason })
       return
     }
-    const { plan } = result
+    const { reconciliation } = result.plans
+    if (reconciliation.conflicts.length > 0) {
+      setActivation({ step: 'idle' })
+      startConflicts('activation', reconciliation)
+      return
+    }
+    const plan = result.plans.restore
     // Rows rather than active decks: an account whose decks were all deleted
     // still holds tombstones, and uploading over them would resurrect them.
     const kind =
@@ -231,7 +278,8 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
 
   const startRestore = async () => {
     setRestore({ step: 'reading' })
-    const result = await readCloudDeckRestorePlan({
+    setConflicts(undefined)
+    const result = await readCloudDeckPlans({
       decks: localDecks,
       cloudDecks,
     })
@@ -239,12 +287,92 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
       setRestore({ step: 'error', reason: result.reason })
       return
     }
-    // Nothing here to overwrite, so there is nothing to ask about.
-    if (result.plan.localCount === 0) {
-      await applyRestore(result.plan)
+    const { reconciliation } = result.plans
+    // A deck the two sides disagree about is asked about deck by deck, rather
+    // than being decided by the whole-set confirmation below.
+    if (reconciliation.conflicts.length > 0) {
+      setRestore({ step: 'idle' })
+      startConflicts('restore', reconciliation)
       return
     }
-    setRestore({ step: 'confirming', plan: result.plan })
+    // Nothing here to overwrite, so there is nothing to ask about.
+    if (result.plans.restore.localCount === 0) {
+      await applyRestore(result.plans.restore)
+      return
+    }
+    setRestore({ step: 'confirming', plan: result.plans.restore })
+  }
+
+  const startConflicts = (
+    direction: Reconciliation['direction'],
+    plan: DeckReconciliationPlan,
+  ) =>
+    setConflicts({
+      account: accountKey,
+      direction,
+      plan,
+      // Empty on purpose: nothing is written until the reporter answers, and a
+      // default answer would be the code deciding for them.
+      resolutions: {},
+      applying: false,
+    })
+
+  const chooseConflict = (deckId: string, choice: DeckConflictChoice) =>
+    setConflicts((previous) =>
+      previous?.account === accountKey
+        ? {
+            ...previous,
+            resolutions: { ...previous.resolutions, [deckId]: choice },
+          }
+        : previous,
+    )
+
+  const applyConflicts = async (pending: Reconciliation) => {
+    setConflicts({ ...pending, applying: true, failure: undefined })
+    const result = await applyDeckReconciliation(
+      pending.plan,
+      pending.resolutions,
+      {
+        // The unwrapped store, so a deck taken from the account is not sent
+        // straight back to it.
+        decks: localDecks,
+        cloudDecks,
+        uploadLocalOnly: pending.direction === 'activation',
+        onUploadSuccess: noteUploadSuccess,
+        // The same queue an ordinary failed save uses, namespaced to this
+        // account. A change the account refused is kept so it can be finished
+        // later, and a deck that has just been settled has whatever was queued
+        // for it cleared, so a retry cannot undo the choice just made.
+        pending: {
+          record: (deckId, operation) =>
+            recordPendingDeckSync(deckId, operation, store, namespace),
+          clear: (deckId) => clearPendingDeckSync(deckId, store, namespace),
+        },
+      },
+    )
+    update({ pending: pendingDeckSyncCount(store, namespace) })
+
+    if (result.unresolved.length > 0) {
+      setConflicts({
+        ...pending,
+        applying: false,
+        failure: result.failure ?? 'failed',
+        unresolved: result.unresolved.length,
+      })
+      return
+    }
+
+    setConflicts(undefined)
+    const summary = `デッキ${result.uploaded}個をクラウドへ送信し、${result.restored}個を取り込み、${result.removed}個を削除しました。`
+    // Sync is only marked on once everything the reporter chose has happened,
+    // which is the same rule the other two cases follow.
+    if (pending.direction === 'activation') markEnabled(summary)
+    else
+      setRestore({
+        step: 'done',
+        restored: result.restored,
+        removed: result.removed,
+      })
   }
 
   const counts = (plan: CloudDeckRestorePlan) => (
@@ -260,6 +388,44 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
       aria-labelledby="account-cloud-sync-heading"
     >
       <h2 id="account-cloud-sync-heading">クラウド同期</h2>
+
+      {/* Shown by either flow, because either can find the two sides holding
+          different versions of the same deck. Until every question is answered
+          nothing has been written on either side. */}
+      {conflicts !== undefined && (
+        <>
+          <DeckConflictChooser
+            conflicts={conflicts.plan.conflicts}
+            resolutions={conflicts.resolutions}
+            busy={conflicts.applying}
+            onChoose={chooseConflict}
+            onApply={() => void applyConflicts(conflicts)}
+            onCancel={() => setConflicts(undefined)}
+          />
+          {conflicts.applying && <p role="status">反映しています…</p>}
+          {conflicts.failure !== undefined && (
+            <div className="status-message status-message--error" role="alert">
+              <p>
+                まだ反映できていないデッキが{conflicts.unresolved}件あります。
+              </p>
+              <p>{FAILURE_MESSAGES[conflicts.failure]}</p>
+              {/* Re-reads both sides, so a retry decides from what they hold
+                  now rather than from a plan that may have gone stale. */}
+              <button
+                className="button"
+                type="button"
+                onClick={() =>
+                  void (conflicts.direction === 'activation'
+                    ? openSetup()
+                    : startRestore())
+                }
+              >
+                再試行
+              </button>
+            </div>
+          )}
+        </>
+      )}
 
       {status === 'enabled' ? (
         <>
@@ -310,7 +476,7 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
 
           <div className="account-cloud-sync__restore">
             <h3>クラウドから復元</h3>
-            {restore.step === 'idle' && (
+            {restore.step === 'idle' && conflicts === undefined && (
               <>
                 <p>
                   このアカウントのクラウド上のデッキを、この端末へ取り込みます。
@@ -395,7 +561,7 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
             <strong>未設定</strong>
           </p>
 
-          {activation.step === 'idle' && (
+          {activation.step === 'idle' && conflicts === undefined && (
             <>
               <p>
                 クラウド同期を設定すると、このアカウントでデッキを同期できるようになります。設定を始めても、その時点でデッキが送信されることはありません。
