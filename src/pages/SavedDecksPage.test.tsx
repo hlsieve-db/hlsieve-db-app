@@ -406,7 +406,7 @@ describe('SavedDecksPage', () => {
  * is not a decision about any deck in it.
  */
 describe('the format each saved deck is built for', () => {
-  const SELECTION = 'selection-cup-2026-osaka'
+  const SELECTION = 'selection-cup-2026-autumn'
 
   it('calls a deck that names no format ordinary construction', async () => {
     renderPage(repository({ listDecks: async () => [deck()] }))
@@ -432,7 +432,7 @@ describe('the format each saved deck is built for', () => {
     )
 
     expect(
-      await screen.findByText(/hGS 2026 大阪 セレクションロード/),
+      await screen.findByText(/セレクションカップ 2026年9-10月/),
     ).toBeVisible()
     expect(screen.queryByText('通常構築')).toBeNull()
   })
@@ -466,7 +466,7 @@ describe('the format each saved deck is built for', () => {
     expect(within(cards[0] as HTMLElement).getByText('通常構築')).toBeVisible()
     expect(
       within(cards[1] as HTMLElement).getByText(
-        /hGS 2026 大阪 セレクションロード/,
+        /セレクションカップ 2026年9-10月/,
       ),
     ).toBeVisible()
   })
@@ -492,7 +492,7 @@ describe('the format each saved deck is built for', () => {
     renderPage(repository({ listDecks: async () => decks }))
 
     expect(
-      await screen.findByText(/hGS 2026 大阪 セレクションロード/),
+      await screen.findByText(/セレクションカップ 2026年9-10月/),
     ).toBeVisible()
   })
 })

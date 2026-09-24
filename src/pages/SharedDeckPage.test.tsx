@@ -492,7 +492,7 @@ describe('a shared deck and deck formats', () => {
     await screen.findByText('共有メイン')
 
     const text = document.body.textContent ?? ''
-    expect(text).not.toContain('hGS 2026 大阪 セレクションロード')
+    expect(text).not.toContain('セレクションカップ 2026年9-10月')
     expect(text).not.toContain('不明なレギュレーション')
   })
 

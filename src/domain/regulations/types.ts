@@ -63,6 +63,19 @@ export type RegulationDefinition = {
    * under it.
    */
   id: string
+  /**
+   * Ids this regulation used to be recorded under.
+   *
+   * A deck stores the id, so an id that turns out to be wrong cannot simply be
+   * replaced: decks already naming it would stop resolving. Listing it here
+   * makes the old id resolve to this definition, and makes a deck carrying it
+   * compare equal to one carrying the current id, so two devices that saved the
+   * same deck either side of the correction do not look like a disagreement.
+   *
+   * Only for correcting our own mistake. A change to the rules earns a new
+   * definition rather than an alias.
+   */
+  aliasIds?: string[]
   name: string
   description?: string
   /** ISO dates, inclusive. Absent means it has always applied, or still does. */

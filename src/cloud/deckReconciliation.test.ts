@@ -1077,7 +1077,7 @@ describe('what resolving a deck does to its queued change', () => {
  * not a disagreement, or every device would be asked about every deck.
  */
 describe('decks that disagree about their format', () => {
-  const selection = 'selection-cup-2026-osaka'
+  const selection = 'selection-cup-2026-autumn'
 
   it('asks nothing when one side spells ordinary construction out', () => {
     const plan = planDeckReconciliation({

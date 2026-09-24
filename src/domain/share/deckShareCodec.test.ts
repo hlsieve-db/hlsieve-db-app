@@ -235,7 +235,7 @@ describe('deck share codec', () => {
  * for.
  */
 describe('sharing a deck built for a tournament', () => {
-  const tournamentDeck = deck({ regulationId: 'selection-cup-2026-osaka' })
+  const tournamentDeck = deck({ regulationId: 'selection-cup-2026-autumn' })
 
   it('leaves the format out of the shared payload', () => {
     const payload = decodeDeckSharePayload(

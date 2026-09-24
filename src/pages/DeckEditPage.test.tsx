@@ -1588,8 +1588,10 @@ describe('DeckEditPage analysis', () => {
  * through a rebuild is exactly the case that has to survive.
  */
 describe('DeckEditPage regulations', () => {
-  const SELECTION = 'selection-cup-2026-osaka'
-  const SELECTION_PRODUCT = '【使用可能カード】hGS 2026 大阪 セレクションロード'
+  const SELECTION = 'selection-cup-2026-autumn'
+  // One of the three products the Selection Cup definition names, so the
+  // fixture pool is built the same way production builds it.
+  const SELECTION_PRODUCT = 'ブースターパック バウンサーバウンド'
 
   /** Cards split across the pool, so the narrowing is visible. */
   const regulationCards = [
@@ -1684,7 +1686,7 @@ describe('DeckEditPage regulations', () => {
 
       expect(
         [...selector().options].map((option) => option.value).sort(),
-      ).toEqual(['selection-cup-2026-osaka', 'standard'])
+      ).toEqual(['selection-cup-2026-autumn', 'standard'])
     })
   })
 

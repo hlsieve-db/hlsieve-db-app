@@ -176,7 +176,7 @@ describe('a deck that names a format', () => {
 
   it('accepts a tournament format', () => {
     expect(
-      isDeck({ ...deck(), regulationId: 'selection-cup-2026-osaka' }),
+      isDeck({ ...deck(), regulationId: 'selection-cup-2026-autumn' }),
     ).toBe(true)
   })
 
@@ -202,11 +202,11 @@ describe('a deck that names a format', () => {
  */
 describe('setting the format a deck is built for', () => {
   it('records a tournament format and bumps the timestamp', () => {
-    const result = setDeckRegulation(deck(), 'selection-cup-2026-osaka', {
+    const result = setDeckRegulation(deck(), 'selection-cup-2026-autumn', {
       now,
     })
 
-    expect(result.regulationId).toBe('selection-cup-2026-osaka')
+    expect(result.regulationId).toBe('selection-cup-2026-autumn')
     expect(result.updatedAt).toBe(secondTimestamp)
     expect(isDeck(result)).toBe(true)
   })
@@ -218,7 +218,7 @@ describe('setting the format a deck is built for', () => {
   })
 
   it('removes the format when going back to ordinary construction', () => {
-    const tournament = setDeckRegulation(deck(), 'selection-cup-2026-osaka', {
+    const tournament = setDeckRegulation(deck(), 'selection-cup-2026-autumn', {
       now,
     })
 
@@ -235,7 +235,7 @@ describe('setting the format a deck is built for', () => {
 
   it('leaves the rest of the deck alone', () => {
     const before = deck()
-    const result = setDeckRegulation(before, 'selection-cup-2026-osaka', {
+    const result = setDeckRegulation(before, 'selection-cup-2026-autumn', {
       now,
     })
 
@@ -251,22 +251,22 @@ describe('setting the format a deck is built for', () => {
 describe('editing a deck built for a tournament', () => {
   const tournament = (): Deck => ({
     ...deck(),
-    regulationId: 'selection-cup-2026-osaka',
+    regulationId: 'selection-cup-2026-autumn',
   })
 
   it('keeps the format through a rename', () => {
     expect(renameDeck(tournament(), '新しい名前', { now }).regulationId).toBe(
-      'selection-cup-2026-osaka',
+      'selection-cup-2026-autumn',
     )
   })
 
   it('keeps the format through a card change', () => {
     expect(
       addCardToDeck(tournament(), 'CARD-003', 1, { now }).regulationId,
-    ).toBe('selection-cup-2026-osaka')
+    ).toBe('selection-cup-2026-autumn')
     expect(
       removeCardFromDeck(tournament(), 'CARD-001', { now }).regulationId,
-    ).toBe('selection-cup-2026-osaka')
+    ).toBe('selection-cup-2026-autumn')
   })
 })
 

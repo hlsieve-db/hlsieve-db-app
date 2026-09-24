@@ -1,4 +1,4 @@
-import { SELECTION_CUP_2026_OSAKA } from './selectionCup2026Osaka'
+import { SELECTION_CUP_2026_AUTUMN } from './selectionCup2026Autumn'
 import { STANDARD_REGULATION, STANDARD_REGULATION_ID } from './standard'
 import type { RegulationDefinition } from './types'
 
@@ -11,11 +11,22 @@ import type { RegulationDefinition } from './types'
  */
 export const REGULATIONS: readonly RegulationDefinition[] = [
   STANDARD_REGULATION,
-  SELECTION_CUP_2026_OSAKA,
+  SELECTION_CUP_2026_AUTUMN,
 ]
 
+/**
+ * Every id a deck might carry, current and superseded alike.
+ *
+ * An alias resolves to the definition that replaced it, so a deck saved before
+ * an id was corrected still finds its format instead of falling back to
+ * ordinary construction.
+ */
 const BY_ID = new Map(
-  REGULATIONS.map((regulation) => [regulation.id, regulation]),
+  REGULATIONS.flatMap((regulation) =>
+    [regulation.id, ...(regulation.aliasIds ?? [])].map(
+      (id) => [id, regulation] as const,
+    ),
+  ),
 )
 
 /**

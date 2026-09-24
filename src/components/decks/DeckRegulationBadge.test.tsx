@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import { DeckRegulationBadge } from './DeckRegulationBadge'
 
-const SELECTION = 'selection-cup-2026-osaka'
+const SELECTION = 'selection-cup-2026-autumn'
 describe('showing which format a deck is built for', () => {
   it('calls a deck that names no format ordinary construction', () => {
     render(<DeckRegulationBadge />)
@@ -21,7 +21,7 @@ describe('showing which format a deck is built for', () => {
   it('names the tournament a deck is built for', () => {
     render(<DeckRegulationBadge regulationId={SELECTION} />)
 
-    expect(screen.getByText(/hGS 2026 大阪 セレクションロード/)).toBeVisible()
+    expect(screen.getByText(/セレクションカップ 2026年9-10月/)).toBeVisible()
     expect(screen.queryByText('通常構築')).toBeNull()
   })
 
@@ -30,7 +30,7 @@ describe('showing which format a deck is built for', () => {
   it('names a format whatever its dates say', () => {
     render(<DeckRegulationBadge regulationId={SELECTION} />)
 
-    expect(screen.getByText(/hGS 2026 大阪 セレクションロード/)).toBeVisible()
+    expect(screen.getByText(/セレクションカップ 2026年9-10月/)).toBeVisible()
   })
 
   // Showing the fallback as a plain "ordinary construction" badge would tell

@@ -232,7 +232,7 @@ const EXPORTED_AT = '2026-09-24T00:00:00.000Z'
  * tournament is a different deck and must not be skipped as a duplicate.
  */
 describe('the format a deck is built for, through a backup', () => {
-  const selection = 'selection-cup-2026-osaka'
+  const selection = 'selection-cup-2026-autumn'
 
   const tournamentDeck = (overrides: Partial<Deck> = {}): Deck => ({
     ...deck('a'),

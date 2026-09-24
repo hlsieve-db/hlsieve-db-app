@@ -15,8 +15,8 @@ describe('reading the format a deck says it is built for', () => {
   })
 
   it('keeps a format it knows about', () => {
-    expect(normalizeDeckRegulationId('selection-cup-2026-osaka')).toBe(
-      'selection-cup-2026-osaka',
+    expect(normalizeDeckRegulationId('selection-cup-2026-autumn')).toBe(
+      'selection-cup-2026-autumn',
     )
   })
 
@@ -42,10 +42,10 @@ describe('whether two decks are built for the same format', () => {
   })
 
   it('tells ordinary construction from a tournament format', () => {
-    expect(sameDeckRegulation(undefined, 'selection-cup-2026-osaka')).toBe(
+    expect(sameDeckRegulation(undefined, 'selection-cup-2026-autumn')).toBe(
       false,
     )
-    expect(sameDeckRegulation('standard', 'selection-cup-2026-osaka')).toBe(
+    expect(sameDeckRegulation('standard', 'selection-cup-2026-autumn')).toBe(
       false,
     )
   })
@@ -53,15 +53,15 @@ describe('whether two decks are built for the same format', () => {
   it('treats the same tournament format as the same', () => {
     expect(
       sameDeckRegulation(
-        'selection-cup-2026-osaka',
-        'selection-cup-2026-osaka',
+        'selection-cup-2026-autumn',
+        'selection-cup-2026-autumn',
       ),
     ).toBe(true)
   })
 
   it('tells two tournament formats apart', () => {
     expect(
-      sameDeckRegulation('selection-cup-2026-osaka', 'selection-cup-2027'),
+      sameDeckRegulation('selection-cup-2026-autumn', 'selection-cup-2027'),
     ).toBe(false)
   })
 

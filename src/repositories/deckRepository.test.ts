@@ -138,13 +138,13 @@ describe('a deck that names a format', () => {
   it('keeps the format through a save and a read', async () => {
     const repository = createDeckRepository(memoryPersistence())
 
-    await repository.saveDeck(tournament('a', 'selection-cup-2026-osaka'))
+    await repository.saveDeck(tournament('a', 'selection-cup-2026-autumn'))
 
     expect((await repository.getDeck('a'))?.regulationId).toBe(
-      'selection-cup-2026-osaka',
+      'selection-cup-2026-autumn',
     )
     expect((await repository.listDecks())[0]?.regulationId).toBe(
-      'selection-cup-2026-osaka',
+      'selection-cup-2026-autumn',
     )
   })
 
@@ -178,10 +178,10 @@ describe('a deck that names a format', () => {
   it('keeps the format through an import', async () => {
     const repository = createDeckRepository(memoryPersistence())
 
-    await repository.importDecks([tournament('a', 'selection-cup-2026-osaka')])
+    await repository.importDecks([tournament('a', 'selection-cup-2026-autumn')])
 
     expect((await repository.getDeck('a'))?.regulationId).toBe(
-      'selection-cup-2026-osaka',
+      'selection-cup-2026-autumn',
     )
   })
 })

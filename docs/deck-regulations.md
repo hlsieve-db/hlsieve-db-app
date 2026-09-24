@@ -10,19 +10,19 @@ in `main` today.
 
 ## Files
 
-| Path                                              | What it holds                                                                                                                           |
-| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/domain/regulations/types.ts`                 | `RegulationDefinition`, `RegulationCardPool`, `DeckSection`, `DEFAULT_POOL_SECTIONS`, `DeckRegulationViolation`, `DeckRegulationResult` |
-| `src/domain/regulations/standard.ts`              | `STANDARD_REGULATION_ID`, `STANDARD_REGULATION`                                                                                         |
-| `src/domain/regulations/selectionCup2026Osaka.ts` | The current Selection definition: `SELECTION_CUP_2026_OSAKA_ID`, `SELECTION_CUP_2026_OSAKA`                                             |
-| `src/domain/regulations/registry.ts`              | `REGULATIONS`, `getRegulation`, `hasRegulation`, `isRegulationActive`, `listRegulations`                                                |
-| `src/domain/regulations/engine.ts`                | `getAllowedCardNumbers`, `isCardAllowed`, `validateDeckRegulation`                                                                      |
-| `src/domain/regulations/deckRegulationId.ts`      | `normalizeDeckRegulationId`, `sameDeckRegulation` — comparison rules, not lookup                                                        |
-| `src/domain/decks/deck.ts`                        | `setDeckRegulation` — the only way the UI may change a deck's regulation                                                                |
-| `src/domain/decks/deckContent.ts`                 | `deckContentEquals` — used by cloud conflict detection                                                                                  |
-| `src/domain/decks/backup.ts`                      | `hasSameDeckContent` — used by backup import de-duplication                                                                             |
-| `src/pages/DeckEditPage.tsx`                      | Selector, search pool narrowing, the "使用可能カードのみ表示" toggle, deck violation warning                                            |
-| `src/components/decks/DeckRegulationBadge.tsx`    | The label shown on the saved deck list and the comparison screen                                                                        |
+| Path                                               | What it holds                                                                                                                           |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/domain/regulations/types.ts`                  | `RegulationDefinition`, `RegulationCardPool`, `DeckSection`, `DEFAULT_POOL_SECTIONS`, `DeckRegulationViolation`, `DeckRegulationResult` |
+| `src/domain/regulations/standard.ts`               | `STANDARD_REGULATION_ID`, `STANDARD_REGULATION`                                                                                         |
+| `src/domain/regulations/selectionCup2026Autumn.ts` | The current Selection Cup definition: `SELECTION_CUP_2026_AUTUMN_ID`, `SELECTION_CUP_2026_AUTUMN`                                       |
+| `src/domain/regulations/registry.ts`               | `REGULATIONS`, `getRegulation`, `hasRegulation`, `isRegulationActive`, `listRegulations`                                                |
+| `src/domain/regulations/engine.ts`                 | `getAllowedCardNumbers`, `isCardAllowed`, `validateDeckRegulation`                                                                      |
+| `src/domain/regulations/deckRegulationId.ts`       | `normalizeDeckRegulationId`, `sameDeckRegulation` — comparison rules, not lookup                                                        |
+| `src/domain/decks/deck.ts`                         | `setDeckRegulation` — the only way the UI may change a deck's regulation                                                                |
+| `src/domain/decks/deckContent.ts`                  | `deckContentEquals` — used by cloud conflict detection                                                                                  |
+| `src/domain/decks/backup.ts`                       | `hasSameDeckContent` — used by backup import de-duplication                                                                             |
+| `src/pages/DeckEditPage.tsx`                       | Selector, search pool narrowing, the "使用可能カードのみ表示" toggle, deck violation warning                                            |
+| `src/components/decks/DeckRegulationBadge.tsx`     | The label shown on the saved deck list and the comparison screen                                                                        |
 
 Tests: `engine.test.ts`, `registry.test.ts`, `deckRegulationId.test.ts` and
 `selectionCupProduction.test.ts` (the last one runs against `public/cards.json`),
@@ -37,7 +37,7 @@ all in `src/domain/regulations/`.
 3. **Add a definition file** to `src/domain/regulations/`, named after the
    regulation in the repository's camelCase style, e.g.
    `selectionCup2027Tokyo.ts`. Export the id as a named constant and the
-   definition beside it, as `selectionCup2026Osaka.ts` does.
+   definition beside it, as `selectionCup2026Autumn.ts` does.
 4. **Add it to `REGULATIONS`** in `registry.ts`. That array is the only place
    the app learns a format exists.
 5. **Fill in the fields** (below), then run the checks in
@@ -46,17 +46,23 @@ all in `src/domain/regulations/`.
 ### Fields
 
 ```ts
-export const SELECTION_CUP_2026_OSAKA_ID = 'selection-cup-2026-osaka'
+export const SELECTION_CUP_2026_AUTUMN_ID = 'selection-cup-2026-autumn'
 
-export const SELECTION_CUP_2026_OSAKA: RegulationDefinition = {
-  id: SELECTION_CUP_2026_OSAKA_ID,
-  name: 'hGS 2026 大阪 セレクションロード',
+export const SELECTION_CUP_2026_AUTUMN: RegulationDefinition = {
+  id: SELECTION_CUP_2026_AUTUMN_ID,
+  aliasIds: ['selection-cup-2026-osaka'],
+  name: 'セレクションカップ 2026年9-10月',
   description:
-    '対象商品に収録されているカードで構築します。エールは対象外です。',
-  effectiveFrom: '2026-08-29',
+    '推しホロメンとメインデッキは、対象3商品に収録されているカードのみ使用できます。エールデッキは対象外です。',
+  effectiveFrom: '2026-09-19',
+  effectiveTo: '2026-10-31',
   cardPool: {
-    allowedProductNames: ['【使用可能カード】hGS 2026 大阪 セレクションロード'],
-    expectedCardCount: 683,
+    allowedProductNames: [
+      'ブースターパック バウンサーバウンド',
+      'エクストラブースター サマー・ホログラム',
+      'ブースターパック「ボリュームヴォルテックス」',
+    ],
+    expectedCardCount: 364,
     appliesTo: ['oshi', 'main'],
   },
 }
@@ -65,11 +71,16 @@ export const SELECTION_CUP_2026_OSAKA: RegulationDefinition = {
 - `id` — stable and internal, kebab-case. It ends up stored in decks, so it
   outlives the event's branding. Never show it to a reporter and never rename it
   (see [Changing an existing regulation](#changing-an-existing-regulation)).
+- `aliasIds` — ids this definition used to be recorded under. Only for
+  correcting our own mistake; see
+  [Correcting an id](#correcting-an-id).
 - `name` — what screens display, via `getRegulation(id).name`.
 - `description` — optional. The deck editor shows it for non-Standard formats.
 - `effectiveFrom` / `effectiveTo` — ISO day strings, **both bounds inclusive**,
   compared as strings by `isRegulationActive`. Omitting `effectiveFrom` means it
-  has always applied; omitting `effectiveTo` means it has not ended.
+  has always applied; omitting `effectiveTo` means it has not ended. These are
+  **when the format may be chosen**, not when the event is played; see
+  [Event dates and selectable dates](#event-dates-and-selectable-dates).
 - `allowedProductNames` — exact product names from the card data.
 - `expectedCardCount` — how many card numbers those products resolve to.
   **Test-time only**: no runtime code reads it. See
@@ -95,8 +106,9 @@ matches, the pool comes out empty, and the app would then call every card in
 the deck illegal. So:
 
 - **Take the string from `public/cards.json`, not from the official page.**
-  Watch for full-width brackets and other look-alike characters. The current
-  Selection product uses `【` `】` (U+3010/U+3011), not `〖` `〗`.
+  Watch for full-width brackets and other look-alike characters. The three
+  Selection Cup products are a good example of why: two of them wrap the set
+  name in `「` `」` and one does not.
 - **Set `expectedCardCount`** and let `selectionCupProduction.test.ts` compare it
   against the data. A rename then fails a test loudly instead of emptying the
   pool quietly.
@@ -112,13 +124,44 @@ node -e "const d=require('./public/cards.json');const m=new Map();for(const c of
 
 Read `.cache/products.txt` in an editor rather than the terminal, which may not
 render Japanese correctly. As of this writing the data holds 37 product names
-over 1381 cards, and the Selection overlay resolves to 683 card numbers: 44
-oshi, 639 main (515 holomem + 124 support) and no cheer card at all.
+over 1381 cards.
 
-The official list publishes this pool as a product that its cards carry
-_alongside_ the product they were actually printed in, which is why the pool
-needs no card-by-card transcription. Expect a future event to work the same way;
-if one does not, `additionalAllowedCardNumbers` can carry an explicit list.
+The Selection Cup pool is the union of three of them:
+
+| Product                                        | Cards   | oshi   | main    | cheer  |
+| ---------------------------------------------- | ------- | ------ | ------- | ------ |
+| `ブースターパック バウンサーバウンド`          | 127     | 7      | 114     | 6      |
+| `エクストラブースター サマー・ホログラム`      | 114     | 3      | 99      | 12     |
+| `ブースターパック「ボリュームヴォルテックス」` | 123     | 7      | 116     | 0      |
+| **union**                                      | **364** | **17** | **329** | **18** |
+
+The three sets do not overlap today, which is why the union is their sum; a
+card in two of them would still be counted once, because the pool is a set of
+card numbers.
+
+Note that the data also holds
+`【使用可能カード】hGS 2026 大阪 セレクションロード`, a 683-card grouping for a
+**different event**. It is legitimate data and stays in `public/cards.json`, but
+it has nothing to do with the Selection Cup and must not be used in its
+definition, tests, docs or UI.
+
+## Event dates and selectable dates
+
+The autumn 2026 Selection Cup is played on two separate stretches:
+
+- 2026-09-19 to 2026-09-23
+- 2026-10-01 to 2026-10-31
+
+The definition carries one span, `effectiveFrom: '2026-09-19'` and
+`effectiveTo: '2026-10-31'`, which covers both. That is deliberate: the dates
+say when the format can be chosen in the editor, and someone building for the
+October dates during the last week of September needs it offered then. Removing
+it for the gap would take the format away from exactly the people preparing for
+the next stretch.
+
+Describing a run as a list of sessions would need a shape `RegulationDefinition`
+does not have, and nothing in the app asks when the event is actually played, so
+the real dates live here rather than in code.
 
 ## Card pool semantics
 
@@ -255,9 +298,30 @@ alone, and their format keeps resolving.
 
 Set `effectiveTo` on the old definition when its event has ended. It then stops
 being offered to new decks while decks that already name it keep working, and
-`getRegulation` keeps resolving it. Note that no definition carries an
-`effectiveTo` yet, so there is currently no "finished" label in the UI; add one
-with a test when the first such definition lands.
+`getRegulation` keeps resolving it. There is still no "finished" label in the
+UI; add one with a test if it is wanted.
+
+### Correcting an id
+
+An id that turns out to name the wrong thing is the one case where the id
+itself changes. Do not delete or rename it outright: decks already store it, and
+they would stop resolving.
+
+Instead give the definition its correct `id` and list the old one in
+`aliasIds`. Then `getRegulation` and `hasRegulation` resolve the old id to the
+corrected definition, and `normalizeDeckRegulationId` maps it to the current id,
+so a deck saved before the correction and a deck saved after it compare equal
+rather than looking like two devices disagreeing. Nothing rewrites stored decks;
+a deck keeps the old id until the reporter picks a format in the editor, which
+then saves the current one.
+
+This happened once already: the autumn 2026 Selection Cup was first recorded as
+`selection-cup-2026-osaka`, which named a different event's card grouping. The
+definition now uses `selection-cup-2026-autumn` and keeps the old id as an
+alias.
+
+An alias is for our own mistake. A change to the rules earns a new definition,
+for the reasons above.
 
 ## Checks after adding one
 

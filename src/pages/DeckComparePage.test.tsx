@@ -224,7 +224,7 @@ describe('DeckComparePage', () => {
 describe('the format each compared deck is built for', () => {
   it('names both decks formats once they are chosen', async () => {
     renderPage({
-      decks: [before, { ...after, regulationId: 'selection-cup-2026-osaka' }],
+      decks: [before, { ...after, regulationId: 'selection-cup-2026-autumn' }],
     })
 
     fireEvent.change(await screen.findByLabelText('比較元デッキ（Deck A）'), {
@@ -235,7 +235,7 @@ describe('the format each compared deck is built for', () => {
     })
 
     expect(await screen.findByText('通常構築')).toBeVisible()
-    expect(screen.getByText(/hGS 2026 大阪 セレクションロード/)).toBeVisible()
+    expect(screen.getByText(/セレクションカップ 2026年9-10月/)).toBeVisible()
   })
 
   it('says when it does not recognise a deck s format', async () => {

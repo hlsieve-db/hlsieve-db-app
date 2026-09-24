@@ -138,7 +138,7 @@ describe('comparing what the reporter edits', () => {
  * lost either way.
  */
 describe('comparing the format two decks are built for', () => {
-  const selection = 'selection-cup-2026-osaka'
+  const selection = 'selection-cup-2026-autumn'
 
   it('treats saying nothing and ordinary construction as the same deck', () => {
     expect(
