@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
 import { DeckLocalNavigation } from '../components/DeckLocalNavigation'
+import { DeckRegulationBadge } from '../components/decks/DeckRegulationBadge'
 import { createDeck, getDeckTotal } from '../domain/decks/deck'
 import {
   createDeckBackup,
@@ -254,6 +255,11 @@ export function SavedDecksPage({
               <li className="deck-list__item" key={deck.id}>
                 <div>
                   <h2>{deck.name}</h2>
+                  {/* Shown, never written: opening the list decides nothing
+                      about any of these decks. */}
+                  <p>
+                    <DeckRegulationBadge regulationId={deck.regulationId} />
+                  </p>
                   <p>合計 {getDeckTotal(deck)}枚</p>
                   <p>
                     <time dateTime={deck.updatedAt}>

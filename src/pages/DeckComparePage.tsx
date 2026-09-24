@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
 import { DeckLocalNavigation } from '../components/DeckLocalNavigation'
+import { DeckRegulationBadge } from '../components/decks/DeckRegulationBadge'
 import type { Card, CardsDataFile } from '../domain/cards/types'
 import {
   compareDecks,
@@ -447,8 +448,10 @@ export function DeckComparePage({
                 aria-label={`${beforeDeck.name}から${afterDeck.name}への比較`}
               >
                 <strong>{beforeDeck.name}</strong>
+                <DeckRegulationBadge regulationId={beforeDeck.regulationId} />
                 <span aria-hidden="true">→</span>
                 <strong>{afterDeck.name}</strong>
+                <DeckRegulationBadge regulationId={afterDeck.regulationId} />
               </p>
             ) : (
               <p>Deck AとDeck Bを選択してください。</p>

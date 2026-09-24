@@ -481,3 +481,35 @@ describe('SharedDeckPage import', () => {
     ).toHaveLength(2)
   })
 })
+
+/**
+ * A shared deck carries cards and a name, and nothing about the format its
+ * owner built it for. The page must not imply otherwise.
+ */
+describe('a shared deck and deck formats', () => {
+  it('claims no tournament format for a shared deck', async () => {
+    renderPage()
+    await screen.findByText('共有メイン')
+
+    const text = document.body.textContent ?? ''
+    expect(text).not.toContain('hGS 2026 大阪 セレクションロード')
+    expect(text).not.toContain('不明なレギュレーション')
+  })
+
+  // The deck saved from a share is an ordinary one until the reporter says
+  // otherwise in the editor.
+  it('saves an ordinary deck when the shared one is kept', async () => {
+    const saveDeck = vi.fn<(value: Deck) => Promise<void>>(
+      async () => undefined,
+    )
+    renderPage({ deckRepository: repository({ saveDeck }) })
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: '自分のデッキに追加' }),
+    )
+
+    await screen.findByText('Imported editor')
+    expect(saveDeck).toHaveBeenCalled()
+    expect('regulationId' in (saveDeck.mock.calls[0]?.[0] as Deck)).toBe(false)
+  })
+})

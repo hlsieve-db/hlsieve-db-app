@@ -218,3 +218,38 @@ describe('DeckComparePage', () => {
     expect(within(added).queryByText('共通カード')).not.toBeInTheDocument()
   })
 })
+
+// Two decks can be compared across formats, so which format each one is built
+// for is worth seeing beside its name.
+describe('the format each compared deck is built for', () => {
+  it('names both decks formats once they are chosen', async () => {
+    renderPage({
+      decks: [before, { ...after, regulationId: 'selection-cup-2026-osaka' }],
+    })
+
+    fireEvent.change(await screen.findByLabelText('比較元デッキ（Deck A）'), {
+      target: { value: 'A' },
+    })
+    fireEvent.change(screen.getByLabelText('比較先デッキ（Deck B）'), {
+      target: { value: 'B' },
+    })
+
+    expect(await screen.findByText('通常構築')).toBeVisible()
+    expect(screen.getByText(/hGS 2026 大阪 セレクションロード/)).toBeVisible()
+  })
+
+  it('says when it does not recognise a deck s format', async () => {
+    renderPage({
+      decks: [{ ...before, regulationId: 'future-or-removed-rule' }, after],
+    })
+
+    fireEvent.change(await screen.findByLabelText('比較元デッキ（Deck A）'), {
+      target: { value: 'A' },
+    })
+    fireEvent.change(screen.getByLabelText('比較先デッキ（Deck B）'), {
+      target: { value: 'B' },
+    })
+
+    expect(await screen.findByText('不明なレギュレーション')).toBeVisible()
+  })
+})

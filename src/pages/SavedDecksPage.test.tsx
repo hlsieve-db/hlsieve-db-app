@@ -398,3 +398,101 @@ describe('SavedDecksPage', () => {
     ).not.toBeInTheDocument()
   })
 })
+
+/**
+ * Which format each saved deck is built for.
+ *
+ * Shown, never written: a list is something the reporter reads, and opening it
+ * is not a decision about any deck in it.
+ */
+describe('the format each saved deck is built for', () => {
+  const SELECTION = 'selection-cup-2026-osaka'
+
+  it('calls a deck that names no format ordinary construction', async () => {
+    renderPage(repository({ listDecks: async () => [deck()] }))
+
+    expect(await screen.findByText('通常構築')).toBeVisible()
+  })
+
+  it('says the same for a deck that spells it out', async () => {
+    renderPage(
+      repository({
+        listDecks: async () => [deck({ regulationId: 'standard' })],
+      }),
+    )
+
+    expect(await screen.findByText('通常構築')).toBeVisible()
+  })
+
+  it('names the tournament a deck is built for', async () => {
+    renderPage(
+      repository({
+        listDecks: async () => [deck({ regulationId: SELECTION })],
+      }),
+    )
+
+    expect(
+      await screen.findByText(/hGS 2026 大阪 セレクションロード/),
+    ).toBeVisible()
+    expect(screen.queryByText('通常構築')).toBeNull()
+  })
+
+  // Showing this as ordinary construction would tell the reporter their
+  // tournament deck is an ordinary one.
+  it('says when it does not recognise the format', async () => {
+    renderPage(
+      repository({
+        listDecks: async () => [
+          deck({ regulationId: 'future-or-removed-rule' }),
+        ],
+      }),
+    )
+
+    expect(await screen.findByText('不明なレギュレーション')).toBeVisible()
+    expect(screen.queryByText('通常構築')).toBeNull()
+  })
+
+  it('tells two decks apart that differ only by their format', async () => {
+    renderPage(
+      repository({
+        listDecks: async () => [
+          deck({ id: 'deck-1', name: '通常のデッキ' }),
+          deck({ id: 'deck-2', name: '大会用デッキ', regulationId: SELECTION }),
+        ],
+      }),
+    )
+
+    const cards = await screen.findAllByRole('listitem')
+    expect(within(cards[0] as HTMLElement).getByText('通常構築')).toBeVisible()
+    expect(
+      within(cards[1] as HTMLElement).getByText(
+        /hGS 2026 大阪 セレクションロード/,
+      ),
+    ).toBeVisible()
+  })
+
+  it('writes nothing merely by listing the decks', async () => {
+    const saveDeck = vi.fn(async () => undefined)
+    renderPage(
+      repository({
+        listDecks: async () => [
+          deck({ regulationId: 'future-or-removed-rule' }),
+        ],
+        saveDeck,
+      }),
+    )
+    await screen.findByText('不明なレギュレーション')
+
+    expect(saveDeck).not.toHaveBeenCalled()
+  })
+
+  // A restored backup is read back through the same list.
+  it('shows the format of a deck brought back from a backup', async () => {
+    const decks = [deck({ regulationId: SELECTION })]
+    renderPage(repository({ listDecks: async () => decks }))
+
+    expect(
+      await screen.findByText(/hGS 2026 大阪 セレクションロード/),
+    ).toBeVisible()
+  })
+})
