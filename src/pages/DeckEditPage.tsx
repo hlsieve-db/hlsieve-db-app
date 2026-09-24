@@ -34,6 +34,7 @@ import {
   incrementCardQuantity,
   removeCardFromDeck,
   renameDeck,
+  setDeckRegulation,
 } from '../domain/decks/deck'
 import { formatDeckAsText } from '../domain/decks/formatText'
 import {
@@ -41,6 +42,17 @@ import {
   sortDeckEntriesForDisplay,
 } from '../domain/decks/displayOrder'
 import { getDeckZone, validateDeckLegality } from '../domain/decks/legality'
+import {
+  getAllowedCardNumbers,
+  isCardAllowed,
+  validateDeckRegulation,
+} from '../domain/regulations/engine'
+import {
+  getRegulation,
+  hasRegulation,
+  listRegulations,
+} from '../domain/regulations/registry'
+import { STANDARD_REGULATION_ID } from '../domain/regulations/standard'
 import { CURRENT_DECK_RESTRICTIONS } from '../domain/decks/restrictions'
 import { writeSelectedDeckId } from '../domain/decks/selectedDeckPreference'
 import type { Deck, DeckEntry } from '../domain/decks/types'
@@ -338,16 +350,81 @@ function DeckEditor({
     [cardsState],
   )
 
+  const regulation = useMemo(
+    () => getRegulation(deck.regulationId),
+    [deck.regulationId],
+  )
+  // A deck can name a format this build no longer defines. It is shown as
+  // ordinary construction so the deck is usable, and said out loud rather than
+  // quietly corrected: nothing rewrites the deck for being opened.
+  const regulationMissing =
+    deck.regulationId !== undefined && !hasRegulation(deck.regulationId)
+  /**
+   * What may be chosen: ordinary construction, whatever is running, and the
+   * format this deck already names if it has since ended. Every other finished
+   * format would be a list of things nobody can enter any more.
+   */
+  const regulationOptions = useMemo(() => {
+    const offered = listRegulations()
+    if (offered.some((value) => value.id === regulation.id)) return offered
+    return [...offered, regulation]
+  }, [regulation])
+
+  const loadedCards = useMemo(
+    () => (cardsState.status === 'loaded' ? cardsState.data.cards : []),
+    [cardsState],
+  )
+  // Rebuilt only when the format or the card data changes, rather than on
+  // every keystroke in the search box.
+  const allowedCardNumbers = useMemo(
+    () => getAllowedCardNumbers(regulation, loadedCards),
+    [regulation, loadedCards],
+  )
+  const [onlyAllowedCards, setOnlyAllowedCards] = useState(true)
+  /**
+   * The cards the picker searches.
+   *
+   * Narrowed here rather than inside the search itself, which knows nothing
+   * about formats and should not have to. Showing everything is a deliberate
+   * choice the reporter can make, but a banned card is never offered: a ban is
+   * about the card rather than about where it would sit.
+   */
+  const searchableCards = useMemo(() => {
+    if (!allowedCardNumbers) return loadedCards
+    if (onlyAllowedCards) {
+      return loadedCards.filter((card) =>
+        isCardAllowed({ card, regulation, allowed: allowedCardNumbers }),
+      )
+    }
+    const banned = new Set(regulation.cardPool?.bannedCardNumbers ?? [])
+    return banned.size === 0
+      ? loadedCards
+      : loadedCards.filter((card) => !banned.has(card.cardNumber))
+  }, [allowedCardNumbers, loadedCards, onlyAllowedCards, regulation])
+
+  /**
+   * Cards already in the deck that the format does not allow.
+   *
+   * Reported and never acted on: removing them would throw away work the
+   * reporter may be part way through, and a deck put together before choosing
+   * a format is exactly the case this has to survive.
+   */
+  const regulationViolations = useMemo(
+    () =>
+      cardsState.status === 'loaded'
+        ? validateDeckRegulation({ deck, regulation, cards: loadedCards })
+            .violations
+        : [],
+    [cardsState.status, deck, loadedCards, regulation],
+  )
+
   const pickerResults = useMemo(
     () =>
-      getCardSearchResults(
-        cardsState.status === 'loaded' ? cardsState.data.cards : [],
-        {
-          ...pickerState,
-          pageSize: DEFAULT_CARD_PAGE_SIZE,
-        },
-      ),
-    [cardsState, pickerState],
+      getCardSearchResults(searchableCards, {
+        ...pickerState,
+        pageSize: DEFAULT_CARD_PAGE_SIZE,
+      }),
+    [pickerState, searchableCards],
   )
 
   const originalPrintingImages = useMemo(() => {
@@ -558,6 +635,81 @@ function DeckEditor({
         ) : (
           <p className="deck-legality-loading">構築ルールを確認しています…</p>
         )}
+        <section
+          className="deck-regulation"
+          aria-labelledby="deck-regulation-heading"
+        >
+          <h2 id="deck-regulation-heading">レギュレーション</h2>
+          <label htmlFor="deck-regulation-select">
+            使用するレギュレーション
+          </label>
+          <select
+            id="deck-regulation-select"
+            value={regulation.id}
+            onChange={(event) =>
+              // Always through setDeckRegulation, so choosing ordinary
+              // construction removes the field rather than writing 'standard'.
+              applyDeckChange((current) =>
+                setDeckRegulation(current, event.currentTarget.value),
+              )
+            }
+          >
+            {regulationOptions.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.name}
+              </option>
+            ))}
+          </select>
+          {regulationMissing && (
+            <p role="alert">
+              このデッキのレギュレーション定義が見つかりません。現在はスタンダードとして表示しています。
+            </p>
+          )}
+          {regulation.description !== undefined &&
+            regulation.id !== STANDARD_REGULATION_ID && (
+              <p>{regulation.description}</p>
+            )}
+          {allowedCardNumbers !== undefined && (
+            <>
+              <p>
+                推しホロメン・メインデッキに使用可能カード制限があります。エールデッキはこの制限の対象外です。
+              </p>
+              <label htmlFor="deck-regulation-only-allowed">
+                <input
+                  id="deck-regulation-only-allowed"
+                  type="checkbox"
+                  checked={onlyAllowedCards}
+                  onChange={(event) =>
+                    setOnlyAllowedCards(event.currentTarget.checked)
+                  }
+                />
+                使用可能カードのみ表示
+              </label>
+            </>
+          )}
+          {regulationViolations.length > 0 && (
+            <div className="deck-regulation__violations" role="alert">
+              <p>このレギュレーションでは使用できないカードがあります。</p>
+              <ul>
+                {regulationViolations.map((violation) => (
+                  <li key={violation.cardNumber}>
+                    {violation.cardNumber}
+                    {cardsByNumber.get(violation.cardNumber)?.name !==
+                      undefined &&
+                      ` ${cardsByNumber.get(violation.cardNumber)?.name}`}
+                    {` ×${violation.quantity}`}
+                    {violation.reason === 'banned'
+                      ? '（禁止カード）'
+                      : '（対象カードプール外）'}
+                  </li>
+                ))}
+              </ul>
+              {/* Never removed on the reporter's behalf: the deck may be part
+                  way through a rebuild, and only they know which card goes. */}
+              <p>カードは自動では削除しません。</p>
+            </div>
+          )}
+        </section>
         <form className="deck-rename" onSubmit={submitRename}>
           <label htmlFor="deck-name">デッキ名</label>
           <div>
@@ -979,6 +1131,13 @@ function DeckEditor({
                     deck.entries.find(
                       (entry) => entry.cardNumber === card.cardNumber,
                     )?.quantity ?? 0
+                  const illegal =
+                    allowedCardNumbers !== undefined &&
+                    !isCardAllowed({
+                      card,
+                      regulation,
+                      allowed: allowedCardNumbers,
+                    })
                   return (
                     <li key={card.cardNumber}>
                       <CardDetailLink
@@ -996,6 +1155,11 @@ function DeckEditor({
                           <p>
                             {card.cardNumber}・{CARD_TYPE_LABELS[card.cardType]}
                           </p>
+                          {illegal && (
+                            <p className="deck-search-result__illegal">
+                              このレギュレーションでは使用できません
+                            </p>
+                          )}
                         </div>
                       </CardDetailLink>
                       <DeckQuantityControl

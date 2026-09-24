@@ -1578,3 +1578,376 @@ describe('DeckEditPage analysis', () => {
     expect(screen.getByRole('region', { name: 'デッキ分析' })).toBeVisible()
   })
 })
+
+/**
+ * Building for a limited format.
+ *
+ * The rules are the ordinary ones; what changes is which cards may be used. So
+ * the editor narrows what the search offers and says what in the deck would not
+ * be allowed, and never edits the deck to suit the format: a deck part way
+ * through a rebuild is exactly the case that has to survive.
+ */
+describe('DeckEditPage regulations', () => {
+  const SELECTION = 'selection-cup-2026-osaka'
+  const SELECTION_PRODUCT = '【使用可能カード】hGS 2026 大阪 セレクションロード'
+
+  /** Cards split across the pool, so the narrowing is visible. */
+  const regulationCards = [
+    card('IN-MAIN', 'プール内メイン', { products: [SELECTION_PRODUCT] }),
+    card('OUT-MAIN', 'プール外メイン', { products: ['ブースターパック'] }),
+    card('IN-OSHI', 'プール内推し', {
+      cardType: 'oshi',
+      products: [SELECTION_PRODUCT],
+    }),
+    card('OUT-OSHI', 'プール外推し', {
+      cardType: 'oshi',
+      products: ['ブースターパック'],
+    }),
+    card('CHEER-OUT', 'プール外エール', {
+      cardType: 'cheer',
+      products: ['ブースターパック'],
+    }),
+  ]
+
+  function renderRegulationPage({
+    regulationId,
+    entries = [],
+    saveDeck = vi.fn(async () => undefined),
+  }: {
+    regulationId?: string
+    entries?: Deck['entries']
+    saveDeck?: DeckRepository['saveDeck']
+  } = {}) {
+    const stored = deck({ ...(regulationId ? { regulationId } : {}), entries })
+    renderPage({
+      deckRepository: repository({
+        getDeck: vi.fn(async () => stored),
+        saveDeck,
+      }),
+      loadCards: vi.fn(async () => cardsData(regulationCards)),
+      loadPrintings: vi.fn(async () => printingsData(regulationCards)),
+    })
+    return { saveDeck, stored }
+  }
+
+  const selector = () =>
+    screen.getByLabelText('使用するレギュレーション') as HTMLSelectElement
+  const onlyAllowedToggle = () =>
+    screen.getByLabelText('使用可能カードのみ表示')
+  const searchBox = () => screen.getByLabelText('カード検索')
+
+  describe('choosing the format', () => {
+    it('shows ordinary construction for a deck that names none', async () => {
+      renderRegulationPage()
+
+      expect(await screen.findByText('5件')).toBeVisible()
+      expect(selector().value).toBe('standard')
+      expect(screen.queryByLabelText('使用可能カードのみ表示')).toBeNull()
+    })
+
+    it('shows the tournament a deck names', async () => {
+      renderRegulationPage({ regulationId: SELECTION })
+
+      await screen.findByText('3件')
+      expect(selector().value).toBe(SELECTION)
+    })
+
+    it('saves the deck when a tournament is chosen', async () => {
+      const { saveDeck } = renderRegulationPage()
+      await screen.findByText('5件')
+
+      fireEvent.change(selector(), { target: { value: SELECTION } })
+
+      await waitFor(() => expect(saveDeck).toHaveBeenCalledTimes(1))
+      expect(
+        (saveDeck as ReturnType<typeof vi.fn>).mock.calls[0]?.[0].regulationId,
+      ).toBe(SELECTION)
+    })
+
+    // Ordinary construction is the absence of the field, so going back removes
+    // it rather than writing 'standard'.
+    it('removes the format when going back to ordinary construction', async () => {
+      const { saveDeck } = renderRegulationPage({ regulationId: SELECTION })
+      await screen.findByText('3件')
+
+      fireEvent.change(selector(), { target: { value: 'standard' } })
+
+      await waitFor(() => expect(saveDeck).toHaveBeenCalledTimes(1))
+      const saved = (saveDeck as ReturnType<typeof vi.fn>).mock
+        .calls[0]?.[0] as Deck
+      expect('regulationId' in saved).toBe(false)
+    })
+
+    it('offers the formats on record and no others', async () => {
+      renderRegulationPage()
+      await screen.findByText('5件')
+
+      expect(
+        [...selector().options].map((option) => option.value).sort(),
+      ).toEqual(['selection-cup-2026-osaka', 'standard'])
+    })
+  })
+
+  describe('a format this build does not have', () => {
+    it('says so and shows the deck as ordinary construction', async () => {
+      renderRegulationPage({ regulationId: 'future-or-removed-rule' })
+
+      expect(
+        await screen.findByText(
+          /このデッキのレギュレーション定義が見つかりません/,
+        ),
+      ).toBeVisible()
+      expect(selector().value).toBe('standard')
+    })
+
+    // Opening a deck is not a decision about it.
+    it('does not rewrite the deck merely by opening it', async () => {
+      const { saveDeck } = renderRegulationPage({
+        regulationId: 'future-or-removed-rule',
+      })
+      await screen.findByText('5件')
+
+      expect(saveDeck).not.toHaveBeenCalled()
+    })
+
+    it('keeps the unknown format through an unrelated edit', async () => {
+      const { saveDeck } = renderRegulationPage({
+        regulationId: 'future-or-removed-rule',
+      })
+      await screen.findByText('5件')
+
+      fireEvent.change(screen.getByLabelText('デッキ名'), {
+        target: { value: '新しい名前' },
+      })
+      fireEvent.click(screen.getByRole('button', { name: '名前を保存' }))
+
+      await waitFor(() => expect(saveDeck).toHaveBeenCalledTimes(1))
+      expect(
+        (saveDeck as ReturnType<typeof vi.fn>).mock.calls[0]?.[0].regulationId,
+      ).toBe('future-or-removed-rule')
+    })
+
+    it('replaces it only when the reporter chooses another', async () => {
+      const { saveDeck } = renderRegulationPage({
+        regulationId: 'future-or-removed-rule',
+      })
+      await screen.findByText('5件')
+
+      fireEvent.change(selector(), { target: { value: SELECTION } })
+
+      await waitFor(() => expect(saveDeck).toHaveBeenCalledTimes(1))
+      expect(
+        (saveDeck as ReturnType<typeof vi.fn>).mock.calls[0]?.[0].regulationId,
+      ).toBe(SELECTION)
+    })
+  })
+
+  describe('what the search offers', () => {
+    it('leaves the search alone under ordinary construction', async () => {
+      renderRegulationPage()
+
+      expect(await screen.findByText('5件')).toBeVisible()
+    })
+
+    it('offers only the pool for the restricted sections', async () => {
+      renderRegulationPage({ regulationId: SELECTION })
+
+      // The two pool cards plus the cheer card, which the pool does not
+      // restrict; the two out-of-pool cards are gone.
+      expect(await screen.findByText('3件')).toBeVisible()
+      const picker = screen.getByRole('region', { name: 'カードを追加' })
+      expect(within(picker).getByText('プール内メイン')).toBeVisible()
+      expect(within(picker).getByText('プール内推し')).toBeVisible()
+      expect(within(picker).queryByText('プール外メイン')).toBeNull()
+      expect(within(picker).queryByText('プール外推し')).toBeNull()
+    })
+
+    // The pool holds no cheer card at all, so restricting cheer by it would
+    // leave nothing to build an cheer deck from.
+    it('still offers every cheer card', async () => {
+      renderRegulationPage({ regulationId: SELECTION })
+      await screen.findByText('3件')
+
+      fireEvent.change(searchBox(), { target: { value: 'エール' } })
+
+      expect(await screen.findByText('プール外エール')).toBeVisible()
+    })
+
+    it('offers everything again when the reporter asks to see it', async () => {
+      renderRegulationPage({ regulationId: SELECTION })
+      await screen.findByText('3件')
+
+      fireEvent.click(onlyAllowedToggle())
+
+      expect(await screen.findByText('5件')).toBeVisible()
+      expect(screen.getByText('プール外メイン')).toBeVisible()
+    })
+
+    it('marks a card the format does not allow', async () => {
+      renderRegulationPage({ regulationId: SELECTION })
+      await screen.findByText('3件')
+      fireEvent.click(onlyAllowedToggle())
+      await screen.findByText('5件')
+
+      expect(
+        screen.getAllByText('このレギュレーションでは使用できません').length,
+      ).toBe(2)
+    })
+
+    // A deck may be part way towards the format, so the card can still be
+    // added; the deck warning says what is left to fix.
+    it('lets a card the format does not allow be added anyway', async () => {
+      const { saveDeck } = renderRegulationPage({ regulationId: SELECTION })
+      await screen.findByText('3件')
+      fireEvent.click(onlyAllowedToggle())
+      await screen.findByText('5件')
+
+      fireEvent.click(
+        screen.getByRole('button', { name: 'プール外メインを1枚追加' }),
+      )
+
+      await waitFor(() => expect(saveDeck).toHaveBeenCalled())
+      expect(
+        await screen.findByText(
+          /このレギュレーションでは使用できないカードがあります/,
+        ),
+      ).toBeVisible()
+    })
+
+    // Deliberately not in the URL: it is a way of looking at the search rather
+    // than part of the search itself.
+    it('keeps the toggle out of the address bar', async () => {
+      renderRegulationPage({ regulationId: SELECTION })
+      await screen.findByText('3件')
+      const before = window.location.search
+
+      fireEvent.click(onlyAllowedToggle())
+      await screen.findByText('5件')
+
+      expect(window.location.search).toBe(before)
+    })
+
+    it('still filters the narrowed pool by the ordinary search', async () => {
+      renderRegulationPage({ regulationId: SELECTION })
+      await screen.findByText('3件')
+
+      fireEvent.change(searchBox(), { target: { value: 'プール内推し' } })
+
+      expect(await screen.findByText('1件')).toBeVisible()
+    })
+  })
+
+  describe('cards already in the deck', () => {
+    const withOutOfPool = () =>
+      renderRegulationPage({
+        regulationId: SELECTION,
+        entries: [
+          { cardNumber: 'OUT-MAIN', quantity: 2 },
+          { cardNumber: 'IN-MAIN', quantity: 1 },
+        ],
+      })
+
+    it('says which cards the format does not allow, and how many', async () => {
+      withOutOfPool()
+
+      expect(
+        await screen.findByText(
+          /このレギュレーションでは使用できないカードがあります/,
+        ),
+      ).toBeVisible()
+      const warning = screen.getByRole('alert')
+      expect(
+        within(warning).getByText(
+          /OUT-MAIN プール外メイン ×2（対象カードプール外）/,
+        ),
+      ).toBeVisible()
+      expect(within(warning).queryByText(/IN-MAIN/)).toBeNull()
+    })
+
+    it('says so without removing anything', async () => {
+      const { saveDeck } = withOutOfPool()
+      await screen.findByText(/使用できないカードがあります/)
+
+      expect(saveDeck).not.toHaveBeenCalled()
+      expect(screen.getByText('カードは自動では削除しません。')).toBeVisible()
+    })
+
+    it('keeps the cards when the format changes', async () => {
+      const { saveDeck } = withOutOfPool()
+      await screen.findByText(/使用できないカードがあります/)
+
+      fireEvent.change(selector(), { target: { value: 'standard' } })
+
+      await waitFor(() => expect(saveDeck).toHaveBeenCalledTimes(1))
+      expect(
+        (saveDeck as ReturnType<typeof vi.fn>).mock.calls[0]?.[0].entries,
+      ).toEqual([
+        { cardNumber: 'OUT-MAIN', quantity: 2 },
+        { cardNumber: 'IN-MAIN', quantity: 1 },
+      ])
+    })
+
+    // Choosing a format the deck does not yet fit is how a rebuild starts, so
+    // the cards it does not allow stay where they are.
+    it('keeps every card when a limited format is chosen', async () => {
+      const saveDeck = vi.fn<(value: Deck) => Promise<void>>(
+        async () => undefined,
+      )
+      renderRegulationPage({
+        entries: [
+          { cardNumber: 'OUT-MAIN', quantity: 2 },
+          { cardNumber: 'OUT-OSHI', quantity: 1 },
+        ],
+        saveDeck,
+      })
+      await screen.findByText('5件')
+
+      fireEvent.change(selector(), { target: { value: SELECTION } })
+
+      await waitFor(() => expect(saveDeck).toHaveBeenCalledTimes(1))
+      expect(saveDeck.mock.calls[0]?.[0].entries).toEqual([
+        { cardNumber: 'OUT-MAIN', quantity: 2 },
+        { cardNumber: 'OUT-OSHI', quantity: 1 },
+      ])
+      expect(
+        await screen.findByText(
+          /このレギュレーションでは使用できないカードがあります/,
+        ),
+      ).toBeVisible()
+    })
+
+    it('stops warning once the deck is back to ordinary construction', async () => {
+      withOutOfPool()
+      await screen.findByText(/使用できないカードがあります/)
+
+      fireEvent.change(selector(), { target: { value: 'standard' } })
+
+      await waitFor(() =>
+        expect(screen.queryByText(/使用できないカードがあります/)).toBeNull(),
+      )
+    })
+
+    it('says nothing under ordinary construction', async () => {
+      renderRegulationPage({
+        entries: [{ cardNumber: 'OUT-MAIN', quantity: 2 }],
+      })
+      await screen.findByText('5件')
+
+      expect(screen.queryByText(/使用できないカードがあります/)).toBeNull()
+    })
+
+    // The ordinary rules are unchanged by any of this: they are still reported,
+    // and in their own place rather than mixed into the format warning.
+    it('still reports the ordinary deck rules separately', async () => {
+      withOutOfPool()
+
+      const legality = await screen.findByRole('region', {
+        name: 'デッキ構築状態',
+      })
+      expect(legality).toBeVisible()
+      expect(
+        within(legality).queryByText(/使用できないカードがあります/),
+      ).toBeNull()
+    })
+  })
+})
