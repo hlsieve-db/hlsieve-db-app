@@ -3,6 +3,23 @@ import type { CardDataUpdateEntry } from './types'
 // Add only reviewed, actually published updates. Do not infer historical entries.
 export const CARD_DATA_UPDATE_HISTORY: readonly CardDataUpdateEntry[] = [
   {
+    id: 'deck-regulation-2026-09-25-selection-cup',
+    publishedAt: '2026-09-25',
+    summary: 'セレクションカップのデッキ構築ルールを更新しました',
+    addedCards: 0,
+    changedCards: 0,
+    removedCards: 0,
+    addedPrintings: 0,
+    removedPrintings: 0,
+    notes: [
+      '使用可能カードを、ブースターパック バウンサーバウンド／エクストラブースター サマー・ホログラム／ブースターパック「ボリュームヴォルテックス」の3商品に収録されているカードと同じカードナンバーへ変更しました。',
+      'カードプールの制限を受けるのは推しホロメンカードとメインデッキで、エールデッキは制限の対象外です。',
+      '同じカードナンバーであれば、別イラストや別商品に収録されたカードも使用できます。',
+      '開催期間は2026年9月19日～9月23日、2026年10月1日～10月31日です。',
+      '以前のレギュレーション設定で保存したデッキは、そのままご利用いただけます。',
+    ],
+  },
+  {
     id: 'card-data-2026-09-12-official-qa',
     publishedAt: '2026-09-12',
     cardsDataVersion:

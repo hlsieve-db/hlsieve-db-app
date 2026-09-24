@@ -27,7 +27,7 @@ export function UpdateHistoryPage({
       <AppNavigation />
       <header className="content-page__header">
         <h1>更新履歴</h1>
-        <p>カードデータの追加・修正内容をお知らせします。</p>
+        <p>カードデータやデッキ構築ルールの更新内容をお知らせします。</p>
       </header>
 
       {ordered.length === 0 ? (

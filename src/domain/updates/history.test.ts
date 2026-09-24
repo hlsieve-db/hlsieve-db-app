@@ -81,3 +81,65 @@ describe('Card data update history', () => {
     ).toMatchObject({ addedCards: 0, changedCards: 3 })
   })
 })
+
+// Not every update changes the card data. This one changed a deck-building
+// rule, so its counts are zero and the notes carry the whole story.
+describe('the Selection Cup rule update', () => {
+  const entry = CARD_DATA_UPDATE_HISTORY.find(
+    (candidate) => candidate.id === 'deck-regulation-2026-09-25-selection-cup',
+  )
+
+  it('is recorded with no card data counts', () => {
+    expect(entry).toBeDefined()
+    expect(entry?.publishedAt).toBe('2026-09-25')
+    expect(entry?.summary).toBe(
+      'セレクションカップのデッキ構築ルールを更新しました',
+    )
+    expect(entry?.addedCards).toBe(0)
+    expect(entry?.changedCards).toBe(0)
+    expect(entry?.removedCards).toBe(0)
+    expect(entry?.addedPrintings).toBe(0)
+    expect(entry?.removedPrintings).toBe(0)
+  })
+
+  it('names the three products the rules name', () => {
+    const notes = (entry?.notes ?? []).join('\n')
+    expect(notes).toContain('ブースターパック バウンサーバウンド')
+    expect(notes).toContain('エクストラブースター サマー・ホログラム')
+    expect(notes).toContain('ブースターパック「ボリュームヴォルテックス」')
+  })
+
+  // A different event's card grouping, which this update is not about.
+  it('does not name the hGS Osaka grouping', () => {
+    expect((entry?.notes ?? []).join('\n')).not.toContain('セレクションロード')
+  })
+
+  it('says which parts of the deck are restricted', () => {
+    const notes = (entry?.notes ?? []).join('\n')
+    expect(notes).toContain('推しホロメンカードとメインデッキ')
+    expect(notes).toContain('エールデッキは制限の対象外')
+  })
+
+  it('says a different printing of the same card is fine', () => {
+    expect((entry?.notes ?? []).join('\n')).toContain(
+      '同じカードナンバーであれば',
+    )
+  })
+
+  it('gives both stretches of the event', () => {
+    expect((entry?.notes ?? []).join('\n')).toContain(
+      '2026年9月19日～9月23日、2026年10月1日～10月31日',
+    )
+  })
+
+  // The point most likely to worry someone who already built a deck.
+  it('says decks saved under the old setting still work', () => {
+    expect((entry?.notes ?? []).join('\n')).toContain(
+      '以前のレギュレーション設定で保存したデッキは、そのままご利用いただけます',
+    )
+  })
+
+  it('is the newest entry in the history', () => {
+    expect(latestFirst(CARD_DATA_UPDATE_HISTORY)[0]).toBe(entry)
+  })
+})

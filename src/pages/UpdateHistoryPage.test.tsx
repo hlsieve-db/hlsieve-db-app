@@ -117,3 +117,62 @@ describe('UpdateHistoryPage', () => {
     ).not.toBeInTheDocument()
   })
 })
+
+/**
+ * The Cards notice calls itself a card data update, so it has to be one.
+ *
+ * The history page lists every update, including ones that changed a rule
+ * rather than the data; announcing one of those on the card search under
+ * "カードデータ更新" would say something untrue.
+ */
+describe('the Cards notice and updates that are not card data', () => {
+  const ruleChange: CardDataUpdateEntry = {
+    id: 'rule-2026-10-20',
+    publishedAt: '2026-10-20',
+    summary: 'デッキ構築ルールを更新しました',
+    addedCards: 0,
+    changedCards: 0,
+    removedCards: 0,
+    addedPrintings: 0,
+    removedPrintings: 0,
+  }
+
+  const renderCards = (entries: CardDataUpdateEntry[]) =>
+    render(
+      <MemoryRouter initialEntries={['/cards']}>
+        <CardSearchPage
+          loadCards={() => new Promise(() => undefined)}
+          repository={repository}
+          updateHistory={entries}
+        />
+      </MemoryRouter>,
+    )
+
+  it('skips a newer update that left the card data alone', () => {
+    renderCards([additive, ruleChange])
+
+    expect(screen.getByText('カードデータ更新 2026/10/18')).toBeVisible()
+    expect(
+      screen.queryByText('デッキ構築ルールを更新しました'),
+    ).not.toBeInTheDocument()
+  })
+
+  it('shows no notice when nothing has changed the card data', () => {
+    renderCards([ruleChange])
+
+    expect(
+      screen.queryByLabelText('最新のカードデータ更新'),
+    ).not.toBeInTheDocument()
+  })
+
+  // The history page is about every update, so it lists this one.
+  it('still lists it on the update history page', () => {
+    render(
+      <MemoryRouter initialEntries={['/updates']}>
+        <UpdateHistoryPage entries={[additive, ruleChange]} />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByText('デッキ構築ルールを更新しました')).toBeVisible()
+  })
+})
