@@ -128,3 +128,77 @@ describe('comparing what the reporter edits', () => {
     ).toBe(false)
   })
 })
+
+/**
+ * The format a deck is built for is part of what the deck is.
+ *
+ * Two decks holding the same cards for different tournaments are different
+ * decks. Letting them compare equal would mean a sync taking one side's copy,
+ * or an import skipping a file as a duplicate, and the format being silently
+ * lost either way.
+ */
+describe('comparing the format two decks are built for', () => {
+  const selection = 'selection-cup-2026-osaka'
+
+  it('treats saying nothing and ordinary construction as the same deck', () => {
+    expect(
+      deckContentEquals(
+        deck({ regulationId: undefined }),
+        deck({ regulationId: 'standard' }),
+      ),
+    ).toBe(true)
+  })
+
+  it('sees a tournament deck as different from an ordinary one', () => {
+    expect(deckContentEquals(deck(), deck({ regulationId: selection }))).toBe(
+      false,
+    )
+    expect(
+      deckContentEquals(
+        deck({ regulationId: 'standard' }),
+        deck({ regulationId: selection }),
+      ),
+    ).toBe(false)
+  })
+
+  it('treats two decks for the same tournament as the same', () => {
+    expect(
+      deckContentEquals(
+        deck({ regulationId: selection }),
+        deck({ regulationId: selection }),
+      ),
+    ).toBe(true)
+  })
+
+  it('sees two decks for different tournaments as different', () => {
+    expect(
+      deckContentEquals(
+        deck({ regulationId: selection }),
+        deck({ regulationId: 'selection-cup-2027' }),
+      ),
+    ).toBe(false)
+  })
+
+  // A format this build no longer defines is still the format the deck was
+  // built for, and must not collapse into the unrestricted one.
+  it('sees a format it does not recognise as different from an ordinary deck', () => {
+    expect(
+      deckContentEquals(deck(), deck({ regulationId: 'future-or-removed' })),
+    ).toBe(false)
+  })
+
+  it('still ignores the timestamps when the format matches', () => {
+    expect(
+      deckContentEquals(
+        deck({
+          regulationId: selection,
+          updatedAt: '2026-09-24T10:00:00.000Z',
+        }),
+        deck({
+          regulationId: selection,
+          createdAt: '2020-01-01T00:00:00.000Z',
+        }),
+      ),
+    ).toBe(true)
+  })
+})

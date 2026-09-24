@@ -225,3 +225,44 @@ describe('deck share codec', () => {
     expect(first.entries[0]).not.toBe(payload.entries[0])
   })
 })
+
+/**
+ * A share carries a deck's cards, not the tournament its owner built it for.
+ *
+ * The person opening the link decides what they are building for, and the short
+ * link's stored snapshot is checked against an exact set of keys, so adding one
+ * would mean changing the share format for something the receiver did not ask
+ * for.
+ */
+describe('sharing a deck built for a tournament', () => {
+  const tournamentDeck = deck({ regulationId: 'selection-cup-2026-osaka' })
+
+  it('leaves the format out of the shared payload', () => {
+    const payload = decodeDeckSharePayload(
+      encodeDeckSharePayload(tournamentDeck),
+    )
+
+    expect(payload.ok).toBe(true)
+    expect(payload.ok && Object.keys(payload.value).sort()).toEqual([
+      'entries',
+      'name',
+      'v',
+    ])
+  })
+
+  it('encodes the same deck whether or not it names a format', () => {
+    expect(encodeDeckSharePayload(tournamentDeck)).toBe(
+      encodeDeckSharePayload(deck()),
+    )
+  })
+
+  // The receiver's deck is an ordinary one until they say otherwise.
+  it('creates an ordinary deck from a shared one', () => {
+    const created = createDeckFromSharedPayload(
+      { v: 1, name: '共有デッキ', entries: [] },
+      { id: () => 'new-1', now: () => '2026-09-09T10:00:00.000Z' },
+    )
+
+    expect('regulationId' in created).toBe(false)
+  })
+})

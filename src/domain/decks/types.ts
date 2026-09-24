@@ -17,6 +17,18 @@ export type Deck = {
   entries: DeckEntry[]
   createdAt: string
   updatedAt: string
+  /**
+   * The format this deck is built for, when it is not ordinary construction.
+   *
+   * Absent is the canonical way to say "ordinary construction", so a deck made
+   * before formats existed and a deck made by someone who never opened the
+   * setting are the same deck. Nothing rewrites an existing deck to add it.
+   *
+   * Kept as a plain string rather than a union of the known ids: a deck built
+   * under a format a later build no longer defines is still that deck, and
+   * narrowing the type here would turn it into invalid data.
+   */
+  regulationId?: string
 }
 
 export type CardRestriction = {

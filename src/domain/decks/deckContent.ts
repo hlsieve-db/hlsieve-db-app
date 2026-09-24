@@ -1,3 +1,4 @@
+import { sameDeckRegulation } from '../regulations/deckRegulationId'
 import type { Deck, DeckEntry } from './types'
 
 /**
@@ -19,6 +20,10 @@ import type { Deck, DeckEntry } from './types'
  * Entry order is not compared either. It is the order the cards happen to be
  * stored in, the views sort for display, and two devices can reach the same
  * deck by adding the same cards in a different sequence.
+ *
+ * The format the deck is built for does count. Two decks holding the same cards
+ * for different tournaments are different decks, and treating them as one would
+ * let a sync or an import silently drop the format one of them was built for.
  */
 
 function sortedEntries(entries: readonly DeckEntry[]): DeckEntry[] {
@@ -31,6 +36,7 @@ function sortedEntries(entries: readonly DeckEntry[]): DeckEntry[] {
 /** The part of a deck a difference in which is worth asking about. */
 export function deckContentEquals(a: Deck, b: Deck): boolean {
   if (a.name !== b.name) return false
+  if (!sameDeckRegulation(a.regulationId, b.regulationId)) return false
   if (a.entries.length !== b.entries.length) return false
 
   const left = sortedEntries(a.entries)

@@ -221,3 +221,102 @@ describe('Deck backup conflict planning', () => {
     ).toEqual({ decks: [], newCount: 0, identicalCount: 1, conflictCount: 0 })
   })
 })
+
+const EXPORTED_AT = '2026-09-24T00:00:00.000Z'
+
+/**
+ * Backups and the format a deck is built for.
+ *
+ * A backup stores the deck as it is, so the format travels with it without the
+ * file format changing. A deck holding the same cards for a different
+ * tournament is a different deck and must not be skipped as a duplicate.
+ */
+describe('the format a deck is built for, through a backup', () => {
+  const selection = 'selection-cup-2026-osaka'
+
+  const tournamentDeck = (overrides: Partial<Deck> = {}): Deck => ({
+    ...deck('a'),
+    regulationId: selection,
+    ...overrides,
+  })
+
+  it('writes the format out and reads it back', () => {
+    const backup = createDeckBackup([tournamentDeck()], EXPORTED_AT)
+    const parsed = parseDeckBackup(serializeDeckBackup(backup))
+
+    expect(parsed.ok).toBe(true)
+    expect(parsed.ok && parsed.backup.decks[0]?.regulationId).toBe(selection)
+    // The file format did not have to change to carry it.
+    expect(backup.version).toBe(1)
+  })
+
+  it('keeps an id this build does not define', () => {
+    const parsed = parseDeckBackup(
+      serializeDeckBackup(
+        createDeckBackup(
+          [tournamentDeck({ regulationId: 'future-or-removed-rule' })],
+          EXPORTED_AT,
+        ),
+      ),
+    )
+
+    expect(parsed.ok && parsed.backup.decks[0]?.regulationId).toBe(
+      'future-or-removed-rule',
+    )
+  })
+
+  // A file written before formats existed is a file of ordinary decks.
+  it('reads a backup that names no format', () => {
+    const parsed = parseDeckBackup(
+      serializeDeckBackup(createDeckBackup([deck('a')], EXPORTED_AT)),
+    )
+
+    expect(parsed.ok).toBe(true)
+    expect(parsed.ok && parsed.backup.decks[0]?.regulationId).toBeUndefined()
+  })
+
+  it('imports a deck whose only difference is the tournament it is for', () => {
+    const plan = planDeckBackupImport(
+      [tournamentDeck()],
+      [deck('a')],
+      () => 'generated-id',
+    )
+
+    expect(plan.identicalCount).toBe(0)
+    expect(plan.conflictCount).toBe(1)
+    expect(plan.decks[0]?.regulationId).toBe(selection)
+  })
+
+  it('skips a deck that differs only in how ordinary construction is spelled', () => {
+    const plan = planDeckBackupImport(
+      [{ ...deck('a'), regulationId: 'standard' }],
+      [deck('a')],
+      () => 'generated-id',
+    )
+
+    expect(plan.identicalCount).toBe(1)
+    expect(plan.decks).toEqual([])
+  })
+
+  it('skips a deck already here for the same tournament', () => {
+    const plan = planDeckBackupImport(
+      [tournamentDeck()],
+      [tournamentDeck()],
+      () => 'generated-id',
+    )
+
+    expect(plan.identicalCount).toBe(1)
+  })
+
+  // The copy made to resolve an id clash is the same deck, tournament included.
+  it('keeps the format on a deck imported under a new id', () => {
+    const plan = planDeckBackupImport(
+      [tournamentDeck({ name: '別の名前' })],
+      [deck('a')],
+      () => 'generated-id',
+    )
+
+    expect(plan.decks[0]?.id).toBe('generated-id')
+    expect(plan.decks[0]?.regulationId).toBe(selection)
+  })
+})

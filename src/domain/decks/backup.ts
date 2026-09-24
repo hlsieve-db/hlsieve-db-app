@@ -1,3 +1,4 @@
+import { sameDeckRegulation } from '../regulations/deckRegulationId'
 import type { Deck } from './types'
 import { isDeck } from './validation'
 
@@ -132,9 +133,21 @@ export function parseDeckBackup(text: string): DeckBackupParseResult {
   }
 }
 
+/**
+ * Whether an imported deck is the one already here.
+ *
+ * Stricter than the comparison the cloud uses: the timestamps and the stored
+ * order count, because a backup is a copy of decks as they were rather than two
+ * devices arriving at the same deck separately.
+ *
+ * The format is compared through the same rule as everywhere else, so that a
+ * deck holding the same cards for a different tournament is imported rather
+ * than skipped as a duplicate.
+ */
 export function hasSameDeckContent(left: Deck, right: Deck): boolean {
   return (
     left.name === right.name &&
+    sameDeckRegulation(left.regulationId, right.regulationId) &&
     left.createdAt === right.createdAt &&
     left.updatedAt === right.updatedAt &&
     left.entries.length === right.entries.length &&

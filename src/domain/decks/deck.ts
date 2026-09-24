@@ -1,3 +1,4 @@
+import { STANDARD_REGULATION_ID } from '../regulations/standard'
 import { DEFAULT_DECK_NAME } from './constants'
 import type { Deck } from './types'
 
@@ -39,6 +40,30 @@ export function createDeck(options: CreateDeckOptions = {}): Deck {
     createdAt: timestamp,
     updatedAt: timestamp,
   }
+}
+
+/**
+ * Sets the format a deck is built for, or takes it back to ordinary
+ * construction.
+ *
+ * Ordinary construction is stored as no field at all rather than as the string
+ * `'standard'`. The two mean the same thing, so writing one of them would leave
+ * the same deck spelled differently on different devices, and everything that
+ * compares decks would have to know about both. Going back to ordinary
+ * construction removes the field for the same reason.
+ */
+export function setDeckRegulation(
+  deck: Deck,
+  regulationId: string | undefined,
+  options?: DeckOperationOptions,
+): Deck {
+  const next = { ...deck }
+  if (regulationId === undefined || regulationId === STANDARD_REGULATION_ID) {
+    delete next.regulationId
+  } else {
+    next.regulationId = regulationId
+  }
+  return withUpdatedAt(next, options)
 }
 
 export function renameDeck(

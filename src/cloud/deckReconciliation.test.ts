@@ -1067,3 +1067,109 @@ describe('what resolving a deck does to its queued change', () => {
     expect(onUploadSuccess).not.toHaveBeenCalled()
   })
 })
+
+/**
+ * The format a deck is built for, between a device and the account.
+ *
+ * Two copies of a deck holding the same cards for different tournaments
+ * disagree about something the reporter chose, so the two sides are asked
+ * rather than one being taken. The two spellings of ordinary construction are
+ * not a disagreement, or every device would be asked about every deck.
+ */
+describe('decks that disagree about their format', () => {
+  const selection = 'selection-cup-2026-osaka'
+
+  it('asks nothing when one side spells ordinary construction out', () => {
+    const plan = planDeckReconciliation({
+      localDecks: [deck('a')],
+      cloudRows: [
+        row('a', { deck: { ...deck('a'), regulationId: 'standard' } }),
+      ],
+    })
+
+    expect(plan.conflicts).toEqual([])
+    expect(plan.identical).toHaveLength(1)
+  })
+
+  it('asks when one side is built for a tournament', () => {
+    const cloudDeck = { ...deck('a'), regulationId: selection }
+    const plan = planDeckReconciliation({
+      localDecks: [deck('a')],
+      cloudRows: [row('a', { deck: cloudDeck })],
+    })
+
+    expect(plan.conflicts).toEqual([
+      {
+        deckId: 'a',
+        kind: 'active-active',
+        localDeck: deck('a'),
+        cloudDeck,
+      },
+    ])
+  })
+
+  it('asks nothing when both sides are built for the same tournament', () => {
+    const both = { ...deck('a'), regulationId: selection }
+    const plan = planDeckReconciliation({
+      localDecks: [both],
+      cloudRows: [row('a', { deck: both })],
+    })
+
+    expect(plan.conflicts).toEqual([])
+    expect(plan.identical).toEqual([both])
+  })
+
+  it('asks when the two sides name different tournaments', () => {
+    const plan = planDeckReconciliation({
+      localDecks: [{ ...deck('a'), regulationId: selection }],
+      cloudRows: [
+        row('a', {
+          deck: { ...deck('a'), regulationId: 'selection-cup-2027' },
+        }),
+      ],
+    })
+
+    expect(plan.conflicts).toHaveLength(1)
+  })
+
+  // Taking the account's copy takes the format it was built for with it.
+  it('writes the account s format here when its copy is chosen', async () => {
+    const cloudDeck = { ...deck('a'), regulationId: selection }
+    const plan = planDeckReconciliation({
+      localDecks: [deck('a')],
+      cloudRows: [row('a', { deck: cloudDeck })],
+    })
+    const decks = localStore()
+
+    await applyDeckReconciliation(
+      plan,
+      { a: 'cloud' },
+      {
+        decks,
+        cloudDecks: cloudRepository(),
+      },
+    )
+
+    expect(decks.saveDeck).toHaveBeenCalledWith(cloudDeck)
+  })
+
+  it('sends this device s format when its copy is chosen', async () => {
+    const localDeck = { ...deck('a'), regulationId: selection }
+    const plan = planDeckReconciliation({
+      localDecks: [localDeck],
+      cloudRows: [row('a')],
+    })
+    const cloudDecks = cloudRepository()
+
+    await applyDeckReconciliation(
+      plan,
+      { a: 'local' },
+      {
+        decks: localStore(),
+        cloudDecks,
+      },
+    )
+
+    expect(cloudDecks.upsert).toHaveBeenCalledWith(localDeck)
+  })
+})

@@ -32,7 +32,12 @@ export function isDeck(value: unknown): value is Deck {
     !Array.isArray(value.entries) ||
     !value.entries.every(isDeckEntry) ||
     !isIsoDateString(value.createdAt) ||
-    !isIsoDateString(value.updatedAt)
+    !isIsoDateString(value.updatedAt) ||
+    // Absent means ordinary construction. Any string is accepted, including an
+    // id this build does not define: refusing one would turn a deck built for
+    // a format that has since been removed into unreadable data, and saying
+    // the definition is missing belongs to the screen showing it.
+    (value.regulationId !== undefined && typeof value.regulationId !== 'string')
   ) {
     return false
   }

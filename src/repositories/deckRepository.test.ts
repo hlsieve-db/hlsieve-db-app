@@ -119,3 +119,69 @@ describe('deckRepository', () => {
     )
   })
 })
+
+/**
+ * A deck built for a tournament, through the local store.
+ *
+ * The format is stored with the deck rather than beside it, so it survives
+ * without the store knowing about formats. An id this build does not define
+ * survives too: a deck built under a format that has since been removed is
+ * still that deck, and rewriting it on read would be the store deciding
+ * something the reporter did not.
+ */
+describe('a deck that names a format', () => {
+  const tournament = (id: string, regulationId: string): Deck => ({
+    ...deck(id),
+    regulationId,
+  })
+
+  it('keeps the format through a save and a read', async () => {
+    const repository = createDeckRepository(memoryPersistence())
+
+    await repository.saveDeck(tournament('a', 'selection-cup-2026-osaka'))
+
+    expect((await repository.getDeck('a'))?.regulationId).toBe(
+      'selection-cup-2026-osaka',
+    )
+    expect((await repository.listDecks())[0]?.regulationId).toBe(
+      'selection-cup-2026-osaka',
+    )
+  })
+
+  it('keeps an id it does not recognise', async () => {
+    const repository = createDeckRepository(memoryPersistence())
+
+    await repository.saveDeck(tournament('a', 'future-or-removed-rule'))
+
+    expect((await repository.getDeck('a'))?.regulationId).toBe(
+      'future-or-removed-rule',
+    )
+  })
+
+  it('reads a deck stored before formats existed', async () => {
+    const repository = createDeckRepository(memoryPersistence([deck('a')]))
+
+    const stored = await repository.getDeck('a')
+
+    expect(stored).toBeDefined()
+    expect(stored?.regulationId).toBeUndefined()
+  })
+
+  it('refuses a stored deck whose format is not a string', async () => {
+    const repository = createDeckRepository(
+      memoryPersistence([{ ...deck('a'), regulationId: 7 }]),
+    )
+
+    await expect(repository.getDeck('a')).rejects.toThrow()
+  })
+
+  it('keeps the format through an import', async () => {
+    const repository = createDeckRepository(memoryPersistence())
+
+    await repository.importDecks([tournament('a', 'selection-cup-2026-osaka')])
+
+    expect((await repository.getDeck('a'))?.regulationId).toBe(
+      'selection-cup-2026-osaka',
+    )
+  })
+})
