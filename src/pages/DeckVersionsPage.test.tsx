@@ -95,8 +95,10 @@ function renderPage({
     deleteDeck: vi.fn(async () => undefined),
   }
   const deckVersions: DeckVersionRepository = {
+    listAllVersions: vi.fn(async () => versions),
     listVersions: vi.fn(async () => versions),
     getVersion: vi.fn(async () => versions[0]),
+    saveVersion: vi.fn(async () => undefined),
     createVersion: vi.fn(async () => version()),
     deleteVersion,
     deleteVersionsForDeck: vi.fn(async () => undefined),

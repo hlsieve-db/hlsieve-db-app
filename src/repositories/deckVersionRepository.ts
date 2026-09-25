@@ -29,8 +29,11 @@ export type DeckVersionPersistenceAdapter = Omit<
 >
 
 export type DeckVersionRepository = {
+  listAllVersions: () => Promise<DeckVersion[]>
   listVersions: (deckId: DeckId) => Promise<DeckVersion[]>
   getVersion: (id: DeckVersionId) => Promise<DeckVersion | undefined>
+  /** Stores an already-created immutable Version, used only by cloud restore. */
+  saveVersion: (version: DeckVersion) => Promise<void>
   createVersion: (deck: Deck, label?: string) => Promise<DeckVersion>
   deleteVersion: (id: DeckVersionId) => Promise<void>
   deleteVersionsForDeck: (deckId: DeckId) => Promise<void>
@@ -66,6 +69,10 @@ export function createDeckVersionRepository(
     (await persistence.getAll()).filter(isDeckVersion)
 
   return {
+    async listAllVersions() {
+      return (await all()).sort(compareVersions)
+    },
+
     async listVersions(deckId) {
       return (await all())
         .filter((version) => version.deckId === deckId)
@@ -75,6 +82,11 @@ export function createDeckVersionRepository(
     async getVersion(id) {
       const value = await persistence.get(id)
       return isDeckVersion(value) ? value : undefined
+    },
+
+    async saveVersion(version) {
+      if (!isDeckVersion(version)) throw new Error('Invalid deck version.')
+      await persistence.put(version)
     },
 
     async createVersion(deck, label) {

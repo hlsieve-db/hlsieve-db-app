@@ -5,6 +5,7 @@ import type {
   CloudDeckFailure,
   CloudDeckRepository,
 } from './cloudDeckRepository'
+import { tombstoneCloudDeckWithVersions } from './cloudDeckRepository'
 
 /**
  * Keeps the account's cloud decks following the local ones.
@@ -64,6 +65,11 @@ export type CloudSyncedDeckRepositoryOptions = {
    * whose send failed: that is the case the reporter most needs told apart.
    */
   onUploadSuccess?: () => void
+  versionPending?: {
+    /** Must succeed before local deletion, or an old upload could resurrect a child. */
+    prepareParentDelete: (deckId: DeckId) => boolean
+    clearParent: (deckId: DeckId) => void
+  }
 }
 
 export function withCloudDeckSync({
@@ -73,6 +79,7 @@ export function withCloudDeckSync({
   onSyncResult,
   pending,
   onUploadSuccess,
+  versionPending,
 }: CloudSyncedDeckRepositoryOptions): DeckBackupRepository {
   const shouldSync = () => Boolean(cloudDecks) && isSyncEnabled()
 
@@ -139,16 +146,28 @@ export function withCloudDeckSync({
     },
 
     async deleteDeck(id) {
+      if (
+        shouldSync() &&
+        versionPending &&
+        !versionPending.prepareParentDelete(id)
+      ) {
+        throw new Error('Could not preserve the cloud deletion intent.')
+      }
       await decks.deleteDeck(id)
       if (!shouldSync() || !cloudDecks) return
       // A tombstone rather than a removal. The row is kept so a device that
       // still holds the deck cannot bring it back by syncing later, which is
       // the whole reason the account has no delete privilege.
-      void cloudDecks.tombstone(id).then(
+      void tombstoneCloudDeckWithVersions(cloudDecks, id).then(
         (result) => {
-          settle(id, 'tombstone', result.ok)
+          const satisfied = result.ok || result.reason === 'not-found'
+          if (satisfied) {
+            pending?.clear(id)
+            versionPending?.clearParent(id)
+            if (result.ok) onUploadSuccess?.()
+          } else pending?.record(id, 'tombstone')
           onSyncResult?.(
-            result.ok
+            satisfied
               ? { kind: 'deleted', deckId: id, ok: true }
               : {
                   kind: 'deleted',

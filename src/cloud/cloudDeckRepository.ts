@@ -74,6 +74,10 @@ export type CloudDeckRepository = {
    * still holding a copy.
    */
   tombstone: (deckId: string) => Promise<CloudDeckResult<CloudDeckRecord>>
+  /** Atomically tombstones the parent and all of its active Version rows. */
+  tombstoneWithVersions?: (
+    deckId: string,
+  ) => Promise<CloudDeckResult<{ versionsTombstoned: number }>>
 }
 
 /** The columns the app reads. user_id is deliberately not among them. */
@@ -298,5 +302,47 @@ export function createSupabaseCloudDeckRepository(
         'not-found',
       )
     },
+
+    async tombstoneWithVersions(deckId) {
+      if (!deckId) return { ok: false, reason: 'invalid-data' }
+      if (!(await hasSession())) return { ok: false, reason: 'unauthenticated' }
+      try {
+        const { data, error } = await client.rpc(
+          'tombstone_deck_with_versions',
+          { p_deck_id: deckId },
+        )
+        if (error) return { ok: false, reason: classifyCloudDeckFailure(error) }
+        if (!Array.isArray(data) || data.length !== 1 || !isRecord(data[0])) {
+          return { ok: false, reason: 'invalid-data' }
+        }
+        const row = data[0]
+        if (
+          typeof row.deck_found !== 'boolean' ||
+          typeof row.versions_tombstoned !== 'number' ||
+          !Number.isInteger(row.versions_tombstoned) ||
+          row.versions_tombstoned < 0
+        ) {
+          return { ok: false, reason: 'invalid-data' }
+        }
+        return row.deck_found
+          ? {
+              ok: true,
+              value: { versionsTombstoned: row.versions_tombstoned },
+            }
+          : { ok: false, reason: 'not-found' }
+      } catch {
+        return { ok: false, reason: 'network' }
+      }
+    },
   }
+}
+
+/** Uses the atomic RPC where available, with the legacy primitive for mocks. */
+export async function tombstoneCloudDeckWithVersions(
+  repository: CloudDeckRepository,
+  deckId: string,
+): Promise<CloudDeckResult<unknown>> {
+  return repository.tombstoneWithVersions
+    ? repository.tombstoneWithVersions(deckId)
+    : repository.tombstone(deckId)
 }

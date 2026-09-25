@@ -198,7 +198,7 @@ describe('insert immutable deck version', () => {
     const { repository, builders } = repoWith({ data: [row()], error: null })
     await expect(repository.insert(version())).resolves.toMatchObject({
       ok: true,
-      value: { deletedAt: null },
+      value: { mutated: true, record: { deletedAt: null } },
     })
 
     const [payload] = argsOf(builders[0].calls, 'insert')[0] as [
@@ -226,7 +226,7 @@ describe('insert immutable deck version', () => {
     ])
     await expect(repository.insert(version())).resolves.toMatchObject({
       ok: true,
-      value: { deletedAt: null },
+      value: { mutated: false, record: { deletedAt: null } },
     })
   })
 
@@ -238,7 +238,7 @@ describe('insert immutable deck version', () => {
     ])
     await expect(repository.insert(version())).resolves.toMatchObject({
       ok: true,
-      value: { deletedAt },
+      value: { mutated: false, record: { deletedAt } },
     })
     expect(
       builders.some(({ calls }) =>
@@ -292,25 +292,25 @@ describe('insert immutable deck version', () => {
 describe('tombstone deck version', () => {
   it('uses a server timestamp and returns the tombstone', async () => {
     const deletedAt = '2026-09-25T01:00:00.000000+00:00'
-    const { repository, builders } = repoWith({
-      data: [row({ deleted_at: deletedAt })],
-      error: null,
-    })
+    const { repository, builders } = repoWith([
+      { data: [row()], error: null },
+      { data: [row({ deleted_at: deletedAt })], error: null },
+    ])
     await expect(repository.tombstone('version-1')).resolves.toMatchObject({
       ok: true,
-      value: { deletedAt },
+      value: { mutated: true, record: { deletedAt } },
     })
-    expect(argsOf(builders[0].calls, 'update')[0][0]).toEqual({
+    expect(argsOf(builders[1].calls, 'update')[0][0]).toEqual({
       deleted_at: 'now',
     })
-    expect(argsOf(builders[0].calls, 'eq')).toEqual([['id', 'version-1']])
+    expect(argsOf(builders[1].calls, 'eq')).toEqual([['id', 'version-1']])
   })
 
   it('treats a missing row as an idempotent success', async () => {
     const { repository } = repoWith({ data: [], error: null })
     await expect(repository.tombstone('missing')).resolves.toEqual({
       ok: true,
-      value: null,
+      value: { record: null, mutated: false },
     })
   })
 

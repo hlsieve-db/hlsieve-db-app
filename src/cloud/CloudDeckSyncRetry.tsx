@@ -3,11 +3,15 @@ import { useEffect, useRef } from 'react'
 import { namespaceKey } from '../auth/authState'
 import { isCloudSyncEnabled } from '../domain/cloud/cloudSyncState'
 import { recordCloudUploadSuccess } from '../domain/cloud/cloudUploadStatus'
-import { useAppRepositories } from '../repositories/useAppRepositories'
 import {
-  retryPendingDeckSync,
-  type PendingDeckSyncRetryResult,
-} from './retryPendingDeckSync'
+  clearPendingDeckVersionSync,
+  readPendingDeckVersionSync,
+  recordPendingDeckVersionSync,
+} from '../domain/cloud/pendingDeckVersionSync'
+import { useAppRepositories } from '../repositories/useAppRepositories'
+import { retryPendingDeckSync } from './retryPendingDeckSync'
+import { retryPendingDeckVersionSync } from './retryPendingDeckVersionSync'
+import { reconcileDeckVersions } from './deckVersionReconciliation'
 
 /**
  * Finishes sending deck changes that could not reach the account when they were
@@ -41,6 +45,8 @@ export type CloudDeckSyncRetryProps = {
    * one would be a lie the reporter cannot clear.
    */
   onRetryingChange?: (retrying: boolean) => void
+  /** Incremented by the account panel for an explicit manual retry. */
+  retrySignal?: number
 }
 
 /**
@@ -56,17 +62,21 @@ export type CloudDeckSyncRetryProps = {
  * Different accounts have different queues, so they retry independently, and a
  * failure for one cannot hold up another.
  */
-const inFlight = new Map<
-  string,
-  Promise<PendingDeckSyncRetryResult | undefined>
->()
+const inFlight = new Map<string, Promise<{ ok: boolean } | undefined>>()
 
 export function CloudDeckSyncRetry({
   storage,
   onRetried,
   onRetryingChange,
+  retrySignal,
 }: CloudDeckSyncRetryProps) {
-  const { namespace, localDecks, cloudDecks } = useAppRepositories()
+  const {
+    namespace,
+    localDecks,
+    localDeckVersions,
+    cloudDecks,
+    cloudDeckVersions,
+  } = useAppRepositories()
   // Held in refs so a caller passing fresh functions each render does not
   // re-arm the listener, and assigned in an effect rather than during render.
   const notify = useRef(onRetried)
@@ -91,7 +101,7 @@ export function CloudDeckSyncRetry({
       // Reported only to this account's listener, and only while it is still
       // mounted, so an attempt left over from a previous account cannot make
       // the current one look busy.
-      const report = (result: PendingDeckSyncRetryResult | undefined) => {
+      const report = (result: { ok: boolean } | undefined) => {
         if (cancelled) return
         notifyRetrying.current?.(false)
         notify.current?.(result?.ok ? 'ok' : 'failed')
@@ -109,17 +119,58 @@ export function CloudDeckSyncRetry({
 
       if (!cancelled) notifyRetrying.current?.(true)
 
-      const attemptPromise = retryPendingDeckSync({
-        decks: localDecks,
-        cloudDecks,
-        isSyncEnabled: () => isCloudSyncEnabled(namespace, storage),
-        namespace,
-        storage,
-        // Per entry rather than per attempt, so a run that sends some and then
-        // fails still records that this device got something up.
-        onUploadSuccess: () =>
-          recordCloudUploadSuccess(undefined, storage, namespace),
-      }).catch(() => {
+      const attemptPromise = (async (): Promise<{ ok: boolean }> => {
+        const enabled = () => isCloudSyncEnabled(namespace, storage)
+        const noteUpload = () =>
+          recordCloudUploadSuccess(undefined, storage, namespace)
+        const deckResult = await retryPendingDeckSync({
+          decks: localDecks,
+          cloudDecks,
+          isSyncEnabled: enabled,
+          namespace,
+          storage,
+          onUploadSuccess: noteUpload,
+        })
+        if (!deckResult.ok) return { ok: false }
+        if (!localDeckVersions || !cloudDeckVersions) return { ok: true }
+
+        const versionResult = await retryPendingDeckVersionSync({
+          decks: localDecks,
+          versions: localDeckVersions,
+          cloudDecks,
+          cloudVersions: cloudDeckVersions,
+          isSyncEnabled: enabled,
+          namespace,
+          storage,
+          onUploadSuccess: noteUpload,
+        })
+        if (!versionResult.ok) return { ok: false }
+
+        const reconciliation = await reconcileDeckVersions({
+          decks: localDecks,
+          versions: localDeckVersions,
+          cloudDecks,
+          cloudVersions: cloudDeckVersions,
+          pending: {
+            isTombstone: (versionId) =>
+              readPendingDeckVersionSync(storage, namespace)[versionId]
+                ?.operation === 'tombstone',
+            recordUpload: (version) => {
+              recordPendingDeckVersionSync(
+                version.id,
+                { operation: 'upload', deckId: version.deckId },
+                storage,
+                namespace,
+              )
+            },
+            clear: (versionId) => {
+              clearPendingDeckVersionSync(versionId, storage, namespace)
+            },
+          },
+          onUploadSuccess: noteUpload,
+        })
+        return { ok: reconciliation.ok }
+      })().catch(() => {
         // A throw here means the device's own store could not be read, which
         // a cloud failure result cannot express. The entries stay queued for
         // the next attempt and nothing is shown: the reporter's decks are
@@ -129,7 +180,7 @@ export function CloudDeckSyncRetry({
         return undefined
       })
       inFlight.set(key, attemptPromise)
-      let result: PendingDeckSyncRetryResult | undefined
+      let result: { ok: boolean } | undefined
       try {
         result = await attemptPromise
       } finally {
@@ -146,7 +197,15 @@ export function CloudDeckSyncRetry({
       cancelled = true
       window.removeEventListener('online', attempt)
     }
-  }, [cloudDecks, localDecks, namespace, storage])
+  }, [
+    cloudDecks,
+    cloudDeckVersions,
+    localDecks,
+    localDeckVersions,
+    namespace,
+    retrySignal,
+    storage,
+  ])
 
   return null
 }

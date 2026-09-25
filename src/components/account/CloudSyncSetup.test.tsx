@@ -14,6 +14,8 @@ import type {
 } from '../../cloud/cloudDeckRepository'
 import { readCloudSyncState } from '../../domain/cloud/cloudSyncState'
 import type { Deck } from '../../domain/decks/types'
+import type { DeckVersion } from '../../domain/deckVersions/types'
+import type { CloudDeckVersionRepository } from '../../cloud/cloudDeckVersionRepository'
 import { userLocalDataNamespace } from '../../domain/storage/localDataNamespace'
 import { AppRepositoriesContext } from '../../repositories/appRepositoriesContext'
 import type { AppRepositories } from '../../repositories/appRepositories'
@@ -78,11 +80,15 @@ function renderSetup({
   cloudDecks = cloudRepository(async () => ({ ok: true, value: [] })),
   storage = memoryStorage(),
   userId = 'user-a',
+  localVersions = [],
+  cloudDeckVersions,
 }: {
   localDecks?: Deck[]
   cloudDecks?: CloudDeckRepository | null
   storage?: ReturnType<typeof memoryStorage>
   userId?: string
+  localVersions?: DeckVersion[]
+  cloudDeckVersions?: CloudDeckVersionRepository
 } = {}) {
   const namespace = userLocalDataNamespace(userId)
   // The wrapped and unwrapped stores are distinct objects, so a test can prove
@@ -90,14 +96,29 @@ function renderSetup({
   const local = {
     listDecks: vi.fn(async () => localDecks),
     getDeck: vi.fn(async (id: string) => localDecks.find((d) => d.id === id)),
-    saveDeck: vi.fn(async () => undefined),
-    deleteDeck: vi.fn(async () => undefined),
+    saveDeck: vi.fn(async (value: Deck) => {
+      const index = localDecks.findIndex(
+        (candidate) => candidate.id === value.id,
+      )
+      if (index < 0) localDecks.push(value)
+      else localDecks[index] = value
+    }),
+    deleteDeck: vi.fn(async (id: string) => {
+      const index = localDecks.findIndex((candidate) => candidate.id === id)
+      if (index >= 0) localDecks.splice(index, 1)
+    }),
   }
   const repositories = {
     namespace,
     decks: { listDecks: vi.fn(async () => localDecks) },
     localDecks: local,
     cloudDecks,
+    cloudDeckVersions,
+    localDeckVersions: {
+      listAllVersions: vi.fn(async () => localVersions),
+      saveVersion: vi.fn(async () => undefined),
+      deleteVersion: vi.fn(async () => undefined),
+    },
   } as unknown as AppRepositories
 
   const result = render(
@@ -181,6 +202,102 @@ describe('starting setup', () => {
     await screen.findByText('この端末のデッキ: 2件')
 
     expect(readCloudSyncState(storage, namespace).status).toBe('not_started')
+  })
+})
+
+describe('DeckVersion setup integration', () => {
+  it('uploads parent Decks before Versions and only then enables sync', async () => {
+    const order: string[] = []
+    const rows: CloudDeckRecord[] = []
+    const cloudDecks = cloudRepository(
+      async () => ({ ok: true, value: [...rows] }),
+      async (value) => {
+        order.push('deck')
+        const record = cloudRecord(value.id)
+        rows.push(record)
+        return { ok: true, value: record }
+      },
+    )
+    const snapshot: DeckVersion = {
+      id: 'version-1',
+      deckId: 'a',
+      label: 'Snapshot',
+      createdAt: '2026-09-25T01:00:00.000Z',
+      snapshot: { name: 'デッキ a', entries: [] },
+    }
+    const versionRows: { version: DeckVersion; deletedAt: null }[] = []
+    const cloudDeckVersions: CloudDeckVersionRepository = {
+      listAll: vi.fn(async () => ({
+        ok: true as const,
+        value: [...versionRows],
+      })),
+      insert: vi.fn(async (value) => {
+        order.push('version')
+        versionRows.push({ version: value, deletedAt: null })
+        return {
+          ok: true as const,
+          value: {
+            record: { version: value, deletedAt: null },
+            mutated: true,
+          },
+        }
+      }),
+      tombstone: vi.fn(),
+    }
+    const { storage, namespace } = renderSetup({
+      localDecks: [deck('a')],
+      cloudDecks,
+      localVersions: [snapshot],
+      cloudDeckVersions,
+    })
+
+    fireEvent.click(setupButton())
+    fireEvent.click(
+      await screen.findByRole('button', { name: /クラウドへ保存/ }),
+    )
+
+    await screen.findByText('有効')
+    expect(order).toEqual(['deck', 'version'])
+    expect(readCloudSyncState(storage, namespace).status).toBe('enabled')
+  })
+
+  it('restores parent Decks before their cloud Versions', async () => {
+    const snapshot: DeckVersion = {
+      id: 'version-1',
+      deckId: 'a',
+      label: 'Snapshot',
+      createdAt: '2026-09-25T01:00:00.000Z',
+      snapshot: { name: 'デッキ a', entries: [] },
+    }
+    const cloudDeckVersions: CloudDeckVersionRepository = {
+      listAll: vi.fn(async () => ({
+        ok: true as const,
+        value: [{ version: snapshot, deletedAt: null }],
+      })),
+      insert: vi.fn(),
+      tombstone: vi.fn(),
+    }
+    const { repositories, local } = renderSetup({
+      localDecks: [],
+      cloudDecks: cloudRepository(async () => ({
+        ok: true,
+        value: [cloudRecord('a')],
+      })),
+      cloudDeckVersions,
+    })
+
+    fireEvent.click(setupButton())
+    fireEvent.click(
+      await screen.findByRole('button', { name: /クラウド.*取り込む/ }),
+    )
+    await screen.findByText('有効')
+
+    const saveVersion = repositories.localDeckVersions.saveVersion
+    expect(local.saveDeck).toHaveBeenCalledWith(deck('a'))
+    expect(saveVersion).toHaveBeenCalledWith(snapshot)
+    expect(local.saveDeck.mock.invocationCallOrder[0]).toBeLessThan(
+      vi.mocked(saveVersion).mock.invocationCallOrder[0],
+    )
   })
 })
 
@@ -903,6 +1020,13 @@ describe('unsent changes in the account panel', () => {
   const pendingFor = (operations: Record<string, string>) =>
     JSON.stringify({ version: 1, operations })
 
+  const pendingVersionsFor = (
+    operations: Record<
+      string,
+      { operation: 'upload' | 'tombstone'; deckId: string }
+    >,
+  ) => JSON.stringify({ version: 1, operations })
+
   it('says how many changes are waiting', () => {
     renderSetup({
       storage: enabledStorage({
@@ -914,6 +1038,20 @@ describe('unsent changes in the account panel', () => {
     })
 
     expect(screen.getByText(/未送信の変更 2件/)).toBeVisible()
+  })
+
+  it('combines pending Deck and Version changes in the count', () => {
+    renderSetup({
+      storage: enabledStorage({
+        'hlsieve:cloud-sync-pending--user-a': pendingFor({ a: 'upsert' }),
+        'hlsieve:cloud-sync-version-pending--user-a': pendingVersionsFor({
+          'version-1': { operation: 'upload', deckId: 'a' },
+          'version-2': { operation: 'tombstone', deckId: 'a' },
+        }),
+      }),
+    })
+
+    expect(screen.getByText(/未送信の変更 3件/)).toBeVisible()
   })
 
   it('says so plainly when everything has gone up', () => {

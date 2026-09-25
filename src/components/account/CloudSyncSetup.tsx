@@ -33,7 +33,14 @@ import {
   pendingDeckSyncCount,
   recordPendingDeckSync,
 } from '../../domain/cloud/pendingDeckSync'
+import {
+  clearPendingDeckVersionSync,
+  pendingDeckVersionSyncCount,
+  readPendingDeckVersionSync,
+  recordPendingDeckVersionSync,
+} from '../../domain/cloud/pendingDeckVersionSync'
 import { CloudDeckSyncRetry } from '../../cloud/CloudDeckSyncRetry'
+import { reconcileDeckVersions } from '../../cloud/deckVersionReconciliation'
 import { DeckConflictChooser } from './DeckConflictChooser'
 import { useAppRepositories } from '../../repositories/useAppRepositories'
 import { unsentChangeMessage } from './unsentChangeMessage'
@@ -53,7 +60,9 @@ import { formatDateTime } from '../../utils/formatDateTime'
  */
 
 /** One message per failure, none of them carrying anything the server said. */
-const FAILURE_MESSAGES: Record<CloudDeckSyncFailure, string> = {
+type CloudSyncFailure = CloudDeckSyncFailure | 'integrity-conflict'
+
+const FAILURE_MESSAGES: Record<CloudSyncFailure, string> = {
   unavailable: 'この環境ではクラウド同期を利用できません。',
   unauthenticated: 'ログイン状態を確認してください。',
   network: 'クラウドに接続できませんでした。',
@@ -61,6 +70,8 @@ const FAILURE_MESSAGES: Record<CloudDeckSyncFailure, string> = {
   'invalid-data': 'クラウド上のデータを読み込めませんでした。',
   'not-found': 'クラウド情報の取得に失敗しました。',
   failed: 'クラウド情報の取得に失敗しました。',
+  'integrity-conflict':
+    '同じIDで内容が異なるバージョンがあり、自動同期を停止しました。',
 }
 
 /**
@@ -82,7 +93,7 @@ type Activation =
   | { step: 'reading' }
   | { step: 'ready'; decision: Decision }
   | { step: 'working'; progress: CloudDeckSyncProgress }
-  | { step: 'error'; reason: CloudDeckSyncFailure }
+  | { step: 'error'; reason: CloudSyncFailure }
 
 /**
  * The per-deck questions, which either flow can arrive at.
@@ -103,7 +114,7 @@ type Reconciliation = {
   resolutions: DeckConflictResolutions
   applying: boolean
   /** Set when the last apply could not finish, so the reporter can try again. */
-  failure?: CloudDeckSyncFailure
+  failure?: CloudSyncFailure
   unresolved?: number
 }
 
@@ -113,7 +124,7 @@ type Restore =
   | { step: 'confirming'; plan: CloudDeckRestorePlan }
   | { step: 'applying'; progress: CloudDeckSyncProgress }
   | { step: 'done'; restored: number; removed: number }
-  | { step: 'error'; reason: CloudDeckSyncFailure }
+  | { step: 'error'; reason: CloudSyncFailure }
 
 /**
  * What this device still owes the account, and when it last managed to send
@@ -135,7 +146,14 @@ export type CloudSyncSetupProps = {
 
 export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
   const repositories = useAppRepositories()
-  const { namespace, decks, localDecks, cloudDecks } = repositories
+  const {
+    namespace,
+    decks,
+    localDecks,
+    localDeckVersions,
+    cloudDecks,
+    cloudDeckVersions,
+  } = repositories
   const store = storage ?? window.localStorage
 
   const [status, setStatus] = useState<CloudSyncStatus>(
@@ -145,6 +163,7 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
   const [outcome, setOutcome] = useState<string>()
   const [restore, setRestore] = useState<Restore>({ step: 'idle' })
   const [pendingConflicts, setConflicts] = useState<Reconciliation>()
+  const [retrySignal, setRetrySignal] = useState(0)
   // Stamped with the account it describes, so switching shows the new
   // account's own state rather than the previous one's count, time or
   // "sending" line. The stamp is the whole isolation: nothing here is keyed by
@@ -154,7 +173,9 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
     account: accountKey,
     // From the queue, never stored alongside it, so the number and the work
     // it describes cannot disagree.
-    pending: pendingDeckSyncCount(store, namespace),
+    pending:
+      pendingDeckSyncCount(store, namespace) +
+      pendingDeckVersionSyncCount(store, namespace),
     lastUpload: readCloudUploadStatus(store, namespace).lastUploadSuccessAt,
     // Both transient. A reload has no attempt running and no failed attempt
     // to report, so neither is kept anywhere.
@@ -178,6 +199,41 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
     const at = new Date().toISOString()
     recordCloudUploadSuccess(at, store, namespace)
     update({ lastUpload: at })
+  }
+
+  const syncVersions = () => {
+    if (!localDeckVersions || !cloudDeckVersions) {
+      return Promise.resolve({
+        ok: true as const,
+        uploaded: 0,
+        restored: 0,
+        removed: 0,
+        deferred: 0,
+      })
+    }
+    return reconcileDeckVersions({
+      decks: localDecks,
+      versions: localDeckVersions,
+      cloudDecks,
+      cloudVersions: cloudDeckVersions,
+      pending: {
+        isTombstone: (versionId) =>
+          readPendingDeckVersionSync(store, namespace)[versionId]?.operation ===
+          'tombstone',
+        recordUpload: (version) => {
+          recordPendingDeckVersionSync(
+            version.id,
+            { operation: 'upload', deckId: version.deckId },
+            store,
+            namespace,
+          )
+        },
+        clear: (versionId) => {
+          clearPendingDeckVersionSync(versionId, store, namespace)
+        },
+      },
+      onUploadSuccess: noteUploadSuccess,
+    })
   }
 
   // Without a repository there is no account or no configured project, and
@@ -243,7 +299,16 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
       setActivation({ step: 'error', reason: result.reason })
       return
     }
-    markEnabled(`デッキ${result.uploaded}個を保存しました。`)
+    const versions = await syncVersions()
+    if (!versions.ok) {
+      setActivation({ step: 'error', reason: versions.reason })
+      return
+    }
+    markEnabled(
+      versions.uploaded === 0
+        ? `デッキ${result.uploaded}個を保存しました。`
+        : `デッキ${result.uploaded}個とバージョン${versions.uploaded}個を保存しました。`,
+    )
   }
 
   const runRestore = async (plan: CloudDeckRestorePlan) => {
@@ -258,8 +323,13 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
       setActivation({ step: 'error', reason: result.reason })
       return
     }
+    const versions = await syncVersions()
+    if (!versions.ok) {
+      setActivation({ step: 'error', reason: versions.reason })
+      return
+    }
     markEnabled(
-      `デッキ${result.restored}個を取り込み、${result.removed}個を削除しました。`,
+      `デッキ${result.restored}個を取り込み、${result.removed}個を削除し、バージョン${versions.restored}個を取り込みました。`,
     )
   }
 
@@ -269,10 +339,15 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
       decks: localDecks,
       onProgress: (progress) => setRestore({ step: 'applying', progress }),
     })
+    if (!result.ok) {
+      setRestore({ step: 'error', reason: result.reason })
+      return
+    }
+    const versions = await syncVersions()
     setRestore(
-      result.ok
+      versions.ok
         ? { step: 'done', restored: result.restored, removed: result.removed }
-        : { step: 'error', reason: result.reason },
+        : { step: 'error', reason: versions.reason },
     )
   }
 
@@ -350,7 +425,11 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
         },
       },
     )
-    update({ pending: pendingDeckSyncCount(store, namespace) })
+    update({
+      pending:
+        pendingDeckSyncCount(store, namespace) +
+        pendingDeckVersionSyncCount(store, namespace),
+    })
 
     if (result.unresolved.length > 0) {
       setConflicts({
@@ -358,6 +437,17 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
         applying: false,
         failure: result.failure ?? 'failed',
         unresolved: result.unresolved.length,
+      })
+      return
+    }
+
+    const versions = await syncVersions()
+    if (!versions.ok) {
+      setConflicts({
+        ...pending,
+        applying: false,
+        failure: versions.reason,
+        unresolved: 1,
       })
       return
     }
@@ -440,10 +530,13 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
               panel to recount afterwards. Renders nothing itself. */}
           <CloudDeckSyncRetry
             storage={storage}
+            retrySignal={retrySignal}
             onRetryingChange={(retrying) => update({ retrying })}
             onRetried={(retryOutcome) =>
               update({
-                pending: pendingDeckSyncCount(store, namespace),
+                pending:
+                  pendingDeckSyncCount(store, namespace) +
+                  pendingDeckVersionSyncCount(store, namespace),
                 lastUpload: readCloudUploadStatus(store, namespace)
                   .lastUploadSuccessAt,
                 retrying: false,
@@ -467,6 +560,15 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
                 <p role={current.retrying ? 'status' : undefined}>
                   {unsentChangeMessage(current)}
                 </p>
+                {current.retryFailed && !current.retrying && (
+                  <button
+                    className="button button--secondary"
+                    type="button"
+                    onClick={() => setRetrySignal((value) => value + 1)}
+                  >
+                    今すぐ再試行
+                  </button>
+                )}
               </>
             )}
             {current.lastUpload !== null && (

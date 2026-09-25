@@ -3,12 +3,22 @@ import {
   type CloudDeckRepository,
 } from '../cloud/cloudDeckRepository'
 import { withCloudDeckSync } from '../cloud/cloudSyncedDeckRepository'
+import {
+  createSupabaseCloudDeckVersionRepository,
+  type CloudDeckVersionRepository,
+} from '../cloud/cloudDeckVersionRepository'
+import { withCloudDeckVersionSync } from '../cloud/cloudSyncedDeckVersionRepository'
 import { isCloudSyncEnabled } from '../domain/cloud/cloudSyncState'
 import { recordCloudUploadSuccess } from '../domain/cloud/cloudUploadStatus'
 import {
   clearPendingDeckSync,
   recordPendingDeckSync,
 } from '../domain/cloud/pendingDeckSync'
+import {
+  clearPendingDeckVersionSync,
+  clearPendingDeckVersionSyncForDeck,
+  recordPendingDeckVersionSync,
+} from '../domain/cloud/pendingDeckVersionSync'
 import {
   ANONYMOUS_LOCAL_DATA_NAMESPACE,
   type LocalDataNamespace,
@@ -23,6 +33,7 @@ import {
   createIndexedDbDeckVersionPersistence,
   type DeckVersionRepository,
 } from './deckVersionRepository'
+import { withDeckVersionCascade } from './deckVersionCascade'
 import {
   createFavoriteCardRepository,
   createIndexedDbFavoriteCardPersistence,
@@ -60,6 +71,7 @@ export type AppRepositories = {
    * until the account asks for it.
    */
   cloudDecks: CloudDeckRepository | null
+  cloudDeckVersions: CloudDeckVersionRepository | null
   /**
    * The deck store without the cloud sync wrapper.
    *
@@ -69,6 +81,7 @@ export type AppRepositories = {
    * upload. Everything else in the app should use `decks`.
    */
   localDecks: DeckBackupRepository
+  localDeckVersions: DeckVersionRepository
   /**
    * Manual deck snapshots. Browser-local for now: nothing sends them anywhere,
    * so they are not part of the cloud bundle.
@@ -85,6 +98,8 @@ export function createAppRepositories(
   databaseFactory?: IDBFactory,
   /** Supplied by tests; production resolves the Supabase repository itself. */
   cloudDecks?: CloudDeckRepository | null,
+  /** Supplied by tests; production resolves the Supabase repository itself. */
+  cloudDeckVersions?: CloudDeckVersionRepository | null,
 ): AppRepositories {
   // An anonymous visitor has no account to sync with, so there is nothing to
   // build even where Supabase is configured.
@@ -95,14 +110,27 @@ export function createAppRepositories(
         ? createSupabaseCloudDeckRepository()
         : null
 
-  const local = createDeckRepository(
+  const cloudVersions =
+    cloudDeckVersions !== undefined
+      ? cloudDeckVersions
+      : namespace.kind === 'user'
+        ? createSupabaseCloudDeckVersionRepository()
+        : null
+
+  const rawDecks = createDeckRepository(
     createIndexedDbDeckPersistence(databaseFactory, namespace),
   )
+  const localVersions = createDeckVersionRepository(
+    createIndexedDbDeckVersionPersistence(databaseFactory, namespace),
+  )
+  const local = withDeckVersionCascade(rawDecks, localVersions)
 
   return {
     namespace,
     cloudDecks: cloud,
+    cloudDeckVersions: cloudVersions,
     localDecks: local,
+    localDeckVersions: localVersions,
     /**
      * Wrapped so every save and delete reaches the account, wherever it comes
      * from. The wrapper writes locally first and never rolls that back, so a
@@ -127,10 +155,43 @@ export function createAppRepositories(
       // successful send and never another's.
       onUploadSuccess: () =>
         recordCloudUploadSuccess(undefined, undefined, namespace),
+      versionPending: {
+        prepareParentDelete: (deckId) =>
+          clearPendingDeckVersionSyncForDeck(
+            deckId,
+            { includeTombstones: false },
+            undefined,
+            namespace,
+          ),
+        clearParent: (deckId) => {
+          clearPendingDeckVersionSyncForDeck(
+            deckId,
+            { includeTombstones: true },
+            undefined,
+            namespace,
+          )
+        },
+      },
     }),
-    deckVersions: createDeckVersionRepository(
-      createIndexedDbDeckVersionPersistence(databaseFactory, namespace),
-    ),
+    deckVersions: withCloudDeckVersionSync({
+      versions: localVersions,
+      cloudVersions,
+      isSyncEnabled: () => isCloudSyncEnabled(namespace),
+      pending: {
+        record: (versionId, operation, deckId) =>
+          recordPendingDeckVersionSync(
+            versionId,
+            { operation, deckId },
+            undefined,
+            namespace,
+          ),
+        clear: (versionId) => {
+          clearPendingDeckVersionSync(versionId, undefined, namespace)
+        },
+      },
+      onUploadSuccess: () =>
+        recordCloudUploadSuccess(undefined, undefined, namespace),
+    }),
     favoriteCards: createFavoriteCardRepository(
       createIndexedDbFavoriteCardPersistence(databaseFactory, namespace),
     ),

@@ -16,6 +16,7 @@ import {
 } from '../domain/decks/backup'
 import type { DeckBackupRepository } from '../repositories/deckRepository'
 import type { DeckVersionRepository } from '../repositories/deckVersionRepository'
+import { withDeckVersionCascade } from '../repositories/deckVersionCascade'
 import { SavedDecksPage } from './SavedDecksPage'
 
 function deck(overrides: Partial<Deck> = {}): Deck {
@@ -51,8 +52,10 @@ function emptyVersionRepository(
   overrides: Partial<DeckVersionRepository> = {},
 ): DeckVersionRepository {
   return {
+    listAllVersions: vi.fn(async () => []),
     listVersions: vi.fn(async () => []),
     getVersion: vi.fn(async () => undefined),
+    saveVersion: vi.fn(async () => undefined),
     createVersion: vi.fn(async () => {
       throw new Error('not used')
     }),
@@ -71,6 +74,7 @@ function renderPage(
     deckVersions?: DeckVersionRepository
   } = {},
 ) {
+  const deckVersions = extras.deckVersions ?? emptyVersionRepository()
   render(
     <MemoryRouter initialEntries={['/decks']}>
       <Routes>
@@ -78,8 +82,8 @@ function renderPage(
           path="/decks"
           element={
             <SavedDecksPage
-              repository={deckRepository}
-              deckVersions={extras.deckVersions ?? emptyVersionRepository()}
+              repository={withDeckVersionCascade(deckRepository, deckVersions)}
+              deckVersions={deckVersions}
               createNewDeck={createNewDeck}
               now={() => new Date(2026, 8, 13)}
               downloadFile={extras.downloadFile}
@@ -535,7 +539,10 @@ describe('copies and snapshots', () => {
             path="/decks"
             element={
               <SavedDecksPage
-                repository={deckRepository}
+                repository={withDeckVersionCascade(
+                  deckRepository,
+                  deckVersions,
+                )}
                 deckVersions={deckVersions}
               />
             }

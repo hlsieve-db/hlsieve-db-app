@@ -10,6 +10,7 @@ import type {
   CloudDeckFailure,
   CloudDeckRepository,
 } from './cloudDeckRepository'
+import { tombstoneCloudDeckWithVersions } from './cloudDeckRepository'
 
 /**
  * Sends the deck changes that could not reach the account when they were made.
@@ -79,7 +80,7 @@ export async function retryPendingDeckSync({
 
   for (const [deckId, operation] of entries) {
     if (operation === 'tombstone') {
-      const result = await cloudDecks.tombstone(deckId)
+      const result = await tombstoneCloudDeckWithVersions(cloudDecks, deckId)
       // Nothing matching means the account does not hold the deck, which is
       // the state the tombstone was asking for. The intent is satisfied, so
       // the entry goes rather than blocking the queue forever.

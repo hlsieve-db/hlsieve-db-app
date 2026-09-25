@@ -1975,8 +1975,10 @@ describe('DeckEditPage versions', () => {
     })),
   ) {
     const deckVersions: DeckVersionRepository = {
+      listAllVersions: vi.fn(async () => []),
       listVersions: vi.fn(async () => []),
       getVersion: vi.fn(async () => undefined),
+      saveVersion: vi.fn(async () => undefined),
       createVersion,
       deleteVersion: vi.fn(async () => undefined),
       deleteVersionsForDeck: vi.fn(async () => undefined),

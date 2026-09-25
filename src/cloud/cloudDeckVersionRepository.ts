@@ -22,17 +22,23 @@ export type CloudDeckVersionFailure = CloudDeckFailure | 'integrity-conflict'
 export type CloudDeckVersionResult<T> =
   { ok: true; value: T } | { ok: false; reason: CloudDeckVersionFailure }
 
+export type CloudDeckVersionMutation = {
+  record: CloudDeckVersionRecord | null
+  /** True only when this request changed cloud state. */
+  mutated: boolean
+}
+
 export type CloudDeckVersionRepository = {
   /** Every row owned by the account, including tombstones. */
   listAll: () => Promise<CloudDeckVersionResult<CloudDeckVersionRecord[]>>
   /** Inserts an immutable version. It never updates or resurrects an id. */
   insert: (
     version: DeckVersion,
-  ) => Promise<CloudDeckVersionResult<CloudDeckVersionRecord>>
+  ) => Promise<CloudDeckVersionResult<CloudDeckVersionMutation>>
   /** Missing is success: the requested deleted state already holds. */
   tombstone: (
     versionId: DeckVersionId,
-  ) => Promise<CloudDeckVersionResult<CloudDeckVersionRecord | null>>
+  ) => Promise<CloudDeckVersionResult<CloudDeckVersionMutation>>
 }
 
 const ROW_COLUMNS = 'id,deck_id,label,snapshot,created_at,deleted_at'
@@ -153,7 +159,7 @@ export function createSupabaseCloudDeckVersionRepository(
         if (!error) {
           const records = toRecords(data)
           return records?.length === 1
-            ? { ok: true, value: records[0] }
+            ? { ok: true, value: { record: records[0], mutated: true } }
             : { ok: false, reason: 'invalid-data' }
         }
 
@@ -167,10 +173,16 @@ export function createSupabaseCloudDeckVersionRepository(
         if (!existing.ok) return existing
         if (!existing.value) return { ok: false, reason: 'failed' }
         if (existing.value.deletedAt !== null) {
-          return { ok: true, value: existing.value }
+          return {
+            ok: true,
+            value: { record: existing.value, mutated: false },
+          }
         }
         return deckVersionContentEquals(existing.value.version, version)
-          ? { ok: true, value: existing.value }
+          ? {
+              ok: true,
+              value: { record: existing.value, mutated: false },
+            }
           : { ok: false, reason: 'integrity-conflict' }
       } catch {
         return { ok: false, reason: 'network' }
@@ -183,6 +195,14 @@ export function createSupabaseCloudDeckVersionRepository(
         return { ok: false, reason: 'unauthenticated' }
       }
       try {
+        const existing = await listById(versionId)
+        if (!existing.ok) return existing
+        if (!existing.value || existing.value.deletedAt !== null) {
+          return {
+            ok: true,
+            value: { record: existing.value, mutated: false },
+          }
+        }
         const { data, error } = await client
           .from('deck_versions')
           .update({ deleted_at: SERVER_NOW })
@@ -195,7 +215,10 @@ export function createSupabaseCloudDeckVersionRepository(
         if (!records || records.length > 1) {
           return { ok: false, reason: 'invalid-data' }
         }
-        return { ok: true, value: records[0] ?? null }
+        return {
+          ok: true,
+          value: { record: records[0] ?? null, mutated: records.length === 1 },
+        }
       } catch {
         return { ok: false, reason: 'network' }
       }

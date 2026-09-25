@@ -351,6 +351,7 @@ describe('no physical delete', () => {
       'listAll',
       'listUpdatedSince',
       'tombstone',
+      'tombstoneWithVersions',
       'upsert',
     ])
   })
@@ -362,6 +363,50 @@ describe('no physical delete', () => {
     await repository.tombstone('deck-1')
 
     expect(calls.some((call) => call.method === 'delete')).toBe(false)
+  })
+})
+
+describe('atomic parent and Version tombstone RPC', () => {
+  it('calls the RPC and validates its result', async () => {
+    const rpc = vi.fn(async () => ({
+      data: [{ deck_found: true, versions_tombstoned: 3 }],
+      error: null,
+    }))
+    const client = {
+      rpc,
+      auth: {
+        getSession: vi.fn(async () => ({
+          data: { session: { user: { id: 'user-a' } } },
+          error: null,
+        })),
+      },
+    } as unknown as SupabaseClient
+    const repository = createSupabaseCloudDeckRepository(client)
+    await expect(
+      repository?.tombstoneWithVersions?.('deck-1'),
+    ).resolves.toEqual({ ok: true, value: { versionsTombstoned: 3 } })
+    expect(rpc).toHaveBeenCalledWith('tombstone_deck_with_versions', {
+      p_deck_id: 'deck-1',
+    })
+  })
+
+  it('maps a missing parent to the idempotent not-found state', async () => {
+    const client = {
+      rpc: vi.fn(async () => ({
+        data: [{ deck_found: false, versions_tombstoned: 0 }],
+        error: null,
+      })),
+      auth: {
+        getSession: vi.fn(async () => ({
+          data: { session: { user: { id: 'user-a' } } },
+          error: null,
+        })),
+      },
+    } as unknown as SupabaseClient
+    const repository = createSupabaseCloudDeckRepository(client)
+    await expect(
+      repository?.tombstoneWithVersions?.('missing'),
+    ).resolves.toEqual({ ok: false, reason: 'not-found' })
   })
 })
 

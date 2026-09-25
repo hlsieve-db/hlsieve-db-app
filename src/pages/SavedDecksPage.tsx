@@ -154,7 +154,6 @@ export function SavedDecksPage({
       // nothing else, so a deck removed while they remain would leave records
       // nobody can reach or clear. Failing here leaves the deck in place, which
       // is the state the reporter can retry from.
-      await deckVersions.deleteVersionsForDeck(id)
       await repository.deleteDeck(id)
       setState((current) =>
         current.status === 'loaded'

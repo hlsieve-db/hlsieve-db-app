@@ -208,9 +208,7 @@ describe('deleting a deck', () => {
 
     await pending
     expect(decks.deleteDeck).toHaveBeenCalledTimes(1)
-    expect(events).toEqual([
-      { kind: 'deleted', deckId: 'a', ok: false, reason: 'not-found' },
-    ])
+    expect(events).toEqual([{ kind: 'deleted', deckId: 'a', ok: true }])
   })
 
   it('sends nothing when the local delete fails', async () => {
@@ -223,6 +221,49 @@ describe('deleting a deck', () => {
 
     await expect(repository.deleteDeck('a')).rejects.toThrow('blocked')
     expect(cloudDecks?.tombstone).not.toHaveBeenCalled()
+  })
+
+  it('uses the atomic parent-and-Version RPC and clears child intents', async () => {
+    const cloudDecks = cloudRepository({
+      tombstoneWithVersions: vi.fn(async () => ({
+        ok: true as const,
+        value: { versionsTombstoned: 2 },
+      })),
+    })
+    const prepareParentDelete = vi.fn(() => true)
+    const clearParent = vi.fn()
+    let finished: (() => void) | undefined
+    const repository = withCloudDeckSync({
+      decks: localRepository(),
+      cloudDecks,
+      isSyncEnabled: () => true,
+      versionPending: { prepareParentDelete, clearParent },
+      onSyncResult: () => finished?.(),
+    })
+    const sent = new Promise<void>((resolve) => {
+      finished = resolve
+    })
+    await repository.deleteDeck('a')
+    await sent
+    expect(prepareParentDelete).toHaveBeenCalledWith('a')
+    expect(cloudDecks.tombstoneWithVersions).toHaveBeenCalledWith('a')
+    expect(cloudDecks.tombstone).not.toHaveBeenCalled()
+    expect(clearParent).toHaveBeenCalledWith('a')
+  })
+
+  it('does not delete locally when obsolete child uploads cannot be cleared', async () => {
+    const decks = localRepository()
+    const repository = withCloudDeckSync({
+      decks,
+      cloudDecks: cloudRepository(),
+      isSyncEnabled: () => true,
+      versionPending: {
+        prepareParentDelete: () => false,
+        clearParent: vi.fn(),
+      },
+    })
+    await expect(repository.deleteDeck('a')).rejects.toThrow(/deletion intent/)
+    expect(decks.deleteDeck).not.toHaveBeenCalled()
   })
 })
 

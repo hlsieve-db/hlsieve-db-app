@@ -98,11 +98,13 @@ describe('the rest of the bundle', () => {
     const repositories = createAppRepositories(ANONYMOUS_LOCAL_DATA_NAMESPACE)
 
     expect(Object.keys(repositories).sort()).toEqual([
+      'cloudDeckVersions',
       'cloudDecks',
       'deckVersions',
       'decks',
       'favoriteCards',
       // The deck store without the cloud sync wrapper, used only by restoring.
+      'localDeckVersions',
       'localDecks',
       'namespace',
       'recentlyViewedCards',
