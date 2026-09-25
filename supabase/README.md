@@ -63,6 +63,24 @@ It needs no auth stubs: a share belongs to nobody, and creating one works
 signed out. Its last section replaces the id generator with a stub to reach the
 retry path and does not put it back, so discard the container afterwards.
 
+## Checking DeckVersion rules
+
+`tests/deck_versions_matrix.sql` applies the deck and DeckVersion migrations to
+a throwaway Postgres. It covers the composite key and parent foreign key, row
+isolation, immutable snapshot fields, one-way tombstones, server deletion
+timestamps, and the atomic parent-plus-children tombstone function.
+
+```sh
+docker run --rm -d --name hlsieve-pg -e POSTGRES_PASSWORD=x postgres:16-alpine
+docker cp supabase hlsieve-pg:/work
+docker exec -u postgres hlsieve-pg \
+  psql -v ON_ERROR_STOP=0 -f /work/tests/deck_versions_matrix.sql
+docker rm -f hlsieve-pg
+```
+
+It has not been applied to production. The matrix is intentionally standalone
+and leaves its throwaway database spent after the deliberate rollback test.
+
 ## Conventions
 
 - The frontend uses the publishable key only. The secret key never reaches the
