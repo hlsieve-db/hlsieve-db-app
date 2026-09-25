@@ -200,8 +200,18 @@ select count(*) filter (where deleted_at is not null) as deleted_children,
          where id = 'rpc-deck' and deleted_at is not null) as deleted_parent
   from public.deck_versions where deck_id = 'rpc-deck';
 
-\echo '--- RPC is deterministic on repeat (expect: t,0)'
+select deleted_at as first_parent_deleted_at,
+       updated_at as first_parent_updated_at
+  from public.decks where id = 'rpc-deck' \gset
+select pg_sleep(0.01);
+
+\echo '--- RPC repeat keeps the parent timestamps and changes no children (expect: t,0 then t,t)'
 select * from public.tombstone_deck_with_versions('rpc-deck');
+select deleted_at = :'first_parent_deleted_at'::timestamptz
+         as parent_deletion_time_stable,
+       updated_at = :'first_parent_updated_at'::timestamptz
+         as parent_update_time_stable
+  from public.decks where id = 'rpc-deck';
 
 \echo '--- RPC cannot touch another account (expect: f,0)'
 set hlsieve.uid = '22222222-2222-2222-2222-222222222222';

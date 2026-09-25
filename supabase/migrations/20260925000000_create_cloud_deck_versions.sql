@@ -113,11 +113,18 @@ set search_path = ''
 as $$
 declare
   child_count integer;
-  parent_count integer;
+  parent_found boolean;
 begin
   if p_deck_id is null or char_length(p_deck_id) = 0 then
     raise exception 'deck id must not be empty' using errcode = '22023';
   end if;
+
+  select exists (
+    select 1
+      from public.decks
+     where user_id = (select auth.uid())
+       and id = p_deck_id
+  ) into parent_found;
 
   update public.deck_versions
      set deleted_at = now()
@@ -129,10 +136,10 @@ begin
   update public.decks
      set deleted_at = now()
    where user_id = (select auth.uid())
-     and id = p_deck_id;
-  get diagnostics parent_count = row_count;
+     and id = p_deck_id
+     and deleted_at is null;
 
-  return query select parent_count = 1, child_count;
+  return query select parent_found, child_count;
 end;
 $$;
 
