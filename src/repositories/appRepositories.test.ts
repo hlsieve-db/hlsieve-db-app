@@ -99,6 +99,7 @@ describe('the rest of the bundle', () => {
 
     expect(Object.keys(repositories).sort()).toEqual([
       'cloudDecks',
+      'deckVersions',
       'decks',
       'favoriteCards',
       // The deck store without the cloud sync wrapper, used only by restoring.

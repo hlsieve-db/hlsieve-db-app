@@ -42,6 +42,7 @@ import {
   sortDeckEntriesForDisplay,
 } from '../domain/decks/displayOrder'
 import { getDeckZone, validateDeckLegality } from '../domain/decks/legality'
+import { DECK_VERSION_LABEL_MAX_LENGTH } from '../domain/deckVersions/types'
 import {
   getAllowedCardNumbers,
   isCardAllowed,
@@ -83,6 +84,7 @@ import {
 import { useDeckSaveQueue } from '../hooks/useDeckSaveQueue'
 import { useDocumentMetadata } from '../hooks/useDocumentMetadata'
 import { type DeckRepository } from '../repositories/deckRepository'
+import { type DeckVersionRepository } from '../repositories/deckVersionRepository'
 import { loadCardPrintingsData } from '../repositories/loadCardPrintingsData'
 import { loadCardsData } from '../repositories/loadCardsData'
 
@@ -107,6 +109,8 @@ type DeckTextCopyStatus = 'copied' | 'error'
 
 type DeckEditPageProps = {
   repository?: DeckRepository
+  /** Supplied by tests; production takes it from the account's repositories. */
+  deckVersions?: DeckVersionRepository
   loadCards?: () => Promise<CardsDataFile>
   loadPrintings?: () => Promise<CardPrintingsDataFile>
   /** Null stands for a build with no Supabase configured. */
@@ -229,6 +233,7 @@ type DeckEntryGroup = {
 function DeckEditor({
   initialDeck,
   repository,
+  deckVersions,
   loadCards,
   loadPrintings,
   shareSource,
@@ -236,6 +241,7 @@ function DeckEditor({
 }: {
   initialDeck: Deck
   repository: DeckRepository
+  deckVersions: DeckVersionRepository
   loadCards: () => Promise<CardsDataFile>
   loadPrintings: () => Promise<CardPrintingsDataFile>
   shareSource: DeckShareSource | null
@@ -257,6 +263,10 @@ function DeckEditor({
   const [pickerState, setPickerState] = useState<SearchUrlState>(
     () => deckEditorSearchState(location.state) ?? DEFAULT_SEARCH_URL_STATE,
   )
+  const [versionLabel, setVersionLabel] = useState('')
+  const [versionState, setVersionState] = useState<
+    'idle' | 'saving' | 'saved' | 'error'
+  >('idle')
   const [isShareLinkVisible, setIsShareLinkVisible] = useState(false)
   const [copyResult, setCopyResult] = useState<CopyResult>()
   const [shortShare, setShortShare] = useState<ShortShareState>({
@@ -540,6 +550,24 @@ function DeckEditor({
     persist(next)
   }
 
+  /**
+   * Keeps the deck as it is now, under a name the reporter chose.
+   *
+   * Only from this button. The editor saves on every change, so snapshotting
+   * those would bury the states someone actually wanted to come back to.
+   */
+  const saveVersion = async (event: FormEvent) => {
+    event.preventDefault()
+    setVersionState('saving')
+    try {
+      await deckVersions.createVersion(deckRef.current, versionLabel)
+      setVersionLabel('')
+      setVersionState('saved')
+    } catch {
+      setVersionState('error')
+    }
+  }
+
   const submitRename = (event: FormEvent) => {
     event.preventDefault()
     try {
@@ -710,6 +738,35 @@ function DeckEditor({
             </div>
           )}
         </section>
+        <form
+          className="deck-version-save"
+          onSubmit={(event) => void saveVersion(event)}
+        >
+          <label htmlFor="deck-version-label">バージョンを保存</label>
+          <div>
+            <input
+              id="deck-version-label"
+              type="text"
+              inputMode="text"
+              value={versionLabel}
+              maxLength={DECK_VERSION_LABEL_MAX_LENGTH}
+              placeholder="ラベル（省略可）"
+              onChange={(event) => setVersionLabel(event.currentTarget.value)}
+            />
+            <button type="submit" className="button button--secondary">
+              バージョンを保存
+            </button>
+          </div>
+          {/* Saved states are listed elsewhere; this only says it worked. */}
+          <p role="status">
+            {versionState === 'saving' && 'バージョンを保存しています…'}
+            {versionState === 'saved' && 'バージョンを保存しました'}
+            {versionState === 'error' && 'バージョンを保存できませんでした。'}
+          </p>
+          <Link to={`/decks/${encodeURIComponent(deck.id)}/versions`}>
+            保存したバージョンを見る
+          </Link>
+        </form>
         <form className="deck-rename" onSubmit={submitRename}>
           <label htmlFor="deck-name">デッキ名</label>
           <div>
@@ -1225,6 +1282,7 @@ function DeckEditor({
 
 export function DeckEditPage({
   repository: repositoryProp,
+  deckVersions: deckVersionsProp,
   loadCards = loadCardsData,
   loadPrintings = loadCardPrintingsData,
   shareSource: shareSourceProp,
@@ -1240,6 +1298,7 @@ export function DeckEditPage({
   )
   const repositories = useAppRepositories()
   const repository = repositoryProp ?? repositories.decks
+  const deckVersions = deckVersionsProp ?? repositories.deckVersions
   const { namespace } = repositories
   const { deckId } = useParams<'deckId'>()
   const [state, setState] = useState<DeckLoadState>({ status: 'loading' })
@@ -1304,6 +1363,7 @@ export function DeckEditPage({
           key={state.deck.id}
           initialDeck={state.deck}
           repository={repository}
+          deckVersions={deckVersions}
           loadCards={loadCards}
           loadPrintings={loadPrintings}
           shareSource={shareSource}

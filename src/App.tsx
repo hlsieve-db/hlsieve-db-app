@@ -11,6 +11,7 @@ import { AppRepositoriesProvider } from './repositories/AppRepositoriesProvider'
 import { CardDetailPage } from './pages/CardDetailPage'
 import { CardSearchPage } from './pages/CardSearchPage'
 import { DeckEditPage } from './pages/DeckEditPage'
+import { DeckVersionsPage } from './pages/DeckVersionsPage'
 import { DeckComparePage } from './pages/DeckComparePage'
 import { DisclaimerPage } from './pages/DisclaimerPage'
 import { ContactPage } from './pages/ContactPage'
@@ -52,6 +53,10 @@ function AppRoutes() {
           <Route path="/decks" element={<SavedDecksPage />} />
           <Route path="/deck-compare" element={<DeckComparePage />} />
           <Route path="/decks/:deckId" element={<DeckEditPage />} />
+          <Route
+            path="/decks/:deckId/versions"
+            element={<DeckVersionsPage />}
+          />
           <Route path="/updates" element={<UpdateHistoryPage />} />
           <Route path="/probability" element={<ProbabilityPage />} />
           <Route path="/qa" element={<QaSearchPage />} />

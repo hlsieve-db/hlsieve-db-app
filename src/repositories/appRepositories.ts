@@ -19,6 +19,11 @@ import {
   type DeckBackupRepository,
 } from './deckRepository'
 import {
+  createDeckVersionRepository,
+  createIndexedDbDeckVersionPersistence,
+  type DeckVersionRepository,
+} from './deckVersionRepository'
+import {
   createFavoriteCardRepository,
   createIndexedDbFavoriteCardPersistence,
   type FavoriteCardRepository,
@@ -64,6 +69,11 @@ export type AppRepositories = {
    * upload. Everything else in the app should use `decks`.
    */
   localDecks: DeckBackupRepository
+  /**
+   * Manual deck snapshots. Browser-local for now: nothing sends them anywhere,
+   * so they are not part of the cloud bundle.
+   */
+  deckVersions: DeckVersionRepository
 }
 
 /**
@@ -118,6 +128,9 @@ export function createAppRepositories(
       onUploadSuccess: () =>
         recordCloudUploadSuccess(undefined, undefined, namespace),
     }),
+    deckVersions: createDeckVersionRepository(
+      createIndexedDbDeckVersionPersistence(databaseFactory, namespace),
+    ),
     favoriteCards: createFavoriteCardRepository(
       createIndexedDbFavoriteCardPersistence(databaseFactory, namespace),
     ),

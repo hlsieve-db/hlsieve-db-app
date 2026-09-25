@@ -37,6 +37,7 @@ function signedInAuthSource(): AuthSource {
 }
 import { decodeDeckSharePayload } from '../domain/share/deckShareCodec'
 import type { DeckRepository } from '../repositories/deckRepository'
+import type { DeckVersionRepository } from '../repositories/deckVersionRepository'
 import { DeckEditPage } from './DeckEditPage'
 
 function deck(overrides: Partial<Deck> = {}): Deck {
@@ -168,6 +169,7 @@ function renderPage({
   shareSource = null,
   // Signed out by default, which is what every existing test assumes.
   authSource = null,
+  deckVersions,
 }: {
   deckRepository?: DeckRepository
   loadCards?: () => Promise<CardsDataFile>
@@ -175,6 +177,7 @@ function renderPage({
   path?: string
   shareSource?: DeckShareSource | null
   authSource?: AuthSource | null
+  deckVersions?: DeckVersionRepository
 } = {}) {
   render(
     <AuthProvider authSource={authSource}>
@@ -185,6 +188,7 @@ function renderPage({
             element={
               <DeckEditPage
                 repository={deckRepository}
+                deckVersions={deckVersions}
                 loadCards={loadCards}
                 loadPrintings={loadPrintings}
                 shareSource={shareSource}
@@ -1951,5 +1955,96 @@ describe('DeckEditPage regulations', () => {
         within(legality).queryByText(/使用できないカードがあります/),
       ).toBeNull()
     })
+  })
+})
+
+/**
+ * Keeping the deck as it is now.
+ *
+ * Only when asked: the editor saves on every change, so snapshotting those
+ * would bury the states someone actually wanted to come back to.
+ */
+describe('DeckEditPage versions', () => {
+  function renderWithVersions(
+    createVersion = vi.fn<DeckVersionRepository['createVersion']>(async () => ({
+      id: 'version-1',
+      deckId: 'deck-1',
+      label: '大会前',
+      createdAt: '2026-09-25T02:30:00.000Z',
+      snapshot: { name: 'テストデッキ', entries: [] },
+    })),
+  ) {
+    const deckVersions: DeckVersionRepository = {
+      listVersions: vi.fn(async () => []),
+      getVersion: vi.fn(async () => undefined),
+      createVersion,
+      deleteVersion: vi.fn(async () => undefined),
+      deleteVersionsForDeck: vi.fn(async () => undefined),
+    }
+    renderPage({ deckVersions })
+    return { createVersion, deckVersions }
+  }
+
+  it('keeps the deck under the label that was typed', async () => {
+    const { createVersion } = renderWithVersions()
+    await screen.findByLabelText('バージョンを保存')
+
+    fireEvent.change(screen.getByLabelText('バージョンを保存'), {
+      target: { value: '大会前' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'バージョンを保存' }))
+
+    await waitFor(() => expect(createVersion).toHaveBeenCalledTimes(1))
+    expect(createVersion.mock.calls[0]?.[1]).toBe('大会前')
+    expect(await screen.findByText('バージョンを保存しました')).toBeVisible()
+  })
+
+  // An unlabelled snapshot is named after when it was taken, by the store.
+  it('allows an empty label', async () => {
+    const { createVersion } = renderWithVersions()
+    await screen.findByLabelText('バージョンを保存')
+
+    fireEvent.click(screen.getByRole('button', { name: 'バージョンを保存' }))
+
+    await waitFor(() => expect(createVersion).toHaveBeenCalledTimes(1))
+    expect(createVersion.mock.calls[0]?.[1]).toBe('')
+  })
+
+  it('keeps nothing when the editor is merely used', async () => {
+    const { createVersion } = renderWithVersions()
+    const search = await screen.findByLabelText('カード検索')
+
+    fireEvent.change(search, { target: { value: '赤い' } })
+    fireEvent.click(
+      await within(
+        screen.getByRole('region', { name: 'カードを追加' }),
+      ).findByRole('button', { name: '赤いカードを1枚追加' }),
+    )
+
+    await waitFor(() => expect(screen.getByText('保存しました')).toBeVisible())
+    expect(createVersion).not.toHaveBeenCalled()
+  })
+
+  it('says so when it could not be kept', async () => {
+    renderWithVersions(
+      vi.fn(async () => {
+        throw new Error('quota')
+      }),
+    )
+    await screen.findByLabelText('バージョンを保存')
+
+    fireEvent.click(screen.getByRole('button', { name: 'バージョンを保存' }))
+
+    expect(
+      await screen.findByText('バージョンを保存できませんでした。'),
+    ).toBeVisible()
+  })
+
+  it('links to the snapshots kept of this deck', async () => {
+    renderWithVersions()
+
+    expect(
+      await screen.findByRole('link', { name: '保存したバージョンを見る' }),
+    ).toHaveAttribute('href', '/decks/deck-1/versions')
   })
 })

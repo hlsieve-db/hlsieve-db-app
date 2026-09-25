@@ -6,6 +6,7 @@ import { AppNavigation } from '../components/AppNavigation'
 import { DeckLocalNavigation } from '../components/DeckLocalNavigation'
 import { DeckRegulationBadge } from '../components/decks/DeckRegulationBadge'
 import { createDeck, getDeckTotal } from '../domain/decks/deck'
+import { duplicateDeck } from '../domain/decks/duplicate'
 import {
   createDeckBackup,
   createDeckBackupFilename,
@@ -18,6 +19,7 @@ import {
 } from '../domain/decks/backup'
 import type { Deck } from '../domain/decks/types'
 import { type DeckBackupRepository } from '../repositories/deckRepository'
+import { type DeckVersionRepository } from '../repositories/deckVersionRepository'
 import { useDocumentMetadata } from '../hooks/useDocumentMetadata'
 
 type DeckListState =
@@ -27,6 +29,8 @@ type DeckListState =
 
 type SavedDecksPageProps = {
   repository?: DeckBackupRepository
+  /** Supplied by tests; production takes it from the account's repositories. */
+  deckVersions?: DeckVersionRepository
   createNewDeck?: () => Deck
   now?: () => Date
   createImportId?: () => string
@@ -52,6 +56,7 @@ function downloadJsonFile(filename: string, contents: string): void {
 
 export function SavedDecksPage({
   repository: repositoryProp,
+  deckVersions: deckVersionsProp,
   createNewDeck = createDeck,
   now = () => new Date(),
   createImportId = () => crypto.randomUUID(),
@@ -59,10 +64,15 @@ export function SavedDecksPage({
 }: SavedDecksPageProps) {
   const repositories = useAppRepositories()
   const repository = repositoryProp ?? repositories.decks
+  // Snapshots belong to the deck, so deleting one takes them with it and the
+  // confirmation says how many are going.
+  const deckVersions = deckVersionsProp ?? repositories.deckVersions
   const navigate = useNavigate()
   const [state, setState] = useState<DeckListState>({ status: 'loading' })
   const [loadAttempt, setLoadAttempt] = useState(0)
   const [pendingDeleteId, setPendingDeleteId] = useState<string>()
+  const [pendingDeleteVersions, setPendingDeleteVersions] = useState<number>()
+  const [duplicatingId, setDuplicatingId] = useState<string>()
   const [operationError, setOperationError] = useState<string>()
   const [creating, setCreating] = useState(false)
   const [importPreview, setImportPreview] = useState<ImportPreview>()
@@ -109,9 +119,42 @@ export function SavedDecksPage({
     }
   }
 
+  /** Asks, and says what else goes with it. */
+  const startDelete = async (id: string) => {
+    setPendingDeleteId(id)
+    setPendingDeleteVersions(undefined)
+    try {
+      setPendingDeleteVersions((await deckVersions.listVersions(id)).length)
+    } catch {
+      // The count is a courtesy; failing to read it must not block deleting.
+      setPendingDeleteVersions(undefined)
+    }
+  }
+
+  const handleDuplicate = async (deck: Deck) => {
+    setDuplicatingId(deck.id)
+    setOperationError(undefined)
+    try {
+      const copy = duplicateDeck(deck, {
+        existingNames:
+          state.status === 'loaded' ? state.decks.map((v) => v.name) : [],
+      })
+      await repository.saveDeck(copy)
+      navigate(`/decks/${encodeURIComponent(copy.id)}`)
+    } catch {
+      setOperationError('デッキを複製できませんでした。')
+      setDuplicatingId(undefined)
+    }
+  }
+
   const handleDelete = async (id: string) => {
     setOperationError(undefined)
     try {
+      // Snapshots first, and only this deck's. They restore into this deck and
+      // nothing else, so a deck removed while they remain would leave records
+      // nobody can reach or clear. Failing here leaves the deck in place, which
+      // is the state the reporter can retry from.
+      await deckVersions.deleteVersionsForDeck(id)
       await repository.deleteDeck(id)
       setState((current) =>
         current.status === 'loaded'
@@ -122,6 +165,7 @@ export function SavedDecksPage({
           : current,
       )
       setPendingDeleteId(undefined)
+      setPendingDeleteVersions(undefined)
     } catch {
       setOperationError('デッキを削除できませんでした。')
     }
@@ -276,9 +320,24 @@ export function SavedDecksPage({
                   </Link>
                   <button
                     type="button"
+                    className="button button--secondary"
+                    aria-label={`${deck.name}を複製`}
+                    disabled={duplicatingId !== undefined}
+                    onClick={() => void handleDuplicate(deck)}
+                  >
+                    複製
+                  </button>
+                  <Link
+                    className="button button--secondary detail-link-button"
+                    to={`/decks/${encodeURIComponent(deck.id)}/versions`}
+                  >
+                    バージョン
+                  </Link>
+                  <button
+                    type="button"
                     className="button button--danger"
                     aria-label={`${deck.name}を削除`}
-                    onClick={() => setPendingDeleteId(deck.id)}
+                    onClick={() => void startDelete(deck.id)}
                   >
                     削除
                   </button>
@@ -290,6 +349,13 @@ export function SavedDecksPage({
                     aria-label="デッキ削除の確認"
                   >
                     <p>「{deck.name}」を削除しますか？</p>
+                    {pendingDeleteVersions !== undefined &&
+                      pendingDeleteVersions > 0 && (
+                        <p>
+                          このデッキのバージョン{pendingDeleteVersions}
+                          件も削除されます。
+                        </p>
+                      )}
                     <div>
                       <button
                         type="button"
@@ -301,7 +367,10 @@ export function SavedDecksPage({
                       <button
                         type="button"
                         className="button button--secondary"
-                        onClick={() => setPendingDeleteId(undefined)}
+                        onClick={() => {
+                          setPendingDeleteId(undefined)
+                          setPendingDeleteVersions(undefined)
+                        }}
                       >
                         キャンセル
                       </button>

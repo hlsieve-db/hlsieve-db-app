@@ -1,5 +1,6 @@
 import {
   DB_VERSION,
+  STORE_DECK_VERSIONS,
   STORE_DECKS,
   STORE_FAVORITE_CARDS,
   STORE_RECENTLY_VIEWED_CARDS,
@@ -31,6 +32,12 @@ export function upgradeAppDatabaseSchema(database: IDBDatabase): void {
     database.createObjectStore(STORE_RECENTLY_VIEWED_CARDS, {
       keyPath: 'cardNumber',
     })
+  }
+  // Added in version 6. Every store here is created only when it is missing,
+  // so an existing database gains this one and keeps everything it already
+  // holds; nothing reads or rewrites the decks on the way past.
+  if (!database.objectStoreNames.contains(STORE_DECK_VERSIONS)) {
+    database.createObjectStore(STORE_DECK_VERSIONS, { keyPath: 'id' })
   }
 }
 

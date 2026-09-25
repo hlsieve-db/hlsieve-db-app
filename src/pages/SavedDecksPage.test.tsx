@@ -15,6 +15,7 @@ import {
   serializeDeckBackup,
 } from '../domain/decks/backup'
 import type { DeckBackupRepository } from '../repositories/deckRepository'
+import type { DeckVersionRepository } from '../repositories/deckVersionRepository'
 import { SavedDecksPage } from './SavedDecksPage'
 
 function deck(overrides: Partial<Deck> = {}): Deck {
@@ -46,12 +47,28 @@ function Location() {
   return <output data-testid="location">{location.pathname}</output>
 }
 
+function emptyVersionRepository(
+  overrides: Partial<DeckVersionRepository> = {},
+): DeckVersionRepository {
+  return {
+    listVersions: vi.fn(async () => []),
+    getVersion: vi.fn(async () => undefined),
+    createVersion: vi.fn(async () => {
+      throw new Error('not used')
+    }),
+    deleteVersion: vi.fn(async () => undefined),
+    deleteVersionsForDeck: vi.fn(async () => undefined),
+    ...overrides,
+  }
+}
+
 function renderPage(
   deckRepository: DeckBackupRepository,
   createNewDeck = () => deck({ id: 'new-deck', entries: [] }),
   extras: {
     downloadFile?: (filename: string, contents: string) => void
     createImportId?: () => string
+    deckVersions?: DeckVersionRepository
   } = {},
 ) {
   render(
@@ -62,6 +79,7 @@ function renderPage(
           element={
             <SavedDecksPage
               repository={deckRepository}
+              deckVersions={extras.deckVersions ?? emptyVersionRepository()}
               createNewDeck={createNewDeck}
               now={() => new Date(2026, 8, 13)}
               downloadFile={extras.downloadFile}
@@ -494,5 +512,271 @@ describe('the format each saved deck is built for', () => {
     expect(
       await screen.findByText(/セレクションカップ 2026年9-10月/),
     ).toBeVisible()
+  })
+})
+
+/**
+ * Copying a deck, and what deleting one takes with it.
+ *
+ * A copy is its own deck from the moment it exists, and a deck's snapshots
+ * restore into that deck and nothing else, so they go when it does.
+ */
+describe('copies and snapshots', () => {
+  const versionRepository = emptyVersionRepository
+
+  function renderWithVersions(
+    deckRepository: DeckBackupRepository,
+    deckVersions: DeckVersionRepository,
+  ) {
+    render(
+      <MemoryRouter initialEntries={['/decks']}>
+        <Routes>
+          <Route
+            path="/decks"
+            element={
+              <SavedDecksPage
+                repository={deckRepository}
+                deckVersions={deckVersions}
+              />
+            }
+          />
+          <Route path="/decks/:deckId" element={<p>Editor destination</p>} />
+        </Routes>
+      </MemoryRouter>,
+    )
+  }
+
+  it('saves a copy under a name that says so, and opens it', async () => {
+    const saveDeck = vi.fn<(value: Deck) => Promise<void>>(
+      async () => undefined,
+    )
+    renderWithVersions(
+      repository({
+        listDecks: async () => [deck({ id: 'deck-1', name: '白上フブキ' })],
+        saveDeck,
+      }),
+      versionRepository(),
+    )
+    fireEvent.click(
+      await screen.findByRole('button', { name: '白上フブキを複製' }),
+    )
+
+    await waitFor(() => expect(saveDeck).toHaveBeenCalledTimes(1))
+    const copy = saveDeck.mock.calls[0]?.[0] as Deck
+    expect(copy.name).toBe('白上フブキのコピー')
+    expect(copy.id).not.toBe('deck-1')
+    expect(copy.entries).toEqual(deck().entries)
+  })
+
+  it('numbers a copy when the name is taken', async () => {
+    const saveDeck = vi.fn<(value: Deck) => Promise<void>>(
+      async () => undefined,
+    )
+    renderWithVersions(
+      repository({
+        listDecks: async () => [
+          deck({ id: 'deck-1', name: '白上フブキ' }),
+          deck({ id: 'deck-2', name: '白上フブキのコピー' }),
+        ],
+        saveDeck,
+      }),
+      versionRepository(),
+    )
+    fireEvent.click(
+      await screen.findByRole('button', { name: '白上フブキを複製' }),
+    )
+
+    await waitFor(() => expect(saveDeck).toHaveBeenCalledTimes(1))
+    expect((saveDeck.mock.calls[0]?.[0] as Deck).name).toBe(
+      '白上フブキのコピー 2',
+    )
+  })
+
+  it('keeps the format a copied deck was built for', async () => {
+    const saveDeck = vi.fn<(value: Deck) => Promise<void>>(
+      async () => undefined,
+    )
+    renderWithVersions(
+      repository({
+        listDecks: async () => [
+          deck({ regulationId: 'selection-cup-2026-autumn' }),
+        ],
+        saveDeck,
+      }),
+      versionRepository(),
+    )
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'テストデッキを複製' }),
+    )
+
+    await waitFor(() => expect(saveDeck).toHaveBeenCalledTimes(1))
+    expect((saveDeck.mock.calls[0]?.[0] as Deck).regulationId).toBe(
+      'selection-cup-2026-autumn',
+    )
+  })
+
+  // The number is part of the question: deleting takes them too.
+  it('says how many snapshots deleting the deck will take', async () => {
+    renderWithVersions(
+      repository({ listDecks: async () => [deck()] }),
+      versionRepository({
+        listVersions: vi.fn(async () => [
+          {
+            id: 'v1',
+            deckId: 'deck-1',
+            label: 'a',
+            createdAt: '2026-09-20T00:00:00.000Z',
+            snapshot: { name: 'テストデッキ', entries: [] },
+          },
+          {
+            id: 'v2',
+            deckId: 'deck-1',
+            label: 'b',
+            createdAt: '2026-09-21T00:00:00.000Z',
+            snapshot: { name: 'テストデッキ', entries: [] },
+          },
+        ]),
+      }),
+    )
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'テストデッキを削除' }),
+    )
+
+    expect(
+      await screen.findByText(/このデッキのバージョン2件も削除されます/),
+    ).toBeVisible()
+  })
+
+  it('says nothing about snapshots when there are none', async () => {
+    renderWithVersions(
+      repository({ listDecks: async () => [deck()] }),
+      versionRepository(),
+    )
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'テストデッキを削除' }),
+    )
+
+    await screen.findByText('「テストデッキ」を削除しますか？')
+    // Scoped to the question: each row also has a link to its versions.
+    const dialog = screen.getByRole('alertdialog', { name: 'デッキ削除の確認' })
+    expect(within(dialog).queryByText(/バージョン/)).toBeNull()
+  })
+
+  it('removes the deck s snapshots along with it', async () => {
+    const deleteVersionsForDeck = vi.fn(async () => undefined)
+    renderWithVersions(
+      repository({
+        listDecks: async () => [deck()],
+        deleteDeck: vi.fn(async () => undefined),
+      }),
+      versionRepository({ deleteVersionsForDeck }),
+    )
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'テストデッキを削除' }),
+    )
+    fireEvent.click(screen.getByRole('button', { name: '削除する' }))
+
+    await waitFor(() =>
+      expect(deleteVersionsForDeck).toHaveBeenCalledWith('deck-1'),
+    )
+  })
+
+  // Opening the list is not a decision about any deck in it.
+  it('writes nothing merely by listing the decks', async () => {
+    const saveDeck = vi.fn(async () => undefined)
+    const deleteVersionsForDeck = vi.fn(async () => undefined)
+    renderWithVersions(
+      repository({ listDecks: async () => [deck()], saveDeck }),
+      versionRepository({ deleteVersionsForDeck }),
+    )
+    await screen.findByText('テストデッキ')
+
+    expect(saveDeck).not.toHaveBeenCalled()
+    expect(deleteVersionsForDeck).not.toHaveBeenCalled()
+  })
+})
+
+/**
+ * Deleting a deck clears its snapshots first.
+ *
+ * They restore into that deck and nothing else, so a deck removed while they
+ * remain would leave records nobody can reach or clear. Doing them first means
+ * a failure leaves everything as it was, which is a state the reporter can
+ * retry from.
+ */
+describe('the order a deck and its snapshots are deleted in', () => {
+  const failing = () =>
+    emptyVersionRepository({
+      deleteVersionsForDeck: vi.fn(async () => {
+        throw new Error('indexeddb unavailable')
+      }),
+    })
+
+  it('keeps the deck when its snapshots cannot be cleared', async () => {
+    const deleteDeck = vi.fn(async () => undefined)
+    renderPage(
+      repository({ listDecks: async () => [deck()], deleteDeck }),
+      undefined,
+      { deckVersions: failing() },
+    )
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'テストデッキを削除' }),
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: '削除する' }))
+
+    expect(
+      await screen.findByText('デッキを削除できませんでした。'),
+    ).toBeVisible()
+    expect(deleteDeck).not.toHaveBeenCalled()
+    expect(screen.getByText('テストデッキ')).toBeVisible()
+  })
+
+  it('deletes the deck once its snapshots are gone', async () => {
+    const deleteDeck = vi.fn(async () => undefined)
+    const deleteVersionsForDeck = vi.fn(async () => undefined)
+    renderPage(
+      repository({ listDecks: async () => [deck()], deleteDeck }),
+      undefined,
+      { deckVersions: emptyVersionRepository({ deleteVersionsForDeck }) },
+    )
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'テストデッキを削除' }),
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: '削除する' }))
+
+    await waitFor(() => expect(deleteDeck).toHaveBeenCalledWith('deck-1'))
+    expect(deleteVersionsForDeck).toHaveBeenCalledWith('deck-1')
+    expect(deleteVersionsForDeck.mock.invocationCallOrder[0] ?? 0).toBeLessThan(
+      deleteDeck.mock.invocationCallOrder[0] ?? 0,
+    )
+    expect(await screen.findByText('デッキがありません')).toBeVisible()
+  })
+
+  it('touches only the snapshots of the deck being deleted', async () => {
+    const deleteVersionsForDeck = vi.fn(async () => undefined)
+    renderPage(
+      repository({
+        listDecks: async () => [
+          deck({ id: 'deck-1', name: '消すデッキ' }),
+          deck({ id: 'deck-2', name: '残すデッキ' }),
+        ],
+      }),
+      undefined,
+      { deckVersions: emptyVersionRepository({ deleteVersionsForDeck }) },
+    )
+    fireEvent.click(
+      await screen.findByRole('button', { name: '消すデッキを削除' }),
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: '削除する' }))
+
+    await waitFor(() =>
+      expect(deleteVersionsForDeck).toHaveBeenCalledWith('deck-1'),
+    )
+    expect(deleteVersionsForDeck).toHaveBeenCalledTimes(1)
+    expect(deleteVersionsForDeck).not.toHaveBeenCalledWith('deck-2')
+    expect(screen.getByText('残すデッキ')).toBeVisible()
   })
 })
