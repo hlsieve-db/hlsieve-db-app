@@ -215,9 +215,24 @@ export function createSupabaseCloudDeckVersionRepository(
         if (!records || records.length > 1) {
           return { ok: false, reason: 'invalid-data' }
         }
+        if (records.length === 1) {
+          const record = records[0]
+          return record.deletedAt !== null
+            ? { ok: true, value: { record, mutated: true } }
+            : { ok: false, reason: 'failed' }
+        }
+
+        // PostgREST can return an empty successful response when an UPDATE
+        // affects no visible rows. Re-read before accepting that as the
+        // idempotent missing/already-tombstoned state.
+        const confirmed = await listById(versionId)
+        if (!confirmed.ok) return confirmed
+        if (confirmed.value?.deletedAt === null) {
+          return { ok: false, reason: 'failed' }
+        }
         return {
           ok: true,
-          value: { record: records[0] ?? null, mutated: records.length === 1 },
+          value: { record: confirmed.value, mutated: false },
         }
       } catch {
         return { ok: false, reason: 'network' }

@@ -129,6 +129,42 @@ describe('retrying pending DeckVersion operations', () => {
     )
   })
 
+  it('retries an unconfirmed tombstone and clears it after positive confirmation', async () => {
+    const store = storage()
+    recordPendingDeckVersionSync(
+      version.id,
+      { operation: 'tombstone', deckId: deck.id },
+      store,
+      namespace,
+    )
+    const h = options(store)
+    vi.mocked(h.cloudVersions.tombstone)
+      .mockResolvedValueOnce({ ok: false, reason: 'failed' })
+      .mockResolvedValueOnce({
+        ok: true,
+        value: {
+          record: {
+            version,
+            deletedAt: '2026-09-25T02:00:00.000Z',
+          },
+          mutated: true,
+        },
+      })
+
+    expect(await retryPendingDeckVersionSync(h)).toMatchObject({ ok: false })
+    expect(readPendingDeckVersionSync(store, namespace)).toHaveProperty(
+      version.id,
+    )
+
+    expect(await retryPendingDeckVersionSync(h)).toEqual({
+      ok: true,
+      completed: 1,
+      remaining: 0,
+    })
+    expect(readPendingDeckVersionSync(store, namespace)).toEqual({})
+    expect(h.cloudVersions.tombstone).toHaveBeenCalledTimes(2)
+  })
+
   it('clears a stale upload whose local Version is gone', async () => {
     const store = storage()
     recordPendingDeckVersionSync(

@@ -128,6 +128,27 @@ describe('cloud-synced DeckVersion repository', () => {
     expect(clear).not.toHaveBeenCalled()
   })
 
+  it('keeps the tombstone pending when cloud cannot prove the final state', async () => {
+    const store = local()
+    const clear = vi.fn()
+    const repository = withCloudDeckVersionSync({
+      versions: store.repository,
+      cloudVersions: cloud({
+        tombstone: vi.fn(async () => ({
+          ok: false as const,
+          reason: 'failed' as const,
+        })),
+      }),
+      isSyncEnabled: () => true,
+      pending: { record: () => true, clear },
+    })
+
+    await repository.deleteVersion(version.id)
+
+    expect(store.records.has(version.id)).toBe(false)
+    expect(clear).not.toHaveBeenCalled()
+  })
+
   it('records failed uploads without updating the timestamp', async () => {
     const store = local([])
     const record = vi.fn(() => true)

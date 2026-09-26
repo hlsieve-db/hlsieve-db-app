@@ -306,6 +306,80 @@ describe('tombstone deck version', () => {
     expect(argsOf(builders[1].calls, 'eq')).toEqual([['id', 'version-1']])
   })
 
+  it('rejects the Production failure when an empty update leaves the row active', async () => {
+    const { repository } = repoWith([
+      { data: [row()], error: null },
+      { data: [], error: null },
+      { data: [row()], error: null },
+    ])
+    await expect(repository.tombstone('version-1')).resolves.toEqual({
+      ok: false,
+      reason: 'failed',
+    })
+  })
+
+  it('accepts an empty update when a follow-up proves the row is tombstoned', async () => {
+    const deletedAt = '2026-09-25T01:00:00.000000+00:00'
+    const { repository } = repoWith([
+      { data: [row()], error: null },
+      { data: [], error: null },
+      { data: [row({ deleted_at: deletedAt })], error: null },
+    ])
+    await expect(repository.tombstone('version-1')).resolves.toEqual({
+      ok: true,
+      value: {
+        record: expect.objectContaining({ deletedAt }),
+        mutated: false,
+      },
+    })
+  })
+
+  it('accepts an empty update when a follow-up proves the row is absent', async () => {
+    const { repository } = repoWith([
+      { data: [row()], error: null },
+      { data: [], error: null },
+      { data: [], error: null },
+    ])
+    await expect(repository.tombstone('version-1')).resolves.toEqual({
+      ok: true,
+      value: { record: null, mutated: false },
+    })
+  })
+
+  it('rejects an update that returns a still-active row', async () => {
+    const { repository } = repoWith([
+      { data: [row()], error: null },
+      { data: [row()], error: null },
+    ])
+    await expect(repository.tombstone('version-1')).resolves.toEqual({
+      ok: false,
+      reason: 'failed',
+    })
+  })
+
+  it('propagates a failed follow-up read after an empty update', async () => {
+    const { repository } = repoWith([
+      { data: [row()], error: null },
+      { data: [], error: null },
+      { data: null, error: { code: '42501' } },
+    ])
+    await expect(repository.tombstone('version-1')).resolves.toEqual({
+      ok: false,
+      reason: 'forbidden',
+    })
+  })
+
+  it('rejects a malformed update response', async () => {
+    const { repository } = repoWith([
+      { data: [row()], error: null },
+      { data: [row({ deleted_at: 'invalid' })], error: null },
+    ])
+    await expect(repository.tombstone('version-1')).resolves.toEqual({
+      ok: false,
+      reason: 'invalid-data',
+    })
+  })
+
   it('treats a missing row as an idempotent success', async () => {
     const { repository } = repoWith({ data: [], error: null })
     await expect(repository.tombstone('missing')).resolves.toEqual({
