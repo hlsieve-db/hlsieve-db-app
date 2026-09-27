@@ -56,6 +56,19 @@ describe('what a folder or tag name may be', () => {
     expect(isDeckFolder(folder({ name: ' 大会用' }))).toBe(false)
   })
 
+  // The cloud table refuses a negative order, so a value only a hand-edited
+  // backup could carry must not reach the local store either: the account
+  // would refuse it for good and the change could never be sent.
+  it('refuses a folder order below zero, or one that is not a whole number', () => {
+    expect(isDeckFolder(folder({ sortOrder: 0 }))).toBe(true)
+    expect(isDeckFolder(folder({ sortOrder: -1 }))).toBe(false)
+    expect(isDeckFolder(folder({ sortOrder: 1.5 }))).toBe(false)
+    expect(isDeckFolder(folder({ sortOrder: Number.NaN }))).toBe(false)
+    expect(isDeckFolder(folder({ sortOrder: '1' as unknown as number }))).toBe(
+      false,
+    )
+  })
+
   it('allows a folder name up to fifty characters and no further', () => {
     expect(isDeckFolder(folder({ name: 'あ'.repeat(50) }))).toBe(true)
     expect(isDeckFolder(folder({ name: 'あ'.repeat(51) }))).toBe(false)

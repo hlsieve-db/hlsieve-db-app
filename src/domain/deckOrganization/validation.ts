@@ -41,7 +41,12 @@ export function isDeckFolder(value: unknown): value is DeckFolder {
     typeof value.id === 'string' &&
     value.id.length > 0 &&
     isValidName(value.name, DECK_FOLDER_NAME_MAX_LENGTH) &&
+    // Zero or above, matching the cloud table. A negative order reaches the
+    // local store only through a hand-edited backup, and the account would
+    // then refuse it for good, leaving an unsent change that can never be sent.
+    typeof value.sortOrder === 'number' &&
     Number.isSafeInteger(value.sortOrder) &&
+    value.sortOrder >= 0 &&
     isIsoDateString(value.createdAt) &&
     isIsoDateString(value.updatedAt)
   )
