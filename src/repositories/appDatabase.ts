@@ -58,6 +58,23 @@ export function upgradeAppDatabaseSchema(database: IDBDatabase): void {
   }
 }
 
+/**
+ * A version upgrade that another tab is holding open.
+ *
+ * Told apart from every other failure because the reporter can do something
+ * about this one, and only this one: close the other tab.
+ */
+export class AppDatabaseBlockedError extends Error {
+  constructor() {
+    super('Application database is blocked.')
+    this.name = 'AppDatabaseBlockedError'
+  }
+}
+
+export function isAppDatabaseBlockedError(error: unknown): boolean {
+  return error instanceof AppDatabaseBlockedError
+}
+
 export function openAppDatabase(
   databaseFactory: IDBFactory,
   namespace: LocalDataNamespace = ANONYMOUS_LOCAL_DATA_NAMESPACE,
@@ -67,12 +84,28 @@ export function openAppDatabase(
       indexedDbNameForNamespace(namespace),
       DB_VERSION,
     )
+    let blocked = false
     request.onupgradeneeded = () => upgradeAppDatabaseSchema(request.result)
-    request.onsuccess = () => resolve(request.result)
+    request.onsuccess = () => {
+      const database = request.result
+      // Asked to step aside when another tab upgrades the schema. Holding the
+      // connection open would block that tab's open request instead, which is
+      // the state this build cannot recover from without the reporter.
+      database.onversionchange = () => database.close()
+      // The other tab closed after this open was already reported as blocked,
+      // so the connection has nobody waiting for it.
+      if (blocked) {
+        database.close()
+        return
+      }
+      resolve(database)
+    }
     request.onerror = () =>
       reject(request.error ?? new Error('Failed to open application database.'))
-    request.onblocked = () =>
-      reject(new Error('Application database is blocked.'))
+    request.onblocked = () => {
+      blocked = true
+      reject(new AppDatabaseBlockedError())
+    }
   })
 }
 

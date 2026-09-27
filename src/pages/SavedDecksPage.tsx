@@ -22,6 +22,7 @@ import {
 } from '../domain/decks/backup'
 import type { Deck } from '../domain/decks/types'
 import type { CloudSyncedDeckRepository } from '../cloud/cloudSyncedDeckRepository'
+import { isAppDatabaseBlockedError } from '../repositories/appDatabase'
 import type { DeckFolderRepository } from '../repositories/deckFolderRepository'
 import type { DeckOrganizationRepository } from '../repositories/deckOrganizationRepository'
 import type { DeckTagRepository } from '../repositories/deckTagRepository'
@@ -41,7 +42,8 @@ import { useDocumentMetadata } from '../hooks/useDocumentMetadata'
 type DeckListState =
   | { status: 'loading' }
   | { status: 'loaded'; decks: Deck[] }
-  | { status: 'error' }
+  /** `blocked`: another tab is holding the old database version open. */
+  | { status: 'error'; blocked: boolean }
 
 type SavedDecksPageProps = {
   repository?: CloudSyncedDeckRepository
@@ -200,8 +202,13 @@ export function SavedDecksPage({
       (decks) => {
         if (active) setState({ status: 'loaded', decks })
       },
-      () => {
-        if (active) setState({ status: 'error' })
+      (error) => {
+        if (active) {
+          setState({
+            status: 'error',
+            blocked: isAppDatabaseBlockedError(error),
+          })
+        }
       },
     )
     return () => {
@@ -497,6 +504,13 @@ export function SavedDecksPage({
       {state.status === 'error' && (
         <div className="status-message status-message--error" role="alert">
           <p>デッキを読み込めませんでした。</p>
+          {state.blocked && (
+            <p>
+              {
+                'ほかのタブで HLSieve DB を開いている場合は、そのタブを閉じてから再試行してください。'
+              }
+            </p>
+          )}
           <button type="button" className="button" onClick={retryLoad}>
             再試行
           </button>

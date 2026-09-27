@@ -21,6 +21,8 @@ import {
 } from '../domain/storage/localDataNamespace'
 import {
   createIndexedDbStorePersistence,
+  isAppDatabaseBlockedError,
+  openAppDatabase,
   upgradeAppDatabaseSchema,
 } from './appDatabase'
 
@@ -541,5 +543,81 @@ describe('namespaced IndexedDB persistence', () => {
     expect(recordsIn('holocard-db--user-b', STORE_DECKS)).toEqual([
       { id: 'shared-id', name: 'B側' },
     ])
+  })
+})
+
+/**
+ * An open request the test drives by hand, so it can order the events the
+ * browser would otherwise decide: blocked first, success later, or neither.
+ */
+function openRequestFactory() {
+  const request = {
+    result: undefined as unknown as IDBDatabase,
+    onsuccess: null as (() => void) | null,
+    onerror: null as (() => void) | null,
+    onblocked: null as (() => void) | null,
+    onupgradeneeded: null as (() => void) | null,
+    error: null,
+  }
+  const close = vi.fn()
+  const database = {
+    objectStoreNames: { contains: () => true },
+    onversionchange: null as (() => void) | null,
+    close,
+  }
+  request.result = database as unknown as IDBDatabase
+
+  return {
+    factory: { open: () => request } as unknown as IDBFactory,
+    request,
+    database,
+    close,
+  }
+}
+
+describe('another tab holding the old database version', () => {
+  // Without this, the tab that has the database open keeps the next version
+  // from ever opening, and the reporter is given no way out.
+  it('closes this tab’s connection when another tab upgrades', async () => {
+    const { factory, request, database, close } = openRequestFactory()
+
+    const opened = openAppDatabase(factory)
+    request.onsuccess?.()
+    await opened
+
+    expect(close).not.toHaveBeenCalled()
+    database.onversionchange?.()
+    expect(close).toHaveBeenCalledTimes(1)
+  })
+
+  it('reports being blocked as its own kind of failure', async () => {
+    const { factory, request } = openRequestFactory()
+
+    const opened = openAppDatabase(factory)
+    request.onblocked?.()
+
+    await expect(opened).rejects.toSatisfy(isAppDatabaseBlockedError)
+  })
+
+  // The other tab closed after the wait was already given up on. Nobody holds
+  // this connection, and leaving it open would block the next attempt.
+  it('closes a connection that arrives after it was reported blocked', async () => {
+    const { factory, request, close } = openRequestFactory()
+
+    const opened = openAppDatabase(factory)
+    request.onblocked?.()
+    await expect(opened).rejects.toThrow()
+    request.onsuccess?.()
+
+    expect(close).toHaveBeenCalledTimes(1)
+  })
+
+  it('treats any other failure as an ordinary one', async () => {
+    const { factory, request } = openRequestFactory()
+
+    const opened = openAppDatabase(factory)
+    request.onerror?.()
+
+    await expect(opened).rejects.not.toSatisfy(isAppDatabaseBlockedError)
   })
 })

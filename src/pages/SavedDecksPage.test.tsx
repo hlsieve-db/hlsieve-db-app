@@ -24,6 +24,7 @@ import type { DeckFolderRepository } from '../repositories/deckFolderRepository'
 import type { DeckOrganizationRepository } from '../repositories/deckOrganizationRepository'
 import type { DeckTagRepository } from '../repositories/deckTagRepository'
 import type { CloudSyncedDeckRepository } from '../cloud/cloudSyncedDeckRepository'
+import { AppDatabaseBlockedError } from '../repositories/appDatabase'
 import type { DeckVersionRepository } from '../repositories/deckVersionRepository'
 import { withDeckVersionCascade } from '../repositories/deckVersionCascade'
 import { SavedDecksPage } from './SavedDecksPage'
@@ -331,6 +332,34 @@ describe('SavedDecksPage', () => {
     fireEvent.click(screen.getByRole('button', { name: '再試行' }))
     expect(await screen.findByText('デッキがありません')).toBeVisible()
     expect(listDecks).toHaveBeenCalledTimes(2)
+  })
+
+  // The one load failure the reporter can act on, so it says what to do.
+  it('names the other tab when the database is blocked', async () => {
+    const listDecks = vi.fn<() => Promise<Deck[]>>(async () => {
+      throw new AppDatabaseBlockedError()
+    })
+    renderPage(repository({ listDecks }))
+
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('デッキを読み込めませんでした。')
+    expect(alert).toHaveTextContent(
+      'ほかのタブで HLSieve DB を開いている場合は、そのタブを閉じてから再試行してください。',
+    )
+  })
+
+  it('says nothing about other tabs for an ordinary load failure', async () => {
+    renderPage(
+      repository({
+        listDecks: vi.fn<() => Promise<Deck[]>>(async () => {
+          throw new Error('blocked')
+        }),
+      }),
+    )
+
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('デッキを読み込めませんでした。')
+    expect(alert).not.toHaveTextContent('ほかのタブ')
   })
 
   it('exports all Decks with the local-date filename and privacy boundaries', async () => {
