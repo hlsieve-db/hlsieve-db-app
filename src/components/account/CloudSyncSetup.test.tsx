@@ -552,11 +552,17 @@ describe('taking the account’s folders and tags', () => {
     fireEvent.click(
       await screen.findByRole('button', { name: /クラウドへ保存/ }),
     )
-    await screen.findByText('有効')
+    // Removing a folder the account deleted is not a question, but the sentence
+    // saying what will go is on screen before it goes.
+    fireEvent.click(
+      await screen.findByRole('button', { name: '選択した内容で続行' }),
+    )
 
-    expect(
-      rendered.organizationStores.folders.deleteFolder,
-    ).toHaveBeenCalledWith('f1')
+    await waitFor(() =>
+      expect(
+        rendered.organizationStores.folders.deleteFolder,
+      ).toHaveBeenCalledWith('f1'),
+    )
     expect(
       rendered.wrappedOrganizationStores.folders.deleteFolder,
     ).not.toHaveBeenCalled()
@@ -645,6 +651,237 @@ describe('taking the account’s folders and tags', () => {
     expect(
       rendered.wrappedOrganizationStores.folders.saveFolder,
     ).not.toHaveBeenCalled()
+  })
+})
+
+/**
+ * The button that sends this device's folders and tags, for an account that
+ * turned Cloud Sync on before they existed and for anyone who wants to repeat
+ * the offer.
+ */
+describe('sending this device’s folders and tags on request', () => {
+  const SERVER_AT = '2026-09-27T04:56:42.700791+00:00'
+  const LOCAL_AT = '2026-09-27T00:00:00.000Z'
+
+  const localFolder = {
+    id: 'f1',
+    name: '大会用',
+    sortOrder: 0,
+    createdAt: LOCAL_AT,
+    updatedAt: LOCAL_AT,
+  }
+
+  function uploadCloud(
+    overrides: Record<string, unknown> = {},
+  ): Record<string, ReturnType<typeof vi.fn>> {
+    return {
+      listFolders: vi.fn(async () => ({ ok: true, value: [] })),
+      listTags: vi.fn(async () => ({ ok: true, value: [] })),
+      listOrganizations: vi.fn(async () => ({ ok: true, value: [] })),
+      upsertFolder: vi.fn(async () => ({
+        ok: true,
+        value: { written: true, skippedTombstone: false },
+      })),
+      upsertTag: vi.fn(async () => ({
+        ok: true,
+        value: { written: true, skippedTombstone: false },
+      })),
+      upsertOrganization: vi.fn(async () => ({
+        ok: true,
+        value: {
+          organization: {
+            deckId: 'deck-1',
+            tagIds: [],
+            createdAt: LOCAL_AT,
+            updatedAt: LOCAL_AT,
+          },
+          createdAt: SERVER_AT,
+          updatedAt: SERVER_AT,
+          deletedAt: null,
+        },
+      })),
+      tombstoneFolder: vi.fn(),
+      tombstoneTag: vi.fn(),
+      tombstoneOrganization: vi.fn(),
+      ...overrides,
+    }
+  }
+
+  function renderEnabled(cloudDeckOrganization: unknown) {
+    const storage = memoryStorage({
+      'hlsieve:cloud-sync--user-a': '{"version":1,"status":"enabled"}',
+    })
+    const rendered = renderSetup({
+      storage,
+      localDecks: [],
+      cloudDeckOrganization,
+    })
+    rendered.organizationStores.folders.listFolders = vi.fn(async () => [
+      localFolder,
+    ]) as never
+    return rendered
+  }
+
+  const uploadButton = () =>
+    screen.getByRole('button', { name: 'フォルダー・タグをクラウドへ保存' })
+
+  it('sends everything and says how much went', async () => {
+    const cloud = uploadCloud()
+    renderEnabled(cloud)
+
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'フォルダー・タグをクラウドへ保存',
+      }),
+    )
+
+    expect(
+      await screen.findByText(
+        /フォルダー1個・タグ0個・整理情報0個を保存しました/,
+      ),
+    ).toBeVisible()
+    expect(cloud.upsertFolder).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'f1' }),
+    )
+  })
+
+  // Uploading blind is only safe while the account holds nothing at all.
+  it('settles the two sides instead when the account already holds rows', async () => {
+    const cloud = uploadCloud({
+      listFolders: vi.fn(async () => ({
+        ok: true,
+        value: [
+          {
+            folder: {
+              ...localFolder,
+              createdAt: SERVER_AT,
+              updatedAt: SERVER_AT,
+            },
+            createdAt: SERVER_AT,
+            updatedAt: SERVER_AT,
+            deletedAt: null,
+          },
+        ],
+      })),
+    })
+    renderEnabled(cloud)
+
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'フォルダー・タグをクラウドへ保存',
+      }),
+    )
+
+    expect(await screen.findByText('すでに同じ内容です。')).toBeVisible()
+    expect(cloud.upsertFolder).not.toHaveBeenCalled()
+  })
+
+  it('asks rather than writing when the two sides disagree', async () => {
+    const cloud = uploadCloud({
+      listFolders: vi.fn(async () => ({
+        ok: true,
+        value: [
+          {
+            folder: {
+              ...localFolder,
+              name: '本番用',
+              createdAt: SERVER_AT,
+              updatedAt: SERVER_AT,
+            },
+            createdAt: SERVER_AT,
+            updatedAt: SERVER_AT,
+            deletedAt: null,
+          },
+        ],
+      })),
+    })
+    renderEnabled(cloud)
+
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'フォルダー・タグをクラウドへ保存',
+      }),
+    )
+
+    expect(
+      await screen.findByRole('heading', {
+        level: 4,
+        name: 'フォルダー名（1件）',
+      }),
+    ).toBeVisible()
+    expect(cloud.upsertFolder).not.toHaveBeenCalled()
+  })
+
+  it('reports a send that did not get through', async () => {
+    const cloud = uploadCloud({
+      upsertFolder: vi.fn(async () => ({ ok: false, reason: 'network' })),
+    })
+    renderEnabled(cloud)
+
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'フォルダー・タグをクラウドへ保存',
+      }),
+    )
+
+    expect(
+      await screen.findByText(/クラウドへ送れなかった項目があります/),
+    ).toBeVisible()
+  })
+
+  it('is absent for an account that has not set sync up', async () => {
+    renderSetup({ localDecks: [], cloudDeckOrganization: uploadCloud() })
+
+    expect(
+      screen.queryByRole('button', {
+        name: 'フォルダー・タグをクラウドへ保存',
+      }),
+    ).toBeNull()
+  })
+
+  it('is absent where Cloud Sync is not configured for these tables', async () => {
+    const storage = memoryStorage({
+      'hlsieve:cloud-sync--user-a': '{"version":1,"status":"enabled"}',
+    })
+    renderSetup({ storage, localDecks: [] })
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('button', {
+          name: 'フォルダー・タグをクラウドへ保存',
+        }),
+      ).toBeNull(),
+    )
+  })
+
+  it('cannot be pressed twice while it is working', async () => {
+    let release: () => void = () => undefined
+    // Only the first read is held: the background retry reads the same account,
+    // and leaving that one hanging would keep an attempt in flight past the end
+    // of this test.
+    const cloud = uploadCloud({
+      listFolders: vi
+        .fn(async () => ({ ok: true, value: [] }))
+        .mockImplementationOnce(
+          () =>
+            new Promise((resolve) => {
+              release = () => resolve({ ok: true, value: [] })
+            }),
+        ),
+    })
+    renderEnabled(cloud)
+
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'フォルダー・タグをクラウドへ保存',
+      }),
+    )
+
+    await waitFor(() => expect(uploadButton()).toBeDisabled())
+
+    release()
+    // Settled before the test ends, so nothing is left in flight for the next one.
+    await waitFor(() => expect(uploadButton()).toBeEnabled())
   })
 })
 

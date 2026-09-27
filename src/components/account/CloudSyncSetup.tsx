@@ -59,7 +59,13 @@ import {
   recordPendingDeckOrganizationSync,
   recordPendingDeckTagSync,
 } from '../../domain/cloud/pendingDeckOrganizationSync'
-import type { DeckFolder, DeckTag } from '../../domain/deckOrganization/types'
+import type {
+  DeckFolder,
+  DeckOrganization,
+  DeckTag,
+} from '../../domain/deckOrganization/types'
+import { syncLocalDeckOrganizationToCloud } from '../../cloud/deckOrganizationUpload'
+import { recordUploadedDeckOrganization } from '../../domain/cloud/deckOrganizationUploadState'
 import { OrganizationConflictChooser } from './OrganizationConflictChooser'
 import { useAppRepositories } from '../../repositories/useAppRepositories'
 import { unsentChangeMessage } from './unsentChangeMessage'
@@ -172,6 +178,17 @@ export type CloudSyncSetupProps = {
 const ORGANIZATION_FAILURE_MESSAGE =
   'クラウドへ送れなかった項目があります。通信状況を確認して、あとでもう一度お試しください。'
 
+type OrganizationUpload =
+  | { step: 'idle' }
+  | { step: 'working' }
+  | {
+      step: 'done'
+      uploaded: { folders: number; tags: number; organizations: number }
+    }
+  /** The account already held something, so the two sides were settled instead. */
+  | { step: 'settled' }
+  | { step: 'error' }
+
 type OrganizationReconciliation = {
   account: string
   plan: DeckOrganizationReconciliationPlan
@@ -216,6 +233,9 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
    * chosen there, and because a row whose deck is not here is not taken at all.
    */
   const [organization, setOrganization] = useState<OrganizationReconciliation>()
+  /** What the button that sends this device's folders and tags is doing. */
+  const [organizationUpload, setOrganizationUpload] =
+    useState<OrganizationUpload>({ step: 'idle' })
   // Stamped with the account it describes, so switching shows the new
   // account's own state rather than the previous one's count, time or
   // "sending" line. The stamp is the whole isolation: nothing here is keyed by
@@ -448,14 +468,31 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
    * not worth a word to the reporter: there is nothing to read until the
    * migration is applied, and their own device is unaffected.
    */
-  const reconcileOrganization = async (): Promise<void> => {
-    if (!cloudDeckOrganization) return
+  /**
+   * Both sides, read once.
+   *
+   * The upload decision and the plan ask the same question of the account, and
+   * reading it twice is how one of them ends up fixed and the other forgotten.
+   */
+  const readOrganizationSides = async (): Promise<
+    | {
+        ok: true
+        plan: DeckOrganizationReconciliationPlan
+        local: {
+          folders: DeckFolder[]
+          tags: DeckTag[]
+          organizations: DeckOrganization[]
+        }
+      }
+    | { ok: false }
+  > => {
+    if (!cloudDeckOrganization) return { ok: false }
     const [folders, tags, organizations] = await Promise.all([
       cloudDeckOrganization.listFolders(),
       cloudDeckOrganization.listTags(),
       cloudDeckOrganization.listOrganizations(),
     ])
-    if (!folders.ok || !tags.ok || !organizations.ok) return
+    if (!folders.ok || !tags.ok || !organizations.ok) return { ok: false }
 
     const [localFolders, localTags, localOrganizations, localDeckList] =
       await Promise.all([
@@ -485,19 +522,108 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
         Object.keys(readPendingDeckFolderSync(store, namespace)).length > 0,
     })
 
-    if (plan.conflicts.length === 0) {
+    return {
+      ok: true,
+      plan,
+      local: {
+        folders: localFolders,
+        tags: localTags,
+        organizations: localOrganizations,
+      },
+    }
+  }
+
+  /**
+   * Reads the account's folders, tags and organization, and either applies what
+   * needs no answer or asks.
+   *
+   * An account whose schema does not have these tables yet is not an error and
+   * not worth a word to the reporter: there is nothing to read until the
+   * migration is applied, and their own device is unaffected.
+   */
+  const reconcileOrganization = async (): Promise<void> => {
+    const sides = await readOrganizationSides()
+    if (!sides.ok) return
+    await settleOrganization(sides)
+  }
+
+  const settleOrganization = async (sides: {
+    plan: DeckOrganizationReconciliationPlan
+    local: { folders: DeckFolder[]; tags: DeckTag[] }
+  }): Promise<void> => {
+    const { plan } = sides
+    // Removing a folder the account deleted is not a question, but it is not
+    // something to do behind the reporter's back either: the chooser is shown so
+    // the sentence saying what will go is on screen before it goes.
+    const removesDefinitions =
+      plan.folders.tombstoned.length + plan.tags.tombstoned.length > 0
+    if (plan.conflicts.length === 0 && !removesDefinitions) {
       await applyOrganizationPlan(plan, {})
       return
     }
     setOrganization({
       account: accountKey,
       plan,
-      folders: localFolders,
-      tags: localTags,
+      folders: sides.local.folders,
+      tags: sides.local.tags,
       // Empty on purpose: a default answer would be the code deciding.
       resolutions: {},
       applying: false,
     })
+  }
+
+  /**
+   * Sends this device's folders, tags and organization, on the reporter's say-so
+   * or as the first upload.
+   *
+   * Uploading without reading is only safe while the account holds no rows at
+   * all. One tombstone is enough to make it unsafe: this device's organization
+   * may name a folder the account has deleted, and the table would accept that
+   * row, handing every other device an assignment nobody made. So where there is
+   * anything there, this settles the two sides instead of writing over them.
+   */
+  const uploadOrganization = async (): Promise<void> => {
+    if (!cloudDeckOrganization) return
+    setOrganizationUpload({ step: 'working' })
+    const sides = await readOrganizationSides()
+    if (!sides.ok) {
+      setOrganizationUpload({ step: 'error' })
+      return
+    }
+
+    if (sides.plan.cloudRowCount > 0) {
+      setOrganizationUpload({ step: 'idle' })
+      await settleOrganization(sides)
+      if (sides.plan.conflicts.length === 0) {
+        setOrganizationUpload({ step: 'settled' })
+      }
+      return
+    }
+
+    const result = await syncLocalDeckOrganizationToCloud({
+      local: sides.local,
+      cloud: cloudDeckOrganization,
+    })
+    if (
+      result.uploaded.folders +
+        result.uploaded.tags +
+        result.uploaded.organizations >
+      0
+    ) {
+      noteUploadSuccess()
+    }
+    update({
+      pending:
+        pendingDeckSyncCount(store, namespace) +
+        pendingDeckOrganizationSyncCount(store, namespace) +
+        pendingDeckVersionSyncCount(store, namespace),
+    })
+    if (!result.ok) {
+      setOrganizationUpload({ step: 'error' })
+      return
+    }
+    recordUploadedDeckOrganization(undefined, store, namespace)
+    setOrganizationUpload({ step: 'done', uploaded: result.uploaded })
   }
 
   const applyOrganizationPlan = async (
@@ -680,6 +806,38 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
       {/* Shown by either flow, because either can find the two sides holding
           different versions of the same deck. Until every question is answered
           nothing has been written on either side. */}
+      {status === 'enabled' && Boolean(cloudDeckOrganization) && (
+        <div className="account-cloud-sync__organization-upload">
+          <button
+            type="button"
+            className="button button--secondary"
+            disabled={organizationUpload.step === 'working'}
+            onClick={() => void uploadOrganization()}
+          >
+            フォルダー・タグをクラウドへ保存
+          </button>
+          <p>この端末のフォルダー・タグ・整理情報をアカウントへ送ります。</p>
+          {organizationUpload.step === 'working' && (
+            <p role="status">保存しています…</p>
+          )}
+          {organizationUpload.step === 'done' && (
+            <p role="status">
+              フォルダー{organizationUpload.uploaded.folders}個・タグ
+              {organizationUpload.uploaded.tags}個・整理情報
+              {organizationUpload.uploaded.organizations}個を保存しました。
+            </p>
+          )}
+          {organizationUpload.step === 'settled' && (
+            <p role="status">すでに同じ内容です。</p>
+          )}
+          {organizationUpload.step === 'error' && (
+            <p className="status-message status-message--error" role="alert">
+              {ORGANIZATION_FAILURE_MESSAGE}
+            </p>
+          )}
+        </div>
+      )}
+
       {organizationConflicts !== undefined && (
         <>
           <OrganizationConflictChooser

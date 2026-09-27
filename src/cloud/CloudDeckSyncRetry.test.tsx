@@ -171,7 +171,13 @@ describe('the stages of one attempt', () => {
     upsertFolder?: Mock
     upsertDeck?: Mock
   } = {}) {
-    const storage = memoryStorage({ 'hlsieve:cloud-sync--user-a': ENABLED })
+    // These cases are about the stages of one attempt, not the first upload, so
+    // the device is marked as having already offered what it holds.
+    const storage = memoryStorage({
+      'hlsieve:cloud-sync--user-a': ENABLED,
+      'hlsieve:cloud-organization-uploaded--user-a':
+        '{"version":1,"at":"2026-09-27T00:00:00.000Z"}',
+    })
     writePendingDeckSync({ a: 'upsert' }, storage, userA)
     storage.setItem(
       'hlsieve:cloud-sync-pending-folders--user-a',

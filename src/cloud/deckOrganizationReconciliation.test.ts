@@ -639,6 +639,119 @@ function queues() {
   }
 }
 
+/**
+ * Sending what only this device has is not part of reading the account: it is
+ * the first upload, and the button that repeats it, asking for exactly that.
+ */
+describe('sending what only this device has', () => {
+  const localSide = {
+    local: {
+      folders: [folder('f1', '大会用')],
+      tags: [tag('t1', '赤')],
+      organizations: [
+        organization('deck-1', { folderId: 'f1', tagIds: ['t1'] }),
+      ],
+    },
+  }
+
+  it('sends nothing unless the caller asks for it', async () => {
+    const cloud = cloudStore()
+
+    await applyDeckOrganizationReconciliation(
+      plan(localSide),
+      {},
+      {
+        local: localStores(),
+        cloud,
+      },
+    )
+
+    expect(cloud.upsertFolder).not.toHaveBeenCalled()
+    expect(cloud.upsertTag).not.toHaveBeenCalled()
+    expect(cloud.upsertOrganization).not.toHaveBeenCalled()
+  })
+
+  it('sends the definitions before the rows that name them', async () => {
+    const order: string[] = []
+    const cloud = cloudStore({
+      upsertFolder: vi.fn(async () => {
+        order.push('folder')
+        return {
+          ok: true as const,
+          value: { written: true, skippedTombstone: false },
+        }
+      }),
+      upsertTag: vi.fn(async () => {
+        order.push('tag')
+        return {
+          ok: true as const,
+          value: { written: true, skippedTombstone: false },
+        }
+      }),
+      upsertOrganization: vi.fn(async () => {
+        order.push('organization')
+        return {
+          ok: true as const,
+          value: {
+            organization: organization('deck-1'),
+            createdAt: SERVER_AT,
+            updatedAt: SERVER_AT,
+            deletedAt: null,
+          },
+        }
+      }),
+    })
+
+    const result = await applyDeckOrganizationReconciliation(
+      plan(localSide),
+      {},
+      { local: localStores(), cloud, uploadLocalOnly: true },
+    )
+
+    expect(order).toEqual(['folder', 'tag', 'organization'])
+    expect(result.uploaded).toBe(3)
+  })
+
+  // The write goes through the function that refuses to revive one.
+  it('does not revive a definition the account holds as a tombstone', async () => {
+    const cloud = cloudStore({
+      upsertFolder: vi.fn(async () => ({
+        ok: true as const,
+        value: { written: false, skippedTombstone: true },
+      })),
+    })
+
+    const result = await applyDeckOrganizationReconciliation(
+      plan(localSide),
+      {},
+      { local: localStores(), cloud, uploadLocalOnly: true },
+    )
+
+    // The tag and the organization still counted; the folder did not.
+    expect(result.uploaded).toBe(2)
+  })
+
+  it('remembers what the account refused, and carries on', async () => {
+    const pending = queues()
+    const cloud = cloudStore({
+      upsertFolder: vi.fn(async () => ({
+        ok: false as const,
+        reason: 'network' as const,
+      })),
+    })
+
+    const result = await applyDeckOrganizationReconciliation(
+      plan(localSide),
+      {},
+      { local: localStores(), cloud, pending, uploadLocalOnly: true },
+    )
+
+    expect(pending.calls).toContain('folder:record:f1:upsert')
+    expect(result.failure).toBe('network')
+    expect(cloud.upsertTag).toHaveBeenCalled()
+  })
+})
+
 describe('applying what the account has, and what the reporter chose', () => {
   /**
    * The deletion came from the account. Writing it through a wrapped store would

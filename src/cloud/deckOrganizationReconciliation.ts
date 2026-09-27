@@ -478,6 +478,19 @@ export type DeckOrganizationApplyOptions = {
   }
   cloud: CloudDeckOrganizationRepository | null
   /**
+   * Whether the folders, tags and organization only this device has should also
+   * be sent to the account.
+   *
+   * False unless a caller says otherwise, and the ordinary read from the account
+   * never says otherwise: taking the account's own rows and sending this
+   * device's in the same breath would turn a download into an upload nobody
+   * asked for. True only where the reporter has asked for exactly that — the
+   * first upload, and the button that repeats it — and even then a folder or tag
+   * the account holds as a tombstone stays deleted, because the write goes
+   * through the function that refuses to revive one.
+   */
+  uploadLocalOnly?: boolean
+  /**
    * The unsent-change queues, which resolving a conflict has to keep honest: an
    * entry in one is an older intent for the same thing, and a retry would act on
    * it later.
@@ -530,7 +543,13 @@ export type DeckOrganizationApplyResult = {
 export async function applyDeckOrganizationReconciliation(
   plan: DeckOrganizationReconciliationPlan,
   resolutions: DeckOrganizationResolutions,
-  { local, cloud, pending, onUploadSuccess }: DeckOrganizationApplyOptions,
+  {
+    local,
+    cloud,
+    pending,
+    onUploadSuccess,
+    uploadLocalOnly = false,
+  }: DeckOrganizationApplyOptions,
 ): Promise<DeckOrganizationApplyResult> {
   const resolved: string[] = []
   const unresolved: string[] = []
@@ -575,6 +594,35 @@ export async function applyDeckOrganizationReconciliation(
       ),
     ])
     restored += plan.folders.reordered.length
+  }
+
+  if (uploadLocalOnly && cloud) {
+    for (const folder of plan.folders.localOnly) {
+      const result = await cloud.upsertFolder(folder)
+      if (!result.ok) {
+        failure ??= result.reason
+        pending?.folders.record(folder.id, 'upsert')
+        continue
+      }
+      pending?.folders.clear(folder.id)
+      if (result.value.written) {
+        uploaded += 1
+        onUploadSuccess?.()
+      }
+    }
+    for (const tag of plan.tags.localOnly) {
+      const result = await cloud.upsertTag(tag)
+      if (!result.ok) {
+        failure ??= result.reason
+        pending?.tags.record(tag.id, 'upsert')
+        continue
+      }
+      pending?.tags.clear(tag.id)
+      if (result.value.written) {
+        uploaded += 1
+        onUploadSuccess?.()
+      }
+    }
   }
 
   const settleDefinitionConflict = async (
@@ -650,6 +698,21 @@ export async function applyDeckOrganizationReconciliation(
   for (const organization of plan.organizations.cloudOnly) {
     await local.organizations.saveOrganization(organization)
     restored += 1
+  }
+
+  if (uploadLocalOnly && cloud) {
+    // Last, now that every definition these rows name is in the account.
+    for (const organization of plan.organizations.localOnly) {
+      const result = await cloud.upsertOrganization(organization)
+      if (!result.ok) {
+        failure ??= result.reason
+        pending?.organizations.record(organization.deckId, 'upsert')
+        continue
+      }
+      pending?.organizations.clear(organization.deckId)
+      uploaded += 1
+      onUploadSuccess?.()
+    }
   }
 
   for (const conflict of plan.conflicts) {

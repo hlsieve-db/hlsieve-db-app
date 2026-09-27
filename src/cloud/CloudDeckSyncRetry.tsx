@@ -20,6 +20,11 @@ import {
   recordPendingDeckOrganizationSync,
   recordPendingDeckTagSync,
 } from '../domain/cloud/pendingDeckOrganizationSync'
+import {
+  hasUploadedDeckOrganization,
+  recordUploadedDeckOrganization,
+} from '../domain/cloud/deckOrganizationUploadState'
+import { syncLocalDeckOrganizationToCloud } from './deckOrganizationUpload'
 import { retryPendingDeckOrganizationSync } from './retryPendingDeckOrganizationSync'
 import { retryPendingDeckSync } from './retryPendingDeckSync'
 import { retryPendingDeckVersionSync } from './retryPendingDeckVersionSync'
@@ -117,6 +122,9 @@ export function CloudDeckSyncRetry({
       // Reported only to this account's listener, and only while it is still
       // mounted, so an attempt left over from a previous account cannot make
       // the current one look busy.
+      const noteUploadAcross = () =>
+        recordCloudUploadSuccess(undefined, storage, namespace)
+
       const report = (result: { ok: boolean } | undefined) => {
         if (cancelled) return
         notifyRetrying.current?.(false)
@@ -135,10 +143,82 @@ export function CloudDeckSyncRetry({
 
       if (!cancelled) notifyRetrying.current?.(true)
 
+      /**
+       * The first upload, for an account that turned Cloud Sync on before
+       * folders and tags existed.
+       *
+       * That account never reaches the moment where the first upload would
+       * happen, so it is looked for here instead — once, and only while the
+       * account holds no rows at all. One tombstone is enough to stop it: this
+       * device's organization may name a folder the account has deleted, and
+       * writing that row would hand every other device an assignment nobody
+       * made. With anything there, the panel settles the two sides instead.
+       *
+       * The mark in storage is an optimisation, not the safety rule. Losing it
+       * costs three reads, because the row count is what actually decides.
+       */
+      const offerOrganizationOnce = async () => {
+        if (!cloudDeckOrganization) return
+        if (!isCloudSyncEnabled(namespace, storage)) return
+        if (hasUploadedDeckOrganization(storage, namespace)) return
+
+        const [folders, tags, organizations] = await Promise.all([
+          cloudDeckOrganization.listFolders(),
+          cloudDeckOrganization.listTags(),
+          cloudDeckOrganization.listOrganizations(),
+        ])
+        // Unreadable, or a schema that has no such tables yet: nothing to
+        // decide from, and nothing worth telling the reporter. Tried again the
+        // next time this runs.
+        if (!folders.ok || !tags.ok || !organizations.ok) return
+
+        if (
+          folders.value.length +
+            tags.value.length +
+            organizations.value.length >
+          0
+        ) {
+          // The account already holds something, so there is no migration to do
+          // here: the panel reconciles the two sides. Marked so this does not
+          // read three tables on every load.
+          recordUploadedDeckOrganization(undefined, storage, namespace)
+          return
+        }
+
+        const [localFolders, localTags, localOrganizations] = await Promise.all(
+          [
+            localDeckFolders.listFolders(),
+            localDeckTags.listTags(),
+            localDeckOrganizations.listOrganizations(),
+          ],
+        )
+        const result = await syncLocalDeckOrganizationToCloud({
+          local: {
+            folders: localFolders,
+            tags: localTags,
+            organizations: localOrganizations,
+          },
+          cloud: cloudDeckOrganization,
+        })
+        if (
+          result.uploaded.folders +
+            result.uploaded.tags +
+            result.uploaded.organizations >
+          0
+        ) {
+          noteUploadAcross()
+        }
+        // Only a complete offer is marked. A run that stopped part way leaves
+        // the mark off, and the next attempt finds rows in the account and
+        // hands the rest to the panel.
+        if (result.ok) {
+          recordUploadedDeckOrganization(undefined, storage, namespace)
+        }
+      }
+
       const attemptPromise = (async (): Promise<{ ok: boolean }> => {
         const enabled = () => isCloudSyncEnabled(namespace, storage)
-        const noteUpload = () =>
-          recordCloudUploadSuccess(undefined, storage, namespace)
+        const noteUpload = noteUploadAcross
         const organizationQueues = () => ({
           folders: {
             read: () => readPendingDeckFolderSync(storage, namespace),
@@ -256,7 +336,10 @@ export function CloudDeckSyncRetry({
           onUploadSuccess: noteUpload,
           only: 'organizations',
         })
-        return { ok: organizationResult.ok }
+        if (!organizationResult.ok) return { ok: false }
+
+        await offerOrganizationOnce()
+        return { ok: true }
       })().catch(() => {
         // A throw here means the device's own store could not be read, which
         // a cloud failure result cannot express. The entries stay queued for
