@@ -1347,3 +1347,446 @@ describe('when the folders and tags cannot be read', () => {
     expect(downloadFile).not.toHaveBeenCalled()
   })
 })
+
+/**
+ * Organizing decks on this screen: the folder column, the tag chips, the
+ * dialog one deck is organized in, and the panel the folders and tags
+ * themselves are managed from.
+ */
+describe('organizing the saved decks', () => {
+  function organizedStores() {
+    const stores = organizationRepositories({
+      folders: [folder('f1', '大会用', 1), folder('f2', '練習用', 2)],
+      tags: [tag('t1', '赤'), tag('t2', '青')],
+      organizations: [
+        organization('deck-1', { folderId: 'f1', tagIds: ['t1'] }),
+        organization('deck-2', { folderId: 'f2', tagIds: ['t1', 't2'] }),
+      ],
+    })
+    // Writes land in the same arrays the reads come from, so the screen sees
+    // what it stored rather than what it hoped it stored.
+    stores.deckFolders.saveFolder = vi.fn(async (value) => {
+      const index = stores.folders.findIndex((item) => item.id === value.id)
+      if (index < 0) stores.folders.push(value)
+      else stores.folders[index] = value
+    })
+    stores.deckFolders.saveFolderOrder = vi.fn(async (values) => {
+      for (const value of values) {
+        const index = stores.folders.findIndex((item) => item.id === value.id)
+        if (index >= 0) stores.folders[index] = value
+      }
+    })
+    stores.deckFolders.deleteFolder = vi.fn(async (id) => {
+      stores.folders.splice(
+        stores.folders.findIndex((item) => item.id === id),
+        1,
+      )
+      let changed = 0
+      stores.organizations.forEach((row, index) => {
+        if (row.folderId !== id) return
+        const next = { ...row }
+        delete next.folderId
+        stores.organizations[index] = next
+        changed += 1
+      })
+      return changed
+    })
+    stores.deckTags.saveTag = vi.fn(async (value) => {
+      const index = stores.tags.findIndex((item) => item.id === value.id)
+      if (index < 0) stores.tags.push(value)
+      else stores.tags[index] = value
+    })
+    stores.deckTags.deleteTag = vi.fn(async (id) => {
+      stores.tags.splice(
+        stores.tags.findIndex((item) => item.id === id),
+        1,
+      )
+      let changed = 0
+      stores.organizations.forEach((row, index) => {
+        if (!row.tagIds.includes(id)) return
+        stores.organizations[index] = {
+          ...row,
+          tagIds: row.tagIds.filter((value) => value !== id),
+        }
+        changed += 1
+      })
+      return changed
+    })
+    stores.deckOrganizations.saveOrganization = vi.fn(async (value) => {
+      const index = stores.organizations.findIndex(
+        (item) => item.deckId === value.deckId,
+      )
+      if (index < 0) stores.organizations.push(value)
+      else stores.organizations[index] = value
+    })
+    return stores
+  }
+
+  const twoDecks = [
+    deck({ id: 'deck-1', name: '赤単' }),
+    deck({ id: 'deck-2', name: '青単' }),
+  ]
+
+  async function renderOrganized(
+    stores = organizedStores(),
+    decks = twoDecks,
+    overrides: Partial<CloudSyncedDeckRepository> = {},
+  ) {
+    const repo = repository({
+      listDecks: vi.fn(async () => decks),
+      ...overrides,
+    })
+    renderPage(repo, undefined, stores)
+    await organizationLoaded(stores)
+    await screen.findByRole('heading', { name: '赤単' })
+    return { repo, stores }
+  }
+
+  const deckNames = () =>
+    screen
+      .getAllByRole('heading', { level: 2 })
+      .map((heading) => heading.textContent)
+      .filter((name) => name === '赤単' || name === '青単')
+
+  it('shows what each deck is organized by', async () => {
+    await renderOrganized()
+
+    const cards = screen.getAllByRole('listitem')
+    expect(cards[0]).toHaveTextContent('大会用')
+    expect(cards[0]).toHaveTextContent('赤')
+    expect(cards[1]).toHaveTextContent('練習用')
+  })
+
+  it('says so for a deck in no folder', async () => {
+    const stores = organizedStores()
+    stores.organizations.length = 0
+    await renderOrganized(stores)
+
+    expect(screen.getAllByRole('listitem')[0]).toHaveTextContent(
+      'フォルダーなし',
+    )
+  })
+
+  // Every tag is rendered; the stylesheet hides the ones past the limit on a
+  // narrow screen, and this count is what stands in for them there.
+  it('counts the tags a narrow card cannot show', async () => {
+    const stores = organizedStores()
+    stores.tags.push(tag('t3', '緑'), tag('t4', '黄'))
+    stores.organizations[0] = organization('deck-1', {
+      folderId: 'f1',
+      tagIds: ['t1', 't2', 't3', 't4'],
+    })
+    await renderOrganized(stores)
+
+    expect(screen.getAllByRole('listitem')[0]).toHaveTextContent('+1')
+  })
+
+  // Stored in id order, read in name order.
+  it('reads the tags on a card by name, not by how they are stored', async () => {
+    const stores = organizedStores()
+    stores.tags.length = 0
+    stores.tags.push(tag('t1', 'ｚ青'), tag('t2', 'Ａ赤'))
+    stores.organizations[0] = organization('deck-1', {
+      folderId: 'f1',
+      tagIds: ['t1', 't2'],
+    })
+    await renderOrganized(stores)
+
+    const chips = Array.from(
+      (screen.getAllByRole('listitem')[0] as HTMLElement).querySelectorAll(
+        '.deck-list__tag',
+      ),
+    ).map((chip) => chip.textContent)
+    expect(chips).toEqual(['Ａ赤', 'ｚ青'])
+  })
+
+  it('narrows the list to one folder', async () => {
+    await renderOrganized()
+
+    fireEvent.click(screen.getByRole('button', { name: '大会用 1件' }))
+
+    expect(deckNames()).toEqual(['赤単'])
+  })
+
+  it('narrows the list to the decks in no folder', async () => {
+    const stores = organizedStores()
+    stores.organizations[1] = organization('deck-2', { tagIds: [] })
+    await renderOrganized(stores)
+
+    fireEvent.click(screen.getByRole('button', { name: 'フォルダーなし 1件' }))
+
+    expect(deckNames()).toEqual(['青単'])
+  })
+
+  // Two tags means both, not either.
+  it('narrows to the decks carrying every selected tag', async () => {
+    await renderOrganized()
+
+    fireEvent.click(screen.getByRole('checkbox', { name: '赤' }))
+    expect(deckNames()).toEqual(['赤単', '青単'])
+
+    fireEvent.click(screen.getByRole('checkbox', { name: '青' }))
+    expect(deckNames()).toEqual(['青単'])
+  })
+
+  it('offers a way out when nothing matches, and says so in its own words', async () => {
+    await renderOrganized()
+
+    fireEvent.click(screen.getByRole('button', { name: '大会用 1件' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: '青' }))
+
+    expect(deckNames()).toEqual([])
+    expect(
+      screen.getByText('絞り込み条件に一致するデッキがありません。'),
+    ).toBeVisible()
+    // Not the message for a collection with no decks at all.
+    expect(screen.queryByText('デッキがありません')).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: '絞り込みを解除' }))
+
+    expect(deckNames()).toEqual(['赤単', '青単'])
+  })
+
+  it('organizes one deck through the dialog', async () => {
+    const { stores } = await renderOrganized()
+
+    fireEvent.click(screen.getByRole('button', { name: '赤単を整理' }))
+    const dialog = await screen.findByRole('dialog', { name: '「赤単」を整理' })
+    fireEvent.change(within(dialog).getByLabelText('フォルダー'), {
+      target: { value: 'f2' },
+    })
+    fireEvent.click(within(dialog).getByRole('checkbox', { name: '青' }))
+    fireEvent.click(within(dialog).getByRole('button', { name: '保存' }))
+
+    await waitFor(() =>
+      expect(stores.deckOrganizations.saveOrganization).toHaveBeenCalledWith(
+        expect.objectContaining({
+          deckId: 'deck-1',
+          folderId: 'f2',
+          tagIds: ['t1', 't2'],
+        }),
+      ),
+    )
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('dialog', { name: '「赤単」を整理' }),
+      ).toBeNull(),
+    )
+    expect(screen.getAllByRole('listitem')[0]).toHaveTextContent('練習用')
+  })
+
+  it('keeps the row when the reporter clears it', async () => {
+    const { stores } = await renderOrganized()
+
+    fireEvent.click(screen.getByRole('button', { name: '赤単を整理' }))
+    const dialog = await screen.findByRole('dialog', { name: '「赤単」を整理' })
+    fireEvent.change(within(dialog).getByLabelText('フォルダー'), {
+      target: { value: '' },
+    })
+    fireEvent.click(within(dialog).getByRole('checkbox', { name: '赤' }))
+    fireEvent.click(within(dialog).getByRole('button', { name: '保存' }))
+
+    await waitFor(() =>
+      expect(stores.deckOrganizations.saveOrganization).toHaveBeenCalled(),
+    )
+    // Cleared on purpose, which is not the same as never organized.
+    expect(stores.organizations.map((row) => row.deckId)).toContain('deck-1')
+    expect(
+      stores.organizations.find((row) => row.deckId === 'deck-1'),
+    ).toMatchObject({ tagIds: [] })
+    expect(stores.deckOrganizations.deleteOrganization).not.toHaveBeenCalled()
+  })
+
+  it('reports a failed save and leaves the dialog open', async () => {
+    const stores = organizedStores()
+    stores.deckOrganizations.saveOrganization = vi.fn(async () => {
+      throw new Error('blocked')
+    })
+    await renderOrganized(stores)
+
+    fireEvent.click(screen.getByRole('button', { name: '赤単を整理' }))
+    fireEvent.click(await screen.findByRole('button', { name: '保存' }))
+
+    expect(
+      await screen.findByText('デッキの整理情報を保存できませんでした。'),
+    ).toBeVisible()
+    expect(screen.getByRole('dialog', { name: '「赤単」を整理' })).toBeVisible()
+  })
+
+  it('creates a folder and shows it in the column', async () => {
+    const { stores } = await renderOrganized()
+
+    fireEvent.change(screen.getByLabelText('新しいフォルダー名'), {
+      target: { value: '新フォルダー' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'フォルダーを追加' }))
+
+    await waitFor(() =>
+      expect(stores.deckFolders.saveFolder).toHaveBeenCalledTimes(1),
+    )
+    expect(
+      await screen.findByRole('button', { name: '新フォルダー 0件' }),
+    ).toBeVisible()
+  })
+
+  it('refuses a folder name already in use, and says why', async () => {
+    const { stores } = await renderOrganized()
+
+    fireEvent.change(screen.getByLabelText('新しいフォルダー名'), {
+      target: { value: '大会用' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'フォルダーを追加' }))
+
+    expect(
+      await screen.findByText(
+        'フォルダーを追加できませんでした。名前が重複していないか確認してください。',
+      ),
+    ).toBeVisible()
+    expect(stores.deckFolders.saveFolder).not.toHaveBeenCalled()
+  })
+
+  it('renames a folder', async () => {
+    await renderOrganized()
+
+    fireEvent.click(screen.getByRole('button', { name: '大会用の名前を変更' }))
+    fireEvent.change(screen.getByLabelText('大会用の新しい名前'), {
+      target: { value: '本番用' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '名前を保存' }))
+
+    expect(
+      await screen.findByRole('button', { name: '本番用 1件' }),
+    ).toBeVisible()
+  })
+
+  it('moves a folder, and writes the whole order once', async () => {
+    const { stores } = await renderOrganized()
+
+    fireEvent.click(screen.getByRole('button', { name: '大会用を下へ移動' }))
+
+    await waitFor(() =>
+      expect(stores.deckFolders.saveFolderOrder).toHaveBeenCalledTimes(1),
+    )
+    await waitFor(() =>
+      expect(
+        screen
+          .getAllByRole('button', { name: /件$/ })
+          .map((button) => button.getAttribute('aria-label')),
+      ).toEqual([
+        'すべて 2件',
+        'フォルダーなし 0件',
+        '練習用 1件',
+        '大会用 1件',
+      ]),
+    )
+  })
+
+  it('takes a deleted folder off its decks and out of the column', async () => {
+    const { stores } = await renderOrganized()
+
+    fireEvent.click(screen.getByRole('button', { name: '大会用を削除' }))
+    fireEvent.click(
+      within(
+        screen.getByRole('alertdialog', { name: 'フォルダー削除の確認' }),
+      ).getByRole('button', { name: '削除する' }),
+    )
+
+    await waitFor(() =>
+      expect(stores.deckFolders.deleteFolder).toHaveBeenCalledWith('f1'),
+    )
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: '大会用 1件' })).toBeNull(),
+    )
+    // The deck stays, now in no folder.
+    expect(deckNames()).toEqual(['赤単', '青単'])
+    expect(screen.getAllByRole('listitem')[0]).toHaveTextContent(
+      'フォルダーなし',
+    )
+  })
+
+  // The folder it named is gone, so keeping it selected would narrow the list
+  // by something the reporter can no longer see or undo.
+  it('returns to every deck when the selected folder is deleted', async () => {
+    await renderOrganized()
+
+    fireEvent.click(screen.getByRole('button', { name: '大会用 1件' }))
+    expect(deckNames()).toEqual(['赤単'])
+
+    fireEvent.click(screen.getByRole('button', { name: '大会用を削除' }))
+    fireEvent.click(
+      within(
+        screen.getByRole('alertdialog', { name: 'フォルダー削除の確認' }),
+      ).getByRole('button', { name: '削除する' }),
+    )
+
+    await waitFor(() => expect(deckNames()).toEqual(['赤単', '青単']))
+    expect(screen.getByRole('button', { name: 'すべて 2件' })).toHaveAttribute(
+      'aria-current',
+      'true',
+    )
+  })
+
+  it('drops a deleted tag from the narrowing', async () => {
+    const { stores } = await renderOrganized()
+
+    fireEvent.click(screen.getByRole('checkbox', { name: '青' }))
+    expect(deckNames()).toEqual(['青単'])
+
+    fireEvent.click(screen.getByRole('button', { name: '青を削除' }))
+    fireEvent.click(
+      within(
+        screen.getByRole('alertdialog', { name: 'タグ削除の確認' }),
+      ).getByRole('button', { name: '削除する' }),
+    )
+
+    await waitFor(() =>
+      expect(stores.deckTags.deleteTag).toHaveBeenCalledWith('t2'),
+    )
+    await waitFor(() => expect(deckNames()).toEqual(['赤単', '青単']))
+    expect(screen.queryByRole('checkbox', { name: '青' })).toBeNull()
+  })
+
+  it('creates a tag and offers it as a chip', async () => {
+    await renderOrganized()
+
+    fireEvent.change(screen.getByLabelText('新しいタグ名'), {
+      target: { value: '緑' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'タグを追加' }))
+
+    expect(await screen.findByRole('checkbox', { name: '緑' })).toBeVisible()
+  })
+
+  it('says that folders and tags stay on this device', async () => {
+    await renderOrganized()
+
+    expect(
+      screen.getAllByText(
+        'フォルダーとタグはこの端末にのみ保存されます。ほかの端末には同期されません。',
+      ).length,
+    ).toBeGreaterThan(0)
+  })
+
+  // Nothing here can be trusted while they could not be read.
+  it('offers no narrowing or organizing when they cannot be read', async () => {
+    const stores = organizedStores()
+    stores.deckFolders.listFolders = vi.fn(async () => {
+      throw new Error('blocked')
+    })
+    const repo = repository({ listDecks: vi.fn(async () => twoDecks) })
+    renderPage(repo, undefined, stores)
+    await organizationLoaded(stores)
+
+    expect(
+      await screen.findByText(
+        'フォルダー・タグを読み込めないため、絞り込みと整理は利用できません。ページを再読み込みしてください。',
+      ),
+    ).toBeVisible()
+    expect(screen.queryByRole('button', { name: '赤単を整理' })).toBeNull()
+    expect(
+      screen.queryByRole('navigation', { name: 'フォルダーで絞り込む' }),
+    ).toBeNull()
+    // The decks themselves are unaffected.
+    expect(deckNames()).toEqual(['赤単', '青単'])
+  })
+})

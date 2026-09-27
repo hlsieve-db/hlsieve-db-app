@@ -7,7 +7,26 @@ import { DeckLocalNavigation } from '../components/DeckLocalNavigation'
 import { DeckRegulationBadge } from '../components/decks/DeckRegulationBadge'
 import { createDeck, getDeckTotal } from '../domain/decks/deck'
 import { duplicateDeck } from '../domain/decks/duplicate'
-import { duplicateDeckOrganization } from '../domain/deckOrganization/operations'
+import {
+  ALL_DECKS_FILTER,
+  createDeckFolder,
+  createDeckTag,
+  duplicateDeckOrganization,
+  filterDecksByOrganization,
+  folderNameForDeck,
+  moveDeckFolder,
+  normalizeDeckOrganization,
+  renameDeckFolder,
+  renameDeckTag,
+  summarizeDeckFolders,
+  tagsForOrganization,
+  visibleTagsWithOverflow,
+  type DeckFolderFilter,
+} from '../domain/deckOrganization/operations'
+import { DeckFolderSidebar } from '../components/decks/DeckFolderSidebar'
+import { DeckOrganizationDialog } from '../components/decks/DeckOrganizationDialog'
+import { DeckOrganizationManager } from '../components/decks/DeckOrganizationManager'
+import { DeckTagFilterChips } from '../components/decks/DeckTagFilterChips'
 import {
   createDeckBackup,
   createDeckBackupV2,
@@ -82,6 +101,66 @@ type OrganizationState =
  */
 const ORGANIZATION_LOADING_MESSAGE =
   'フォルダー・タグを読み込み中です。少し待ってからもう一度お試しください。'
+
+/** How many tags one deck card shows before the rest become a count. */
+const DECK_CARD_TAG_LIMIT = 3
+
+/**
+ * What a deck is organized by, and the way to change it.
+ *
+ * Every tag is rendered; the stylesheet hides the ones past the limit on a
+ * narrow screen, where the count beside them says how many that was.
+ */
+function DeckCardOrganization({
+  deck,
+  organization,
+  folders,
+  tags,
+  onOrganize,
+}: {
+  deck: Deck
+  organization: DeckOrganization | undefined
+  folders: readonly DeckFolder[]
+  tags: readonly DeckTag[]
+  onOrganize: () => void
+}) {
+  const assigned = tagsForOrganization(organization, tags)
+  const { overflowCount } = visibleTagsWithOverflow(
+    assigned,
+    DECK_CARD_TAG_LIMIT,
+  )
+  const folderName = folderNameForDeck(organization, folders)
+
+  return (
+    <div className="deck-list__organization">
+      <span className="deck-list__folder">
+        {folderName ?? 'フォルダーなし'}
+      </span>
+      {assigned.length > 0 && (
+        <span className="deck-list__tags">
+          {/* Already in reading order; sorting again here would hide where
+              that order is decided. */}
+          {assigned.map((tag) => (
+            <span className="deck-list__tag" key={tag.id}>
+              {tag.name}
+            </span>
+          ))}
+        </span>
+      )}
+      {overflowCount > 0 && (
+        <span className="deck-list__tag-overflow">+{overflowCount}</span>
+      )}
+      <button
+        type="button"
+        className="button button--secondary"
+        aria-label={`${deck.name}を整理`}
+        onClick={onOrganize}
+      >
+        整理
+      </button>
+    </div>
+  )
+}
 
 type ImportPreview = {
   backup: DeckBackup
@@ -180,6 +259,14 @@ export function SavedDecksPage({
   const [organization, setOrganization] = useState<OrganizationState>({
     status: 'loading',
   })
+  const [folderFilter, setFolderFilter] =
+    useState<DeckFolderFilter>(ALL_DECKS_FILTER)
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([])
+  const [organizingDeckId, setOrganizingDeckId] = useState<string>()
+  const [organizationError, setOrganizationError] = useState<string>()
+  const [manageError, setManageError] = useState<string>()
+  const [savingOrganization, setSavingOrganization] = useState(false)
+  const [reorderingFolders, setReorderingFolders] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const readOrganization = useCallback(async () => {
@@ -315,6 +402,145 @@ export function SavedDecksPage({
       setOperationError('デッキを削除できませんでした。')
     }
   }
+
+  const loadedOrganization =
+    organization.status === 'loaded' ? organization : undefined
+  const folders = loadedOrganization?.folders ?? []
+  const tags = loadedOrganization?.tags ?? []
+  const organizations = loadedOrganization?.organizations ?? []
+  const decks = state.status === 'loaded' ? state.decks : []
+  const summaries = summarizeDeckFolders(decks, organizations, folders)
+  const tagDeckCounts = new Map(
+    tags.map((tag) => [
+      tag.id,
+      organizations.filter(
+        (value) =>
+          value.tagIds.includes(tag.id) &&
+          decks.some((deck) => deck.id === value.deckId),
+      ).length,
+    ]),
+  )
+  const visibleDecks = loadedOrganization
+    ? filterDecksByOrganization(decks, organizations, {
+        folder: folderFilter,
+        tagIds: selectedTagIds,
+        folders,
+      })
+    : decks
+  const narrowed =
+    loadedOrganization !== undefined &&
+    (folderFilter.kind !== 'all' || selectedTagIds.length > 0)
+
+  const clearFilters = () => {
+    setFolderFilter(ALL_DECKS_FILTER)
+    setSelectedTagIds([])
+  }
+
+  /**
+   * Written locally, then read back, so what the screen shows is what the
+   * store holds rather than what the screen hoped it would hold.
+   */
+  const refreshOrganization = async () => {
+    await readOrganization().then(setOrganization, () =>
+      setOrganization({ status: 'error' }),
+    )
+  }
+
+  const runOrganizationChange = async (
+    change: () => Promise<void>,
+    message: string,
+  ) => {
+    setManageError(undefined)
+    try {
+      await change()
+      await refreshOrganization()
+    } catch {
+      setManageError(message)
+    }
+  }
+
+  const handleCreateFolder = (name: string) =>
+    void runOrganizationChange(
+      () => deckFolders.saveFolder(createDeckFolder(name, folders)),
+      'フォルダーを追加できませんでした。名前が重複していないか確認してください。',
+    )
+
+  const handleRenameFolder = (folder: DeckFolder, name: string) =>
+    void runOrganizationChange(
+      () => deckFolders.saveFolder(renameDeckFolder(folder, name, folders)),
+      'フォルダーの名前を変更できませんでした。名前が重複していないか確認してください。',
+    )
+
+  const handleMoveFolder = (folder: DeckFolder, direction: 'up' | 'down') => {
+    setReorderingFolders(true)
+    void runOrganizationChange(
+      () =>
+        deckFolders.saveFolderOrder(
+          moveDeckFolder(folders, folder.id, direction),
+        ),
+      'フォルダーの順番を変更できませんでした。',
+    ).finally(() => setReorderingFolders(false))
+  }
+
+  const handleDeleteFolder = (folder: DeckFolder) =>
+    void runOrganizationChange(async () => {
+      await deckFolders.deleteFolder(folder.id)
+      // The folder it named is gone, so keeping it selected would leave the
+      // list narrowed by something the reporter can no longer see.
+      setFolderFilter((current) =>
+        current.kind === 'folder' && current.folderId === folder.id
+          ? ALL_DECKS_FILTER
+          : current,
+      )
+    }, 'フォルダーを削除できませんでした。')
+
+  const handleCreateTag = (name: string) =>
+    void runOrganizationChange(
+      () => deckTags.saveTag(createDeckTag(name, tags)),
+      'タグを追加できませんでした。名前が重複していないか確認してください。',
+    )
+
+  const handleRenameTag = (tag: DeckTag, name: string) =>
+    void runOrganizationChange(
+      () => deckTags.saveTag(renameDeckTag(tag, name, tags)),
+      'タグの名前を変更できませんでした。名前が重複していないか確認してください。',
+    )
+
+  const handleDeleteTag = (tag: DeckTag) =>
+    void runOrganizationChange(async () => {
+      await deckTags.deleteTag(tag.id)
+      setSelectedTagIds((current) => current.filter((id) => id !== tag.id))
+    }, 'タグを削除できませんでした。')
+
+  const handleSaveOrganization = async (
+    deckId: string,
+    value: { folderId?: string; tagIds: string[] },
+  ) => {
+    setSavingOrganization(true)
+    setOrganizationError(undefined)
+    try {
+      const current = organizations.find((row) => row.deckId === deckId)
+      const { organization: next } = normalizeDeckOrganization(
+        {
+          deckId,
+          ...(value.folderId === undefined ? {} : { folderId: value.folderId }),
+          tagIds: value.tagIds,
+          ...(current === undefined ? {} : { createdAt: current.createdAt }),
+        },
+        { folders, tags },
+        { missing: 'reject' },
+      )
+      await deckOrganizations.saveOrganization(next)
+      await refreshOrganization()
+      setOrganizingDeckId(undefined)
+    } catch {
+      setOrganizationError('デッキの整理情報を保存できませんでした。')
+    } finally {
+      setSavingOrganization(false)
+    }
+  }
+
+  const organizingDeck = decks.find((deck) => deck.id === organizingDeckId)
 
   const resetFileInput = () => {
     if (fileInputRef.current) fileInputRef.current.value = ''
@@ -522,94 +748,198 @@ export function SavedDecksPage({
       )}
 
       {state.status === 'loaded' && state.decks.length > 0 && (
-        <section aria-label="保存したデッキ">
-          <ul className="deck-list">
-            {state.decks.map((deck) => (
-              <li className="deck-list__item" key={deck.id}>
-                <div>
-                  <h2>{deck.name}</h2>
-                  {/* Shown, never written: opening the list decides nothing
+        <div className="deck-organization-layout">
+          {loadedOrganization && (
+            <DeckFolderSidebar
+              summaries={summaries}
+              selected={folderFilter}
+              onSelect={setFolderFilter}
+            />
+          )}
+
+          <section aria-label="保存したデッキ">
+            {loadedOrganization && (
+              <DeckTagFilterChips
+                tags={tags}
+                selectedTagIds={selectedTagIds}
+                onToggle={(tagId) =>
+                  setSelectedTagIds((current) =>
+                    current.includes(tagId)
+                      ? current.filter((id) => id !== tagId)
+                      : [...current, tagId],
+                  )
+                }
+              />
+            )}
+
+            {organization.status === 'error' && (
+              <p className="status-message status-message--error" role="alert">
+                フォルダー・タグを読み込めないため、絞り込みと整理は利用できません。ページを再読み込みしてください。
+              </p>
+            )}
+
+            {/* Narrowed to nothing is not an empty collection, and the way
+                back has to be on screen. */}
+            {narrowed && visibleDecks.length === 0 && (
+              <div className="status-message">
+                <p>絞り込み条件に一致するデッキがありません。</p>
+                <button type="button" className="button" onClick={clearFilters}>
+                  絞り込みを解除
+                </button>
+              </div>
+            )}
+
+            {narrowed && visibleDecks.length > 0 && (
+              <p className="deck-organization-filter-summary">
+                <span role="status">
+                  {visibleDecks.length}件 / {decks.length}件を表示中
+                </span>
+                <button
+                  type="button"
+                  className="button button--secondary"
+                  onClick={clearFilters}
+                >
+                  絞り込みを解除
+                </button>
+              </p>
+            )}
+
+            <ul className="deck-list">
+              {visibleDecks.map((deck) => (
+                <li className="deck-list__item" key={deck.id}>
+                  <div>
+                    <h2>{deck.name}</h2>
+                    {/* Shown, never written: opening the list decides nothing
                       about any of these decks. */}
-                  <p>
-                    <DeckRegulationBadge regulationId={deck.regulationId} />
-                  </p>
-                  <p>合計 {getDeckTotal(deck)}枚</p>
-                  <p>
-                    <time dateTime={deck.updatedAt}>
-                      更新 {new Date(deck.updatedAt).toLocaleString('ja-JP')}
-                    </time>
-                  </p>
-                </div>
-                <div className="deck-list__actions">
-                  <Link
-                    className="button detail-link-button"
-                    to={`/decks/${encodeURIComponent(deck.id)}`}
-                  >
-                    開く
-                  </Link>
-                  <button
-                    type="button"
-                    className="button button--secondary"
-                    aria-label={`${deck.name}を複製`}
-                    disabled={duplicatingId !== undefined}
-                    onClick={() => void handleDuplicate(deck)}
-                  >
-                    複製
-                  </button>
-                  <Link
-                    className="button button--secondary detail-link-button"
-                    to={`/decks/${encodeURIComponent(deck.id)}/versions`}
-                  >
-                    バージョン
-                  </Link>
-                  <button
-                    type="button"
-                    className="button button--danger"
-                    aria-label={`${deck.name}を削除`}
-                    onClick={() => void startDelete(deck.id)}
-                  >
-                    削除
-                  </button>
-                </div>
-                {pendingDeleteId === deck.id && (
-                  <div
-                    className="delete-confirmation"
-                    role="alertdialog"
-                    aria-label="デッキ削除の確認"
-                  >
-                    <p>「{deck.name}」を削除しますか？</p>
-                    {pendingDeleteVersions !== undefined &&
-                      pendingDeleteVersions > 0 && (
-                        <p>
-                          このデッキのバージョン{pendingDeleteVersions}
-                          件も削除されます。
-                        </p>
-                      )}
-                    <div>
-                      <button
-                        type="button"
-                        className="button button--danger"
-                        onClick={() => void handleDelete(deck.id)}
-                      >
-                        削除する
-                      </button>
-                      <button
-                        type="button"
-                        className="button button--secondary"
-                        onClick={() => {
-                          setPendingDeleteId(undefined)
-                          setPendingDeleteVersions(undefined)
-                        }}
-                      >
-                        キャンセル
-                      </button>
-                    </div>
+                    <p>
+                      <DeckRegulationBadge regulationId={deck.regulationId} />
+                    </p>
+                    <p>合計 {getDeckTotal(deck)}枚</p>
+                    <p>
+                      <time dateTime={deck.updatedAt}>
+                        更新 {new Date(deck.updatedAt).toLocaleString('ja-JP')}
+                      </time>
+                    </p>
+                    {loadedOrganization && (
+                      <DeckCardOrganization
+                        deck={deck}
+                        organization={organizations.find(
+                          (row) => row.deckId === deck.id,
+                        )}
+                        folders={folders}
+                        tags={tags}
+                        onOrganize={() => setOrganizingDeckId(deck.id)}
+                      />
+                    )}
                   </div>
-                )}
-              </li>
-            ))}
-          </ul>
-        </section>
+                  <div className="deck-list__actions">
+                    <Link
+                      className="button detail-link-button"
+                      to={`/decks/${encodeURIComponent(deck.id)}`}
+                    >
+                      開く
+                    </Link>
+                    <button
+                      type="button"
+                      className="button button--secondary"
+                      aria-label={`${deck.name}を複製`}
+                      disabled={duplicatingId !== undefined}
+                      onClick={() => void handleDuplicate(deck)}
+                    >
+                      複製
+                    </button>
+                    <Link
+                      className="button button--secondary detail-link-button"
+                      to={`/decks/${encodeURIComponent(deck.id)}/versions`}
+                    >
+                      バージョン
+                    </Link>
+                    <button
+                      type="button"
+                      className="button button--danger"
+                      aria-label={`${deck.name}を削除`}
+                      onClick={() => void startDelete(deck.id)}
+                    >
+                      削除
+                    </button>
+                  </div>
+                  {pendingDeleteId === deck.id && (
+                    <div
+                      className="delete-confirmation"
+                      role="alertdialog"
+                      aria-label="デッキ削除の確認"
+                    >
+                      <p>「{deck.name}」を削除しますか？</p>
+                      {pendingDeleteVersions !== undefined &&
+                        pendingDeleteVersions > 0 && (
+                          <p>
+                            このデッキのバージョン{pendingDeleteVersions}
+                            件も削除されます。
+                          </p>
+                        )}
+                      <div>
+                        <button
+                          type="button"
+                          className="button button--danger"
+                          onClick={() => void handleDelete(deck.id)}
+                        >
+                          削除する
+                        </button>
+                        <button
+                          type="button"
+                          className="button button--secondary"
+                          onClick={() => {
+                            setPendingDeleteId(undefined)
+                            setPendingDeleteVersions(undefined)
+                          }}
+                        >
+                          キャンセル
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </section>
+        </div>
+      )}
+
+      {loadedOrganization && state.status === 'loaded' && (
+        <DeckOrganizationManager
+          summaries={summaries}
+          tags={tags}
+          tagDeckCounts={tagDeckCounts}
+          reordering={reorderingFolders}
+          error={manageError}
+          onCreateFolder={handleCreateFolder}
+          onRenameFolder={handleRenameFolder}
+          onMoveFolder={handleMoveFolder}
+          onDeleteFolder={handleDeleteFolder}
+          onCreateTag={handleCreateTag}
+          onRenameTag={handleRenameTag}
+          onDeleteTag={handleDeleteTag}
+        />
+      )}
+
+      {organizingDeck && loadedOrganization && (
+        <DeckOrganizationDialog
+          deckName={organizingDeck.name}
+          organization={organizations.find(
+            (row) => row.deckId === organizingDeck.id,
+          )}
+          folders={folders}
+          tags={tags}
+          saving={savingOrganization}
+          error={organizationError}
+          onSave={(value) =>
+            void handleSaveOrganization(organizingDeck.id, value)
+          }
+          onClose={() => {
+            setOrganizingDeckId(undefined)
+            setOrganizationError(undefined)
+          }}
+        />
       )}
 
       <section

@@ -4859,6 +4859,313 @@ main {
   }
 }
 
+/* Deck folders and tags on the saved-deck screen. Which of the two folder
+   controls is shown is decided here and nowhere else, so no script measures
+   the viewport. */
+.deck-organization-layout {
+  display: grid;
+  gap: 18px;
+}
+
+.deck-folder-column {
+  display: none;
+}
+
+.deck-folder-column__heading {
+  margin: 0 0 10px;
+  font-size: 1rem;
+}
+
+.deck-folder-column__list {
+  display: grid;
+  gap: 6px;
+}
+
+.deck-folder-column__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.deck-folder-column__item[aria-current='true'] {
+  border-color: var(--color-accent-border);
+  background: var(--color-accent-hover);
+  font-weight: 800;
+}
+
+.deck-folder-column__count {
+  color: var(--color-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.deck-folder-select {
+  display: grid;
+  gap: 4px;
+}
+
+.deck-folder-select select {
+  min-height: 44px;
+  padding: 0 30px 0 10px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 8px;
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+
+.deck-tag-filter {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+}
+
+.deck-tag-filter legend {
+  padding: 0 4px;
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.deck-tag-filter__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.deck-organization-filter-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 12px;
+  color: var(--color-muted);
+  font-weight: 700;
+}
+
+.deck-list__organization {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.deck-list__folder {
+  padding: 3px 9px;
+  border: 1px solid var(--color-border-chip);
+  border-radius: 999px;
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.deck-list__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.deck-list__tag {
+  padding: 3px 9px;
+  border: 1px solid var(--color-border-chip);
+  border-radius: 999px;
+  background: var(--color-surface-muted);
+  font-size: 0.8rem;
+}
+
+.deck-list__tag-overflow {
+  display: none;
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.deck-organization-manager {
+  margin-top: 24px;
+}
+
+.deck-organization-manager__group + .deck-organization-manager__group {
+  margin-top: 20px;
+}
+
+.deck-organization-manager__form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.deck-organization-manager__form label {
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.deck-organization-manager__form input {
+  flex: 1 1 200px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 8px;
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+
+.deck-organization-manager__list {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.deck-organization-manager__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.deck-organization-manager__row > span {
+  flex: 1 1 140px;
+  font-weight: 700;
+}
+
+.deck-organization-dialog__scrim {
+  position: fixed;
+  z-index: 30;
+  inset: 0;
+  display: grid;
+  align-items: end;
+  background: rgb(0 0 0 / 55%);
+}
+
+.deck-organization-dialog {
+  width: 100%;
+  max-height: min(92vh, 760px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 18px 16px 24px;
+  border-radius: 18px 18px 0 0;
+  background: var(--color-surface);
+  box-shadow: 0 -12px 36px rgb(0 0 0 / 22%);
+}
+
+.deck-organization-dialog__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.deck-organization-dialog__header h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.deck-organization-dialog__notice {
+  color: var(--color-muted);
+  font-size: 0.8rem;
+}
+
+.deck-organization-dialog__field {
+  display: grid;
+  gap: 6px;
+  margin: 14px 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.deck-organization-dialog__field legend,
+.deck-organization-dialog__field label {
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.deck-organization-dialog__field select {
+  min-height: 44px;
+  padding: 0 30px 0 10px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 8px;
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+
+.deck-organization-dialog__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.deck-organization-dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+@media (max-width: 767px) {
+  /* Narrow cards show the first few tags and count the rest. */
+  .deck-list__tag:nth-of-type(n + 4) {
+    display: none;
+  }
+
+  .deck-list__tag-overflow {
+    display: inline;
+  }
+
+  .deck-tag-filter__chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    overscroll-behavior-x: contain;
+  }
+
+  .deck-tag-filter__chips .filter-option {
+    flex: 0 0 auto;
+  }
+}
+
+@media (min-width: 768px) {
+  .deck-organization-layout {
+    grid-template-columns: 240px minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .deck-folder-column {
+    display: block;
+    position: sticky;
+    top: 16px;
+  }
+
+  .deck-folder-select {
+    display: none;
+  }
+
+  .deck-organization-dialog__scrim {
+    align-items: center;
+    justify-items: center;
+    padding: 24px;
+  }
+
+  .deck-organization-dialog {
+    width: min(560px, 100%);
+    border-radius: 16px;
+    box-shadow: 0 18px 48px rgb(0 0 0 / 24%);
+  }
+}
+
 @media (max-width: 420px) {
   .app-navigation {
     align-items: stretch;
