@@ -82,6 +82,7 @@ function renderSetup({
   userId = 'user-a',
   localVersions = [],
   cloudDeckVersions,
+  cloudDeckOrganization,
 }: {
   localDecks?: Deck[]
   cloudDecks?: CloudDeckRepository | null
@@ -89,6 +90,7 @@ function renderSetup({
   userId?: string
   localVersions?: DeckVersion[]
   cloudDeckVersions?: CloudDeckVersionRepository
+  cloudDeckOrganization?: unknown
 } = {}) {
   const namespace = userLocalDataNamespace(userId)
   // The wrapped and unwrapped stores are distinct objects, so a test can prove
@@ -108,12 +110,60 @@ function renderSetup({
       if (index >= 0) localDecks.splice(index, 1)
     }),
   }
+  // Wrapped and unwrapped again, so a test can prove that what came from the
+  // account is not written back through the store that uploads.
+  const organizationStores = {
+    folders: {
+      listFolders: vi.fn(async () => []),
+      getFolder: vi.fn(async () => undefined),
+      saveFolder: vi.fn(async () => undefined),
+      deleteFolder: vi.fn(async () => 0),
+      saveFolderOrder: vi.fn(async () => undefined),
+    },
+    tags: {
+      listTags: vi.fn(async () => []),
+      getTag: vi.fn(async () => undefined),
+      saveTag: vi.fn(async () => undefined),
+      deleteTag: vi.fn(async () => 0),
+    },
+    organizations: {
+      listOrganizations: vi.fn(async () => []),
+      getOrganization: vi.fn(async () => undefined),
+      saveOrganization: vi.fn(async () => undefined),
+      deleteOrganization: vi.fn(async () => undefined),
+    },
+  }
+  const wrappedOrganizationStores = {
+    folders: {
+      ...organizationStores.folders,
+      saveFolder: vi.fn(async () => undefined),
+      deleteFolder: vi.fn(async () => 0),
+    },
+    tags: {
+      ...organizationStores.tags,
+      saveTag: vi.fn(async () => undefined),
+      deleteTag: vi.fn(async () => 0),
+    },
+    organizations: {
+      ...organizationStores.organizations,
+      saveOrganization: vi.fn(async () => undefined),
+      deleteOrganization: vi.fn(async () => undefined),
+    },
+  }
+
   const repositories = {
     namespace,
     decks: { listDecks: vi.fn(async () => localDecks) },
     localDecks: local,
     cloudDecks,
     cloudDeckVersions,
+    cloudDeckOrganization,
+    localDeckFolders: organizationStores.folders,
+    localDeckTags: organizationStores.tags,
+    localDeckOrganizations: organizationStores.organizations,
+    deckFolders: wrappedOrganizationStores.folders,
+    deckTags: wrappedOrganizationStores.tags,
+    deckOrganizations: wrappedOrganizationStores.organizations,
     localDeckVersions: {
       listAllVersions: vi.fn(async () => localVersions),
       saveVersion: vi.fn(async () => undefined),
@@ -126,7 +176,16 @@ function renderSetup({
       <CloudSyncSetup storage={storage} />
     </AppRepositoriesContext.Provider>,
   )
-  return { ...result, cloudDecks, storage, namespace, repositories, local }
+  return {
+    ...result,
+    cloudDecks,
+    storage,
+    namespace,
+    repositories,
+    local,
+    organizationStores,
+    wrappedOrganizationStores,
+  }
 }
 
 const setupButton = () =>
@@ -372,6 +431,220 @@ describe('enabling sync', () => {
     expect(
       screen.queryByRole('button', { name: 'クラウド同期を設定' }),
     ).not.toBeInTheDocument()
+  })
+})
+
+/**
+ * Taking the account's folders, tags and organization is the other half of the
+ * sync, and every row it writes came from the account: writing one back through
+ * the store that uploads would send it straight to where it came from, and
+ * applying the account's deletion through that store would send the deletion
+ * back as this device's own.
+ */
+describe('taking the account’s folders and tags', () => {
+  const SERVER_AT = '2026-09-27T04:56:42.700791+00:00'
+
+  function organizationCloud(
+    overrides: Record<string, unknown> = {},
+  ): Record<string, ReturnType<typeof vi.fn>> {
+    return {
+      listFolders: vi.fn(async () => ({
+        ok: true,
+        value: [
+          {
+            folder: {
+              id: 'f1',
+              name: '大会用',
+              sortOrder: 0,
+              createdAt: SERVER_AT,
+              updatedAt: SERVER_AT,
+            },
+            createdAt: SERVER_AT,
+            updatedAt: SERVER_AT,
+            deletedAt: null,
+          },
+        ],
+      })),
+      listTags: vi.fn(async () => ({ ok: true, value: [] })),
+      listOrganizations: vi.fn(async () => ({ ok: true, value: [] })),
+      upsertFolder: vi.fn(),
+      upsertTag: vi.fn(),
+      upsertOrganization: vi.fn(),
+      tombstoneFolder: vi.fn(),
+      tombstoneTag: vi.fn(),
+      tombstoneOrganization: vi.fn(),
+      ...overrides,
+    }
+  }
+
+  async function enable(cloudDeckOrganization: unknown) {
+    const rendered = renderSetup({ localDecks: [], cloudDeckOrganization })
+    fireEvent.click(setupButton())
+    fireEvent.click(
+      await screen.findByRole('button', { name: /クラウドへ保存/ }),
+    )
+    await screen.findByText('有効')
+    return rendered
+  }
+
+  it('writes what it took through the store that does not upload', async () => {
+    const cloud = organizationCloud()
+    const { organizationStores, wrappedOrganizationStores } =
+      await enable(cloud)
+
+    expect(organizationStores.folders.saveFolder).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'f1', name: '大会用' }),
+    )
+    expect(wrappedOrganizationStores.folders.saveFolder).not.toHaveBeenCalled()
+  })
+
+  it('sends nothing to the account while doing it', async () => {
+    const cloud = organizationCloud()
+    await enable(cloud)
+
+    for (const name of [
+      'upsertFolder',
+      'upsertTag',
+      'upsertOrganization',
+      'tombstoneFolder',
+      'tombstoneTag',
+      'tombstoneOrganization',
+    ]) {
+      expect(cloud[name]).not.toHaveBeenCalled()
+    }
+  })
+
+  it('removes a folder the account deleted, through the same store', async () => {
+    const cloud = organizationCloud({
+      listFolders: vi.fn(async () => ({
+        ok: true,
+        value: [
+          {
+            folder: {
+              id: 'f1',
+              name: '大会用',
+              sortOrder: 0,
+              createdAt: SERVER_AT,
+              updatedAt: SERVER_AT,
+            },
+            createdAt: SERVER_AT,
+            updatedAt: SERVER_AT,
+            deletedAt: SERVER_AT,
+          },
+        ],
+      })),
+    })
+    const rendered = renderSetup({
+      localDecks: [],
+      cloudDeckOrganization: cloud,
+    })
+    rendered.organizationStores.folders.listFolders = vi.fn(async () => [
+      {
+        id: 'f1',
+        name: '大会用',
+        sortOrder: 0,
+        createdAt: '2026-09-27T00:00:00.000Z',
+        updatedAt: '2026-09-27T00:00:00.000Z',
+      },
+    ]) as never
+
+    fireEvent.click(setupButton())
+    fireEvent.click(
+      await screen.findByRole('button', { name: /クラウドへ保存/ }),
+    )
+    await screen.findByText('有効')
+
+    expect(
+      rendered.organizationStores.folders.deleteFolder,
+    ).toHaveBeenCalledWith('f1')
+    expect(
+      rendered.wrappedOrganizationStores.folders.deleteFolder,
+    ).not.toHaveBeenCalled()
+    expect(cloud.tombstoneFolder).not.toHaveBeenCalled()
+  })
+
+  // Until the migration is applied there is nothing to read, which is not worth
+  // a word to the reporter: their own device is unaffected.
+  it('says nothing when the account has no such tables', async () => {
+    const cloud = organizationCloud({
+      listFolders: vi.fn(async () => ({ ok: false, reason: 'missing-table' })),
+    })
+    const { organizationStores } = await enable(cloud)
+
+    expect(organizationStores.folders.saveFolder).not.toHaveBeenCalled()
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('asks about a name the two sides disagree on', async () => {
+    const cloud = organizationCloud()
+    const rendered = renderSetup({
+      localDecks: [],
+      cloudDeckOrganization: cloud,
+    })
+    rendered.organizationStores.folders.listFolders = vi.fn(async () => [
+      {
+        id: 'f1',
+        name: '本番用',
+        sortOrder: 0,
+        createdAt: '2026-09-27T00:00:00.000Z',
+        updatedAt: '2026-09-27T00:00:00.000Z',
+      },
+    ]) as never
+
+    fireEvent.click(setupButton())
+    fireEvent.click(
+      await screen.findByRole('button', { name: /クラウドへ保存/ }),
+    )
+
+    expect(
+      await screen.findByRole('heading', {
+        level: 4,
+        name: 'フォルダー名（1件）',
+      }),
+    ).toBeVisible()
+    // Nothing is written on either side until the reporter answers.
+    expect(
+      rendered.organizationStores.folders.saveFolder,
+    ).not.toHaveBeenCalled()
+    expect(cloud.upsertFolder).not.toHaveBeenCalled()
+  })
+
+  it('applies the answer through the right store', async () => {
+    const cloud = organizationCloud()
+    const rendered = renderSetup({
+      localDecks: [],
+      cloudDeckOrganization: cloud,
+    })
+    rendered.organizationStores.folders.listFolders = vi.fn(async () => [
+      {
+        id: 'f1',
+        name: '本番用',
+        sortOrder: 2,
+        createdAt: '2026-09-27T00:00:00.000Z',
+        updatedAt: '2026-09-27T00:00:00.000Z',
+      },
+    ]) as never
+
+    fireEvent.click(setupButton())
+    fireEvent.click(
+      await screen.findByRole('button', { name: /クラウドへ保存/ }),
+    )
+    fireEvent.click(
+      await screen.findByRole('radio', { name: 'クラウドの名前を使う' }),
+    )
+    fireEvent.click(screen.getByRole('button', { name: '選択した内容で続行' }))
+
+    await waitFor(() =>
+      expect(
+        rendered.organizationStores.folders.saveFolder,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'f1', name: '大会用', sortOrder: 2 }),
+      ),
+    )
+    expect(cloud.upsertFolder).not.toHaveBeenCalled()
+    expect(
+      rendered.wrappedOrganizationStores.folders.saveFolder,
+    ).not.toHaveBeenCalled()
   })
 })
 

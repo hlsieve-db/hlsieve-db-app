@@ -43,6 +43,24 @@ import { CloudDeckSyncRetry } from '../../cloud/CloudDeckSyncRetry'
 import { pendingDeckOrganizationSyncCount } from '../../domain/cloud/pendingDeckOrganizationSync'
 import { reconcileDeckVersions } from '../../cloud/deckVersionReconciliation'
 import { DeckConflictChooser } from './DeckConflictChooser'
+import {
+  applyDeckOrganizationReconciliation,
+  planDeckOrganizationReconciliation,
+  type DeckOrganizationConflictChoice,
+  type DeckOrganizationReconciliationPlan,
+  type DeckOrganizationResolutions,
+} from '../../cloud/deckOrganizationReconciliation'
+import {
+  clearPendingDeckFolderSync,
+  clearPendingDeckOrganizationSync,
+  clearPendingDeckTagSync,
+  readPendingDeckFolderSync,
+  recordPendingDeckFolderSync,
+  recordPendingDeckOrganizationSync,
+  recordPendingDeckTagSync,
+} from '../../domain/cloud/pendingDeckOrganizationSync'
+import type { DeckFolder, DeckTag } from '../../domain/deckOrganization/types'
+import { OrganizationConflictChooser } from './OrganizationConflictChooser'
 import { useAppRepositories } from '../../repositories/useAppRepositories'
 import { unsentChangeMessage } from './unsentChangeMessage'
 import { formatDateTime } from '../../utils/formatDateTime'
@@ -145,6 +163,27 @@ export type CloudSyncSetupProps = {
   storage?: Pick<Storage, 'getItem' | 'setItem'>
 }
 
+/**
+ * Worded as one sentence for every cause, unlike the deck failures.
+ *
+ * Nothing here is a folder the reporter can act on differently: whichever way it
+ * failed, the answer is to try again later, and their own device is unchanged.
+ */
+const ORGANIZATION_FAILURE_MESSAGE =
+  'クラウドへ送れなかった項目があります。通信状況を確認して、あとでもう一度お試しください。'
+
+type OrganizationReconciliation = {
+  account: string
+  plan: DeckOrganizationReconciliationPlan
+  /** Read alongside the plan, to describe an assignment by name. */
+  folders: DeckFolder[]
+  tags: DeckTag[]
+  resolutions: Record<string, DeckOrganizationConflictChoice>
+  applying: boolean
+  failure?: string
+  unresolved?: number
+}
+
 export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
   const repositories = useAppRepositories()
   const {
@@ -154,6 +193,10 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
     localDeckVersions,
     cloudDecks,
     cloudDeckVersions,
+    localDeckFolders,
+    localDeckTags,
+    localDeckOrganizations,
+    cloudDeckOrganization,
   } = repositories
   const store = storage ?? window.localStorage
 
@@ -165,6 +208,14 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
   const [restore, setRestore] = useState<Restore>({ step: 'idle' })
   const [pendingConflicts, setConflicts] = useState<Reconciliation>()
   const [retrySignal, setRetrySignal] = useState(0)
+  /**
+   * The folder, tag and organization differences, once they have been read.
+   *
+   * Separate from the deck conflicts: the deck questions have to be settled
+   * first, because an organization row is described in terms of the folder names
+   * chosen there, and because a row whose deck is not here is not taken at all.
+   */
+  const [organization, setOrganization] = useState<OrganizationReconciliation>()
   // Stamped with the account it describes, so switching shows the new
   // account's own state rather than the previous one's count, time or
   // "sending" line. The stamp is the whole isolation: nothing here is keyed by
@@ -188,6 +239,8 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
   const current = view.account === accountKey ? view : freshView()
   const conflicts =
     pendingConflicts?.account === accountKey ? pendingConflicts : undefined
+  const organizationConflicts =
+    organization?.account === accountKey ? organization : undefined
 
   const update = (patch: Partial<SyncStatusView>) =>
     setView((previous) => ({
@@ -306,6 +359,9 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
       setActivation({ step: 'error', reason: versions.reason })
       return
     }
+    // The account's folders and tags are read once the decks are there, so
+    // a row taken from it always describes a deck this device has.
+    await reconcileOrganization()
     markEnabled(
       versions.uploaded === 0
         ? `デッキ${result.uploaded}個を保存しました。`
@@ -330,6 +386,9 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
       setActivation({ step: 'error', reason: versions.reason })
       return
     }
+    // The account's folders and tags are read once the decks are there, so
+    // a row taken from it always describes a deck this device has.
+    await reconcileOrganization()
     markEnabled(
       `デッキ${result.restored}個を取り込み、${result.removed}個を削除し、バージョン${versions.restored}個を取り込みました。`,
     )
@@ -345,6 +404,7 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
       setRestore({ step: 'error', reason: result.reason })
       return
     }
+    await reconcileOrganization()
     const versions = await syncVersions()
     setRestore(
       versions.ok
@@ -380,6 +440,118 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
     setRestore({ step: 'confirming', plan: result.plans.restore })
   }
 
+  /**
+   * Reads the account's folders, tags and organization, and either applies what
+   * needs no answer or asks.
+   *
+   * An account whose schema does not have these tables yet is not an error and
+   * not worth a word to the reporter: there is nothing to read until the
+   * migration is applied, and their own device is unaffected.
+   */
+  const reconcileOrganization = async (): Promise<void> => {
+    if (!cloudDeckOrganization) return
+    const [folders, tags, organizations] = await Promise.all([
+      cloudDeckOrganization.listFolders(),
+      cloudDeckOrganization.listTags(),
+      cloudDeckOrganization.listOrganizations(),
+    ])
+    if (!folders.ok || !tags.ok || !organizations.ok) return
+
+    const [localFolders, localTags, localOrganizations, localDeckList] =
+      await Promise.all([
+        localDeckFolders.listFolders(),
+        localDeckTags.listTags(),
+        localDeckOrganizations.listOrganizations(),
+        localDecks.listDecks(),
+      ])
+
+    const plan = planDeckOrganizationReconciliation({
+      local: {
+        folders: localFolders,
+        tags: localTags,
+        organizations: localOrganizations,
+      },
+      cloud: {
+        folders: folders.value,
+        tags: tags.value,
+        organizations: organizations.value,
+      },
+      localDeckIds: new Set(localDeckList.map((deck) => deck.id)),
+      // Not a timestamp comparison: the row's times come from the server's clock
+      // and the local ones from this device's, so a wrong clock would decide it.
+      // An unsent folder change means the account has not seen this device's
+      // order yet.
+      hasUnsentFolderChanges:
+        Object.keys(readPendingDeckFolderSync(store, namespace)).length > 0,
+    })
+
+    if (plan.conflicts.length === 0) {
+      await applyOrganizationPlan(plan, {})
+      return
+    }
+    setOrganization({
+      account: accountKey,
+      plan,
+      folders: localFolders,
+      tags: localTags,
+      // Empty on purpose: a default answer would be the code deciding.
+      resolutions: {},
+      applying: false,
+    })
+  }
+
+  const applyOrganizationPlan = async (
+    plan: DeckOrganizationReconciliationPlan,
+    resolutions: DeckOrganizationResolutions,
+  ) => {
+    const result = await applyDeckOrganizationReconciliation(
+      plan,
+      resolutions,
+      {
+        // The unwrapped stores. Writing a row that came from the account through a
+        // wrapped one would send it straight back, and applying the account's
+        // deletion through one would send that deletion back as this device's own.
+        local: {
+          folders: localDeckFolders,
+          tags: localDeckTags,
+          organizations: localDeckOrganizations,
+        },
+        cloud: cloudDeckOrganization,
+        pending: {
+          folders: {
+            record: (id, operation) =>
+              recordPendingDeckFolderSync(id, operation, store, namespace),
+            clear: (id) => clearPendingDeckFolderSync(id, store, namespace),
+          },
+          tags: {
+            record: (id, operation) =>
+              recordPendingDeckTagSync(id, operation, store, namespace),
+            clear: (id) => clearPendingDeckTagSync(id, store, namespace),
+          },
+          organizations: {
+            record: (id, operation) =>
+              recordPendingDeckOrganizationSync(
+                id,
+                operation,
+                store,
+                namespace,
+              ),
+            clear: (id) =>
+              clearPendingDeckOrganizationSync(id, store, namespace),
+          },
+        },
+        onUploadSuccess: noteUploadSuccess,
+      },
+    )
+    update({
+      pending:
+        pendingDeckSyncCount(store, namespace) +
+        pendingDeckOrganizationSyncCount(store, namespace) +
+        pendingDeckVersionSyncCount(store, namespace),
+    })
+    return result
+  }
+
   const startConflicts = (
     direction: Reconciliation['direction'],
     plan: DeckReconciliationPlan,
@@ -403,6 +575,26 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
           }
         : previous,
     )
+
+  const applyOrganizationConflicts = async (
+    pending: OrganizationReconciliation,
+  ) => {
+    setOrganization({ ...pending, applying: true, failure: undefined })
+    const result = await applyOrganizationPlan(
+      pending.plan,
+      pending.resolutions,
+    )
+    if (result.unresolved.length > 0) {
+      setOrganization({
+        ...pending,
+        applying: false,
+        failure: result.failure ?? 'failed',
+        unresolved: result.unresolved.length,
+      })
+      return
+    }
+    setOrganization(undefined)
+  }
 
   const applyConflicts = async (pending: Reconciliation) => {
     setConflicts({ ...pending, applying: true, failure: undefined })
@@ -456,6 +648,9 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
     }
 
     setConflicts(undefined)
+    // Only now: the organization rows are described in terms of the decks and
+    // the names just settled.
+    await reconcileOrganization()
     const summary = `デッキ${result.uploaded}個をクラウドへ送信し、${result.restored}個を取り込み、${result.removed}個を削除しました。`
     // Sync is only marked on once everything the reporter chose has happened,
     // which is the same rule the other two cases follow.
@@ -485,6 +680,41 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
       {/* Shown by either flow, because either can find the two sides holding
           different versions of the same deck. Until every question is answered
           nothing has been written on either side. */}
+      {organizationConflicts !== undefined && (
+        <>
+          <OrganizationConflictChooser
+            plan={organizationConflicts.plan}
+            resolutions={organizationConflicts.resolutions}
+            applying={organizationConflicts.applying}
+            folders={organizationConflicts.folders}
+            tags={organizationConflicts.tags}
+            onChoose={(key, choice) =>
+              setOrganization((previous) =>
+                previous?.account === accountKey
+                  ? {
+                      ...previous,
+                      resolutions: { ...previous.resolutions, [key]: choice },
+                    }
+                  : previous,
+              )
+            }
+            onApply={() =>
+              void applyOrganizationConflicts(organizationConflicts)
+            }
+            onCancel={() => setOrganization(undefined)}
+          />
+          {organizationConflicts.failure !== undefined && (
+            <div className="status-message status-message--error" role="alert">
+              <p>
+                まだ反映できていない項目が{organizationConflicts.unresolved}
+                件あります。
+              </p>
+              <p>{ORGANIZATION_FAILURE_MESSAGE}</p>
+            </div>
+          )}
+        </>
+      )}
+
       {conflicts !== undefined && (
         <>
           <DeckConflictChooser

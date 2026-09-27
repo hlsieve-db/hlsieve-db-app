@@ -78,6 +78,25 @@ export type CloudDeckRepository = {
   tombstoneWithVersions?: (
     deckId: string,
   ) => Promise<CloudDeckResult<{ versionsTombstoned: number }>>
+  /**
+   * The same, and the deck's organization row with it.
+   *
+   * Separate from tombstoneWithVersions rather than replacing it: a tab loaded
+   * before this existed still calls the older function, and both have to keep
+   * working while that tab is open. The two agree in either order, because each
+   * only tombstones what is still active, which the SQL matrix checks.
+   *
+   * Where the account's schema does not have the newer function, this falls
+   * back to the older one and then to the plain update, so the result a caller
+   * sees never depends on how far the schema has caught up. The count of
+   * organization rows is absent in that case rather than guessed at.
+   */
+  tombstoneWithRelated?: (deckId: string) => Promise<
+    CloudDeckResult<{
+      versionsTombstoned?: number
+      organizationTombstoned?: boolean
+    }>
+  >
 }
 
 /** The columns the app reads. user_id is deliberately not among them. */
@@ -95,6 +114,20 @@ const ROW_COLUMNS = 'id,deck,created_at,updated_at,deleted_at'
  * in a statement, evaluated when the statement runs.
  */
 const SERVER_NOW = 'now'
+
+/**
+ * The codes an account whose schema lacks a function answers with.
+ *
+ * A closed list on purpose. Every other refusal keeps its own meaning, because
+ * falling back on an unrecognised failure would quietly downgrade a deletion:
+ * the plain update tombstones the deck alone and would leave its versions and
+ * its organization behind while reporting success.
+ */
+const MISSING_FUNCTION_CODES = new Set(['42883', 'PGRST202', 'PGRST205'])
+
+function isMissingFunction(error: SupabaseFailure): boolean {
+  return Boolean(error?.code && MISSING_FUNCTION_CODES.has(error.code))
+}
 
 type SupabaseFailure = { code?: string; message?: string } | null
 
@@ -303,6 +336,43 @@ export function createSupabaseCloudDeckRepository(
       )
     },
 
+    /**
+     * Newest function first, then the one that predates the organization
+     * tables, then the plain update that predates both. Only "no such
+     * function" moves on to the next; anything else is the answer.
+     */
+    async tombstoneWithRelated(deckId) {
+      if (!deckId) return { ok: false, reason: 'invalid-data' }
+      if (!(await hasSession())) return { ok: false, reason: 'unauthenticated' }
+
+      const related = await callDeckTombstoneRpc(
+        client,
+        'tombstone_deck_with_related',
+        deckId,
+        (row) =>
+          typeof row.organization_tombstoned === 'boolean'
+            ? {
+                versionsTombstoned: row.versions_tombstoned as number,
+                organizationTombstoned: row.organization_tombstoned,
+              }
+            : undefined,
+      )
+      if (related !== 'missing-function') return related
+
+      const versions = await callDeckTombstoneRpc(
+        client,
+        'tombstone_deck_with_versions',
+        deckId,
+        (row) => ({ versionsTombstoned: row.versions_tombstoned as number }),
+      )
+      if (versions !== 'missing-function') return versions
+
+      // No function at all: the deck is still tombstoned, and the caller is
+      // told nothing about children it cannot know about from here.
+      const plain = await this.tombstone(deckId)
+      return plain.ok ? { ok: true, value: {} } : plain
+    },
+
     async tombstoneWithVersions(deckId) {
       if (!deckId) return { ok: false, reason: 'invalid-data' }
       if (!(await hasSession())) return { ok: false, reason: 'unauthenticated' }
@@ -337,12 +407,67 @@ export function createSupabaseCloudDeckRepository(
   }
 }
 
-/** Uses the atomic RPC where available, with the legacy primitive for mocks. */
-export async function tombstoneCloudDeckWithVersions(
+/**
+ * Deletes a deck and everything that only describes it, through the most
+ * capable call the repository offers.
+ *
+ * The fallback between schema versions lives inside the Supabase repository,
+ * where the error code is visible. This only picks a method, which is what a
+ * test double that implements one of them needs.
+ */
+export async function tombstoneCloudDeckAndChildren(
   repository: CloudDeckRepository,
   deckId: string,
 ): Promise<CloudDeckResult<unknown>> {
-  return repository.tombstoneWithVersions
-    ? repository.tombstoneWithVersions(deckId)
-    : repository.tombstone(deckId)
+  if (repository.tombstoneWithRelated) {
+    return repository.tombstoneWithRelated(deckId)
+  }
+  if (repository.tombstoneWithVersions) {
+    return repository.tombstoneWithVersions(deckId)
+  }
+  return repository.tombstone(deckId)
+}
+
+/** @deprecated Named for the older function; use tombstoneCloudDeckAndChildren. */
+export const tombstoneCloudDeckWithVersions = tombstoneCloudDeckAndChildren
+
+/**
+ * One deck-tombstoning function call, checked.
+ *
+ * Returns the sentinel when the account has no such function, so the caller can
+ * try an older one. Every other outcome is a result in its own right.
+ */
+async function callDeckTombstoneRpc<T>(
+  client: SupabaseClient,
+  name: string,
+  deckId: string,
+  read: (row: Record<string, unknown>) => T | undefined,
+): Promise<CloudDeckResult<T> | 'missing-function'> {
+  try {
+    const { data, error } = await client.rpc(name, { p_deck_id: deckId })
+    if (error) {
+      return isMissingFunction(error)
+        ? 'missing-function'
+        : { ok: false, reason: classifyCloudDeckFailure(error) }
+    }
+    if (!Array.isArray(data) || data.length !== 1 || !isRecord(data[0])) {
+      return { ok: false, reason: 'invalid-data' }
+    }
+    const row = data[0]
+    if (
+      typeof row.deck_found !== 'boolean' ||
+      typeof row.versions_tombstoned !== 'number' ||
+      !Number.isInteger(row.versions_tombstoned) ||
+      row.versions_tombstoned < 0
+    ) {
+      return { ok: false, reason: 'invalid-data' }
+    }
+    if (!row.deck_found) return { ok: false, reason: 'not-found' }
+    const value = read(row)
+    return value === undefined
+      ? { ok: false, reason: 'invalid-data' }
+      : { ok: true, value }
+  } catch {
+    return { ok: false, reason: 'network' }
+  }
 }

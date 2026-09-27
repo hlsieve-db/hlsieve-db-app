@@ -386,6 +386,40 @@ select * from public.tombstone_deck_with_related('missing');
 \echo '--- the older deck RPC still works on its own (expect: t,0)'
 select * from public.tombstone_deck_with_versions('deck-b');
 
+-- Both functions stay callable while a tab that predates the newer one is still
+-- open, so the two have to agree whichever order they are called in.
+insert into public.decks (id, deck)
+  values ('deck-old', '{"id":"deck-old","name":"OLD","entries":[],"createdAt":"2026-09-27T00:00:00.000Z","updatedAt":"2026-09-27T00:00:00.000Z"}');
+insert into public.deck_organizations (deck_id, tag_ids)
+  values ('deck-old', array['tag-2']);
+insert into public.deck_versions (id, deck_id, label, snapshot, created_at)
+  values ('version-old', 'deck-old', '旧', '{"name":"OLD","entries":[]}', now());
+
+\echo '--- the older RPC leaves the organization active, as it always did (expect: t,1 then t)'
+select * from public.tombstone_deck_with_versions('deck-old');
+select deleted_at is null as organization_still_active
+  from public.deck_organizations where deck_id = 'deck-old';
+
+\echo '--- the newer RPC then finishes the job (expect: t,0,t)'
+select * from public.tombstone_deck_with_related('deck-old');
+
+\echo '--- and the other order is no different (expect: t,1,t then t,0)'
+insert into public.decks (id, deck)
+  values ('deck-new', '{"id":"deck-new","name":"NEW","entries":[],"createdAt":"2026-09-27T00:00:00.000Z","updatedAt":"2026-09-27T00:00:00.000Z"}');
+insert into public.deck_organizations (deck_id, tag_ids)
+  values ('deck-new', array['tag-2']);
+insert into public.deck_versions (id, deck_id, label, snapshot, created_at)
+  values ('version-new', 'deck-new', '新', '{"name":"NEW","entries":[]}', now());
+select * from public.tombstone_deck_with_related('deck-new');
+select * from public.tombstone_deck_with_versions('deck-new');
+
+\echo '--- nothing was removed by either one (expect: t,t,t)'
+select (select deleted_at is not null from public.decks where id = 'deck-new') as deck,
+       (select deleted_at is not null
+          from public.deck_versions where id = 'version-new') as version,
+       (select deleted_at is not null
+          from public.deck_organizations where deck_id = 'deck-new') as organization;
+
 -- --------------------------------------------------------------- user B
 set hlsieve.uid = '22222222-2222-2222-2222-222222222222';
 

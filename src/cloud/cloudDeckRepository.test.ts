@@ -6,6 +6,8 @@ import {
   classifyCloudDeckFailure,
   createSupabaseCloudDeckRepository,
   toCloudDeckRecord,
+  tombstoneCloudDeckAndChildren,
+  type CloudDeckRecord,
   type CloudDeckRepository,
 } from './cloudDeckRepository'
 
@@ -351,6 +353,7 @@ describe('no physical delete', () => {
       'listAll',
       'listUpdatedSince',
       'tombstone',
+      'tombstoneWithRelated',
       'tombstoneWithVersions',
       'upsert',
     ])
@@ -407,6 +410,191 @@ describe('atomic parent and Version tombstone RPC', () => {
     await expect(
       repository?.tombstoneWithVersions?.('missing'),
     ).resolves.toEqual({ ok: false, reason: 'not-found' })
+  })
+})
+
+/**
+ * A deck deletion has to remove everything that only describes that deck, and
+ * which function can do that depends on how far the account's schema has caught
+ * up. A tab loaded before the newer function existed keeps calling the older
+ * one, so both stay callable and agree in either order.
+ */
+describe('deleting a deck and everything that describes it', () => {
+  const MISSING = { code: 'PGRST202', message: 'no function matches' }
+
+  function repositoryWithRpc(answers: { data?: unknown; error?: unknown }[]): {
+    repository: CloudDeckRepository
+    names: string[]
+    update: string[]
+  } {
+    const names: string[] = []
+    const update: string[] = []
+    let index = 0
+    const client = {
+      rpc: vi.fn(async (name: string) => {
+        names.push(name)
+        const answer = answers[Math.min(index, answers.length - 1)]
+        index += 1
+        return { data: answer?.data ?? null, error: answer?.error ?? null }
+      }),
+      from: () => {
+        const chain: Record<string, unknown> = {
+          then: (resolve: (value: unknown) => unknown) =>
+            resolve({
+              data: [row({ deleted_at: '2026-09-27T05:00:00+00:00' })],
+              error: null,
+            }),
+        }
+        for (const method of ['select', 'eq', 'update']) {
+          chain[method] = (...args: unknown[]) => {
+            if (method === 'update') update.push(JSON.stringify(args[0]))
+            return chain
+          }
+        }
+        return chain
+      },
+      auth: {
+        getSession: vi.fn(async () => ({
+          data: { session: { user: { id: 'user-a' } } },
+          error: null,
+        })),
+      },
+    } as unknown as SupabaseClient
+    const repository = createSupabaseCloudDeckRepository(client)
+    if (!repository) throw new Error('expected a repository')
+    return { repository, names, update }
+  }
+
+  it('uses the newest function, and reports what it did', async () => {
+    const { repository, names } = repositoryWithRpc([
+      {
+        data: [
+          {
+            deck_found: true,
+            versions_tombstoned: 2,
+            organization_tombstoned: true,
+          },
+        ],
+      },
+    ])
+
+    await expect(repository.tombstoneWithRelated?.('deck-1')).resolves.toEqual({
+      ok: true,
+      value: { versionsTombstoned: 2, organizationTombstoned: true },
+    })
+    expect(names).toEqual(['tombstone_deck_with_related'])
+  })
+
+  // The account's schema has not caught up yet, which is not a failure to
+  // report: it means try what the schema does have.
+  it('falls back to the older function, then to the plain update', async () => {
+    const withOlder = repositoryWithRpc([
+      { error: MISSING },
+      { data: [{ deck_found: true, versions_tombstoned: 1 }] },
+    ])
+    await expect(
+      withOlder.repository.tombstoneWithRelated?.('deck-1'),
+    ).resolves.toEqual({ ok: true, value: { versionsTombstoned: 1 } })
+    expect(withOlder.names).toEqual([
+      'tombstone_deck_with_related',
+      'tombstone_deck_with_versions',
+    ])
+
+    const withNeither = repositoryWithRpc([{ error: MISSING }])
+    await expect(
+      withNeither.repository.tombstoneWithRelated?.('deck-1'),
+    ).resolves.toEqual({ ok: true, value: {} })
+    expect(withNeither.names).toEqual([
+      'tombstone_deck_with_related',
+      'tombstone_deck_with_versions',
+    ])
+    expect(withNeither.update).toEqual(['{"deleted_at":"now"}'])
+  })
+
+  /**
+   * Only "no such function" falls back. Falling back on anything else would
+   * quietly downgrade the deletion: the plain update tombstones the deck alone
+   * and would leave its versions and its organization behind while reporting
+   * success.
+   */
+  it('keeps every other refusal as its own answer', async () => {
+    const { repository, names } = repositoryWithRpc([
+      { error: { code: '42501', message: 'denied' } },
+    ])
+
+    await expect(repository.tombstoneWithRelated?.('deck-1')).resolves.toEqual({
+      ok: false,
+      reason: 'forbidden',
+    })
+    expect(names).toEqual(['tombstone_deck_with_related'])
+  })
+
+  it('maps a deck the account does not have to not-found', async () => {
+    const { repository } = repositoryWithRpc([
+      {
+        data: [
+          {
+            deck_found: false,
+            versions_tombstoned: 0,
+            organization_tombstoned: false,
+          },
+        ],
+      },
+    ])
+
+    await expect(repository.tombstoneWithRelated?.('missing')).resolves.toEqual(
+      { ok: false, reason: 'not-found' },
+    )
+  })
+
+  it('refuses an answer missing the column it needs', async () => {
+    const { repository } = repositoryWithRpc([
+      { data: [{ deck_found: true, versions_tombstoned: 1 }] },
+    ])
+
+    await expect(repository.tombstoneWithRelated?.('deck-1')).resolves.toEqual({
+      ok: false,
+      reason: 'invalid-data',
+    })
+  })
+
+  it('picks the most capable call a repository offers', async () => {
+    const related = vi.fn(async () => ({ ok: true as const, value: {} }))
+    const versions = vi.fn(async () => ({
+      ok: true as const,
+      value: { versionsTombstoned: 0 },
+    }))
+    const tombstone = vi.fn(async () => ({
+      ok: true as const,
+      value: row() as unknown as CloudDeckRecord,
+    }))
+
+    await tombstoneCloudDeckAndChildren(
+      {
+        tombstoneWithRelated: related,
+        tombstoneWithVersions: versions,
+        tombstone,
+      } as unknown as CloudDeckRepository,
+      'deck-1',
+    )
+    expect(related).toHaveBeenCalledWith('deck-1')
+    expect(versions).not.toHaveBeenCalled()
+
+    await tombstoneCloudDeckAndChildren(
+      {
+        tombstoneWithVersions: versions,
+        tombstone,
+      } as unknown as CloudDeckRepository,
+      'deck-1',
+    )
+    expect(versions).toHaveBeenCalledWith('deck-1')
+    expect(tombstone).not.toHaveBeenCalled()
+
+    await tombstoneCloudDeckAndChildren(
+      { tombstone } as unknown as CloudDeckRepository,
+      'deck-1',
+    )
+    expect(tombstone).toHaveBeenCalledWith('deck-1')
   })
 })
 
