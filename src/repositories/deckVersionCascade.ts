@@ -2,15 +2,14 @@ import type { DeckBackupRepository } from './deckRepository'
 import type { DeckVersionRepository } from './deckVersionRepository'
 
 /** Keeps the local invariant that a removed Deck never leaves orphan Versions. */
-export function withDeckVersionCascade(
-  decks: DeckBackupRepository,
+export function withDeckVersionCascade<T extends DeckBackupRepository>(
+  decks: T,
   versions: Pick<DeckVersionRepository, 'deleteVersionsForDeck'>,
-): DeckBackupRepository {
+): Omit<T, 'deleteDeck'> & Pick<DeckBackupRepository, 'deleteDeck'> {
+  // Spread rather than listed field by field, so a store that gains a method
+  // does not silently lose it on the way through here.
   return {
-    listDecks: decks.listDecks,
-    getDeck: decks.getDeck,
-    saveDeck: decks.saveDeck,
-    importDecks: decks.importDecks,
+    ...decks,
     async deleteDeck(id) {
       await versions.deleteVersionsForDeck(id)
       await decks.deleteDeck(id)

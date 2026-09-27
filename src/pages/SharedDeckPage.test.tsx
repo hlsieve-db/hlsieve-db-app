@@ -473,7 +473,15 @@ describe('SharedDeckPage import', () => {
 
     render(
       <MemoryRouter initialEntries={['/decks']}>
-        <SavedDecksPage repository={deckRepository} />
+        <SavedDecksPage
+          repository={{
+            ...deckRepository,
+            // This case is about the shared deck reaching the saved list; the
+            // organization-aware writes belong to that page's own tests.
+            duplicateDeck: vi.fn(async () => undefined),
+            importOrganizationBackup: vi.fn(async () => undefined),
+          }}
+        />
       </MemoryRouter>,
     )
     expect(

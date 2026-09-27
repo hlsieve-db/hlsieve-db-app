@@ -84,7 +84,7 @@ describe('Deck backup parser and atomic validation', () => {
   it.each([
     ['invalid JSON', '{', '読み込めません'],
     ['wrong format', json({ ...valid(), format: 'other' }), '対応していません'],
-    ['future version', json({ ...valid(), version: 2 }), '対応していません'],
+    ['future version', json({ ...valid(), version: 3 }), '対応していません'],
     [
       'invalid exportedAt',
       json({ ...valid(), exportedAt: 'today' }),

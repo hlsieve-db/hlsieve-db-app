@@ -2,7 +2,10 @@ import {
   createSupabaseCloudDeckRepository,
   type CloudDeckRepository,
 } from '../cloud/cloudDeckRepository'
-import { withCloudDeckSync } from '../cloud/cloudSyncedDeckRepository'
+import {
+  withCloudDeckSync,
+  type CloudSyncedDeckRepository,
+} from '../cloud/cloudSyncedDeckRepository'
 import {
   createSupabaseCloudDeckVersionRepository,
   type CloudDeckVersionRepository,
@@ -28,6 +31,23 @@ import {
   createIndexedDbDeckPersistence,
   type DeckBackupRepository,
 } from './deckRepository'
+import {
+  createDeckFolderRepository,
+  createIndexedDbDeckFolderPersistence,
+  type DeckFolderRepository,
+} from './deckFolderRepository'
+import {
+  createDeckOrganizationRepository,
+  createIndexedDbDeckOrganizationPersistence,
+  type DeckOrganizationRepository,
+} from './deckOrganizationRepository'
+import { createIndexedDbDeckOrganizationTransactions } from './deckOrganizationTransactions'
+import { withDeckOrganizationCascade } from './deckOrganizationCascade'
+import {
+  createDeckTagRepository,
+  createIndexedDbDeckTagPersistence,
+  type DeckTagRepository,
+} from './deckTagRepository'
 import {
   createDeckVersionRepository,
   createIndexedDbDeckVersionPersistence,
@@ -57,7 +77,10 @@ import {
 
 export type AppRepositories = {
   namespace: LocalDataNamespace
-  decks: DeckBackupRepository
+  decks: CloudSyncedDeckRepository
+  deckFolders: DeckFolderRepository
+  deckTags: DeckTagRepository
+  deckOrganizations: DeckOrganizationRepository
   favoriteCards: FavoriteCardRepository
   savedSearchPresets: SavedSearchPresetRepository
   tournamentReports: TournamentReportRepository
@@ -120,10 +143,18 @@ export function createAppRepositories(
   const rawDecks = createDeckRepository(
     createIndexedDbDeckPersistence(databaseFactory, namespace),
   )
+  const organizationTransactions = createIndexedDbDeckOrganizationTransactions(
+    databaseFactory,
+    namespace,
+  )
+  const organizationAwareDecks = withDeckOrganizationCascade(
+    rawDecks,
+    organizationTransactions,
+  )
   const localVersions = createDeckVersionRepository(
     createIndexedDbDeckVersionPersistence(databaseFactory, namespace),
   )
-  const local = withDeckVersionCascade(rawDecks, localVersions)
+  const local = withDeckVersionCascade(organizationAwareDecks, localVersions)
 
   return {
     namespace,
@@ -131,6 +162,17 @@ export function createAppRepositories(
     cloudDeckVersions: cloudVersions,
     localDecks: local,
     localDeckVersions: localVersions,
+    deckFolders: createDeckFolderRepository(
+      createIndexedDbDeckFolderPersistence(databaseFactory, namespace),
+      organizationTransactions,
+    ),
+    deckTags: createDeckTagRepository(
+      createIndexedDbDeckTagPersistence(databaseFactory, namespace),
+      organizationTransactions,
+    ),
+    deckOrganizations: createDeckOrganizationRepository(
+      createIndexedDbDeckOrganizationPersistence(databaseFactory, namespace),
+    ),
     /**
      * Wrapped so every save and delete reaches the account, wherever it comes
      * from. The wrapper writes locally first and never rolls that back, so a
@@ -142,6 +184,9 @@ export function createAppRepositories(
      */
     decks: withCloudDeckSync({
       decks: local,
+      // Copying a deck and importing a backup write a deck and its
+      // organization together, and go out to the account like any other save.
+      organization: organizationTransactions,
       cloudDecks: cloud,
       isSyncEnabled: () => isCloudSyncEnabled(namespace),
       // Namespaced, so one account's unsent changes are never retried for

@@ -1,5 +1,8 @@
 import {
   DB_VERSION,
+  STORE_DECK_FOLDERS,
+  STORE_DECK_ORGANIZATIONS,
+  STORE_DECK_TAGS,
   STORE_DECK_VERSIONS,
   STORE_DECKS,
   STORE_FAVORITE_CARDS,
@@ -38,6 +41,20 @@ export function upgradeAppDatabaseSchema(database: IDBDatabase): void {
   // holds; nothing reads or rewrites the decks on the way past.
   if (!database.objectStoreNames.contains(STORE_DECK_VERSIONS)) {
     database.createObjectStore(STORE_DECK_VERSIONS, { keyPath: 'id' })
+  }
+  // Added in version 7. Deck rows are deliberately not rewritten: no
+  // organization row means the reporter has never organized that deck, which
+  // is distinct from an explicit row with no folder and no tags.
+  if (!database.objectStoreNames.contains(STORE_DECK_FOLDERS)) {
+    database.createObjectStore(STORE_DECK_FOLDERS, { keyPath: 'id' })
+  }
+  if (!database.objectStoreNames.contains(STORE_DECK_TAGS)) {
+    database.createObjectStore(STORE_DECK_TAGS, { keyPath: 'id' })
+  }
+  if (!database.objectStoreNames.contains(STORE_DECK_ORGANIZATIONS)) {
+    database.createObjectStore(STORE_DECK_ORGANIZATIONS, {
+      keyPath: 'deckId',
+    })
   }
 }
 

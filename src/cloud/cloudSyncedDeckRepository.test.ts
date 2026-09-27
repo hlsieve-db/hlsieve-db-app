@@ -7,6 +7,7 @@ import type {
   CloudDeckRepository,
   CloudDeckResult,
 } from './cloudDeckRepository'
+import type { DeckOrganizationTransactions } from '../repositories/deckOrganizationTransactions'
 import {
   withCloudDeckSync,
   type CloudDeckSyncEvent,
@@ -64,20 +65,35 @@ function cloudRepository(
 }
 
 /** Resolves once the wrapper reports an outcome, so a test can await the push. */
+function organizationTransactions(
+  overrides: Partial<
+    Pick<DeckOrganizationTransactions, 'duplicateDeck' | 'importAll'>
+  > = {},
+) {
+  return {
+    duplicateDeck: vi.fn(async () => undefined),
+    importAll: vi.fn(async () => undefined),
+    ...overrides,
+  }
+}
+
 function build({
   decks = localRepository(),
   cloudDecks = cloudRepository() as CloudDeckRepository | null,
   enabled = true,
+  organization = organizationTransactions(),
 }: {
   decks?: DeckBackupRepository
   cloudDecks?: CloudDeckRepository | null
   enabled?: boolean
+  organization?: ReturnType<typeof organizationTransactions>
 } = {}) {
   const events: CloudDeckSyncEvent[] = []
   const uploaded = vi.fn()
   let notify: (() => void) | undefined
   const repository = withCloudDeckSync({
     decks,
+    organization,
     cloudDecks,
     isSyncEnabled: () => enabled,
     onSyncResult: (event) => {
@@ -90,7 +106,15 @@ function build({
     new Promise<void>((resolve) => {
       notify = resolve
     })
-  return { repository, decks, cloudDecks, events, nextEvent, uploaded }
+  return {
+    repository,
+    decks,
+    cloudDecks,
+    events,
+    nextEvent,
+    uploaded,
+    organization,
+  }
 }
 
 describe('saving a deck', () => {
@@ -234,6 +258,7 @@ describe('deleting a deck', () => {
     const clearParent = vi.fn()
     let finished: (() => void) | undefined
     const repository = withCloudDeckSync({
+      organization: organizationTransactions(),
       decks: localRepository(),
       cloudDecks,
       isSyncEnabled: () => true,
@@ -254,6 +279,7 @@ describe('deleting a deck', () => {
   it('does not delete locally when obsolete child uploads cannot be cleared', async () => {
     const decks = localRepository()
     const repository = withCloudDeckSync({
+      organization: organizationTransactions(),
       decks,
       cloudDecks: cloudRepository(),
       isSyncEnabled: () => true,
@@ -296,6 +322,133 @@ describe('importing decks', () => {
   })
 })
 
+describe('copying a deck', () => {
+  const copyOrganization = {
+    deckId: 'copy',
+    tagIds: ['t1'],
+    createdAt: '2026-09-22T00:00:00.000Z',
+    updatedAt: '2026-09-22T00:00:00.000Z',
+  }
+
+  it('writes the copy and its organization in one local transaction', async () => {
+    const { repository, decks, organization, nextEvent } = build()
+    const copy = deck('copy')
+    const pending = nextEvent()
+
+    await repository.duplicateDeck(copy, copyOrganization)
+
+    expect(organization.duplicateDeck).toHaveBeenCalledWith(
+      copy,
+      copyOrganization,
+    )
+    // Not through the plain deck write, which knows nothing of organization.
+    expect(decks.saveDeck).not.toHaveBeenCalled()
+    await pending
+  })
+
+  // Copying reached the account before folders existed, and still must.
+  it('sends the copy to the account', async () => {
+    const { repository, cloudDecks, nextEvent } = build()
+    const pending = nextEvent()
+
+    await repository.duplicateDeck(deck('copy'))
+
+    await pending
+    expect(cloudDecks?.upsert).toHaveBeenCalledWith(deck('copy'))
+  })
+
+  it('sends nothing when the local write fails', async () => {
+    const organization = organizationTransactions({
+      duplicateDeck: vi.fn(async () => {
+        throw new Error('duplicate id')
+      }),
+    })
+    const { repository, cloudDecks } = build({ organization })
+
+    await expect(repository.duplicateDeck(deck('copy'))).rejects.toThrow(
+      'duplicate id',
+    )
+    expect(cloudDecks?.upsert).not.toHaveBeenCalled()
+  })
+})
+
+describe('importing a backup with folders and tags', () => {
+  const values = {
+    decks: [deck('new-1'), deck('new-2')],
+    folders: [
+      {
+        id: 'f1',
+        name: 'tournament',
+        sortOrder: 1,
+        createdAt: '2026-09-22T00:00:00.000Z',
+        updatedAt: '2026-09-22T00:00:00.000Z',
+      },
+    ],
+    tags: [],
+    organizations: [
+      {
+        deckId: 'new-1',
+        folderId: 'f1',
+        tagIds: [],
+        createdAt: '2026-09-22T00:00:00.000Z',
+        updatedAt: '2026-09-22T00:00:00.000Z',
+      },
+      // A deck the import skipped, which is only being organized.
+      {
+        deckId: 'existing',
+        tagIds: [],
+        createdAt: '2026-09-22T00:00:00.000Z',
+        updatedAt: '2026-09-22T00:00:00.000Z',
+      },
+    ],
+  }
+
+  it('writes everything in one local transaction', async () => {
+    const { repository, decks, organization, nextEvent } = build()
+    const pending = nextEvent()
+
+    await repository.importOrganizationBackup(values)
+
+    expect(organization.importAll).toHaveBeenCalledWith(values)
+    expect(decks.importDecks).not.toHaveBeenCalled()
+    await pending
+  })
+
+  /**
+   * The account already holds the decks this import skipped, and organizing an
+   * existing deck changes nothing the account stores. Sending either would
+   * overwrite a newer copy on another device with an older one.
+   */
+  it('sends only the decks the import added', async () => {
+    const { repository, cloudDecks, nextEvent } = build()
+    const pending = nextEvent()
+
+    await repository.importOrganizationBackup(values)
+
+    await pending
+    expect(cloudDecks?.upsert).toHaveBeenCalledTimes(2)
+    expect(cloudDecks?.upsert).toHaveBeenCalledWith(deck('new-1'))
+    expect(cloudDecks?.upsert).toHaveBeenCalledWith(deck('new-2'))
+    expect(cloudDecks?.upsert).not.toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'existing' }),
+    )
+  })
+
+  it('sends nothing when the local import fails', async () => {
+    const organization = organizationTransactions({
+      importAll: vi.fn(async () => {
+        throw new Error('invalid')
+      }),
+    })
+    const { repository, cloudDecks } = build({ organization })
+
+    await expect(repository.importOrganizationBackup(values)).rejects.toThrow(
+      'invalid',
+    )
+    expect(cloudDecks?.upsert).not.toHaveBeenCalled()
+  })
+})
+
 describe('when sync is off', () => {
   it('sends nothing while sync is not enabled', async () => {
     const { repository, decks, cloudDecks } = build({ enabled: false })
@@ -332,6 +485,7 @@ describe('when sync is off', () => {
     const cloudDecks = cloudRepository()
     let enabled = false
     const repository = withCloudDeckSync({
+      organization: organizationTransactions(),
       decks,
       cloudDecks,
       isSyncEnabled: () => enabled,
@@ -381,6 +535,7 @@ describe('remembering what could not be sent', () => {
     const cleared: string[] = []
     let notify: (() => void) | undefined
     const repository = withCloudDeckSync({
+      organization: organizationTransactions(),
       decks,
       cloudDecks,
       isSyncEnabled: () => enabled,
@@ -516,6 +671,7 @@ describe('remembering what could not be sent', () => {
   it('works without a queue at all', async () => {
     const decks = localRepository()
     const repository = withCloudDeckSync({
+      organization: organizationTransactions(),
       decks,
       cloudDecks: cloudRepository(),
       isSyncEnabled: () => true,

@@ -4,8 +4,11 @@ export const DECK_NAME_MAX_LENGTH = 100
 export const LOCAL_STORAGE_SETTINGS_KEY = 'holocard:settings'
 
 export const DB_NAME = 'holocard-db'
-export const DB_VERSION = 6
+export const DB_VERSION = 7
 export const STORE_DECKS = 'decks'
+export const STORE_DECK_FOLDERS = 'deck-folders'
+export const STORE_DECK_TAGS = 'deck-tags'
+export const STORE_DECK_ORGANIZATIONS = 'deck-organizations'
 export const STORE_TOURNAMENT_REPORTS = 'tournament-reports'
 export const STORE_FAVORITE_CARDS = 'favorite-cards'
 export const STORE_SAVED_SEARCH_PRESETS = 'saved-search-presets'

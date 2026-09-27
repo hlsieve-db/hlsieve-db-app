@@ -1,17 +1,42 @@
 import { sameDeckRegulation } from '../regulations/deckRegulationId'
-import type { Deck } from './types'
+import type {
+  DeckFolder,
+  DeckOrganization,
+  DeckTag,
+} from '../deckOrganization/types'
+import {
+  DECK_FOLDER_MAX_COUNT,
+  DECK_TAG_MAX_COUNT,
+  isDeckFolder,
+  isDeckOrganization,
+  isDeckTag,
+} from '../deckOrganization/validation'
+import type { Deck, DeckId } from './types'
 import { isDeck } from './validation'
 
 export const DECK_BACKUP_FORMAT = 'hlsieve-deck-backup' as const
 export const DECK_BACKUP_VERSION = 1 as const
+export const DECK_BACKUP_VERSION_V2 = 2 as const
 export const MAX_DECK_BACKUP_FILE_SIZE = 5 * 1024 * 1024
 
-export type DeckBackup = {
+export type DeckBackupV1 = {
   format: typeof DECK_BACKUP_FORMAT
   version: typeof DECK_BACKUP_VERSION
   exportedAt: string
   decks: Deck[]
 }
+
+export type DeckBackupV2 = {
+  format: typeof DECK_BACKUP_FORMAT
+  version: typeof DECK_BACKUP_VERSION_V2
+  exportedAt: string
+  decks: Deck[]
+  folders: DeckFolder[]
+  tags: DeckTag[]
+  organizations: DeckOrganization[]
+}
+
+export type DeckBackup = DeckBackupV1 | DeckBackupV2
 
 export type DeckImportPlan = {
   decks: Deck[]
@@ -46,10 +71,24 @@ function isValidBackupDeck(value: unknown): value is Deck {
   )
 }
 
+function isValidBackupOrganization(value: unknown): value is DeckOrganization {
+  if (!isPlainObject(value)) return false
+  return (
+    typeof value.deckId === 'string' &&
+    value.deckId.length > 0 &&
+    (value.folderId === undefined ||
+      (typeof value.folderId === 'string' && value.folderId.length > 0)) &&
+    Array.isArray(value.tagIds) &&
+    value.tagIds.every((id) => typeof id === 'string' && id.length > 0) &&
+    isIsoTimestamp(value.createdAt) &&
+    isIsoTimestamp(value.updatedAt)
+  )
+}
+
 export function createDeckBackup(
   decks: readonly Deck[],
   exportedAt = new Date().toISOString(),
-): DeckBackup {
+): DeckBackupV1 {
   if (!isIsoTimestamp(exportedAt)) throw new Error('Invalid export timestamp.')
   const invalidIndex = decks.findIndex((deck) => !isValidBackupDeck(deck))
   if (invalidIndex >= 0) {
@@ -63,6 +102,52 @@ export function createDeckBackup(
       (left, right) =>
         left.createdAt.localeCompare(right.createdAt) ||
         left.id.localeCompare(right.id),
+    ),
+  }
+}
+
+export function createDeckBackupV2(
+  values: {
+    decks: readonly Deck[]
+    folders: readonly DeckFolder[]
+    tags: readonly DeckTag[]
+    organizations: readonly DeckOrganization[]
+  },
+  exportedAt = new Date().toISOString(),
+): DeckBackupV2 {
+  if (!isIsoTimestamp(exportedAt)) throw new Error('Invalid export timestamp.')
+  if (!values.decks.every(isValidBackupDeck))
+    throw new Error('Invalid deck backup.')
+  if (!values.folders.every(isDeckFolder))
+    throw new Error('Invalid folder backup.')
+  if (!values.tags.every(isDeckTag)) throw new Error('Invalid tag backup.')
+  if (!values.organizations.every(isDeckOrganization)) {
+    throw new Error('Invalid organization backup.')
+  }
+  if (values.folders.length > DECK_FOLDER_MAX_COUNT) {
+    throw new Error('Folder limit exceeded.')
+  }
+  if (values.tags.length > DECK_TAG_MAX_COUNT) {
+    throw new Error('Tag limit exceeded.')
+  }
+  return {
+    format: DECK_BACKUP_FORMAT,
+    version: DECK_BACKUP_VERSION_V2,
+    exportedAt,
+    decks: [...values.decks].sort(
+      (left, right) =>
+        left.createdAt.localeCompare(right.createdAt) ||
+        left.id.localeCompare(right.id),
+    ),
+    folders: [...values.folders].sort(
+      (left, right) =>
+        left.sortOrder - right.sortOrder || left.id.localeCompare(right.id),
+    ),
+    tags: [...values.tags].sort((left, right) =>
+      left.id.localeCompare(right.id),
+    ),
+    organizations: [...values.organizations].sort((left, right) =>
+      left.deckId.localeCompare(right.deckId),
     ),
   }
 }
@@ -91,9 +176,12 @@ export function parseDeckBackup(text: string): DeckBackupParseResult {
   if (!isPlainObject(parsed)) {
     return { ok: false, message: 'このバックアップ形式には対応していません。' }
   }
+  if (parsed.format !== DECK_BACKUP_FORMAT) {
+    return { ok: false, message: 'このバックアップ形式には対応していません。' }
+  }
   if (
-    parsed.format !== DECK_BACKUP_FORMAT ||
-    parsed.version !== DECK_BACKUP_VERSION
+    parsed.version !== DECK_BACKUP_VERSION &&
+    parsed.version !== DECK_BACKUP_VERSION_V2
   ) {
     return { ok: false, message: 'このバックアップ形式には対応していません。' }
   }
@@ -122,6 +210,48 @@ export function parseDeckBackup(text: string): DeckBackupParseResult {
       message: `${duplicateIndex + 1}件目のデッキIDが重複しているため、読み込みを中止しました。`,
     }
   }
+  if (parsed.version === DECK_BACKUP_VERSION_V2) {
+    if (
+      !Array.isArray(parsed.folders) ||
+      !Array.isArray(parsed.tags) ||
+      !Array.isArray(parsed.organizations) ||
+      !parsed.folders.every(isDeckFolder) ||
+      !parsed.tags.every(isDeckTag) ||
+      !parsed.organizations.every(isValidBackupOrganization) ||
+      parsed.folders.length > DECK_FOLDER_MAX_COUNT ||
+      parsed.tags.length > DECK_TAG_MAX_COUNT
+    ) {
+      return { ok: false, message: 'バックアップファイルの内容が不正です。' }
+    }
+    const hasDuplicateId = (values: readonly { id: string }[]) =>
+      new Set(values.map(({ id }) => id)).size !== values.length
+    if (
+      hasDuplicateId(parsed.folders as DeckFolder[]) ||
+      hasDuplicateId(parsed.tags as DeckTag[]) ||
+      new Set(
+        (parsed.organizations as DeckOrganization[]).map(
+          ({ deckId }) => deckId,
+        ),
+      ).size !== parsed.organizations.length
+    ) {
+      return {
+        ok: false,
+        message: 'バックアップファイルのIDが重複しています。',
+      }
+    }
+    return {
+      ok: true,
+      backup: {
+        format: DECK_BACKUP_FORMAT,
+        version: DECK_BACKUP_VERSION_V2,
+        exportedAt: parsed.exportedAt,
+        decks: parsed.decks as Deck[],
+        folders: parsed.folders as DeckFolder[],
+        tags: parsed.tags as DeckTag[],
+        organizations: parsed.organizations as DeckOrganization[],
+      },
+    }
+  }
   return {
     ok: true,
     backup: {
@@ -131,6 +261,12 @@ export function parseDeckBackup(text: string): DeckBackupParseResult {
       decks: parsed.decks as Deck[],
     },
   }
+}
+
+export type DeckBackupV2ImportWarnings = {
+  missingFolderIds: string[]
+  missingTagIds: string[]
+  duplicateTagIdCount: number
 }
 
 /**
@@ -161,39 +297,69 @@ export function hasSameDeckContent(left: Deck, right: Deck): boolean {
   )
 }
 
-export function planDeckBackupImport(
+/**
+ * What importing one deck from a file does to the decks already here.
+ *
+ * `kept` means the id was free and the deck comes in as it is. `renamed` means
+ * something else already holds that id and the copy comes in under a new one.
+ * `skipped` means this deck is already here, and names the deck it matched, so
+ * a caller carrying other records can point them at the deck that stayed.
+ */
+export type DeckImportOutcome =
+  | { kind: 'kept'; deck: Deck; sourceId: DeckId }
+  | { kind: 'renamed'; deck: Deck; sourceId: DeckId }
+  | { kind: 'skipped'; sourceId: DeckId; matchedId: DeckId }
+
+/**
+ * Decides that for a whole file, in order.
+ *
+ * A deck whose id is free is taken at its word. Only a clash makes the contents
+ * worth comparing, and then against the deck holding that id and against every
+ * other deck known so far, including ones this same import has just renamed:
+ * importing a file twice must not leave two copies of the same deck.
+ *
+ * Both backup formats go through this, so what counts as "already here" cannot
+ * differ between them.
+ */
+export function planDeckImportOutcomes(
   imported: readonly Deck[],
   existing: readonly Deck[],
   createId: () => string = () => crypto.randomUUID(),
-): DeckImportPlan {
+): DeckImportOutcome[] {
   const occupied = new Map(existing.map((deck) => [deck.id, deck]))
   const reservedIds = new Set([
     ...existing.map(({ id }) => id),
     ...imported.map(({ id }) => id),
   ])
   const known = [...existing]
-  const decks: Deck[] = []
-  let newCount = 0
-  let identicalCount = 0
-  let conflictCount = 0
+  const outcomes: DeckImportOutcome[] = []
 
   for (const deck of imported) {
     const sameId = occupied.get(deck.id)
     if (!sameId) {
-      decks.push(deck)
+      outcomes.push({ kind: 'kept', deck, sourceId: deck.id })
       occupied.set(deck.id, deck)
       known.push(deck)
-      newCount += 1
       continue
     }
-    if (
-      hasSameDeckContent(sameId, deck) ||
-      known.some(
-        (candidate) =>
-          candidate.id !== deck.id && hasSameDeckContent(candidate, deck),
-      )
-    ) {
-      identicalCount += 1
+    if (hasSameDeckContent(sameId, deck)) {
+      outcomes.push({
+        kind: 'skipped',
+        sourceId: deck.id,
+        matchedId: sameId.id,
+      })
+      continue
+    }
+    const elsewhere = known.find(
+      (candidate) =>
+        candidate.id !== deck.id && hasSameDeckContent(candidate, deck),
+    )
+    if (elsewhere) {
+      outcomes.push({
+        kind: 'skipped',
+        sourceId: deck.id,
+        matchedId: elsewhere.id,
+      })
       continue
     }
 
@@ -202,12 +368,32 @@ export function planDeckBackupImport(
       generatedId = createId()
     }
     const renamed = { ...deck, id: generatedId }
-    decks.push(renamed)
+    outcomes.push({ kind: 'renamed', deck: renamed, sourceId: deck.id })
     occupied.set(generatedId, renamed)
     reservedIds.add(generatedId)
     known.push(renamed)
-    conflictCount += 1
   }
 
-  return { decks, newCount, identicalCount, conflictCount }
+  return outcomes
+}
+
+export function planDeckBackupImport(
+  imported: readonly Deck[],
+  existing: readonly Deck[],
+  createId: () => string = () => crypto.randomUUID(),
+): DeckImportPlan {
+  const outcomes = planDeckImportOutcomes(imported, existing, createId)
+  return {
+    decks: outcomes
+      .filter(
+        (outcome): outcome is Extract<DeckImportOutcome, { deck: Deck }> =>
+          outcome.kind !== 'skipped',
+      )
+      .map((outcome) => outcome.deck),
+    newCount: outcomes.filter((outcome) => outcome.kind === 'kept').length,
+    identicalCount: outcomes.filter((outcome) => outcome.kind === 'skipped')
+      .length,
+    conflictCount: outcomes.filter((outcome) => outcome.kind === 'renamed')
+      .length,
+  }
 }

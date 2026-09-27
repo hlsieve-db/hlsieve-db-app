@@ -14,7 +14,16 @@ import {
   MAX_DECK_BACKUP_FILE_SIZE,
   serializeDeckBackup,
 } from '../domain/decks/backup'
-import type { DeckBackupRepository } from '../repositories/deckRepository'
+import { createDeckBackupV2 } from '../domain/decks/backup'
+import type {
+  DeckFolder,
+  DeckOrganization,
+  DeckTag,
+} from '../domain/deckOrganization/types'
+import type { DeckFolderRepository } from '../repositories/deckFolderRepository'
+import type { DeckOrganizationRepository } from '../repositories/deckOrganizationRepository'
+import type { DeckTagRepository } from '../repositories/deckTagRepository'
+import type { CloudSyncedDeckRepository } from '../cloud/cloudSyncedDeckRepository'
 import type { DeckVersionRepository } from '../repositories/deckVersionRepository'
 import { withDeckVersionCascade } from '../repositories/deckVersionCascade'
 import { SavedDecksPage } from './SavedDecksPage'
@@ -31,14 +40,16 @@ function deck(overrides: Partial<Deck> = {}): Deck {
 }
 
 function repository(
-  overrides: Partial<DeckBackupRepository> = {},
-): DeckBackupRepository {
+  overrides: Partial<CloudSyncedDeckRepository> = {},
+): CloudSyncedDeckRepository {
   return {
     listDecks: vi.fn(async () => []),
     getDeck: vi.fn(async () => undefined),
     saveDeck: vi.fn(async () => undefined),
     deleteDeck: vi.fn(async () => undefined),
     importDecks: vi.fn(async () => undefined),
+    duplicateDeck: vi.fn(async () => undefined),
+    importOrganizationBackup: vi.fn(async () => undefined),
     ...overrides,
   }
 }
@@ -65,16 +76,103 @@ function emptyVersionRepository(
   }
 }
 
+const ORGANIZED_AT = '2026-09-13T00:00:00.000Z'
+
+function folder(id: string, name: string, sortOrder = 1): DeckFolder {
+  return {
+    id,
+    name,
+    sortOrder,
+    createdAt: ORGANIZED_AT,
+    updatedAt: ORGANIZED_AT,
+  }
+}
+
+function tag(id: string, name: string): DeckTag {
+  return { id, name, createdAt: ORGANIZED_AT, updatedAt: ORGANIZED_AT }
+}
+
+function organization(
+  deckId: string,
+  overrides: Partial<DeckOrganization> = {},
+): DeckOrganization {
+  return {
+    deckId,
+    tagIds: [],
+    createdAt: ORGANIZED_AT,
+    updatedAt: ORGANIZED_AT,
+    ...overrides,
+  }
+}
+
+/** Folder, tag and organization stores this screen can read and write. */
+function organizationRepositories(
+  seed: {
+    folders?: DeckFolder[]
+    tags?: DeckTag[]
+    organizations?: DeckOrganization[]
+  } = {},
+) {
+  const folders = [...(seed.folders ?? [])]
+  const tags = [...(seed.tags ?? [])]
+  const organizations = [...(seed.organizations ?? [])]
+  return {
+    folders,
+    tags,
+    organizations,
+    deckFolders: {
+      listFolders: vi.fn(async () => [...folders]),
+      getFolder: vi.fn(async () => undefined),
+      saveFolder: vi.fn(async () => undefined),
+      deleteFolder: vi.fn(async () => 0),
+      saveFolderOrder: vi.fn(async () => undefined),
+    } as DeckFolderRepository,
+    deckTags: {
+      listTags: vi.fn(async () => [...tags]),
+      getTag: vi.fn(async () => undefined),
+      saveTag: vi.fn(async () => undefined),
+      deleteTag: vi.fn(async () => 0),
+    } as DeckTagRepository,
+    deckOrganizations: {
+      listOrganizations: vi.fn(async () => [...organizations]),
+      getOrganization: vi.fn(async () => undefined),
+      saveOrganization: vi.fn(async () => undefined),
+      deleteOrganization: vi.fn(async () => undefined),
+    } as DeckOrganizationRepository,
+  }
+}
+
+/**
+ * The screen reads its folders and tags after mounting, and refuses to write a
+ * backup until it has them, so a test that exports waits for that read.
+ */
+async function organizationLoaded(stores: {
+  deckOrganizations: DeckOrganizationRepository
+}) {
+  await waitFor(() =>
+    expect(stores.deckOrganizations.listOrganizations).toHaveBeenCalled(),
+  )
+}
+
 function renderPage(
-  deckRepository: DeckBackupRepository,
+  deckRepository: CloudSyncedDeckRepository,
   createNewDeck = () => deck({ id: 'new-deck', entries: [] }),
   extras: {
     downloadFile?: (filename: string, contents: string) => void
     createImportId?: () => string
     deckVersions?: DeckVersionRepository
+    deckFolders?: DeckFolderRepository
+    deckTags?: DeckTagRepository
+    deckOrganizations?: DeckOrganizationRepository
   } = {},
 ) {
   const deckVersions = extras.deckVersions ?? emptyVersionRepository()
+  const fallback = organizationRepositories()
+  const stores = {
+    deckFolders: extras.deckFolders ?? fallback.deckFolders,
+    deckTags: extras.deckTags ?? fallback.deckTags,
+    deckOrganizations: extras.deckOrganizations ?? fallback.deckOrganizations,
+  }
   render(
     <MemoryRouter initialEntries={['/decks']}>
       <Routes>
@@ -88,6 +186,9 @@ function renderPage(
               now={() => new Date(2026, 8, 13)}
               downloadFile={extras.downloadFile}
               createImportId={extras.createImportId}
+              deckFolders={stores.deckFolders}
+              deckTags={stores.deckTags}
+              deckOrganizations={stores.deckOrganizations}
             />
           }
         />
@@ -96,6 +197,7 @@ function renderPage(
       <Location />
     </MemoryRouter>,
   )
+  return stores
 }
 
 function backupFile(contents: string, size?: number): File {
@@ -529,7 +631,7 @@ describe('copies and snapshots', () => {
   const versionRepository = emptyVersionRepository
 
   function renderWithVersions(
-    deckRepository: DeckBackupRepository,
+    deckRepository: CloudSyncedDeckRepository,
     deckVersions: DeckVersionRepository,
   ) {
     render(
@@ -554,13 +656,13 @@ describe('copies and snapshots', () => {
   }
 
   it('saves a copy under a name that says so, and opens it', async () => {
-    const saveDeck = vi.fn<(value: Deck) => Promise<void>>(
+    const duplicateDeck = vi.fn<(value: Deck) => Promise<void>>(
       async () => undefined,
     )
     renderWithVersions(
       repository({
         listDecks: async () => [deck({ id: 'deck-1', name: '白上フブキ' })],
-        saveDeck,
+        duplicateDeck,
       }),
       versionRepository(),
     )
@@ -568,15 +670,15 @@ describe('copies and snapshots', () => {
       await screen.findByRole('button', { name: '白上フブキを複製' }),
     )
 
-    await waitFor(() => expect(saveDeck).toHaveBeenCalledTimes(1))
-    const copy = saveDeck.mock.calls[0]?.[0] as Deck
+    await waitFor(() => expect(duplicateDeck).toHaveBeenCalledTimes(1))
+    const copy = duplicateDeck.mock.calls[0]?.[0] as Deck
     expect(copy.name).toBe('白上フブキのコピー')
     expect(copy.id).not.toBe('deck-1')
     expect(copy.entries).toEqual(deck().entries)
   })
 
   it('numbers a copy when the name is taken', async () => {
-    const saveDeck = vi.fn<(value: Deck) => Promise<void>>(
+    const duplicateDeck = vi.fn<(value: Deck) => Promise<void>>(
       async () => undefined,
     )
     renderWithVersions(
@@ -585,7 +687,7 @@ describe('copies and snapshots', () => {
           deck({ id: 'deck-1', name: '白上フブキ' }),
           deck({ id: 'deck-2', name: '白上フブキのコピー' }),
         ],
-        saveDeck,
+        duplicateDeck,
       }),
       versionRepository(),
     )
@@ -593,14 +695,14 @@ describe('copies and snapshots', () => {
       await screen.findByRole('button', { name: '白上フブキを複製' }),
     )
 
-    await waitFor(() => expect(saveDeck).toHaveBeenCalledTimes(1))
-    expect((saveDeck.mock.calls[0]?.[0] as Deck).name).toBe(
+    await waitFor(() => expect(duplicateDeck).toHaveBeenCalledTimes(1))
+    expect((duplicateDeck.mock.calls[0]?.[0] as Deck).name).toBe(
       '白上フブキのコピー 2',
     )
   })
 
   it('keeps the format a copied deck was built for', async () => {
-    const saveDeck = vi.fn<(value: Deck) => Promise<void>>(
+    const duplicateDeck = vi.fn<(value: Deck) => Promise<void>>(
       async () => undefined,
     )
     renderWithVersions(
@@ -608,7 +710,7 @@ describe('copies and snapshots', () => {
         listDecks: async () => [
           deck({ regulationId: 'selection-cup-2026-autumn' }),
         ],
-        saveDeck,
+        duplicateDeck,
       }),
       versionRepository(),
     )
@@ -616,8 +718,8 @@ describe('copies and snapshots', () => {
       await screen.findByRole('button', { name: 'テストデッキを複製' }),
     )
 
-    await waitFor(() => expect(saveDeck).toHaveBeenCalledTimes(1))
-    expect((saveDeck.mock.calls[0]?.[0] as Deck).regulationId).toBe(
+    await waitFor(() => expect(duplicateDeck).toHaveBeenCalledTimes(1))
+    expect((duplicateDeck.mock.calls[0]?.[0] as Deck).regulationId).toBe(
       'selection-cup-2026-autumn',
     )
   })
@@ -785,5 +887,434 @@ describe('the order a deck and its snapshots are deleted in', () => {
     expect(deleteVersionsForDeck).toHaveBeenCalledTimes(1)
     expect(deleteVersionsForDeck).not.toHaveBeenCalledWith('deck-2')
     expect(screen.getByText('残すデッキ')).toBeVisible()
+  })
+})
+
+describe('a backup that carries folders and tags', () => {
+  it('is written in the older format while nothing is organized', async () => {
+    const downloadFile = vi.fn()
+    const stores = organizationRepositories()
+    renderPage(
+      repository({ listDecks: vi.fn(async () => [deck()]) }),
+      undefined,
+      {
+        downloadFile,
+        ...stores,
+      },
+    )
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'バックアップを書き出す' }),
+    )
+
+    await waitFor(() => expect(downloadFile).toHaveBeenCalledTimes(1))
+    const written = JSON.parse(downloadFile.mock.calls[0][1]) as {
+      version: number
+    }
+    expect(written.version).toBe(1)
+  })
+
+  // Only then, so a file an older build can still read stays that way.
+  it('is written in the newer format once a folder or tag exists', async () => {
+    const downloadFile = vi.fn()
+    const stores = organizationRepositories({
+      folders: [folder('f1', '大会用')],
+      tags: [tag('t1', '赤')],
+      organizations: [
+        organization('deck-1', { folderId: 'f1', tagIds: ['t1'] }),
+      ],
+    })
+    renderPage(
+      repository({ listDecks: vi.fn(async () => [deck()]) }),
+      undefined,
+      {
+        downloadFile,
+        ...stores,
+      },
+    )
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'バックアップを書き出す' }),
+    )
+
+    await waitFor(() => expect(downloadFile).toHaveBeenCalledTimes(1))
+    expect(JSON.parse(downloadFile.mock.calls[0][1])).toMatchObject({
+      version: 2,
+      folders: [folder('f1', '大会用')],
+      tags: [tag('t1', '赤')],
+      organizations: [
+        organization('deck-1', { folderId: 'f1', tagIds: ['t1'] }),
+      ],
+    })
+  })
+
+  it('is read back through the one write that keeps them together', async () => {
+    const repo = repository()
+    const stores = organizationRepositories()
+    renderPage(repo, undefined, stores)
+    await organizationLoaded(stores)
+    const incoming = deck({ id: 'restored', name: '復元デッキ' })
+    const file = backupFile(
+      serializeDeckBackup(
+        createDeckBackupV2(
+          {
+            decks: [incoming],
+            folders: [folder('f1', '大会用')],
+            tags: [tag('t1', '赤')],
+            organizations: [
+              organization('restored', { folderId: 'f1', tagIds: ['t1'] }),
+            ],
+          },
+          ORGANIZED_AT,
+        ),
+      ),
+    )
+
+    fireEvent.change(screen.getByLabelText('デッキバックアップJSONファイル'), {
+      target: { files: [file] },
+    })
+    fireEvent.click(
+      await screen.findByRole('button', { name: '読み込みを実行' }),
+    )
+
+    await waitFor(() =>
+      expect(repo.importOrganizationBackup).toHaveBeenCalledWith({
+        decks: [incoming],
+        folders: [folder('f1', '大会用')],
+        tags: [tag('t1', '赤')],
+        organizations: [
+          organization('restored', { folderId: 'f1', tagIds: ['t1'] }),
+        ],
+      }),
+    )
+    // The older path writes decks alone, and would drop the rest.
+    expect(repo.importDecks).not.toHaveBeenCalled()
+  })
+
+  it('says what it did beyond adding decks', async () => {
+    const stores = organizationRepositories({
+      folders: [folder('own', '大会用')],
+    })
+    renderPage(repository(), undefined, stores)
+    await organizationLoaded(stores)
+    const file = backupFile(
+      serializeDeckBackup(
+        createDeckBackupV2(
+          {
+            decks: [deck({ id: 'restored' })],
+            folders: [folder('f1', '大会用')],
+            tags: [],
+            organizations: [organization('missing')],
+          },
+          ORGANIZED_AT,
+        ),
+      ),
+    )
+
+    fireEvent.change(screen.getByLabelText('デッキバックアップJSONファイル'), {
+      target: { files: [file] },
+    })
+    fireEvent.click(
+      await screen.findByRole('button', { name: '読み込みを実行' }),
+    )
+
+    const status = await screen.findByText(/バックアップを読み込みました/)
+    expect(status).toHaveTextContent('追加: 1件')
+    expect(status).toHaveTextContent(
+      'デッキが見つからない整理情報 1件を取り込みませんでした。',
+    )
+    expect(status).toHaveTextContent(
+      '名前が重なるフォルダー・タグ 1件に番号を付けました。',
+    )
+  })
+
+  it('adds nothing when the same file is read a second time', async () => {
+    const storedDecks: Deck[] = []
+    const stores = organizationRepositories()
+    const repo = repository({
+      listDecks: vi.fn(async () => [...storedDecks]),
+      importOrganizationBackup: vi.fn(async (values) => {
+        storedDecks.push(...values.decks)
+        stores.folders.push(...values.folders)
+        stores.tags.push(...values.tags)
+        stores.organizations.push(...values.organizations)
+      }),
+    })
+    renderPage(repo, undefined, stores)
+    await organizationLoaded(stores)
+    const incoming = deck({ id: 'restored', name: '復元デッキ' })
+    const file = backupFile(
+      serializeDeckBackup(
+        createDeckBackupV2(
+          {
+            decks: [incoming],
+            folders: [folder('f1', '大会用')],
+            tags: [tag('t1', '赤')],
+            organizations: [
+              organization('restored', { folderId: 'f1', tagIds: ['t1'] }),
+            ],
+          },
+          ORGANIZED_AT,
+        ),
+      ),
+    )
+    const input = screen.getByLabelText('デッキバックアップJSONファイル')
+
+    fireEvent.change(input, { target: { files: [file] } })
+    fireEvent.click(
+      await screen.findByRole('button', { name: '読み込みを実行' }),
+    )
+    await waitFor(() =>
+      expect(repo.importOrganizationBackup).toHaveBeenCalledTimes(1),
+    )
+    expect(
+      await screen.findByRole('heading', { name: '復元デッキ' }),
+    ).toBeVisible()
+
+    fireEvent.change(input, { target: { files: [file] } })
+    fireEvent.click(
+      await screen.findByRole('button', { name: '読み込みを実行' }),
+    )
+
+    await waitFor(() =>
+      expect(repo.importOrganizationBackup).toHaveBeenLastCalledWith({
+        decks: [],
+        folders: [],
+        tags: [],
+        organizations: [],
+      }),
+    )
+    expect(storedDecks).toHaveLength(1)
+    expect(stores.folders).toHaveLength(1)
+    expect(stores.tags).toHaveLength(1)
+    expect(stores.organizations).toHaveLength(1)
+  })
+
+  it('carries the copy of an organized deck through the same write', async () => {
+    const stores = organizationRepositories({
+      organizations: [
+        organization('deck-1', { folderId: 'f1', tagIds: ['t1'] }),
+      ],
+      folders: [folder('f1', '大会用')],
+      tags: [tag('t1', '赤')],
+    })
+    const duplicate = vi.fn(async () => undefined)
+    const repo = repository({
+      listDecks: vi.fn(async () => [deck()]),
+      duplicateDeck: duplicate,
+    })
+    renderPage(repo, undefined, stores)
+    await organizationLoaded(stores)
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'テストデッキを複製' }),
+    )
+
+    await waitFor(() => expect(duplicate).toHaveBeenCalledTimes(1))
+    const [copy, copyOrganization] = duplicate.mock.calls[0] as unknown as [
+      Deck,
+      DeckOrganization,
+    ]
+    expect(copyOrganization.deckId).toBe(copy.id)
+    expect(copyOrganization.folderId).toBe('f1')
+    expect(copyOrganization.tagIds).toEqual(['t1'])
+  })
+})
+
+/**
+ * A collection whose folders and tags could not be read is not a collection
+ * without any. Anything that would write a file, or plan against what is
+ * already here, has to stop instead of quietly leaving them out.
+ */
+describe('when the folders and tags cannot be read', () => {
+  function unreadable() {
+    const stores = organizationRepositories()
+    stores.deckFolders.listFolders = vi.fn(async () => {
+      throw new Error('blocked')
+    })
+    return stores
+  }
+
+  it('stops the backup instead of writing one without them', async () => {
+    const downloadFile = vi.fn()
+    const stores = unreadable()
+    renderPage(
+      repository({ listDecks: vi.fn(async () => [deck()]) }),
+      undefined,
+      { downloadFile, ...stores },
+    )
+    await organizationLoaded(stores)
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'バックアップを書き出す' }),
+    )
+
+    expect(
+      await screen.findByText(
+        'フォルダー・タグを読み込めないため、書き出しを中止しました。ページを再読み込みしてください。',
+      ),
+    ).toBeVisible()
+    expect(downloadFile).not.toHaveBeenCalled()
+  })
+
+  // Still reading is a wait, not a failure, and says so.
+  it('asks the reporter to wait while they are still being read', async () => {
+    const downloadFile = vi.fn()
+    const stores = organizationRepositories()
+    stores.deckFolders.listFolders = vi.fn(
+      () => new Promise<DeckFolder[]>(() => undefined),
+    )
+    renderPage(
+      repository({ listDecks: vi.fn(async () => [deck()]) }),
+      undefined,
+      { downloadFile, ...stores },
+    )
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'バックアップを書き出す' }),
+    )
+
+    expect(
+      await screen.findByText(
+        'フォルダー・タグを読み込み中です。少し待ってからもう一度お試しください。',
+      ),
+    ).toBeVisible()
+    expect(downloadFile).not.toHaveBeenCalled()
+  })
+
+  it('stops a newer-format import before it is previewed', async () => {
+    const stores = unreadable()
+    const repo = repository()
+    renderPage(repo, undefined, stores)
+    await organizationLoaded(stores)
+    const file = backupFile(
+      serializeDeckBackup(
+        createDeckBackupV2(
+          {
+            decks: [deck({ id: 'restored' })],
+            folders: [folder('f1', '大会用')],
+            tags: [],
+            organizations: [organization('restored', { folderId: 'f1' })],
+          },
+          ORGANIZED_AT,
+        ),
+      ),
+    )
+
+    fireEvent.change(screen.getByLabelText('デッキバックアップJSONファイル'), {
+      target: { files: [file] },
+    })
+
+    expect(
+      await screen.findByText(
+        'フォルダー・タグを読み込めないため、読み込みを中止しました。ページを再読み込みしてください。',
+      ),
+    ).toBeVisible()
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(repo.importOrganizationBackup).not.toHaveBeenCalled()
+  })
+
+  // An older file carries no folders or tags, so nothing about it depends on
+  // the ones already here.
+  it('reads an older-format backup as it always did', async () => {
+    const stores = unreadable()
+    const repo = repository()
+    renderPage(repo, undefined, stores)
+    await organizationLoaded(stores)
+    const incoming = deck({ id: 'restored', name: '復元デッキ' })
+    const file = backupFile(
+      serializeDeckBackup(createDeckBackup([incoming], ORGANIZED_AT)),
+    )
+
+    fireEvent.change(screen.getByLabelText('デッキバックアップJSONファイル'), {
+      target: { files: [file] },
+    })
+    fireEvent.click(
+      await screen.findByRole('button', { name: '読み込みを実行' }),
+    )
+
+    await waitFor(() =>
+      expect(repo.importDecks).toHaveBeenCalledWith([incoming]),
+    )
+  })
+
+  // The copy is the deck the reporter asked for; its folder and tags are not.
+  it('copies a deck without carrying its organization', async () => {
+    const stores = unreadable()
+    const duplicate = vi.fn<
+      (value: Deck, organization?: DeckOrganization) => Promise<void>
+    >(async () => undefined)
+    renderPage(
+      repository({
+        listDecks: vi.fn(async () => [deck()]),
+        duplicateDeck: duplicate,
+      }),
+      undefined,
+      stores,
+    )
+    await organizationLoaded(stores)
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'テストデッキを複製' }),
+    )
+
+    await waitFor(() => expect(duplicate).toHaveBeenCalledTimes(1))
+    expect(duplicate.mock.calls[0]?.[1]).toBeUndefined()
+    expect(screen.queryByText('デッキを複製できませんでした。')).toBeNull()
+  })
+
+  it('stops a later backup when the read after an import failed', async () => {
+    const downloadFile = vi.fn()
+    const stores = organizationRepositories()
+    const listFolders = vi
+      .fn<() => Promise<DeckFolder[]>>()
+      .mockResolvedValueOnce([])
+      .mockRejectedValue(new Error('blocked'))
+    stores.deckFolders.listFolders = listFolders
+    const storedDecks: Deck[] = []
+    const repo = repository({
+      listDecks: vi.fn(async () => [...storedDecks]),
+      importOrganizationBackup: vi.fn(async (values) => {
+        storedDecks.push(...values.decks)
+      }),
+    })
+    renderPage(repo, undefined, { downloadFile, ...stores })
+    await organizationLoaded(stores)
+    const file = backupFile(
+      serializeDeckBackup(
+        createDeckBackupV2(
+          {
+            decks: [deck({ id: 'restored', name: '復元デッキ' })],
+            folders: [folder('f1', '大会用')],
+            tags: [],
+            organizations: [organization('restored', { folderId: 'f1' })],
+          },
+          ORGANIZED_AT,
+        ),
+      ),
+    )
+
+    fireEvent.change(screen.getByLabelText('デッキバックアップJSONファイル'), {
+      target: { files: [file] },
+    })
+    fireEvent.click(
+      await screen.findByRole('button', { name: '読み込みを実行' }),
+    )
+
+    // The import itself succeeded, and says so.
+    expect(
+      await screen.findByText(/バックアップを読み込みました/),
+    ).toBeVisible()
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'バックアップを書き出す' }),
+    )
+
+    expect(
+      await screen.findByText(
+        'フォルダー・タグを読み込めないため、書き出しを中止しました。ページを再読み込みしてください。',
+      ),
+    ).toBeVisible()
+    expect(downloadFile).not.toHaveBeenCalled()
   })
 })

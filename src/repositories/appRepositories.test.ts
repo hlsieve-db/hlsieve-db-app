@@ -100,6 +100,9 @@ describe('the rest of the bundle', () => {
     expect(Object.keys(repositories).sort()).toEqual([
       'cloudDeckVersions',
       'cloudDecks',
+      'deckFolders',
+      'deckOrganizations',
+      'deckTags',
       'deckVersions',
       'decks',
       'favoriteCards',

@@ -2,6 +2,9 @@ import { describe, expect, it, vi } from 'vitest'
 
 import {
   STORE_DECK_VERSIONS,
+  STORE_DECK_FOLDERS,
+  STORE_DECK_ORGANIZATIONS,
+  STORE_DECK_TAGS,
   STORE_DECKS,
   STORE_FAVORITE_CARDS,
   STORE_RECENTLY_VIEWED_CARDS,
@@ -46,7 +49,7 @@ describe('application IndexedDB migration', () => {
 
     expect(state.stores.has(STORE_DECKS)).toBe(true)
     expect(state.stores.has(STORE_TOURNAMENT_REPORTS)).toBe(true)
-    expect(state.createObjectStore).toHaveBeenCalledTimes(5)
+    expect(state.createObjectStore).toHaveBeenCalledTimes(8)
     expect(state.createObjectStore).toHaveBeenCalledWith(
       STORE_TOURNAMENT_REPORTS,
       { keyPath: 'id' },
@@ -66,6 +69,16 @@ describe('application IndexedDB migration', () => {
       STORE_RECENTLY_VIEWED_CARDS,
       { keyPath: 'cardNumber' },
     )
+    expect(state.createObjectStore).toHaveBeenCalledWith(STORE_DECK_FOLDERS, {
+      keyPath: 'id',
+    })
+    expect(state.createObjectStore).toHaveBeenCalledWith(STORE_DECK_TAGS, {
+      keyPath: 'id',
+    })
+    expect(state.createObjectStore).toHaveBeenCalledWith(
+      STORE_DECK_ORGANIZATIONS,
+      { keyPath: 'deckId' },
+    )
     expect(existingDeckRecord).toEqual({ id: 'deck-1', name: '既存デッキ' })
   })
 
@@ -80,6 +93,9 @@ describe('application IndexedDB migration', () => {
         STORE_SAVED_SEARCH_PRESETS,
         STORE_RECENTLY_VIEWED_CARDS,
         STORE_DECK_VERSIONS,
+        STORE_DECK_FOLDERS,
+        STORE_DECK_TAGS,
+        STORE_DECK_ORGANIZATIONS,
       ]),
     )
   })
@@ -87,7 +103,7 @@ describe('application IndexedDB migration', () => {
   it('adds favorites without recreating existing Deck and tournament stores', () => {
     const state = databaseWithStores([STORE_DECKS, STORE_TOURNAMENT_REPORTS])
     upgradeAppDatabaseSchema(state.database)
-    expect(state.createObjectStore).toHaveBeenCalledTimes(4)
+    expect(state.createObjectStore).toHaveBeenCalledTimes(7)
     expect(state.createObjectStore).toHaveBeenCalledWith(STORE_FAVORITE_CARDS, {
       keyPath: 'cardNumber',
     })
@@ -110,7 +126,7 @@ describe('application IndexedDB migration', () => {
 
     upgradeAppDatabaseSchema(state.database)
 
-    expect(state.createObjectStore).toHaveBeenCalledTimes(3)
+    expect(state.createObjectStore).toHaveBeenCalledTimes(6)
     expect(state.createObjectStore).toHaveBeenCalledWith(
       STORE_SAVED_SEARCH_PRESETS,
       { keyPath: 'id' },
@@ -127,6 +143,9 @@ describe('application IndexedDB migration', () => {
         STORE_SAVED_SEARCH_PRESETS,
         STORE_RECENTLY_VIEWED_CARDS,
         STORE_DECK_VERSIONS,
+        STORE_DECK_FOLDERS,
+        STORE_DECK_TAGS,
+        STORE_DECK_ORGANIZATIONS,
       ]),
     )
   })
@@ -141,7 +160,7 @@ describe('application IndexedDB migration', () => {
 
     upgradeAppDatabaseSchema(state.database)
 
-    expect(state.createObjectStore).toHaveBeenCalledTimes(2)
+    expect(state.createObjectStore).toHaveBeenCalledTimes(5)
     expect(state.createObjectStore).toHaveBeenCalledWith(
       STORE_RECENTLY_VIEWED_CARDS,
       { keyPath: 'cardNumber' },
@@ -154,6 +173,9 @@ describe('application IndexedDB migration', () => {
         STORE_SAVED_SEARCH_PRESETS,
         STORE_RECENTLY_VIEWED_CARDS,
         STORE_DECK_VERSIONS,
+        STORE_DECK_FOLDERS,
+        STORE_DECK_TAGS,
+        STORE_DECK_ORGANIZATIONS,
       ]),
     )
   })

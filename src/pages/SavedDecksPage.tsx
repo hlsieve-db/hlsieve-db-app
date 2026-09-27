@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAppRepositories } from '../repositories/useAppRepositories'
 import { Link, useNavigate } from 'react-router-dom'
 
@@ -7,8 +7,11 @@ import { DeckLocalNavigation } from '../components/DeckLocalNavigation'
 import { DeckRegulationBadge } from '../components/decks/DeckRegulationBadge'
 import { createDeck, getDeckTotal } from '../domain/decks/deck'
 import { duplicateDeck } from '../domain/decks/duplicate'
+import { duplicateDeckOrganization } from '../domain/deckOrganization/operations'
 import {
   createDeckBackup,
+  createDeckBackupV2,
+  DECK_BACKUP_VERSION_V2,
   createDeckBackupFilename,
   MAX_DECK_BACKUP_FILE_SIZE,
   parseDeckBackup,
@@ -18,8 +21,21 @@ import {
   type DeckImportPlan,
 } from '../domain/decks/backup'
 import type { Deck } from '../domain/decks/types'
-import { type DeckBackupRepository } from '../repositories/deckRepository'
+import type { CloudSyncedDeckRepository } from '../cloud/cloudSyncedDeckRepository'
+import type { DeckFolderRepository } from '../repositories/deckFolderRepository'
+import type { DeckOrganizationRepository } from '../repositories/deckOrganizationRepository'
+import type { DeckTagRepository } from '../repositories/deckTagRepository'
 import { type DeckVersionRepository } from '../repositories/deckVersionRepository'
+import {
+  planDeckBackupV2Import,
+  type DeckBackupV2ImportPlan,
+  type DeckBackupV2ImportWarnings,
+} from '../domain/decks/backupV2Import'
+import type {
+  DeckFolder,
+  DeckOrganization,
+  DeckTag,
+} from '../domain/deckOrganization/types'
 import { useDocumentMetadata } from '../hooks/useDocumentMetadata'
 
 type DeckListState =
@@ -28,7 +44,11 @@ type DeckListState =
   | { status: 'error' }
 
 type SavedDecksPageProps = {
-  repository?: DeckBackupRepository
+  repository?: CloudSyncedDeckRepository
+  /** Supplied by tests; production takes them from the account's repositories. */
+  deckFolders?: DeckFolderRepository
+  deckTags?: DeckTagRepository
+  deckOrganizations?: DeckOrganizationRepository
   /** Supplied by tests; production takes it from the account's repositories. */
   deckVersions?: DeckVersionRepository
   createNewDeck?: () => Deck
@@ -37,10 +57,78 @@ type SavedDecksPageProps = {
   downloadFile?: (filename: string, contents: string) => void
 }
 
+/**
+ * Folders, tags and what each deck is organized by.
+ *
+ * Not readable and empty are different facts: a collection that could not be
+ * read has to stop a backup rather than write one missing every folder, so the
+ * state says which of the two it is.
+ */
+type OrganizationState =
+  | { status: 'loading' }
+  | { status: 'error' }
+  | {
+      status: 'loaded'
+      folders: DeckFolder[]
+      tags: DeckTag[]
+      organizations: DeckOrganization[]
+    }
+
+/**
+ * Still reading is worth waiting out; a failed read is not, so the two say
+ * different things about what the reporter should do next.
+ */
+const ORGANIZATION_LOADING_MESSAGE =
+  'フォルダー・タグを読み込み中です。少し待ってからもう一度お試しください。'
+
 type ImportPreview = {
   backup: DeckBackup
-  plan: DeckImportPlan
   filename: string
+} & (
+  | { version: 1; plan: DeckImportPlan }
+  | { version: 2; plan: DeckBackupV2ImportPlan }
+)
+
+/** What the import did beyond adding decks, in the order worth reading. */
+function warningSentences(warnings: DeckBackupV2ImportWarnings): string[] {
+  const lines: string[] = []
+  if (warnings.orphanedOrganizationCount > 0) {
+    lines.push(
+      `デッキが見つからない整理情報 ${warnings.orphanedOrganizationCount}件を取り込みませんでした。`,
+    )
+  }
+  if (warnings.missingFolderIds.length > 0) {
+    lines.push(
+      `見つからないフォルダー ${warnings.missingFolderIds.length}件の割り当てを外しました。`,
+    )
+  }
+  if (warnings.missingTagIds.length > 0) {
+    lines.push(
+      `見つからないタグ ${warnings.missingTagIds.length}件の割り当てを外しました。`,
+    )
+  }
+  if (warnings.duplicateTagIdCount > 0) {
+    lines.push(`重複したタグ ${warnings.duplicateTagIdCount}件を除きました。`)
+  }
+  if (warnings.truncatedTagOrganizationCount > 0) {
+    lines.push(
+      `タグが上限を超えるデッキ ${warnings.truncatedTagOrganizationCount}件で、超過分を外しました。`,
+    )
+  }
+  const renamed = warnings.renamedFolderCount + warnings.renamedTagCount
+  if (renamed > 0) {
+    lines.push(`名前が重なるフォルダー・タグ ${renamed}件に番号を付けました。`)
+  }
+  const reused = warnings.reusedFolderCount + warnings.reusedTagCount
+  if (reused > 0) {
+    lines.push(`既存のフォルダー・タグ ${reused}件をそのまま使いました。`)
+  }
+  if (warnings.skippedOrganizationCount > 0) {
+    lines.push(
+      `すでにあるデッキの整理情報 ${warnings.skippedOrganizationCount}件は、この端末の内容を残しました。`,
+    )
+  }
+  return lines
 }
 
 function downloadJsonFile(filename: string, contents: string): void {
@@ -57,6 +145,9 @@ function downloadJsonFile(filename: string, contents: string): void {
 export function SavedDecksPage({
   repository: repositoryProp,
   deckVersions: deckVersionsProp,
+  deckFolders: deckFoldersProp,
+  deckTags: deckTagsProp,
+  deckOrganizations: deckOrganizationsProp,
   createNewDeck = createDeck,
   now = () => new Date(),
   createImportId = () => crypto.randomUUID(),
@@ -67,6 +158,12 @@ export function SavedDecksPage({
   // Snapshots belong to the deck, so deleting one takes them with it and the
   // confirmation says how many are going.
   const deckVersions = deckVersionsProp ?? repositories.deckVersions
+  // Read so a backup can carry folders and tags, and so a copy keeps them.
+  // Nothing on this screen shows them yet; that is 7B-2.
+  const deckFolders = deckFoldersProp ?? repositories.deckFolders
+  const deckTags = deckTagsProp ?? repositories.deckTags
+  const deckOrganizations =
+    deckOrganizationsProp ?? repositories.deckOrganizations
   const navigate = useNavigate()
   const [state, setState] = useState<DeckListState>({ status: 'loading' })
   const [loadAttempt, setLoadAttempt] = useState(0)
@@ -78,7 +175,24 @@ export function SavedDecksPage({
   const [importPreview, setImportPreview] = useState<ImportPreview>()
   const [backupError, setBackupError] = useState<string>()
   const [backupStatus, setBackupStatus] = useState<string>()
+  const [organization, setOrganization] = useState<OrganizationState>({
+    status: 'loading',
+  })
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const readOrganization = useCallback(async () => {
+    const [nextFolders, nextTags, nextOrganizations] = await Promise.all([
+      deckFolders.listFolders(),
+      deckTags.listTags(),
+      deckOrganizations.listOrganizations(),
+    ])
+    return {
+      status: 'loaded' as const,
+      folders: nextFolders,
+      tags: nextTags,
+      organizations: nextOrganizations,
+    }
+  }, [deckFolders, deckOrganizations, deckTags])
 
   useEffect(() => {
     let active = true
@@ -94,6 +208,21 @@ export function SavedDecksPage({
       active = false
     }
   }, [loadAttempt, repository])
+
+  useEffect(() => {
+    let active = true
+    void readOrganization().then(
+      (value) => {
+        if (active) setOrganization(value)
+      },
+      () => {
+        if (active) setOrganization({ status: 'error' })
+      },
+    )
+    return () => {
+      active = false
+    }
+  }, [loadAttempt, readOrganization])
 
   useDocumentMetadata({
     title: '保存デッキ | HLSieve DB',
@@ -139,7 +268,17 @@ export function SavedDecksPage({
         existingNames:
           state.status === 'loaded' ? state.decks.map((v) => v.name) : [],
       })
-      await repository.saveDeck(copy)
+      await repository.duplicateDeck(
+        copy,
+        organization.status === 'loaded'
+          ? duplicateDeckOrganization(
+              organization.organizations.find(
+                (value) => value.deckId === deck.id,
+              ),
+              copy.id,
+            )
+          : undefined,
+      )
       navigate(`/decks/${encodeURIComponent(copy.id)}`)
     } catch {
       setOperationError('デッキを複製できませんでした。')
@@ -177,9 +316,30 @@ export function SavedDecksPage({
   const exportBackup = () => {
     if (state.status !== 'loaded' || state.decks.length === 0) return
     setBackupError(undefined)
+    // A file written without them cannot be told apart from one written by a
+    // collection that has none, so nothing is written at all.
+    if (organization.status !== 'loaded') {
+      setBackupStatus(undefined)
+      setBackupError(
+        organization.status === 'loading'
+          ? ORGANIZATION_LOADING_MESSAGE
+          : 'フォルダー・タグを読み込めないため、書き出しを中止しました。ページを再読み込みしてください。',
+      )
+      return
+    }
     try {
       const date = now()
-      const backup = createDeckBackup(state.decks, date.toISOString())
+      const { folders, tags, organizations } = organization
+      // Only a collection that uses folders or tags needs the newer format. A
+      // file written in the older one can still be read by an older build.
+      const organized =
+        folders.length > 0 || tags.length > 0 || organizations.length > 0
+      const backup = organized
+        ? createDeckBackupV2(
+            { decks: state.decks, folders, tags, organizations },
+            date.toISOString(),
+          )
+        : createDeckBackup(state.decks, date.toISOString())
       downloadFile(createDeckBackupFilename(date), serializeDeckBackup(backup))
       setBackupStatus('デッキバックアップを書き出しました。')
     } catch {
@@ -204,8 +364,45 @@ export function SavedDecksPage({
         resetFileInput()
         return
       }
+      if (parsed.backup.version === DECK_BACKUP_VERSION_V2) {
+        // Planned against what is already here. Treating an unreadable
+        // collection as empty would reuse nothing, and the import would fail
+        // partway on ids this device already holds.
+        if (organization.status !== 'loaded') {
+          setBackupError(
+            organization.status === 'loading'
+              ? ORGANIZATION_LOADING_MESSAGE
+              : 'フォルダー・タグを読み込めないため、読み込みを中止しました。ページを再読み込みしてください。',
+          )
+          resetFileInput()
+          return
+        }
+        const planned = planDeckBackupV2Import(
+          parsed.backup,
+          {
+            decks: state.status === 'loaded' ? state.decks : [],
+            folders: organization.folders,
+            tags: organization.tags,
+            organizations: organization.organizations,
+          },
+          { deck: createImportId },
+        )
+        if (!planned.ok) {
+          setBackupError(planned.message)
+          resetFileInput()
+          return
+        }
+        setImportPreview({
+          backup: parsed.backup,
+          version: 2,
+          plan: planned.plan,
+          filename: file.name,
+        })
+        return
+      }
       setImportPreview({
         backup: parsed.backup,
+        version: 1,
         plan: planDeckBackupImport(
           parsed.backup.decks,
           state.status === 'loaded' ? state.decks : [],
@@ -228,11 +425,30 @@ export function SavedDecksPage({
     if (!importPreview) return
     setBackupError(undefined)
     try {
-      await repository.importDecks(importPreview.plan.decks)
+      if (importPreview.version === 2) {
+        const { plan } = importPreview
+        await repository.importOrganizationBackup({
+          decks: plan.decks,
+          folders: plan.folders,
+          tags: plan.tags,
+          organizations: plan.organizations,
+        })
+      } else {
+        await repository.importDecks(importPreview.plan.decks)
+      }
       const decks = await repository.listDecks()
       setState({ status: 'loaded', decks })
+      // Re-reading is not part of the import succeeding: the decks are
+      // already written. A failure here is remembered instead, so the next
+      // backup stops rather than being written without folders and tags.
+      await readOrganization().then(setOrganization, () =>
+        setOrganization({ status: 'error' }),
+      )
+      const summary = `バックアップを読み込みました。追加: ${importPreview.plan.newCount}件、同一のためスキップ: ${importPreview.plan.identicalCount}件、ID重複のため別デッキとして追加: ${importPreview.plan.conflictCount}件。`
       setBackupStatus(
-        `バックアップを読み込みました。追加: ${importPreview.plan.newCount}件、同一のためスキップ: ${importPreview.plan.identicalCount}件、ID重複のため別デッキとして追加: ${importPreview.plan.conflictCount}件。`,
+        importPreview.version === 2
+          ? [summary, ...warningSentences(importPreview.plan.warnings)].join('')
+          : summary,
       )
       setImportPreview(undefined)
       resetFileInput()
