@@ -40,6 +40,7 @@ import {
   recordPendingDeckVersionSync,
 } from '../../domain/cloud/pendingDeckVersionSync'
 import { CloudDeckSyncRetry } from '../../cloud/CloudDeckSyncRetry'
+import { pendingDeckOrganizationSyncCount } from '../../domain/cloud/pendingDeckOrganizationSync'
 import { reconcileDeckVersions } from '../../cloud/deckVersionReconciliation'
 import { DeckConflictChooser } from './DeckConflictChooser'
 import { useAppRepositories } from '../../repositories/useAppRepositories'
@@ -175,6 +176,7 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
     // it describes cannot disagree.
     pending:
       pendingDeckSyncCount(store, namespace) +
+      pendingDeckOrganizationSyncCount(store, namespace) +
       pendingDeckVersionSyncCount(store, namespace),
     lastUpload: readCloudUploadStatus(store, namespace).lastUploadSuccessAt,
     // Both transient. A reload has no attempt running and no failed attempt
@@ -428,6 +430,7 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
     update({
       pending:
         pendingDeckSyncCount(store, namespace) +
+        pendingDeckOrganizationSyncCount(store, namespace) +
         pendingDeckVersionSyncCount(store, namespace),
     })
 
@@ -536,6 +539,7 @@ export function CloudSyncSetup({ storage }: CloudSyncSetupProps) {
               update({
                 pending:
                   pendingDeckSyncCount(store, namespace) +
+                  pendingDeckOrganizationSyncCount(store, namespace) +
                   pendingDeckVersionSyncCount(store, namespace),
                 lastUpload: readCloudUploadStatus(store, namespace)
                   .lastUploadSuccessAt,

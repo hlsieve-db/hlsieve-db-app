@@ -100,6 +100,16 @@ export type CloudSyncedDeckRepositoryOptions = {
    * whose send failed: that is the case the reporter most needs told apart.
    */
   onUploadSuccess?: () => void
+  /**
+   * Called with the deck id once the account has accepted that deck.
+   *
+   * Organizing a deck the moment it is created loses a race: both sends go out
+   * without waiting, and the organization can reach the account before the deck
+   * it points at, which that table refuses. This is the signal that the deck is
+   * there now, so whatever was waiting on it can be sent without waiting for a
+   * reload.
+   */
+  onDeckUploaded?: (deckId: DeckId) => void
   versionPending?: {
     /** Must succeed before local deletion, or an old upload could resurrect a child. */
     prepareParentDelete: (deckId: DeckId) => boolean
@@ -115,6 +125,7 @@ export function withCloudDeckSync({
   onSyncResult,
   pending,
   onUploadSuccess,
+  onDeckUploaded,
   versionPending,
 }: CloudSyncedDeckRepositoryOptions): CloudSyncedDeckRepository {
   const shouldSync = () => Boolean(cloudDecks) && isSyncEnabled()
@@ -143,6 +154,7 @@ export function withCloudDeckSync({
       void cloudDecks.upsert(deck).then(
         (result) => {
           settle(deck.id, 'upsert', result.ok)
+          if (result.ok) onDeckUploaded?.(deck.id)
           onSyncResult?.(
             result.ok
               ? { kind: 'saved', deckId: deck.id, ok: true }

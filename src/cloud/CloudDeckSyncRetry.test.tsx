@@ -1,5 +1,5 @@
 import { render, waitFor } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi, type Mock } from 'vitest'
 
 import {
   readPendingDeckSync,
@@ -140,6 +140,146 @@ describe('finishing unsent changes when the account is ready', () => {
 
     await waitFor(() => expect(onRetried).toHaveBeenCalled())
     expect(readPendingDeckSync(storage, userA)).toEqual({ a: 'upsert' })
+  })
+})
+
+/**
+ * The folder and tag definitions and the decks have no order between them, so
+ * neither one's failure may hold the other up. Only the organization rows wait,
+ * because each names a folder and a deck the account has to hold already.
+ */
+describe('the stages of one attempt', () => {
+  function renderStages({
+    folderQueue = { f1: 'upsert' } as Record<string, 'upsert' | 'tombstone'>,
+    organizationQueue = { 'deck-1': 'upsert' } as Record<
+      string,
+      'upsert' | 'tombstone'
+    >,
+    upsertFolder = vi.fn(async () => ({
+      ok: true as const,
+      value: { written: true, skippedTombstone: false },
+    })),
+    upsertDeck = vi.fn(async (value: Deck) => ({
+      ok: true as const,
+      value: record(value.id),
+    })),
+  }: {
+    folderQueue?: Record<string, 'upsert' | 'tombstone'>
+    organizationQueue?: Record<string, 'upsert' | 'tombstone'>
+    // Loosely typed on purpose: a test supplies a refusal in place of a
+    // success, which is the whole point of the cases below.
+    upsertFolder?: Mock
+    upsertDeck?: Mock
+  } = {}) {
+    const storage = memoryStorage({ 'hlsieve:cloud-sync--user-a': ENABLED })
+    writePendingDeckSync({ a: 'upsert' }, storage, userA)
+    storage.setItem(
+      'hlsieve:cloud-sync-pending-folders--user-a',
+      JSON.stringify({ version: 1, operations: folderQueue }),
+    )
+    storage.setItem(
+      'hlsieve:cloud-sync-pending-organizations--user-a',
+      JSON.stringify({ version: 1, operations: organizationQueue }),
+    )
+
+    const upsertOrganization = vi.fn(async () => ({
+      ok: true as const,
+      value: {
+        organization: {
+          deckId: 'deck-1',
+          tagIds: [],
+          createdAt: '2026-09-27T00:00:00.000Z',
+          updatedAt: '2026-09-27T00:00:00.000Z',
+        },
+        createdAt: '2026-09-27T04:00:00.000000+00:00',
+        updatedAt: '2026-09-27T04:00:00.000000+00:00',
+        deletedAt: null,
+      },
+    }))
+    const onRetried = vi.fn()
+    const repositories = {
+      namespace: userA,
+      localDecks: { getDeck: vi.fn(async (id: string) => deck(id)) },
+      localDeckFolders: {
+        getFolder: vi.fn(async (id: string) => ({
+          id,
+          name: 'フォルダー',
+          sortOrder: 0,
+          createdAt: '2026-09-27T00:00:00.000Z',
+          updatedAt: '2026-09-27T00:00:00.000Z',
+        })),
+      },
+      localDeckTags: { getTag: vi.fn(async () => undefined) },
+      localDeckOrganizations: {
+        getOrganization: vi.fn(async (deckId: string) => ({
+          deckId,
+          tagIds: [],
+          createdAt: '2026-09-27T00:00:00.000Z',
+          updatedAt: '2026-09-27T00:00:00.000Z',
+        })),
+      },
+      cloudDecks: cloudRepository({ upsert: upsertDeck }),
+      cloudDeckOrganization: {
+        upsertFolder,
+        upsertTag: vi.fn(),
+        upsertOrganization,
+        tombstoneFolder: vi.fn(),
+        tombstoneTag: vi.fn(),
+        tombstoneOrganization: vi.fn(),
+        listFolders: vi.fn(),
+        listTags: vi.fn(),
+        listOrganizations: vi.fn(),
+      },
+    } as unknown as AppRepositories
+
+    render(
+      <AppRepositoriesContext.Provider value={repositories}>
+        <CloudDeckSyncRetry storage={storage} onRetried={onRetried} />
+      </AppRepositoriesContext.Provider>,
+    )
+    return { storage, onRetried, upsertFolder, upsertDeck, upsertOrganization }
+  }
+
+  const refused = { ok: false as const, reason: 'network' as const }
+
+  it('sends the decks even when a folder cannot be sent', async () => {
+    const { upsertDeck, onRetried } = renderStages({
+      upsertFolder: vi.fn(async () => refused),
+    })
+
+    await waitFor(() => expect(onRetried).toHaveBeenCalledWith('failed'))
+    expect(upsertDeck).toHaveBeenCalledWith(deck('a'))
+  })
+
+  it('sends the folders even when a deck cannot be sent', async () => {
+    const { upsertFolder, onRetried } = renderStages({
+      upsertDeck: vi.fn(async () => refused),
+    })
+
+    await waitFor(() => expect(onRetried).toHaveBeenCalledWith('failed'))
+    expect(upsertFolder).toHaveBeenCalled()
+  })
+
+  it('leaves the organization rows alone when either stage failed', async () => {
+    const failedFolder = renderStages({
+      upsertFolder: vi.fn(async () => refused),
+    })
+    await waitFor(() => expect(failedFolder.onRetried).toHaveBeenCalled())
+    expect(failedFolder.upsertOrganization).not.toHaveBeenCalled()
+  })
+
+  it('leaves them alone when it was the deck that failed', async () => {
+    const failedDeck = renderStages({ upsertDeck: vi.fn(async () => refused) })
+
+    await waitFor(() => expect(failedDeck.onRetried).toHaveBeenCalled())
+    expect(failedDeck.upsertOrganization).not.toHaveBeenCalled()
+  })
+
+  it('sends the organization rows once both stages are through', async () => {
+    const { upsertOrganization, onRetried } = renderStages()
+
+    await waitFor(() => expect(onRetried).toHaveBeenCalledWith('ok'))
+    expect(upsertOrganization).toHaveBeenCalled()
   })
 })
 

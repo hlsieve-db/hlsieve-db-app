@@ -9,6 +9,18 @@ import {
   recordPendingDeckVersionSync,
 } from '../domain/cloud/pendingDeckVersionSync'
 import { useAppRepositories } from '../repositories/useAppRepositories'
+import {
+  clearPendingDeckFolderSync,
+  clearPendingDeckOrganizationSync,
+  clearPendingDeckTagSync,
+  readPendingDeckFolderSync,
+  readPendingDeckOrganizationSync,
+  readPendingDeckTagSync,
+  recordPendingDeckFolderSync,
+  recordPendingDeckOrganizationSync,
+  recordPendingDeckTagSync,
+} from '../domain/cloud/pendingDeckOrganizationSync'
+import { retryPendingDeckOrganizationSync } from './retryPendingDeckOrganizationSync'
 import { retryPendingDeckSync } from './retryPendingDeckSync'
 import { retryPendingDeckVersionSync } from './retryPendingDeckVersionSync'
 import { reconcileDeckVersions } from './deckVersionReconciliation'
@@ -74,8 +86,12 @@ export function CloudDeckSyncRetry({
     namespace,
     localDecks,
     localDeckVersions,
+    localDeckFolders,
+    localDeckTags,
+    localDeckOrganizations,
     cloudDecks,
     cloudDeckVersions,
+    cloudDeckOrganization,
   } = useAppRepositories()
   // Held in refs so a caller passing fresh functions each render does not
   // re-arm the listener, and assigned in an effect rather than during render.
@@ -123,53 +139,124 @@ export function CloudDeckSyncRetry({
         const enabled = () => isCloudSyncEnabled(namespace, storage)
         const noteUpload = () =>
           recordCloudUploadSuccess(undefined, storage, namespace)
-        const deckResult = await retryPendingDeckSync({
-          decks: localDecks,
-          cloudDecks,
-          isSyncEnabled: enabled,
-          namespace,
-          storage,
-          onUploadSuccess: noteUpload,
-        })
-        if (!deckResult.ok) return { ok: false }
-        if (!localDeckVersions || !cloudDeckVersions) return { ok: true }
-
-        const versionResult = await retryPendingDeckVersionSync({
-          decks: localDecks,
-          versions: localDeckVersions,
-          cloudDecks,
-          cloudVersions: cloudDeckVersions,
-          isSyncEnabled: enabled,
-          namespace,
-          storage,
-          onUploadSuccess: noteUpload,
-        })
-        if (!versionResult.ok) return { ok: false }
-
-        const reconciliation = await reconcileDeckVersions({
-          decks: localDecks,
-          versions: localDeckVersions,
-          cloudDecks,
-          cloudVersions: cloudDeckVersions,
-          pending: {
-            isTombstone: (versionId) =>
-              readPendingDeckVersionSync(storage, namespace)[versionId]
-                ?.operation === 'tombstone',
-            recordUpload: (version) => {
-              recordPendingDeckVersionSync(
-                version.id,
-                { operation: 'upload', deckId: version.deckId },
+        const organizationQueues = () => ({
+          folders: {
+            read: () => readPendingDeckFolderSync(storage, namespace),
+            record: (id: string, operation: 'upsert' | 'tombstone') =>
+              recordPendingDeckFolderSync(id, operation, storage, namespace),
+            clear: (id: string) =>
+              clearPendingDeckFolderSync(id, storage, namespace),
+          },
+          tags: {
+            read: () => readPendingDeckTagSync(storage, namespace),
+            record: (id: string, operation: 'upsert' | 'tombstone') =>
+              recordPendingDeckTagSync(id, operation, storage, namespace),
+            clear: (id: string) =>
+              clearPendingDeckTagSync(id, storage, namespace),
+          },
+          organizations: {
+            read: () => readPendingDeckOrganizationSync(storage, namespace),
+            record: (id: string, operation: 'upsert' | 'tombstone') =>
+              recordPendingDeckOrganizationSync(
+                id,
+                operation,
                 storage,
                 namespace,
-              )
-            },
-            clear: (versionId) => {
-              clearPendingDeckVersionSync(versionId, storage, namespace)
-            },
+              ),
+            clear: (id: string) =>
+              clearPendingDeckOrganizationSync(id, storage, namespace),
           },
-          onUploadSuccess: noteUpload,
         })
-        return { ok: reconciliation.ok }
+        /**
+         * The decks and the folder and tag definitions have no order between
+         * them, so neither one's failure may hold the other up: a folder that
+         * cannot be sent must not stop the decks from syncing, which is what
+         * they did before any of this existed.
+         */
+        const definitions = async () =>
+          retryPendingDeckOrganizationSync({
+            folders: localDeckFolders,
+            tags: localDeckTags,
+            organizations: localDeckOrganizations,
+            cloud: cloudDeckOrganization,
+            isSyncEnabled: enabled,
+            pending: organizationQueues(),
+            onUploadSuccess: noteUpload,
+            only: 'definitions',
+          })
+
+        // Within this branch the order does matter, and a failure still stops
+        // what comes after it, exactly as before.
+        const decksAndVersions = async (): Promise<{ ok: boolean }> => {
+          const deckResult = await retryPendingDeckSync({
+            decks: localDecks,
+            cloudDecks,
+            isSyncEnabled: enabled,
+            namespace,
+            storage,
+            onUploadSuccess: noteUpload,
+          })
+          if (!deckResult.ok) return { ok: false }
+          if (!localDeckVersions || !cloudDeckVersions) return { ok: true }
+
+          const versionResult = await retryPendingDeckVersionSync({
+            decks: localDecks,
+            versions: localDeckVersions,
+            cloudDecks,
+            cloudVersions: cloudDeckVersions,
+            isSyncEnabled: enabled,
+            namespace,
+            storage,
+            onUploadSuccess: noteUpload,
+          })
+          if (!versionResult.ok) return { ok: false }
+
+          const reconciliation = await reconcileDeckVersions({
+            decks: localDecks,
+            versions: localDeckVersions,
+            cloudDecks,
+            cloudVersions: cloudDeckVersions,
+            pending: {
+              isTombstone: (versionId) =>
+                readPendingDeckVersionSync(storage, namespace)[versionId]
+                  ?.operation === 'tombstone',
+              recordUpload: (version) => {
+                recordPendingDeckVersionSync(
+                  version.id,
+                  { operation: 'upload', deckId: version.deckId },
+                  storage,
+                  namespace,
+                )
+              },
+              clear: (versionId) => {
+                clearPendingDeckVersionSync(versionId, storage, namespace)
+              },
+            },
+            onUploadSuccess: noteUpload,
+          })
+          return { ok: reconciliation.ok }
+        }
+
+        const [definitionResult, deckResult] = await Promise.all([
+          definitions(),
+          decksAndVersions(),
+        ])
+        // Only the organization rows have to wait: each names a folder and a
+        // deck the account has to hold already. A table the account does not
+        // have yet is not a failure, so that case still gets this far.
+        if (!definitionResult.ok || !deckResult.ok) return { ok: false }
+
+        const organizationResult = await retryPendingDeckOrganizationSync({
+          folders: localDeckFolders,
+          tags: localDeckTags,
+          organizations: localDeckOrganizations,
+          cloud: cloudDeckOrganization,
+          isSyncEnabled: enabled,
+          pending: organizationQueues(),
+          onUploadSuccess: noteUpload,
+          only: 'organizations',
+        })
+        return { ok: organizationResult.ok }
       })().catch(() => {
         // A throw here means the device's own store could not be read, which
         // a cloud failure result cannot express. The entries stay queued for
@@ -200,8 +287,12 @@ export function CloudDeckSyncRetry({
   }, [
     cloudDecks,
     cloudDeckVersions,
+    cloudDeckOrganization,
     localDecks,
     localDeckVersions,
+    localDeckFolders,
+    localDeckTags,
+    localDeckOrganizations,
     namespace,
     retrySignal,
     storage,

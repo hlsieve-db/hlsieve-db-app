@@ -36,6 +36,7 @@ insert into auth.users (id) values
 \ir ../migrations/20260922000000_create_cloud_decks.sql
 \ir ../migrations/20260925000000_create_cloud_deck_versions.sql
 \ir ../migrations/20260927000000_create_cloud_deck_organization.sql
+\ir ../migrations/20260927100000_add_deck_definition_upsert.sql
 
 -- ------------------------------------------------------------- structure
 \echo '--- folder and tag primary keys are (user_id, id) (expect: user_id,id twice)'
@@ -148,6 +149,15 @@ select has_function_privilege(
          'public.deck_organization_tag_ids_valid(text[])',
          'execute'
        ) as anon_execute;
+
+\echo '--- only authenticated may call the definition upsert RPCs (expect: t,f x2)'
+select name,
+       has_function_privilege('authenticated', name, 'execute') as authenticated_execute,
+       has_function_privilege('anon', name, 'execute') as anon_execute
+  from (values
+          ('public.upsert_deck_folder(text,text,integer)'),
+          ('public.upsert_deck_tag(text,text)')
+       ) as f(name);
 
 \echo '--- the deployed deck tombstone RPC is unchanged (expect: t, 2 columns)'
 select exists (
@@ -278,30 +288,38 @@ select deleted_at is null as revived
 -- write that can never succeed.
 update public.deck_folders set deleted_at = now() where id = 'folder-5';
 
-\echo '--- the folder upsert form leaves a tombstoned folder alone (expect: INSERT 0 0, t)'
-insert into public.deck_folders (id, name, sort_order)
-values ('folder-5', '復活しない', 0)
-    on conflict (user_id, id) do update
-       set name = excluded.name,
-           sort_order = excluded.sort_order,
-           deleted_at = null
-     where public.deck_folders.deleted_at is null;
+\echo '--- the folder upsert leaves a tombstoned folder alone and says so (expect: f,t)'
+select * from public.upsert_deck_folder('folder-5', '復活しない', 0);
+
+\echo '--- that folder is still deleted and still has its old name (expect: t, 削除済み)'
 select deleted_at is not null as still_deleted, name
   from public.deck_folders where id = 'folder-5';
 
-\echo '--- the same form updates a folder that is still active (expect: INSERT 0 1, 別の名前)'
-insert into public.deck_folders (id, name, sort_order)
-values ('folder-2', '別の名前', 3)
-    on conflict (user_id, id) do update
-       set name = excluded.name,
-           sort_order = excluded.sort_order,
-           deleted_at = null
-     where public.deck_folders.deleted_at is null;
+\echo '--- the same call updates a folder that is still active (expect: t,f)'
+select * from public.upsert_deck_folder('folder-2', '別の名前', 3);
 select name, sort_order from public.deck_folders where id = 'folder-2';
 
--- Restored, because a later check reads this folder's name.
+\echo '--- it creates a folder that does not exist yet (expect: t,f)'
+select * from public.upsert_deck_folder('folder-6', '新しい', 4);
+
+\echo '--- it still refuses a value the table refuses (expect: error x2)'
+select * from public.upsert_deck_folder('folder-6', ' 空白つき', 4);
+select * from public.upsert_deck_folder('folder-6', '負の順序', -1);
+
+\echo '--- an empty id is refused rather than written (expect: error)'
+select * from public.upsert_deck_folder('', '名前なしid', 0);
+
+\echo '--- the tag upsert behaves the same way (expect: t,f then f,t)'
+select * from public.upsert_deck_tag('tag-2', '青あらため');
+update public.deck_tags set deleted_at = now() where id = 'tag-2';
+select * from public.upsert_deck_tag('tag-2', '復活しない');
+select deleted_at is not null as still_deleted, name
+  from public.deck_tags where id = 'tag-2';
+
+-- Restored, because later checks read this folder and tag.
 update public.deck_folders set name = '練習用', sort_order = 1
  where id = 'folder-2';
+update public.deck_tags set name = '青', deleted_at = null where id = 'tag-2';
 
 -- An organization is the one of the three that may come back, for the same
 -- reason a deck may: the row says what the device holds now.
@@ -418,10 +436,12 @@ insert into public.deck_folders (id, name) values ('anon-folder', '匿名');
 insert into public.deck_tags (id, name) values ('anon-tag', '匿名');
 insert into public.deck_organizations (deck_id) values ('deck-b');
 
-\echo '--- anon cannot call the RPCs (expect: error x3)'
+\echo '--- anon cannot call the RPCs (expect: error x5)'
 select * from public.tombstone_deck_folder('folder-2');
 select * from public.tombstone_deck_tag('tag-2');
 select * from public.tombstone_deck_with_related('deck-b');
+select * from public.upsert_deck_folder('anon-folder', '匿名', 0);
+select * from public.upsert_deck_tag('anon-tag', '匿名');
 
 -- ------------------------------------------------------------ account removal
 reset role;

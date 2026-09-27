@@ -98,6 +98,7 @@ describe('the rest of the bundle', () => {
     const repositories = createAppRepositories(ANONYMOUS_LOCAL_DATA_NAMESPACE)
 
     expect(Object.keys(repositories).sort()).toEqual([
+      'cloudDeckOrganization',
       'cloudDeckVersions',
       'cloudDecks',
       'deckFolders',
@@ -106,7 +107,11 @@ describe('the rest of the bundle', () => {
       'deckVersions',
       'decks',
       'favoriteCards',
-      // The deck store without the cloud sync wrapper, used only by restoring.
+      // The stores without their cloud sync wrappers, used by restoring and by
+      // the retry, which must not trigger another send while it reads.
+      'localDeckFolders',
+      'localDeckOrganizations',
+      'localDeckTags',
       'localDeckVersions',
       'localDecks',
       'namespace',

@@ -117,6 +117,64 @@ function build({
   }
 }
 
+/**
+ * Organizing a deck the moment it is created sends both without waiting, and the
+ * organization can reach the account before the deck it names, which that table
+ * refuses. This hook is what says the deck is there now.
+ */
+describe('telling the rest of the app a deck reached the account', () => {
+  it('names the deck once the account has accepted it', async () => {
+    const onDeckUploaded = vi.fn()
+    const events: CloudDeckSyncEvent[] = []
+    let notify: (() => void) | undefined
+    const repository = withCloudDeckSync({
+      decks: localRepository(),
+      organization: organizationTransactions(),
+      cloudDecks: cloudRepository(),
+      isSyncEnabled: () => true,
+      onSyncResult: (event) => {
+        events.push(event)
+        notify?.()
+      },
+      onDeckUploaded,
+    })
+    const pending = new Promise<void>((resolve) => {
+      notify = resolve
+    })
+
+    await repository.saveDeck(deck('a'))
+    await pending
+
+    expect(onDeckUploaded).toHaveBeenCalledWith('a')
+  })
+
+  it('says nothing when the send failed', async () => {
+    const onDeckUploaded = vi.fn()
+    let notify: (() => void) | undefined
+    const repository = withCloudDeckSync({
+      decks: localRepository(),
+      organization: organizationTransactions(),
+      cloudDecks: cloudRepository({
+        upsert: vi.fn(async () => ({
+          ok: false as const,
+          reason: 'network' as const,
+        })),
+      }),
+      isSyncEnabled: () => true,
+      onSyncResult: () => notify?.(),
+      onDeckUploaded,
+    })
+    const pending = new Promise<void>((resolve) => {
+      notify = resolve
+    })
+
+    await repository.saveDeck(deck('a'))
+    await pending
+
+    expect(onDeckUploaded).not.toHaveBeenCalled()
+  })
+})
+
 describe('saving a deck', () => {
   it('writes locally first, then sends it', async () => {
     const { repository, decks, cloudDecks, events, nextEvent } = build()

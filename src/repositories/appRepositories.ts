@@ -55,6 +55,32 @@ import {
 } from './deckVersionRepository'
 import { withDeckVersionCascade } from './deckVersionCascade'
 import {
+  createSupabaseCloudDeckOrganizationRepository,
+  type CloudDeckOrganizationRepository,
+} from '../cloud/cloudDeckOrganizationRepository'
+import {
+  createMissingTableMemo,
+  withCloudDeckFolderSync,
+  withCloudDeckOrganizationSync,
+  withCloudDeckTagSync,
+} from '../cloud/cloudSyncedDeckOrganizationRepositories'
+import {
+  retryPendingOrganizationForDeck,
+  retryPendingOrganizationsForFolder,
+  type PendingOrganizationQueueAccess,
+} from '../cloud/retryPendingDeckOrganizationSync'
+import {
+  clearPendingDeckFolderSync,
+  clearPendingDeckOrganizationSync,
+  clearPendingDeckTagSync,
+  readPendingDeckFolderSync,
+  readPendingDeckOrganizationSync,
+  readPendingDeckTagSync,
+  recordPendingDeckFolderSync,
+  recordPendingDeckOrganizationSync,
+  recordPendingDeckTagSync,
+} from '../domain/cloud/pendingDeckOrganizationSync'
+import {
   createFavoriteCardRepository,
   createIndexedDbFavoriteCardPersistence,
   type FavoriteCardRepository,
@@ -74,6 +100,9 @@ import {
   createTournamentReportRepository,
   type TournamentReportRepository,
 } from './tournamentReportRepository'
+
+type OrganizationQueueAccess<Key extends string> =
+  PendingOrganizationQueueAccess<Key>
 
 export type AppRepositories = {
   namespace: LocalDataNamespace
@@ -106,6 +135,17 @@ export type AppRepositories = {
   localDecks: DeckBackupRepository
   localDeckVersions: DeckVersionRepository
   /**
+   * The folder, tag and organization stores without their cloud wrappers, and
+   * the account's cloud repository for them.
+   *
+   * The retry uses these: reading through a wrapped store is harmless, but
+   * writing through one would make a retry trigger another send.
+   */
+  localDeckFolders: DeckFolderRepository
+  localDeckTags: DeckTagRepository
+  localDeckOrganizations: DeckOrganizationRepository
+  cloudDeckOrganization: CloudDeckOrganizationRepository | null
+  /**
    * Manual deck snapshots. Browser-local for now: nothing sends them anywhere,
    * so they are not part of the cloud bundle.
    */
@@ -123,6 +163,8 @@ export function createAppRepositories(
   cloudDecks?: CloudDeckRepository | null,
   /** Supplied by tests; production resolves the Supabase repository itself. */
   cloudDeckVersions?: CloudDeckVersionRepository | null,
+  /** Supplied by tests; production resolves the Supabase repository itself. */
+  cloudDeckOrganization?: CloudDeckOrganizationRepository | null,
 ): AppRepositories {
   // An anonymous visitor has no account to sync with, so there is nothing to
   // build even where Supabase is configured.
@@ -138,6 +180,13 @@ export function createAppRepositories(
       ? cloudDeckVersions
       : namespace.kind === 'user'
         ? createSupabaseCloudDeckVersionRepository()
+        : null
+
+  const cloudOrganization =
+    cloudDeckOrganization !== undefined
+      ? cloudDeckOrganization
+      : namespace.kind === 'user'
+        ? createSupabaseCloudDeckOrganizationRepository()
         : null
 
   const rawDecks = createDeckRepository(
@@ -156,23 +205,101 @@ export function createAppRepositories(
   )
   const local = withDeckVersionCascade(organizationAwareDecks, localVersions)
 
+  const folderQueue: OrganizationQueueAccess<string> = {
+    read: () => readPendingDeckFolderSync(undefined, namespace),
+    record: (folderId, operation) =>
+      recordPendingDeckFolderSync(folderId, operation, undefined, namespace),
+    clear: (folderId) =>
+      clearPendingDeckFolderSync(folderId, undefined, namespace),
+  }
+  const tagQueue: OrganizationQueueAccess<string> = {
+    read: () => readPendingDeckTagSync(undefined, namespace),
+    record: (tagId, operation) =>
+      recordPendingDeckTagSync(tagId, operation, undefined, namespace),
+    clear: (tagId) => clearPendingDeckTagSync(tagId, undefined, namespace),
+  }
+  const organizationQueue: OrganizationQueueAccess<string> = {
+    read: () => readPendingDeckOrganizationSync(undefined, namespace),
+    record: (deckId, operation) =>
+      recordPendingDeckOrganizationSync(
+        deckId,
+        operation,
+        undefined,
+        namespace,
+      ),
+    clear: (deckId) =>
+      clearPendingDeckOrganizationSync(deckId, undefined, namespace),
+  }
+
+  // Shared by the three wrappers: once the account answers that it has no such
+  // table, none of them keeps asking until the page is loaded again.
+  const missingTable = createMissingTableMemo()
+  const syncEnabled = () => isCloudSyncEnabled(namespace)
+  const noteUpload = () =>
+    recordCloudUploadSuccess(undefined, undefined, namespace)
+
+  const localFolders = createDeckFolderRepository(
+    createIndexedDbDeckFolderPersistence(databaseFactory, namespace),
+    organizationTransactions,
+  )
+  const localTags = createDeckTagRepository(
+    createIndexedDbDeckTagPersistence(databaseFactory, namespace),
+    organizationTransactions,
+  )
+  const localOrganizations = createDeckOrganizationRepository(
+    createIndexedDbDeckOrganizationPersistence(databaseFactory, namespace),
+  )
+
   return {
     namespace,
     cloudDecks: cloud,
     cloudDeckVersions: cloudVersions,
     localDecks: local,
     localDeckVersions: localVersions,
-    deckFolders: createDeckFolderRepository(
-      createIndexedDbDeckFolderPersistence(databaseFactory, namespace),
-      organizationTransactions,
-    ),
-    deckTags: createDeckTagRepository(
-      createIndexedDbDeckTagPersistence(databaseFactory, namespace),
-      organizationTransactions,
-    ),
-    deckOrganizations: createDeckOrganizationRepository(
-      createIndexedDbDeckOrganizationPersistence(databaseFactory, namespace),
-    ),
+    localDeckFolders: localFolders,
+    localDeckTags: localTags,
+    localDeckOrganizations: localOrganizations,
+    cloudDeckOrganization: cloudOrganization,
+    /**
+     * Wrapped like the decks are: written locally first, sent to the account
+     * afterwards, and remembered when the send fails. Folders and tags are sent
+     * through a function that refuses to revive one the account has deleted.
+     */
+    deckFolders: withCloudDeckFolderSync({
+      folders: localFolders,
+      cloud: cloudOrganization,
+      isSyncEnabled: syncEnabled,
+      pending: folderQueue,
+      missingTable,
+      onUploadSuccess: noteUpload,
+      // A deck put into a brand new folder can have its organization refused
+      // because the folder had not arrived yet. Now it has.
+      onFolderUploaded: (folderId) =>
+        void retryPendingOrganizationsForFolder({
+          folderId,
+          organizations: localOrganizations,
+          cloud: cloudOrganization,
+          isSyncEnabled: syncEnabled,
+          pending: organizationQueue,
+          onUploadSuccess: noteUpload,
+        }),
+    }),
+    deckTags: withCloudDeckTagSync({
+      tags: localTags,
+      cloud: cloudOrganization,
+      isSyncEnabled: syncEnabled,
+      pending: tagQueue,
+      missingTable,
+      onUploadSuccess: noteUpload,
+    }),
+    deckOrganizations: withCloudDeckOrganizationSync({
+      organizations: localOrganizations,
+      cloud: cloudOrganization,
+      isSyncEnabled: syncEnabled,
+      pending: organizationQueue,
+      missingTable,
+      onUploadSuccess: noteUpload,
+    }),
     /**
      * Wrapped so every save and delete reaches the account, wherever it comes
      * from. The wrapper writes locally first and never rolls that back, so a
@@ -198,8 +325,19 @@ export function createAppRepositories(
       },
       // Recorded per account too, so the panel shows this account's last
       // successful send and never another's.
-      onUploadSuccess: () =>
-        recordCloudUploadSuccess(undefined, undefined, namespace),
+      onUploadSuccess: noteUpload,
+      // Organizing a deck the moment it is created sends both without waiting,
+      // and the organization can lose the race. The deck is there now, so the
+      // one entry it was waiting on is sent rather than left until a reload.
+      onDeckUploaded: (deckId) =>
+        void retryPendingOrganizationForDeck({
+          deckId,
+          organizations: localOrganizations,
+          cloud: cloudOrganization,
+          isSyncEnabled: syncEnabled,
+          pending: organizationQueue,
+          onUploadSuccess: noteUpload,
+        }),
       versionPending: {
         prepareParentDelete: (deckId) =>
           clearPendingDeckVersionSyncForDeck(
