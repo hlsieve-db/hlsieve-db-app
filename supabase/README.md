@@ -1,13 +1,29 @@
 # Supabase
 
-Schema for the optional Cloud Sync. Nothing in the application runtime reads
-this yet: HLSieve still stores every deck in IndexedDB and works without an
-account.
+Schema for the optional Cloud Sync. Every device still stores every deck in
+IndexedDB and works without an account; an account adds a copy, it does not move
+where the data lives.
 
-**None of this SQL has been run yet.** It is reviewed but unexecuted: no
-Postgres was available when it was written, and no project has had the
-migration applied. Before relying on it, apply the migration to a real
-Postgres and run the row level security checks below.
+**All five migrations are applied to production as of 2026-09-27**, in filename
+order:
+
+| Migration                                           | What it added                                     |
+| --------------------------------------------------- | ------------------------------------------------- |
+| `20260922000000_create_cloud_decks.sql`             | `decks`                                           |
+| `20260922100000_create_deck_shares.sql`             | `deck_shares` and its two functions               |
+| `20260925000000_create_cloud_deck_versions.sql`     | `deck_versions` and the parent tombstone          |
+| `20260927000000_create_cloud_deck_organization.sql` | `deck_folders`, `deck_tags`, `deck_organizations` |
+| `20260927100000_add_deck_definition_upsert.sql`     | the two definition upsert functions               |
+
+The checks in this file were run against the production project after the last
+two were applied: row level security on all three new tables, nine policies and
+no DELETE policy, `select`/`insert`/`update` for `authenticated` only, nothing
+for `anon`, every new function `security invoker` and unreachable by `anon`, and
+`tombstone_deck_with_versions` unchanged. The existing rows were untouched.
+
+A new migration goes on the end and is applied the same way. Nothing here is
+`create ... if not exists`, so re-running an applied file fails loudly rather
+than diverging quietly from this record.
 
 ```
 supabase/
@@ -78,8 +94,9 @@ docker exec -u postgres hlsieve-pg \
 docker rm -f hlsieve-pg
 ```
 
-It has not been applied to production. The matrix is intentionally standalone
-and leaves its throwaway database spent after the deliberate rollback test.
+The matrix is intentionally standalone and leaves its throwaway database spent
+after the deliberate rollback test. Run it only against a container you are
+about to discard, never against the project.
 
 ## Checking folder, tag and organization rules
 
@@ -146,10 +163,35 @@ constraint is evaluated as the caller, so `authenticated` needs execute on
 ### Applying it
 
 `migrations/20260927000000_create_cloud_deck_organization.sql` runs after the
-three earlier migrations and needs nothing else. It has not been applied to
-production. It does not change `tombstone_deck_with_versions`, so a build
-already in use keeps working after it is applied, and it adds no store to
-IndexedDB, so `DB_VERSION` is unaffected.
+three earlier migrations and needs nothing else, and
+`20260927100000_add_deck_definition_upsert.sql` runs after it. Both were applied
+on 2026-09-27. Neither changes `tombstone_deck_with_versions`, so a build
+already in use kept working, and neither adds a store to IndexedDB, so
+`DB_VERSION` was unaffected.
+
+**Never run `tests/deck_organization_matrix.sql` against the project.** It
+creates its own `auth` schema and its last section deletes an account to prove
+the cascade. It belongs to a throwaway container only, like the other matrices.
+
+`docs/deploy/phase-7b3e-production.md` records how that apply was carried out,
+including the verification queries, and is the starting point for the next
+schema change.
+
+## What production has that this repository does not
+
+The project carries a function `rls_auto_enable` and an event trigger
+`ensure_rls`, which turns row level security on for a newly created table. They
+were made in the dashboard and are not recorded in any migration here, so a
+throwaway Postgres built from `migrations/` alone does not have them.
+
+Every migration in this directory enables row level security itself, so the two
+overlap rather than depend on each other, and either one alone is enough. The
+2026-09-27 apply was checked for this: `ensure_rls` left the grants exactly as
+the migration wrote them, and the policy list matched the file.
+
+Keep enabling row level security explicitly in new migrations. Relying on the
+event trigger would make the repository's own SQL incomplete, and a check run
+against a container would pass while the real table was unprotected.
 
 ## Conventions
 
@@ -166,3 +208,17 @@ IndexedDB, so `DB_VERSION` is unaffected.
   JSON, where it already lives.
 - Deleting a deck sets `deleted_at`. Rows are removed only when the account is,
   through the cascade on `auth.users`.
+- **Two functions delete a deck, and both must stay.**
+  `tombstone_deck_with_related` also tombstones the deck's organization row;
+  `tombstone_deck_with_versions` predates it and does not. A tab loaded before
+  the newer one existed keeps calling the older one, so removing it would break
+  that tab until it is reloaded. The client tries the newer one first and falls
+  back only on "no such function". They agree in either order, because each one
+  only tombstones what is still active.
+- **After any schema change, ask PostgREST to reload:**
+  ```sql
+  notify pgrst, 'reload schema';
+  ```
+  Supabase reloads on its own within about a minute, and the app treats a table
+  it cannot see yet as "nowhere to send this", so nothing is lost either way.
+  The notify just makes the moment predictable.

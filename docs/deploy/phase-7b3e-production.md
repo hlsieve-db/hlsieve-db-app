@@ -1,5 +1,15 @@
 # Phase 7B-3E 本番適用手順書（Deck Folder / Tag / Organization）
 
+> **この適用は 2026-09-27 に完了しました。** migration 2本、検証クエリ、実機 QA の
+> すべてを通過しています。以降は記録として、また次にスキーマを変更するときの
+> 手順の下敷きとして残しています。
+>
+> **E-6（`git push`）と E-7（ビルド確認）は、実際には適用より前に済ませました。**
+> 手順書を含む5コミットを先に出し、テーブルがない状態のフロントを本番に置いてから
+> SQL を流しています。フロントはテーブル不在を `missing-table` として扱い、未送信
+> キューに積まず静かに諦めるため、この順序でも害はありませんでした。したがって
+> 実際の順序は E-1 → E-2 → E-3 → E-4 → E-5 → E-8 です。
+
 この手順書は **メンテナー本人が実行する** 前提で書かれています。SQL の実行、
 `git push`、実機 QA のいずれも、自動では行われません。
 
@@ -30,6 +40,21 @@ a9d1c8f feat: reconcile deck folders and tags with the account
 `tombstone_deck_folder` / `tombstone_deck_tag` / `tombstone_deck_with_related`）、
 2本目が2つ（`upsert_deck_folder` / `upsert_deck_tag`）。以前「5つ」と報告したのは
 1本目だけを数えた誤りで、以下の検証クエリは7つ前提です。
+
+## 適用の結果（2026-09-27）
+
+- **E-1 / E-3**: migration 2本とも成功。
+- **E-2**: 3テーブルとも RLS 有効、ポリシー9件で DELETE は0件、`authenticated` に
+  `select` / `insert` / `update` のみで `delete` なし、`anon` はすべて false、関数5つ
+  とも `security invoker` かつ `anon` 実行不可、`deck_organization_tag_ids_valid` は
+  `authenticated` 実行可、`tombstone_deck_with_versions` は不変、既存データ無傷
+  （`decks` 3 / `deck_versions` 5 / `deck_shares` 1）、外部キー2本とインデックス4本。
+- **E-4**: `upsert_deck_folder` / `upsert_deck_tag` が期待どおりのシグネチャと戻り値。
+  `public` の関数は14個。
+- **E-5**: `notify pgrst, 'reload schema'` 成功。
+- **E-8**: 実機 QA 全項目通過（初回アップロード、端末をまたいだ反映、削除の伝播と
+  非復活、競合の提示、既存機能の非退行）。
+- `ensure_rls` が grant を触った形跡はなし。
 
 ## 適用前の本番の状態（確認済み）
 
