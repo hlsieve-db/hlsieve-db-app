@@ -377,9 +377,100 @@ describe('PrivacyPolicyPage', () => {
     // No account deletion UI exists yet, so none may be described.
     expect(text).not.toContain('アカウント削除ボタン')
     expect(text).not.toContain('退会手続き')
-    // No analytics or tracking is present in the bundle.
-    expect(text).not.toContain('アクセス解析')
-    expect(text).not.toContain('Googleアナリティクス')
+    // Analytics is present now, so the page has to say so rather than deny it.
+    // What it must not claim is a choice the implementation does not offer.
+    expect(text).not.toContain('アクセス解析を停止するボタン')
+    expect(text).not.toContain('同意した場合にのみ')
+  })
+
+  /**
+   * The bundle loads Google Analytics, so the page has to account for it: what
+   * is collected, why, who processes it, and how to stop it. Saying nothing
+   * would leave the policy describing a build that no longer exists.
+   */
+  describe('the analytics section', () => {
+    it('names the tool and what it sets', () => {
+      renderPage()
+
+      expect(
+        screen.getByRole('heading', {
+          name: '8. アクセス解析（Google Analytics）',
+        }),
+      ).toBeVisible()
+      const text = pageText()
+      expect(text).toContain('Google')
+      expect(text).toContain('Cookie')
+      expect(text).toContain('_ga')
+    })
+
+    it('says what is sent and what it is for', () => {
+      renderPage()
+      const text = pageText()
+
+      expect(text).toContain('IPアドレス')
+      expect(text).toContain('利用状況の把握')
+      // The decks themselves stay on the device, which is the distinction that
+      // matters most to a reporter reading this.
+      expect(text).toContain('ブラウザ内に保存しているデータは送信しません')
+    })
+
+    it('links to the policy of the company that processes it', () => {
+      renderPage()
+
+      const link = screen.getByRole('link', {
+        name: /Googleのプライバシーポリシーを開く/,
+      })
+      expect(link).toHaveAttribute(
+        'href',
+        'https://policies.google.com/privacy',
+      )
+      expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+      expect(link).toHaveAttribute('target', '_blank')
+    })
+
+    it('says how to stop it, and that the app still works', () => {
+      renderPage()
+      const text = pageText()
+
+      expect(text).toContain('Cookieを無効に')
+      expect(text).toContain('引き続き利用できます')
+    })
+
+    /**
+     * Analytics records which pages were viewed and where the visit came from,
+     * so a blanket denial of tracking would contradict the section above it.
+     * What stays true is the narrower claim: none of it serves advertising.
+     */
+    it('no longer denies tracking, and still denies advertising', () => {
+      renderPage()
+      const text = pageText()
+
+      expect(text).not.toContain('行動追跡')
+      expect(text).toContain('広告配信を目的とした仕組みを使用していません')
+      expect(text).toContain(
+        '広告配信を目的としたプロフィール分析や、利用者の趣味嗜好の推定には使用しません',
+      )
+    })
+
+    it('leaves the sections before it where they were', () => {
+      renderPage()
+
+      for (const name of [
+        '4. ブラウザ内に保存されるデータ',
+        '5. 短い共有リンクを作成した場合',
+        '6. クラウド同期を有効にした場合',
+        '7. 認証基盤（Supabase）について',
+      ]) {
+        expect(screen.getByRole('heading', { name })).toBeVisible()
+      }
+      // Everything after it moved up by one, and nothing was renumbered twice.
+      expect(
+        screen.getByRole('heading', { name: '9. 第三者への提供' }),
+      ).toBeVisible()
+      expect(
+        screen.getByRole('heading', { name: '15. お問い合わせ' }),
+      ).toBeVisible()
+    })
   })
 
   it('is indexable and canonical, so Google can reach it without signing in', () => {
