@@ -65,6 +65,11 @@ Do not repeatedly reload an unchanged file in full. After editing, prefer:
 - `git diff` for the edited file
 - a targeted test or check
 
+The working tree lives under OneDrive, which has silently restored an older
+copy of an edited file. `git diff` after an edit is therefore a check that the
+edit exists, not only a way to review it: confirm it before building on the
+change.
+
 ## Scope control
 
 Do not expand a task into unrelated:
