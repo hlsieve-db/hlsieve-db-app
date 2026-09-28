@@ -166,7 +166,7 @@ describe('the dialog one deck is organized in', () => {
   function renderDialog(overrides: Record<string, unknown> = {}) {
     const onSave = vi.fn()
     const onClose = vi.fn()
-    render(
+    const view = render(
       <DeckOrganizationDialog
         deckName="テストデッキ"
         organization={organization('deck-1', {
@@ -180,7 +180,7 @@ describe('the dialog one deck is organized in', () => {
         {...overrides}
       />,
     )
-    return { onSave, onClose }
+    return { ...view, onSave, onClose }
   }
 
   it('opens on what the deck is organized by now', () => {
@@ -239,10 +239,49 @@ describe('the dialog one deck is organized in', () => {
     expect(onClose).toHaveBeenCalled()
   })
 
+  it('closes from the backdrop before anything is changed', () => {
+    const { container, onClose } = renderDialog()
+
+    fireEvent.click(
+      container.querySelector('.deck-organization-dialog__scrim') as Element,
+    )
+
+    expect(onClose).toHaveBeenCalled()
+  })
+
+  it('does not discard changes from an accidental backdrop click', () => {
+    const { container, onClose } = renderDialog()
+    fireEvent.click(screen.getByRole('checkbox', { name: '青' }))
+
+    fireEvent.click(
+      container.querySelector('.deck-organization-dialog__scrim') as Element,
+    )
+
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
   it('closes on Escape, like the other sheets', () => {
     const { onClose } = renderDialog()
 
     fireEvent.keyDown(document, { key: 'Escape' })
+
+    expect(onClose).toHaveBeenCalled()
+  })
+
+  it('still closes on Escape after it is changed', () => {
+    const { onClose } = renderDialog()
+    fireEvent.click(screen.getByRole('checkbox', { name: '青' }))
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+
+    expect(onClose).toHaveBeenCalled()
+  })
+
+  it('still closes from its close button after it is changed', () => {
+    const { onClose } = renderDialog()
+    fireEvent.click(screen.getByRole('checkbox', { name: '青' }))
+
+    fireEvent.click(screen.getByRole('button', { name: '閉じる' }))
 
     expect(onClose).toHaveBeenCalled()
   })

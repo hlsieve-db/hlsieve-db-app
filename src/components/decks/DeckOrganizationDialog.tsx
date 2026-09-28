@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type RefObject } from 'react'
+
+import { useReturnFocus } from '../../hooks/useReturnFocus'
 
 import {
   sortFoldersForDisplay,
@@ -30,6 +32,7 @@ export function DeckOrganizationDialog({
   tags,
   saving = false,
   error,
+  returnFocusFallback,
   onSave,
   onClose,
 }: {
@@ -39,11 +42,17 @@ export function DeckOrganizationDialog({
   tags: readonly DeckTag[]
   saving?: boolean
   error?: string
+  /**
+   * Where focus goes when whatever opened this dialog is gone by the time it
+   * closes — the deck's row can be filtered away by the very change just saved.
+   */
+  returnFocusFallback?: RefObject<HTMLElement | null>
   onSave: (value: { folderId?: DeckFolderId; tagIds: DeckTagId[] }) => void
   onClose: () => void
 }) {
   const headingRef = useRef<HTMLHeadingElement>(null)
   const dialogRef = useRef<HTMLElement>(null)
+  useReturnFocus(returnFocusFallback)
   const [folderId, setFolderId] = useState(organization?.folderId ?? NO_FOLDER)
   const [tagIds, setTagIds] = useState<DeckTagId[]>(() => [
     ...(organization?.tagIds ?? []),
@@ -95,8 +104,31 @@ export function DeckOrganizationDialog({
   const selected = new Set(tagIds)
   const atTagLimit = tagIds.length >= DECK_ORGANIZATION_TAG_MAX_COUNT
 
+  /**
+   * Whether the reporter has changed anything since the dialog opened.
+   *
+   * The backdrop closes the dialog only while there is nothing to lose. A click
+   * on it is as often a miss as an intention, and discarding a half-made
+   * decision on one is a loss with no undo here. The explicit ways out — Cancel,
+   * Close, Escape — always work, edited or not.
+   *
+   * Nothing is shown to explain why a backdrop click did nothing: a message
+   * would be another piece of state to clear, and both buttons are already on
+   * screen. If it turns out to read as the page being stuck, that is the moment
+   * to reconsider — not before.
+   */
+  const edited =
+    folderId !== (organization?.folderId ?? NO_FOLDER) ||
+    tagIds.length !== (organization?.tagIds.length ?? 0) ||
+    tagIds.some((id) => !(organization?.tagIds ?? []).includes(id))
+
   return (
-    <div className="deck-organization-dialog__scrim" onClick={onClose}>
+    <div
+      className="deck-organization-dialog__scrim"
+      onClick={() => {
+        if (!edited) onClose()
+      }}
+    >
       <section
         ref={dialogRef}
         className="deck-organization-dialog"

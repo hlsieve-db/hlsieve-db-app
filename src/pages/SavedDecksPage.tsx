@@ -268,6 +268,7 @@ export function SavedDecksPage({
   const [savingOrganization, setSavingOrganization] = useState(false)
   const [reorderingFolders, setReorderingFolders] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const deckListRef = useRef<HTMLElement>(null)
 
   const readOrganization = useCallback(async () => {
     const [nextFolders, nextTags, nextOrganizations] = await Promise.all([
@@ -757,7 +758,10 @@ export function SavedDecksPage({
             />
           )}
 
-          <section aria-label="保存したデッキ">
+          {/* Focusable without being in the tab order: where focus lands when
+              the button that opened the organize dialog is gone by the time it
+              closes, which the deck's own row can be. */}
+          <section aria-label="保存したデッキ" tabIndex={-1} ref={deckListRef}>
             {loadedOrganization && (
               <DeckTagFilterChips
                 tags={tags}
@@ -931,6 +935,7 @@ export function SavedDecksPage({
           folders={folders}
           tags={tags}
           saving={savingOrganization}
+          returnFocusFallback={deckListRef}
           error={organizationError}
           onSave={(value) =>
             void handleSaveOrganization(organizingDeck.id, value)

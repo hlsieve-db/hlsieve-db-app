@@ -1575,6 +1575,36 @@ describe('organizing the saved decks', () => {
     expect(screen.getAllByRole('listitem')[0]).toHaveTextContent('練習用')
   })
 
+  it('returns focus to the button that opened the dialog', async () => {
+    await renderOrganized()
+    const opener = screen.getByRole('button', { name: '赤単を整理' })
+    opener.focus()
+    fireEvent.click(opener)
+    const dialog = await screen.findByRole('dialog', { name: '「赤単」を整理' })
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'キャンセル' }))
+
+    await waitFor(() => expect(opener).toHaveFocus())
+  })
+
+  it('returns focus to the deck list when saving filters the opener out', async () => {
+    await renderOrganized()
+    fireEvent.click(screen.getByRole('button', { name: '大会用 1件' }))
+    const opener = screen.getByRole('button', { name: '赤単を整理' })
+    opener.focus()
+    fireEvent.click(opener)
+    const dialog = await screen.findByRole('dialog', { name: '「赤単」を整理' })
+    fireEvent.change(within(dialog).getByLabelText('フォルダー'), {
+      target: { value: 'f2' },
+    })
+
+    fireEvent.click(within(dialog).getByRole('button', { name: '保存' }))
+
+    const deckList = screen.getByRole('region', { name: '保存したデッキ' })
+    await waitFor(() => expect(deckList).toHaveFocus())
+    expect(screen.queryByRole('button', { name: '赤単を整理' })).toBeNull()
+  })
+
   it('keeps the row when the reporter clears it', async () => {
     const { stores } = await renderOrganized()
 
