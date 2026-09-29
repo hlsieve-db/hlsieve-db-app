@@ -23,6 +23,7 @@ function card(cardNumber: string, name: string): Card {
   return {
     cardNumber,
     name,
+    imageUrl: `https://example.com/${cardNumber}.png`,
     cardType: 'holomem',
     colors: ['blue'],
     isBuzz: false,
@@ -106,7 +107,10 @@ function renderPage(
   )
 }
 
-afterEach(() => localStorage.clear())
+afterEach(() => {
+  localStorage.clear()
+  vi.unstubAllGlobals()
+})
 
 describe('CardSearchPage deck quick add', () => {
   it('shows no-deck guidance without breaking search', async () => {
@@ -164,6 +168,48 @@ describe('CardSearchPage deck quick add', () => {
     expect(screen.getByLabelText('現在 1枚')).toBeVisible()
 
     await waitFor(() => expect(saveDeck).toHaveBeenCalledTimes(3))
+  })
+
+  it('keeps image-mode Deck controls usable after image failure', async () => {
+    localStorage.setItem(CARD_VIEW_MODE_STORAGE_KEY, 'image')
+    const saveDeck = vi.fn<(value: Deck) => Promise<void>>(
+      async () => undefined,
+    )
+    renderPage(repository([deck('deck-1')], { saveDeck }))
+
+    expect(await screen.findByLabelText('追加先デッキ')).toHaveValue('deck-1')
+    const image = screen.getByRole('img', { name: 'アルファのカード画像' })
+    fireEvent.error(image)
+    expect(screen.getByText('画像を読み込めませんでした')).toBeVisible()
+    expect(screen.getByRole('heading', { name: 'アルファ' })).toBeVisible()
+    expect(screen.getByText('CARD-001')).toBeVisible()
+
+    fireEvent.click(screen.getByRole('button', { name: 'アルファを1枚追加' }))
+    expect(screen.getByLabelText('現在 1枚')).toBeVisible()
+    await waitFor(() => expect(saveDeck).toHaveBeenCalledTimes(1))
+  })
+
+  it('renders image-mode text and controls before images intersect', async () => {
+    class NeverIntersectingObserver {
+      readonly root = null
+      readonly rootMargin = '200px 0px'
+      readonly thresholds = [0]
+      observe = vi.fn()
+      unobserve = vi.fn()
+      disconnect = vi.fn()
+      takeRecords = vi.fn(() => [])
+    }
+    vi.stubGlobal('IntersectionObserver', NeverIntersectingObserver)
+    localStorage.setItem(CARD_VIEW_MODE_STORAGE_KEY, 'image')
+    renderPage(repository([deck('deck-1')]))
+
+    expect(await screen.findByLabelText('追加先デッキ')).toHaveValue('deck-1')
+    expect(document.querySelector('.search-results img')).toBeNull()
+    expect(screen.getByRole('heading', { name: 'アルファ' })).toBeVisible()
+    expect(screen.getByText('CARD-001')).toBeVisible()
+    expect(
+      screen.getByRole('button', { name: 'アルファを1枚追加' }),
+    ).toBeEnabled()
   })
 
   it('shares a valid preference, switches decks, and falls back from a stale ID', async () => {

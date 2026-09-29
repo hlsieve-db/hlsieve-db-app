@@ -21,6 +21,10 @@ import type {
 } from '../domain/cards/types'
 import { SELECTED_DECK_STORAGE_KEY } from '../domain/decks/selectedDeckPreference'
 import type { Deck } from '../domain/decks/types'
+import {
+  CARD_VIEW_MODE_STORAGE_KEY,
+  type CardViewMode,
+} from '../domain/search/cardViewMode'
 import { AuthProvider } from '../auth/AuthProvider'
 import type { AuthSource } from '../auth/authSource'
 import type { DeckShareSource } from '../share/deckShareSource'
@@ -170,6 +174,7 @@ function renderPage({
   // Signed out by default, which is what every existing test assumes.
   authSource = null,
   deckVersions,
+  viewMode = 'image',
 }: {
   deckRepository?: DeckRepository
   loadCards?: () => Promise<CardsDataFile>
@@ -178,7 +183,13 @@ function renderPage({
   shareSource?: DeckShareSource | null
   authSource?: AuthSource | null
   deckVersions?: DeckVersionRepository
+  viewMode?: CardViewMode | null
 } = {}) {
+  if (viewMode === null) {
+    localStorage.removeItem(CARD_VIEW_MODE_STORAGE_KEY)
+  } else {
+    localStorage.setItem(CARD_VIEW_MODE_STORAGE_KEY, viewMode)
+  }
   render(
     <AuthProvider authSource={authSource}>
       <MemoryRouter initialEntries={[path]}>
@@ -293,12 +304,92 @@ describe('DeckEditPage editor operations', () => {
   })
 
   it('shows card data loading without blocking the editor', async () => {
-    renderPage({ loadCards: () => new Promise(() => undefined) })
+    const saveDeck = vi.fn(async () => undefined)
+    renderPage({
+      deckRepository: repository({
+        getDeck: async () =>
+          deck({ entries: [{ cardNumber: 'CARD-001', quantity: 2 }] }),
+        saveDeck,
+      }),
+      loadCards: () => new Promise(() => undefined),
+      viewMode: null,
+    })
 
     expect(
       await screen.findByRole('heading', { name: 'テストデッキ' }),
     ).toBeVisible()
-    expect(screen.getByText('カードデータを読み込んでいます…')).toBeVisible()
+    expect(
+      screen.getAllByText('カードデータを読み込んでいます…').length,
+    ).toBeGreaterThan(0)
+    const currentCards = screen.getByRole('region', { name: '現在のカード' })
+    expect(within(currentCards).getByText('CARD-001')).toBeVisible()
+    expect(
+      within(currentCards).getByRole('button', {
+        name: 'CARD-001を1枚追加',
+      }),
+    ).toBeEnabled()
+    fireEvent.click(
+      within(currentCards).getByRole('button', {
+        name: 'CARD-001をデッキから削除',
+      }),
+    )
+    await waitFor(() => expect(saveDeck).toHaveBeenCalledTimes(1))
+  })
+
+  it('uses the shared default text mode without loading any Deck images', async () => {
+    const loadPrintings = vi.fn(async () => printingsData())
+    renderPage({
+      deckRepository: repository({
+        getDeck: async () =>
+          deck({ entries: [{ cardNumber: 'CARD-001', quantity: 2 }] }),
+      }),
+      loadPrintings,
+      viewMode: null,
+    })
+
+    expect(await screen.findByText('9件')).toBeVisible()
+    const currentCards = screen.getByRole('region', { name: '現在のカード' })
+    expect(within(currentCards).getByText('赤いカード')).toBeVisible()
+    expect(within(currentCards).getByText('CARD-001')).toBeVisible()
+    expect(currentCards.querySelector('img')).toBeNull()
+
+    const picker = screen.getByRole('region', { name: 'カードを追加' })
+    expect(await within(picker).findByText('青いカード')).toBeVisible()
+    expect(picker).toHaveTextContent('CARD-002')
+    expect(picker.querySelector('img')).toBeNull()
+    expect(loadPrintings).not.toHaveBeenCalled()
+  })
+
+  it('keeps Deck controls enabled after an image fails in saved image mode', async () => {
+    const saveDeck = vi.fn(async () => undefined)
+    renderPage({
+      deckRepository: repository({
+        getDeck: async () =>
+          deck({ entries: [{ cardNumber: 'CARD-001', quantity: 2 }] }),
+        saveDeck,
+      }),
+      viewMode: 'image',
+    })
+
+    const currentCards = await screen.findByRole('region', {
+      name: '現在のカード',
+    })
+    const image = await within(currentCards).findByRole('img', {
+      name: '赤いカードのカード画像',
+    })
+    fireEvent.error(image)
+    expect(
+      within(currentCards).getByText('画像を読み込めませんでした'),
+    ).toBeVisible()
+    expect(within(currentCards).getByText('赤いカード')).toBeVisible()
+    expect(within(currentCards).getByText('CARD-001')).toBeVisible()
+
+    fireEvent.click(
+      within(currentCards).getByRole('button', {
+        name: '赤いカードを1枚追加',
+      }),
+    )
+    await waitFor(() => expect(saveDeck).toHaveBeenCalledTimes(1))
   })
 
   it('loads entries, displays total, and warns without deleting unknown cards', async () => {
@@ -416,7 +507,7 @@ describe('DeckEditPage editor operations', () => {
     ).toBeVisible()
   })
 
-  it('renders non-Oshi entries as three-column image and quantity tiles', async () => {
+  it('keeps non-Oshi image tiles identifiable and fully operable', async () => {
     renderPage({
       deckRepository: repository({
         getDeck: async () =>
@@ -436,10 +527,8 @@ describe('DeckEditPage editor operations', () => {
     await within(currentCards).findByRole('button', {
       name: '赤いカードを1枚追加',
     })
-    expect(
-      within(currentCards).queryByText('赤いカード'),
-    ).not.toBeInTheDocument()
-    expect(within(currentCards).queryByText('CARD-001')).not.toBeInTheDocument()
+    expect(within(currentCards).getByText('赤いカード')).toBeVisible()
+    expect(within(currentCards).getByText('CARD-001')).toBeVisible()
 
     const mainList = within(currentCards)
       .getByRole('heading', { name: /^メインデッキ12枚$/ })
@@ -452,13 +541,19 @@ describe('DeckEditPage editor operations', () => {
     expect(firstTile).toHaveClass('deck-entry--compact')
     expect(firstTile.children[0]).toHaveClass('deck-card-image-link')
     expect(firstTile.children[0]?.children[0]).toHaveClass('deck-card-image')
-    expect(firstTile.children[1]).toHaveClass('deck-quantity-control')
-    const controls = firstTile.children[1] as HTMLElement
+    expect(firstTile.children[1]).toHaveClass('deck-entry__information')
+    expect(firstTile.children[2]).toHaveClass('deck-quantity-control')
+    const controls = firstTile.children[2] as HTMLElement
     expect(controls.children).toHaveLength(3)
     expect(controls.children[0]).toHaveTextContent('−')
     expect(controls.children[1]).toHaveTextContent('2')
     expect(controls.children[1]).toHaveAttribute('aria-label', '現在 2枚')
     expect(controls.children[2]).toHaveTextContent('＋')
+    expect(
+      within(firstTile).getByRole('button', {
+        name: '赤いカードをデッキから削除',
+      }),
+    ).toBeVisible()
 
     const cheerList = screen
       .getByRole('heading', { name: /エールデッキ/ })
@@ -590,7 +685,11 @@ describe('DeckEditPage editor operations', () => {
 
     expect(resultLink).toHaveAttribute('href', '/cards/CARD-001')
     expect(resultLink.getAttribute('href')).not.toContain('printing')
-    expect(within(resultLink).getByRole('presentation')).toBeVisible()
+    expect(
+      within(resultLink).getByRole('img', {
+        name: '赤いカードのカード画像',
+      }),
+    ).toBeVisible()
     expect(
       within(resultLink).getByRole('heading', { name: '赤いカード' }),
     ).toBeVisible()

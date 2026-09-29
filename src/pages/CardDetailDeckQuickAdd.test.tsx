@@ -15,6 +15,7 @@ import type {
 } from '../domain/cards/types'
 import { SELECTED_DECK_STORAGE_KEY } from '../domain/decks/selectedDeckPreference'
 import type { Deck } from '../domain/decks/types'
+import { CARD_VIEW_MODE_STORAGE_KEY } from '../domain/search/cardViewMode'
 import type { DeckRepository } from '../repositories/deckRepository'
 import { CardDetailPage } from './CardDetailPage'
 import { CardSearchPage } from './CardSearchPage'
@@ -241,6 +242,7 @@ describe('Card Detail deck quick add', () => {
   })
 
   it('round-trips from Deck Edit to Detail and back to the same Deck with quantity intact', async () => {
+    localStorage.setItem(CARD_VIEW_MODE_STORAGE_KEY, 'image')
     const selectedDeck = deck('deck-1', 2)
     const deckRepository = repository([selectedDeck], {
       getDeck: vi.fn(async (id) =>

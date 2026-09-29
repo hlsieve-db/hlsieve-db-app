@@ -8,11 +8,11 @@ import {
 
 describe('card view mode', () => {
   it.each([
-    [null, 'image'],
+    [null, 'text'],
     ['image', 'image'],
     ['text', 'text'],
-    ['compact', 'image'],
-    ['', 'image'],
+    ['compact', 'text'],
+    ['', 'text'],
   ] as const)('reads %s as %s', (stored, expected) => {
     const storage = { getItem: vi.fn(() => stored) }
     expect(readCardViewMode(storage)).toBe(expected)
@@ -26,7 +26,7 @@ describe('card view mode', () => {
           throw new Error('blocked')
         },
       }),
-    ).toBe('image')
+    ).toBe('text')
     expect(() =>
       writeCardViewMode('text', {
         setItem: () => {
@@ -40,7 +40,7 @@ describe('card view mode', () => {
     vi.stubGlobal('window', undefined)
 
     try {
-      expect(readCardViewMode()).toBe('image')
+      expect(readCardViewMode()).toBe('text')
       expect(() => writeCardViewMode('text')).not.toThrow()
     } finally {
       vi.unstubAllGlobals()

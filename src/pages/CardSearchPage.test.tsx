@@ -1,4 +1,5 @@
 import {
+  cleanup,
   fireEvent,
   render,
   screen,
@@ -251,6 +252,7 @@ function group(name: string) {
 afterEach(() => {
   localStorage.clear()
   vi.restoreAllMocks()
+  vi.unstubAllGlobals()
 })
 
 describe('CardSearchPage loading and results', () => {
@@ -324,13 +326,15 @@ describe('CardSearchPage loading and results', () => {
   })
 
   it('renders total count, at most 24 cards, images, and fallback', async () => {
+    vi.stubGlobal('IntersectionObserver', undefined)
+    localStorage.setItem(CARD_VIEW_MODE_STORAGE_KEY, 'image')
     renderPage()
     await loaded()
 
     expect(screen.getAllByRole('article')).toHaveLength(24)
     expect(document.querySelector('.card-grid')).toBeInTheDocument()
     expect(
-      screen.getByRole('img', { name: 'フワモコのカード画像' }),
+      await screen.findByRole('img', { name: 'フワモコのカード画像' }),
     ).toHaveAttribute('loading', 'lazy')
     expect(screen.getAllByText('画像なし').length).toBeGreaterThan(0)
     expect(screen.getByText('Z-003')).toBeInTheDocument()
@@ -348,6 +352,8 @@ describe('CardSearchPage loading and results', () => {
   ] as const)(
     'opens the same logical detail from the %s link',
     async (_, getLink) => {
+      vi.stubGlobal('IntersectionObserver', undefined)
+      localStorage.setItem(CARD_VIEW_MODE_STORAGE_KEY, 'image')
       renderPage()
       await loaded()
 
@@ -360,6 +366,8 @@ describe('CardSearchPage loading and results', () => {
   )
 
   it('keeps the image link keyboard-focusable with lazy image semantics', async () => {
+    vi.stubGlobal('IntersectionObserver', undefined)
+    localStorage.setItem(CARD_VIEW_MODE_STORAGE_KEY, 'image')
     renderPage()
     await loaded()
     const imageLink = screen.getByRole('link', {
@@ -369,11 +377,13 @@ describe('CardSearchPage loading and results', () => {
     imageLink.focus()
     expect(imageLink).toHaveFocus()
     expect(
-      screen.getByRole('img', { name: 'フワモコのカード画像' }),
+      await screen.findByRole('img', { name: 'フワモコのカード画像' }),
     ).toHaveAttribute('loading', 'lazy')
   })
 
   it('restores the complete URL state from the explicit Card Detail return link', async () => {
+    vi.stubGlobal('IntersectionObserver', undefined)
+    localStorage.setItem(CARD_VIEW_MODE_STORAGE_KEY, 'image')
     renderPage({
       entries: [
         '/cards?qa=1&color=green&type=holomem&bloom=debut_normal&sort=card_number_asc&page=2',
@@ -862,6 +872,25 @@ describe('CardSearchPage sort and pagination', () => {
 })
 
 describe('CardSearchPage view mode', () => {
+  it('defaults to text while respecting a previously saved image mode', async () => {
+    renderPage({ entries: ['/cards?q=フワモコ'] })
+    await screen.findByRole('heading', { name: 'フワモコ' })
+    expect(screen.getByRole('button', { name: '文字優先' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    expect(document.querySelector('.search-results img')).toBeNull()
+
+    cleanup()
+    localStorage.setItem(CARD_VIEW_MODE_STORAGE_KEY, 'image')
+    renderPage({ entries: ['/cards?q=フワモコ'] })
+    await screen.findByRole('heading', { name: 'フワモコ' })
+    expect(screen.getByRole('button', { name: '画像優先' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+  })
+
   it('switches native button state without changing the URL or result order', async () => {
     renderPage({ entries: ['/cards?q=カード'] })
     await screen.findByRole('region', { name: /件のカード/ })
@@ -880,15 +909,15 @@ describe('CardSearchPage view mode', () => {
 
     expect(imageMode).toHaveAttribute('type', 'button')
     expect(textMode).toHaveAttribute('type', 'button')
-    expect(imageMode).toHaveAttribute('aria-pressed', 'true')
-    expect(textMode).toHaveAttribute('aria-pressed', 'false')
-    textMode.focus()
-    expect(textMode).toHaveFocus()
-    fireEvent.click(textMode)
-
     expect(imageMode).toHaveAttribute('aria-pressed', 'false')
     expect(textMode).toHaveAttribute('aria-pressed', 'true')
-    expect(localStorage.getItem(CARD_VIEW_MODE_STORAGE_KEY)).toBe('text')
+    imageMode.focus()
+    expect(imageMode).toHaveFocus()
+    fireEvent.click(imageMode)
+
+    expect(imageMode).toHaveAttribute('aria-pressed', 'true')
+    expect(textMode).toHaveAttribute('aria-pressed', 'false')
+    expect(localStorage.getItem(CARD_VIEW_MODE_STORAGE_KEY)).toBe('image')
     expect(screen.getByTestId('location')).toHaveTextContent(
       '/cards?q=%E3%82%AB%E3%83%BC%E3%83%89',
     )
@@ -899,9 +928,9 @@ describe('CardSearchPage view mode', () => {
       ),
     ).toEqual(imageOrder)
 
-    fireEvent.click(imageMode)
-    expect(imageMode).toHaveAttribute('aria-pressed', 'true')
-    expect(textMode).toHaveAttribute('aria-pressed', 'false')
+    fireEvent.click(textMode)
+    expect(imageMode).toHaveAttribute('aria-pressed', 'false')
+    expect(textMode).toHaveAttribute('aria-pressed', 'true')
   })
 
   it('restores text mode and renders no card image elements', async () => {

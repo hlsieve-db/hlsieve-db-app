@@ -12,6 +12,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 
 import { useAuth } from '../auth/useAuth'
 import { AppNavigation } from '../components/AppNavigation'
+import { ProgressiveCardImage } from '../components/cards/ProgressiveCardImage'
 import { DeckAnalysisSummary } from '../components/decks/DeckAnalysisSummary'
 import { DeckLegalitySummary } from '../components/decks/DeckLegalitySummary'
 import { DeckQuantityControl } from '../components/decks/DeckQuantityControl'
@@ -67,6 +68,7 @@ import {
 } from '../domain/navigation/cardDetailReturnState'
 import { DEFAULT_CARD_PAGE_SIZE } from '../domain/search/constants'
 import { getCardSearchResults } from '../domain/search/getCardSearchResults'
+import { readCardViewMode } from '../domain/search/cardViewMode'
 import {
   DEFAULT_SEARCH_URL_STATE,
   type SearchUrlState,
@@ -202,13 +204,11 @@ function DeckCardImage({
   buildDetailState?: () => CardDetailReturnState
 }) {
   const image = (
-    <div className="deck-card-image">
-      {imageUrl ? (
-        <img src={imageUrl} alt="" loading="lazy" decoding="async" />
-      ) : (
-        <span>画像なし</span>
-      )}
-    </div>
+    <ProgressiveCardImage
+      src={imageUrl}
+      alt={card ? `${card.name}のカード画像` : ''}
+      className="deck-card-image"
+    />
   )
   return linkToDetail && card ? (
     <CardDetailLink
@@ -250,6 +250,7 @@ function DeckEditor({
   const location = useLocation()
   const navigate = useNavigate()
   const [deck, setDeck] = useState(initialDeck)
+  const [cardViewMode] = useState(() => readCardViewMode())
   const [nameDraft, setNameDraft] = useState(initialDeck.name)
   const [nameError, setNameError] = useState<string>()
   const { saveState, persist } = useDeckSaveQueue(repository)
@@ -336,6 +337,7 @@ function DeckEditor({
   }, [cardsLoadAttempt, loadCards])
 
   useEffect(() => {
+    if (cardViewMode !== 'image') return
     let active = true
     void loadPrintings().then(
       (data) => {
@@ -348,7 +350,7 @@ function DeckEditor({
     return () => {
       active = false
     }
-  }, [loadPrintings])
+  }, [cardViewMode, loadPrintings])
 
   const cardsByNumber = useMemo(
     () =>
@@ -993,11 +995,19 @@ function DeckEditor({
                             className="deck-entry deck-entry--compact"
                             key={entry.cardNumber}
                           >
-                            <DeckCardImage
-                              card={card}
-                              linkToDetail
-                              buildDetailState={captureDetailState}
-                            />
+                            {cardViewMode === 'image' && (
+                              <DeckCardImage
+                                card={card}
+                                linkToDetail
+                                buildDetailState={captureDetailState}
+                              />
+                            )}
+                            <div className="deck-entry__information">
+                              <h4>{displayName}</h4>
+                              {displayName !== entry.cardNumber && (
+                                <p>{entry.cardNumber}</p>
+                              )}
+                            </div>
                             <DeckQuantityControl
                               cardName={displayName}
                               quantity={entry.quantity}
@@ -1026,19 +1036,42 @@ function DeckEditor({
                                 カード情報なし
                               </span>
                             )}
+                            <button
+                              type="button"
+                              className="button button--secondary deck-entry__remove"
+                              aria-label={`${displayName}をデッキから削除`}
+                              onClick={() =>
+                                applyDeckChange((current) =>
+                                  removeCardFromDeck(current, entry.cardNumber),
+                                )
+                              }
+                            >
+                              削除
+                            </button>
                           </li>
                         )
                       }
                       return (
-                        <li className="deck-entry" key={entry.cardNumber}>
-                          <DeckCardImage
-                            card={card}
-                            linkToDetail
-                            buildDetailState={captureDetailState}
-                          />
+                        <li
+                          className={`deck-entry${
+                            cardViewMode === 'text'
+                              ? ' deck-entry--without-image'
+                              : ''
+                          }`}
+                          key={entry.cardNumber}
+                        >
+                          {cardViewMode === 'image' && (
+                            <DeckCardImage
+                              card={card}
+                              linkToDetail
+                              buildDetailState={captureDetailState}
+                            />
+                          )}
                           <div className="deck-entry__information">
                             <h4>{displayName}</h4>
-                            <p>{entry.cardNumber}</p>
+                            {displayName !== entry.cardNumber && (
+                              <p>{entry.cardNumber}</p>
+                            )}
                             {cardsState.status === 'loaded' && !card && (
                               <p className="deck-entry__warning" role="alert">
                                 カードデータに存在しないカードです
@@ -1198,15 +1231,23 @@ function DeckEditor({
                   return (
                     <li key={card.cardNumber}>
                       <CardDetailLink
-                        className="deck-search-result__detail-link"
+                        className={`deck-search-result__detail-link${
+                          cardViewMode === 'text'
+                            ? ' deck-search-result__detail-link--without-image'
+                            : ''
+                        }`}
                         cardNumber={card.cardNumber}
                         ariaLabel={`${card.name}のカード詳細を開く`}
                         buildDetailState={captureDetailState}
                       >
-                        <DeckCardImage
-                          card={card}
-                          imageUrl={originalPrintingImages.get(card.cardNumber)}
-                        />
+                        {cardViewMode === 'image' && (
+                          <DeckCardImage
+                            card={card}
+                            imageUrl={originalPrintingImages.get(
+                              card.cardNumber,
+                            )}
+                          />
+                        )}
                         <div>
                           <h3>{card.name}</h3>
                           <p>

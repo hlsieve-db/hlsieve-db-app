@@ -13,13 +13,13 @@ function getDefaultStorage(): Storage | undefined {
 export function readCardViewMode(
   storage: Pick<Storage, 'getItem'> | undefined = getDefaultStorage(),
 ): CardViewMode {
-  if (!storage) return 'image'
+  if (!storage) return 'text'
 
   try {
     const value = storage.getItem(CARD_VIEW_MODE_STORAGE_KEY)
-    return isCardViewMode(value) ? value : 'image'
+    return isCardViewMode(value) ? value : 'text'
   } catch {
-    return 'image'
+    return 'text'
   }
 }
 

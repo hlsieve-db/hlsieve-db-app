@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 
+import { ProgressiveCardImage } from '../cards/ProgressiveCardImage'
 import { DeckQuantityControl } from '../decks/DeckQuantityControl'
 import { FavoriteToggleButton } from '../favorites/FavoriteToggleButton'
 import {
@@ -67,18 +68,11 @@ function CardResult({
         state={detailState}
         aria-label={`${card.name}の詳細を見る`}
       >
-        <div className="card-result__image-frame">
-          {card.imageUrl ? (
-            <img
-              src={card.imageUrl}
-              alt={`${card.name}のカード画像`}
-              loading="lazy"
-              decoding="async"
-            />
-          ) : (
-            <span className="card-result__image-missing">画像なし</span>
-          )}
-        </div>
+        <ProgressiveCardImage
+          src={card.imageUrl}
+          alt={`${card.name}のカード画像`}
+          className="card-result__image-frame"
+        />
       </Link>
       <div className="card-result__body">
         <p className="card-result__number">{card.cardNumber}</p>
