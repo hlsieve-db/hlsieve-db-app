@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { Card, CardsDataFile } from '../domain/cards/types'
 import { SELECTED_DECK_STORAGE_KEY } from '../domain/decks/selectedDeckPreference'
+import { CARD_VIEW_MODE_STORAGE_KEY } from '../domain/search/cardViewMode'
 import type { Deck } from '../domain/decks/types'
 import type { DeckRepository } from '../repositories/deckRepository'
 import type { SavedSearchPresetRepository } from '../repositories/savedSearchPresetRepository'
@@ -143,6 +144,26 @@ describe('CardSearchPage deck quick add', () => {
     await waitFor(() => expect(saveDeck).toHaveBeenCalledTimes(3))
     expect(saveDeck.mock.calls[2]?.[0].entries).toEqual([])
     expect(screen.getByTestId('location')).toHaveTextContent('/cards?q=')
+  })
+
+  it('keeps add, increment, decrement, and quantity controls in text mode', async () => {
+    localStorage.setItem(CARD_VIEW_MODE_STORAGE_KEY, 'text')
+    const saveDeck = vi.fn<(value: Deck) => Promise<void>>(
+      async () => undefined,
+    )
+    renderPage(repository([deck('deck-1')], { saveDeck }))
+
+    expect(await screen.findByLabelText('追加先デッキ')).toHaveValue('deck-1')
+    expect(document.querySelector('.search-results img')).toBeNull()
+    expect(screen.getByLabelText('現在 0枚')).toBeVisible()
+    fireEvent.click(screen.getByRole('button', { name: 'アルファを1枚追加' }))
+    expect(screen.getByLabelText('現在 1枚')).toBeVisible()
+    fireEvent.click(screen.getByRole('button', { name: 'アルファを1枚追加' }))
+    expect(screen.getByLabelText('現在 2枚')).toBeVisible()
+    fireEvent.click(screen.getByRole('button', { name: 'アルファを1枚減らす' }))
+    expect(screen.getByLabelText('現在 1枚')).toBeVisible()
+
+    await waitFor(() => expect(saveDeck).toHaveBeenCalledTimes(3))
   })
 
   it('shares a valid preference, switches decks, and falls back from a stale ID', async () => {

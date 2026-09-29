@@ -14,10 +14,11 @@ import {
   useNavigate,
   useParams,
 } from 'react-router-dom'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { Card, CardsDataFile } from '../domain/cards/types'
 import { readCardDetailReturnState } from '../domain/navigation/cardDetailReturnState'
+import { CARD_VIEW_MODE_STORAGE_KEY } from '../domain/search/cardViewMode'
 import type { DeckRepository } from '../repositories/deckRepository'
 import type { SavedSearchPresetRepository } from '../repositories/savedSearchPresetRepository'
 import { CardSearchPage } from './CardSearchPage'
@@ -246,6 +247,11 @@ async function loaded() {
 function group(name: string) {
   return screen.getByRole('group', { name })
 }
+
+afterEach(() => {
+  localStorage.clear()
+  vi.restoreAllMocks()
+})
 
 describe('CardSearchPage loading and results', () => {
   it('opens the mobile filters from the corrected label and preserves its active count', async () => {
@@ -852,5 +858,178 @@ describe('CardSearchPage sort and pagination', () => {
     expect(screen.getByTestId('location')).toHaveTextContent(
       '/cards?color=green',
     )
+  })
+})
+
+describe('CardSearchPage view mode', () => {
+  it('switches native button state without changing the URL or result order', async () => {
+    renderPage({ entries: ['/cards?q=カード'] })
+    await screen.findByRole('region', { name: /件のカード/ })
+
+    const modeGroup = screen.getByRole('group', { name: '表示形式' })
+    const imageMode = within(modeGroup).getByRole('button', {
+      name: '画像優先',
+    })
+    const textMode = within(modeGroup).getByRole('button', {
+      name: '文字優先',
+    })
+    const imageOrder = Array.from(
+      document.querySelectorAll<HTMLElement>('[data-card-number]'),
+      (element) => element.dataset.cardNumber,
+    )
+
+    expect(imageMode).toHaveAttribute('type', 'button')
+    expect(textMode).toHaveAttribute('type', 'button')
+    expect(imageMode).toHaveAttribute('aria-pressed', 'true')
+    expect(textMode).toHaveAttribute('aria-pressed', 'false')
+    textMode.focus()
+    expect(textMode).toHaveFocus()
+    fireEvent.click(textMode)
+
+    expect(imageMode).toHaveAttribute('aria-pressed', 'false')
+    expect(textMode).toHaveAttribute('aria-pressed', 'true')
+    expect(localStorage.getItem(CARD_VIEW_MODE_STORAGE_KEY)).toBe('text')
+    expect(screen.getByTestId('location')).toHaveTextContent(
+      '/cards?q=%E3%82%AB%E3%83%BC%E3%83%89',
+    )
+    expect(
+      Array.from(
+        document.querySelectorAll<HTMLElement>('[data-card-number]'),
+        (element) => element.dataset.cardNumber,
+      ),
+    ).toEqual(imageOrder)
+
+    fireEvent.click(imageMode)
+    expect(imageMode).toHaveAttribute('aria-pressed', 'true')
+    expect(textMode).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('restores text mode and renders no card image elements', async () => {
+    localStorage.setItem(CARD_VIEW_MODE_STORAGE_KEY, 'text')
+    renderPage({ entries: ['/cards?q=フワモコ'] })
+
+    await screen.findByRole('heading', { name: 'フワモコ' })
+    expect(
+      within(screen.getByRole('group', { name: '表示形式' })).getByRole(
+        'button',
+        { name: '文字優先' },
+      ),
+    ).toHaveAttribute('aria-pressed', 'true')
+    expect(document.querySelector('.search-results img')).toBeNull()
+    expect(document.querySelector('.text-card-list')).toBeInTheDocument()
+  })
+
+  it('keeps the selected mode in state when localStorage writes fail', async () => {
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('blocked')
+    })
+    renderPage({ entries: ['/cards?q=フワモコ'] })
+    await screen.findByRole('heading', { name: 'フワモコ' })
+
+    const textMode = screen.getByRole('button', { name: '文字優先' })
+    fireEvent.click(textMode)
+
+    expect(textMode).toHaveAttribute('aria-pressed', 'true')
+    expect(document.querySelector('.search-results img')).toBeNull()
+  })
+
+  it('shows complete text information and omits empty sections', async () => {
+    const richCard = card('TEXT-001', '情報豊富カード', {
+      imageUrl: 'https://example.com/text-001.png',
+      colors: ['red', 'blue'],
+      bloomLevel: 'debut',
+      debutType: 'extra',
+      hp: 120,
+      rarities: ['R', 'SR'],
+      abilities: [
+        { type: 'gift', text: '能力テキストその1を全文表示する。' },
+        { type: 'collab', text: '能力テキストその2を全文表示する。' },
+      ],
+      arts: [
+        {
+          name: 'ファーストアーツ',
+          requiredCheers: [
+            { color: 'red', count: 1 },
+            { color: 'any', count: 2 },
+          ],
+          damage: 40,
+          critical: { color: 'blue', bonusDamage: 20 },
+          effectText: 'アーツ効果を全文表示する。',
+        },
+        {
+          name: 'セカンドアーツ',
+          requiredCheers: [],
+          damage: 80,
+        },
+      ],
+      batonPass: [{ color: 'green', count: 1 }],
+      effectTags: ['draw', 'special_damage'],
+      deckLimit: 2,
+      products: ['商品1', '商品2', '商品3', '商品4', '商品5'],
+    })
+    const oshi = card('TEXT-002', '推しカード', {
+      cardType: 'oshi',
+      bloomLevel: undefined,
+      life: 6,
+      isLimited: false,
+      abilities: [],
+      arts: [],
+    })
+    const support = card('TEXT-003', 'サポートカード', {
+      cardType: 'support',
+      bloomLevel: undefined,
+      supportType: 'tool',
+      isLimited: true,
+      products: ['サポート商品'],
+    })
+    localStorage.setItem(CARD_VIEW_MODE_STORAGE_KEY, 'text')
+    renderPage({
+      loadCards: vi.fn(async () => dataFile([richCard, oshi, support])),
+    })
+    await screen.findByText('3件')
+
+    const articles = document.querySelectorAll<HTMLElement>('.text-card-result')
+    const rich = within(articles[0]!)
+    expect(rich.getByText('TEXT-001')).toBeVisible()
+    expect(rich.getByRole('link', { name: '情報豊富カード' })).toBeVisible()
+    expect(rich.getByText('ホロメン')).toBeVisible()
+    expect(rich.getByText('赤・青')).toBeVisible()
+    expect(rich.getByText('Debut（エクストラ）')).toBeVisible()
+    expect(rich.getByText('120')).toBeVisible()
+    expect(rich.getByText('R・SR')).toBeVisible()
+    expect(rich.getByText('ギフト')).toBeVisible()
+    expect(rich.getByText('コラボエフェクト')).toBeVisible()
+    expect(rich.getByText('能力テキストその1を全文表示する。')).toBeVisible()
+    expect(rich.getByText('能力テキストその2を全文表示する。')).toBeVisible()
+    expect(rich.getByText('ファーストアーツ')).toBeVisible()
+    expect(rich.getByText('セカンドアーツ')).toBeVisible()
+    expect(rich.getByText('赤 × 1、任意 × 2')).toBeVisible()
+    expect(rich.getByText('40')).toBeVisible()
+    expect(rich.getByText('青 +20')).toBeVisible()
+    expect(rich.getByText('アーツ効果を全文表示する。')).toBeVisible()
+    expect(rich.getByText('緑 × 1')).toBeVisible()
+    expect(rich.getByText('ドロー・特殊ダメージ')).toBeVisible()
+    expect(rich.getByText('2枚')).toBeVisible()
+    expect(rich.getByText('商品1')).toBeVisible()
+    expect(rich.getByText('商品3')).toBeVisible()
+    expect(rich.getByText('その他2件')).toBeVisible()
+
+    const oshiResult = within(articles[1]!)
+    expect(oshiResult.getByText('推しホロメン')).toBeVisible()
+    expect(oshiResult.getByText('6')).toBeVisible()
+    expect(
+      oshiResult.queryByRole('heading', { name: '能力' }),
+    ).not.toBeInTheDocument()
+    expect(
+      oshiResult.queryByRole('heading', { name: 'アーツ' }),
+    ).not.toBeInTheDocument()
+    expect(oshiResult.queryByText('HP')).not.toBeInTheDocument()
+    expect(oshiResult.queryByText('LIMITED')).not.toBeInTheDocument()
+
+    const supportResult = within(articles[2]!)
+    expect(supportResult.getByText('サポート')).toBeVisible()
+    expect(supportResult.getByText('ツール')).toBeVisible()
+    expect(supportResult.getByText('対象')).toBeVisible()
+    expect(supportResult.getByText('サポート商品')).toBeVisible()
   })
 })

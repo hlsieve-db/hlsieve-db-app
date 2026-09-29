@@ -24,6 +24,11 @@ import type { CardsDataFile } from '../domain/cards/types'
 import { DEFAULT_CARD_PAGE_SIZE } from '../domain/search/constants'
 import { getCardSearchResults } from '../domain/search/getCardSearchResults'
 import {
+  readCardViewMode,
+  writeCardViewMode,
+  type CardViewMode,
+} from '../domain/search/cardViewMode'
+import {
   DEFAULT_SEARCH_URL_STATE,
   parseSearchUrlState,
   serializeSearchUrlState,
@@ -81,6 +86,9 @@ export function CardSearchPage({
   })
   const [loadAttempt, setLoadAttempt] = useState(0)
   const [queryDraft, setQueryDraft] = useState(urlState.query)
+  const [cardViewMode, setCardViewMode] = useState<CardViewMode>(() =>
+    readCardViewMode(),
+  )
   const [mobileSheetOpen, setMobileSheetOpen] = useState(false)
   const mobileTriggerRef = useRef<HTMLButtonElement>(null)
   const isComposing = useRef(false)
@@ -185,6 +193,11 @@ export function CardSearchPage({
     setLoadAttempt((attempt) => attempt + 1)
   }
 
+  const selectCardViewMode = (mode: CardViewMode) => {
+    setCardViewMode(mode)
+    writeCardViewMode(mode)
+  }
+
   return (
     <main id="main-content" className="search-page">
       <header className="search-page__header">
@@ -283,6 +296,26 @@ export function CardSearchPage({
               <option value="release_date_asc">リリース日 古い順</option>
             </select>
           </label>
+          <div
+            className="card-view-mode-control"
+            role="group"
+            aria-label="表示形式"
+          >
+            <button
+              type="button"
+              aria-pressed={cardViewMode === 'image'}
+              onClick={() => selectCardViewMode('image')}
+            >
+              画像優先
+            </button>
+            <button
+              type="button"
+              aria-pressed={cardViewMode === 'text'}
+              onClick={() => selectCardViewMode('text')}
+            >
+              文字優先
+            </button>
+          </div>
           <button
             type="button"
             className="button button--secondary"
@@ -341,6 +374,7 @@ export function CardSearchPage({
       {cardData.status === 'loaded' && (
         <CardSearchResults
           result={results}
+          viewMode={cardViewMode}
           detailState={cardSearchDetailState(
             `${location.pathname}${canonicalSearch}`,
           )}
