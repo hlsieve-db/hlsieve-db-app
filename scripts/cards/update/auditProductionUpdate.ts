@@ -50,6 +50,7 @@ const AUDITED_CARD_FIELDS = [
   'deckLimit',
   'releaseDate',
   'imageUrl',
+  'representativeImageUrl',
 ] as const satisfies readonly (keyof Card)[]
 
 const EFFECT_TAGS = Object.keys(EFFECT_TAG_LABELS) as EffectTag[]

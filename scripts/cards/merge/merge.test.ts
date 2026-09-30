@@ -233,11 +233,29 @@ describe('mergeCardCandidates fundamentals', () => {
     )
 
     expect(merged.imageUrl).toBe('https://example.com/2.png')
+    expect(merged.representativeImageUrl).toBe('https://example.com/1.png')
     expect(merged.representativeImageOfficialId).toBe('2')
     expect(merged.printings.map((printing) => printing.imageUrl)).toEqual([
       'https://example.com/2.png',
       'https://example.com/1.png',
     ])
+  })
+
+  it('warns when multiple image candidates include an unknown release date', () => {
+    const result = mergeCardCandidates([
+      candidate(),
+      candidate({
+        officialId: '2',
+        imageUrl: 'https://example.com/2.png',
+        products: [],
+      }),
+    ])
+
+    expect(result.ok && result.warnings).toContainEqual(
+      expect.objectContaining({
+        code: 'REPRESENTATIVE_IMAGE_RELEASE_DATE_UNKNOWN',
+      }),
+    )
   })
 
   it('falls back to the next ranked image without changing officialUrl', () => {

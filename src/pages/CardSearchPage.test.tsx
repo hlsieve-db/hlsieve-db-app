@@ -872,6 +872,25 @@ describe('CardSearchPage sort and pagination', () => {
 })
 
 describe('CardSearchPage view mode', () => {
+  it('uses the representative image in image mode while preserving progressive loading', async () => {
+    vi.stubGlobal('IntersectionObserver', undefined)
+    const representativeCard = card('REP-001', '代表画像カード', {
+      imageUrl: 'https://example.com/default.png',
+      representativeImageUrl: 'https://example.com/oldest.png',
+    })
+    localStorage.setItem(CARD_VIEW_MODE_STORAGE_KEY, 'image')
+    renderPage({
+      entries: ['/cards?q=代表画像カード'],
+      loadCards: vi.fn(async () => dataFile([representativeCard])),
+    })
+
+    const image = await screen.findByRole('img', {
+      name: '代表画像カードのカード画像',
+    })
+    expect(image).toHaveAttribute('src', 'https://example.com/oldest.png')
+    expect(image).toHaveAttribute('loading', 'lazy')
+  })
+
   it('defaults to text while respecting a previously saved image mode', async () => {
     renderPage({ entries: ['/cards?q=フワモコ'] })
     await screen.findByRole('heading', { name: 'フワモコ' })

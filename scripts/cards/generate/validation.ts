@@ -133,6 +133,15 @@ export function validatePublicCard(card: Card): GenerationIssue[] {
     invalid('imageUrl', 'imageUrl must use http or https.')
   }
   if (
+    card.representativeImageUrl !== undefined &&
+    !isUrlWithProtocols(card.representativeImageUrl, ['http:', 'https:'])
+  ) {
+    invalid(
+      'representativeImageUrl',
+      'representativeImageUrl must use http or https.',
+    )
+  }
+  if (
     card.officialUrl !== undefined &&
     !isUrlWithProtocols(card.officialUrl, ['https:'])
   ) {

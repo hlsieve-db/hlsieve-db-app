@@ -715,55 +715,48 @@ describe('DeckEditPage editor operations', () => {
     expect(screen.getByText('Card detail destination: CARD-001')).toBeVisible()
   })
 
-  it('uses the original non-parallel artwork only in Deck picker thumbnails', async () => {
+  it('uses the same representative artwork for current entries and Deck picker thumbnails', async () => {
     const reprinted = card('REPRINT-001', '再録カード', {
-      imageUrl: 'https://img.example/representative.png',
+      imageUrl: 'https://img.example/default.png',
+      representativeImageUrl: 'https://img.example/oldest.png',
     })
     const data = cardsData([reprinted])
-    const printingData = printingsData([reprinted], {
-      'REPRINT-001': {
-        defaultPrintingOfficialId: '200',
-        printings: [
-          {
-            officialId: '200',
-            officialUrl: 'https://example.com/printings/200',
-            isParallel: false,
-            imageUrl: 'https://img.example/reprint.png',
-            products: ['ブースターパック「エンチャントレガリア」'],
-          },
-          {
-            officialId: '100',
-            officialUrl: 'https://example.com/printings/100',
-            isParallel: false,
-            imageUrl: 'https://img.example/original.png',
-            products: ['ブースターパック「ブルーミングレディアンス」'],
-          },
-        ],
-      },
-    })
-    printingData.cardsDataVersion = data.dataVersion
+    const loadPrintings = vi.fn(async () => printingsData([reprinted]))
     renderPage({
+      deckRepository: repository({
+        getDeck: async () =>
+          deck({ entries: [{ cardNumber: 'REPRINT-001', quantity: 1 }] }),
+      }),
       loadCards: async () => data,
-      loadPrintings: async () => printingData,
+      loadPrintings,
     })
 
+    const currentCards = await screen.findByRole('region', {
+      name: '現在のカード',
+    })
     const picker = await screen.findByRole('region', { name: 'カードを追加' })
     await within(picker).findByText('再録カード')
+    expect(currentCards.querySelector('img')).toHaveAttribute(
+      'src',
+      'https://img.example/oldest.png',
+    )
     expect(picker.querySelector('img')).toHaveAttribute(
       'src',
-      'https://img.example/original.png',
+      'https://img.example/oldest.png',
     )
+    expect(loadPrintings).not.toHaveBeenCalled()
   })
 
-  it('falls back to the logical representative image when printing data fails', async () => {
+  it('falls back to the legacy image without loading printing data', async () => {
     const fallbackCard = card('FALLBACK-001', 'フォールバックカード', {
       imageUrl: 'https://img.example/fallback.png',
     })
+    const loadPrintings = vi.fn(async () => {
+      throw new Error('printing unavailable')
+    })
     renderPage({
       loadCards: async () => cardsData([fallbackCard]),
-      loadPrintings: async () => {
-        throw new Error('printing unavailable')
-      },
+      loadPrintings,
     })
 
     const picker = await screen.findByRole('region', { name: 'カードを追加' })
@@ -772,6 +765,7 @@ describe('DeckEditPage editor operations', () => {
       'src',
       'https://img.example/fallback.png',
     )
+    expect(loadPrintings).not.toHaveBeenCalled()
   })
 
   it('shows copy-limit, restricted-card, and deckLimit issues', async () => {

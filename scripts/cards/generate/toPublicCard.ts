@@ -17,6 +17,9 @@ export function toPublicCard(
     ...(candidate.imageUrl !== undefined
       ? { imageUrl: candidate.imageUrl }
       : {}),
+    ...(candidate.representativeImageUrl !== undefined
+      ? { representativeImageUrl: candidate.representativeImageUrl }
+      : {}),
     ...(nameReading !== undefined ? { nameReading } : {}),
     cardType: candidate.cardType,
     colors: [...candidate.colors],

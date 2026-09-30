@@ -52,6 +52,7 @@ export type Card = {
   cardNumber: string
   name: string
   imageUrl?: string
+  representativeImageUrl?: string
   nameReading?: string
   cardType: 'oshi' | 'holomem' | 'support' | 'cheer'
   colors: CardColor[]

@@ -11,6 +11,7 @@ import type {
   MergedCardCandidate,
   MergedPrinting,
 } from './types'
+import { selectOldestRepresentativePrinting } from '../../../src/domain/cards/representativeImage'
 
 function isValidIsoDate(value: string): boolean {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
@@ -230,10 +231,17 @@ export function mergeCardCandidates(
   const representative =
     ranked.find((candidate) => !candidate.isParallel && candidate.imageUrl) ??
     ranked.find((candidate) => candidate.imageUrl)
+  const oldestRepresentative = selectOldestRepresentativePrinting(ranked)
   if (!canonical.imageUrl && representative) {
     warnings.push({
       code: 'REPRESENTATIVE_IMAGE_FALLBACK',
       message: `Used image from officialId ${representative.officialId} because canonical officialId ${canonical.officialId} has no image.`,
+    })
+  }
+  if (oldestRepresentative.hasUnknownReleaseDateAmbiguity) {
+    warnings.push({
+      code: 'REPRESENTATIVE_IMAGE_RELEASE_DATE_UNKNOWN',
+      message: `Some image printings for ${cardNumber} have no valid product release date; used stable representative fallback rules.`,
     })
   }
 
@@ -275,6 +283,9 @@ export function mergeCardCandidates(
             imageUrl: representative.imageUrl,
             representativeImageOfficialId: representative.officialId,
           }
+        : {}),
+      ...(oldestRepresentative.printing?.imageUrl
+        ? { representativeImageUrl: oldestRepresentative.printing.imageUrl }
         : {}),
       officialUrl: canonical.officialUrl,
       rarities: aggregateStrings(ranked, (candidate) => [candidate.rarity]),

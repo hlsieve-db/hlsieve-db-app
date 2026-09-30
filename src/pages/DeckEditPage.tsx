@@ -18,9 +18,8 @@ import { DeckLegalitySummary } from '../components/decks/DeckLegalitySummary'
 import { DeckQuantityControl } from '../components/decks/DeckQuantityControl'
 import { DECK_ZONE_LABELS } from '../components/decks/constants'
 import { CardSearchFilters } from '../components/search/CardSearchFilters'
-import { assertCardPrintingsCompatibility } from '../domain/cards/cardPrintingsValidation'
 import { CARD_TYPE_LABELS } from '../domain/cards/constants'
-import { buildOriginalPrintingImageMap } from '../domain/cards/originalPrinting'
+import { getRepresentativeCardImageUrl } from '../domain/cards/representativeImage'
 import type {
   Card,
   CardPrintingsDataFile,
@@ -87,7 +86,6 @@ import { useDeckSaveQueue } from '../hooks/useDeckSaveQueue'
 import { useDocumentMetadata } from '../hooks/useDocumentMetadata'
 import { type DeckRepository } from '../repositories/deckRepository'
 import { type DeckVersionRepository } from '../repositories/deckVersionRepository'
-import { loadCardPrintingsData } from '../repositories/loadCardPrintingsData'
 import { loadCardsData } from '../repositories/loadCardsData'
 
 type DeckLoadState =
@@ -99,11 +97,6 @@ type DeckLoadState =
 type CardLoadState =
   | { status: 'loading' }
   | { status: 'loaded'; data: CardsDataFile }
-  | { status: 'error' }
-
-type PrintingLoadState =
-  | { status: 'loading' }
-  | { status: 'loaded'; data: CardPrintingsDataFile }
   | { status: 'error' }
 
 type CopyResult = { status: 'copied' | 'error'; url: string }
@@ -194,7 +187,7 @@ function CardDetailLink({
 
 function DeckCardImage({
   card,
-  imageUrl = card?.imageUrl,
+  imageUrl = card ? getRepresentativeCardImageUrl(card) : undefined,
   linkToDetail = false,
   buildDetailState,
 }: {
@@ -235,7 +228,6 @@ function DeckEditor({
   repository,
   deckVersions,
   loadCards,
-  loadPrintings,
   shareSource,
   isSignedIn,
 }: {
@@ -243,7 +235,6 @@ function DeckEditor({
   repository: DeckRepository
   deckVersions: DeckVersionRepository
   loadCards: () => Promise<CardsDataFile>
-  loadPrintings: () => Promise<CardPrintingsDataFile>
   shareSource: DeckShareSource | null
   isSignedIn: boolean
 }) {
@@ -258,9 +249,6 @@ function DeckEditor({
     status: 'loading',
   })
   const [cardsLoadAttempt, setCardsLoadAttempt] = useState(0)
-  const [printingsState, setPrintingsState] = useState<PrintingLoadState>({
-    status: 'loading',
-  })
   const [pickerState, setPickerState] = useState<SearchUrlState>(
     () => deckEditorSearchState(location.state) ?? DEFAULT_SEARCH_URL_STATE,
   )
@@ -335,22 +323,6 @@ function DeckEditor({
       active = false
     }
   }, [cardsLoadAttempt, loadCards])
-
-  useEffect(() => {
-    if (cardViewMode !== 'image') return
-    let active = true
-    void loadPrintings().then(
-      (data) => {
-        if (active) setPrintingsState({ status: 'loaded', data })
-      },
-      () => {
-        if (active) setPrintingsState({ status: 'error' })
-      },
-    )
-    return () => {
-      active = false
-    }
-  }, [cardViewMode, loadPrintings])
 
   const cardsByNumber = useMemo(
     () =>
@@ -438,24 +410,6 @@ function DeckEditor({
       }),
     [pickerState, searchableCards],
   )
-
-  const originalPrintingImages = useMemo(() => {
-    if (cardsState.status !== 'loaded' || printingsState.status !== 'loaded') {
-      return new Map<string, string>()
-    }
-    try {
-      assertCardPrintingsCompatibility(
-        cardsState.data.dataVersion,
-        printingsState.data,
-      )
-    } catch {
-      return new Map<string, string>()
-    }
-    return buildOriginalPrintingImageMap(
-      cardsState.data.cards,
-      printingsState.data.cards,
-    )
-  }, [cardsState, printingsState])
 
   const activeFilterCount =
     pickerState.colors.length +
@@ -1241,12 +1195,7 @@ function DeckEditor({
                         buildDetailState={captureDetailState}
                       >
                         {cardViewMode === 'image' && (
-                          <DeckCardImage
-                            card={card}
-                            imageUrl={originalPrintingImages.get(
-                              card.cardNumber,
-                            )}
-                          />
+                          <DeckCardImage card={card} />
                         )}
                         <div>
                           <h3>{card.name}</h3>
@@ -1325,7 +1274,9 @@ export function DeckEditPage({
   repository: repositoryProp,
   deckVersions: deckVersionsProp,
   loadCards = loadCardsData,
-  loadPrintings = loadCardPrintingsData,
+  // loadPrintings is still accepted so a caller passing it stays valid, but
+  // nothing here reads printing data any more: the representative image is
+  // precomputed on the card.
   shareSource: shareSourceProp,
 }: DeckEditPageProps) {
   const { state: authState } = useAuth()
@@ -1406,7 +1357,6 @@ export function DeckEditPage({
           repository={repository}
           deckVersions={deckVersions}
           loadCards={loadCards}
-          loadPrintings={loadPrintings}
           shareSource={shareSource}
           isSignedIn={authState.status === 'authenticated'}
         />

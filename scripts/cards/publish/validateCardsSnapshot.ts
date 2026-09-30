@@ -11,6 +11,7 @@ const CARD_KEYS = new Set([
   'cardNumber',
   'name',
   'imageUrl',
+  'representativeImageUrl',
   'nameReading',
   'cardType',
   'colors',
@@ -198,6 +199,7 @@ function isPublicCard(value: unknown, allowLegacyQa: boolean): value is Card {
     typeof value.cardNumber === 'string' &&
     typeof value.name === 'string' &&
     isOptionalString(value.imageUrl) &&
+    isOptionalString(value.representativeImageUrl) &&
     isOptionalString(value.nameReading) &&
     typeof value.cardType === 'string' &&
     CARD_TYPES.has(value.cardType) &&

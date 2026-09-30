@@ -13,6 +13,7 @@ import {
   EFFECT_TAG_LABELS,
   SUPPORT_TYPE_LABELS,
 } from '../../domain/cards/constants'
+import { getRepresentativeCardImageUrl } from '../../domain/cards/representativeImage'
 import type { Card, RequiredCheer } from '../../domain/cards/types'
 import type { CardViewMode } from '../../domain/search/cardViewMode'
 import type { CardPaginationResult } from '../../domain/search/paginateCards'
@@ -69,7 +70,7 @@ function CardResult({
         aria-label={`${card.name}の詳細を見る`}
       >
         <ProgressiveCardImage
-          src={card.imageUrl}
+          src={getRepresentativeCardImageUrl(card)}
           alt={`${card.name}のカード画像`}
           className="card-result__image-frame"
         />

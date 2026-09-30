@@ -7,6 +7,8 @@ function dataFile(): CardsDataFile {
   const card: Card = {
     cardNumber: 'hBP03-050',
     name: 'FUWAMOCO',
+    imageUrl: 'https://example.com/default.png',
+    representativeImageUrl: 'https://example.com/oldest.png',
     cardType: 'holomem',
     colors: ['white'],
     isBuzz: false,
