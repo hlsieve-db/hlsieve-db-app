@@ -19,6 +19,7 @@
     "lint": "eslint .",
     "test": "vitest",
     "test:run": "vitest run",
+    "tournaments:import": "tsx scripts/tournaments/runImport.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "preview": "vite preview"
