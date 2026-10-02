@@ -1,0 +1,55 @@
+# Tournament data pipeline
+
+Tournament data enters the application through the Phase 9B contract:
+
+```text
+TournamentImportPayload
+  -> normalize / validate / merge
+  -> published static JSON
+  -> Tournament UI
+```
+
+Development and tests may use synthetic fixtures, but synthetic data must not
+be published as real Production tournament results. A future official API,
+improved public surface, authorized feed, or organizer-provided dataset should
+continue to produce `TournamentImportPayload` so the downstream contract can
+remain unchanged.
+
+## Phase 9C collector status
+
+The local headed Chromium collector is usable when collection starts from a
+known public Bushi Navi Event. It has been verified to read the public Result
+detail DOM, obtain the `sourceEventId` and ranks, follow public DECK LOG pages,
+extract Deck Log codes and Oshi/Main/Cheer card numbers and quantities, produce
+`TournamentImportPayload`, and pass it to the Phase 9B normalization and
+validation pipeline.
+
+Complete Event discovery is not currently supported. In particular:
+
+- A single day on `/event/result/list` reached its 10-result boundary, but
+  complete pagination could not be proven.
+- The same public filter later returned zero rows, inconsistent with the
+  previously observed ten rows.
+- The ordinary Event search cannot reliably find past series or expose the
+  Event IDs needed to join to `/event/result/{sourceEventId}`.
+- DECK LOG returned CloudFront 403 responses to headless Chromium.
+
+Therefore public Result counts of zero or fewer than ten must not be treated as
+proof that every Event was discovered. A complete backfill from 2026-09-19 is
+not available. Local headless collection and GitHub Actions/cloud headless
+collection are also not available.
+
+Series `3440` remains mapped to `selectioncup`, round `bp08`. It is not limited
+to 2026-09-19 through 2026-09-23: a public Result was also observed on
+2026-09-26. The overall Tournament DB collection start date remains
+2026-09-19.
+
+Phase 9D and later product work may proceed against the published static JSON
+contract with synthetic test fixtures while source discovery remains on hold.
+
+## Collection boundaries
+
+Without a new explicit approval, do not use undocumented or internal APIs,
+reuse APIs discovered through network inspection, analyze application bundles,
+spoof User-Agent values, alter headers, bypass WAF/CAPTCHA or headless blocks,
+or make routine operation depend on people manually editing JSON.
