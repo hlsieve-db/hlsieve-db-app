@@ -50,8 +50,16 @@ export const NAV_GROUPS: readonly NavigationGroup[] = [
   {
     key: 'tournament',
     label: '大会',
-    matches: (pathname) => pathname.startsWith('/tournament-'),
+    matches: (pathname) =>
+      pathname.startsWith('/tournament-') ||
+      pathname === '/tournaments' ||
+      pathname.startsWith('/tournaments/'),
     items: [
+      {
+        label: '大会データベース',
+        shortLabel: '大会DB',
+        to: '/tournaments',
+      },
       {
         label: '大会戦績を作成',
         shortLabel: '戦績を作成',

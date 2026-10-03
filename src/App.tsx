@@ -29,6 +29,7 @@ import { SwissPage } from './pages/SwissPage'
 import { TournamentReportPage } from './pages/TournamentReportPage'
 import { TournamentHistoryPage } from './pages/TournamentHistoryPage'
 import { TournamentStatsPage } from './pages/TournamentStatsPage'
+import { TournamentListPage } from './pages/TournamentListPage'
 import { UpdateHistoryPage } from './pages/UpdateHistoryPage'
 
 function AppRoutes() {
@@ -68,6 +69,7 @@ function AppRoutes() {
             element={<TournamentHistoryPage />}
           />
           <Route path="/tournament-stats" element={<TournamentStatsPage />} />
+          <Route path="/tournaments" element={<TournamentListPage />} />
           <Route path="/disclaimer" element={<DisclaimerPage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/privacy" element={<PrivacyPolicyPage />} />

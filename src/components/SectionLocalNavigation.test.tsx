@@ -24,7 +24,7 @@ describe('SectionLocalNavigation', () => {
       group: 'tournament' as const,
       path: '/tournament-history',
       label: '大会戦績メニュー',
-      links: ['戦績を作成', '履歴', '統計'],
+      links: ['大会DB', '戦績を作成', '履歴', '統計'],
       current: '履歴',
     },
     {
