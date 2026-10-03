@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
 import {
@@ -17,6 +17,7 @@ import {
   sortTournamentEvents,
   TOURNAMENT_NO_ROUND,
   TOURNAMENT_PAGE_SIZE,
+  tournamentCoverageLabel,
   tournamentTypeLabel,
 } from '../domain/tournaments/ui'
 import { useDocumentMetadata } from '../hooks/useDocumentMetadata'
@@ -43,14 +44,6 @@ type TournamentListPageProps = {
 function searchString(params: URLSearchParams): string {
   const value = params.toString()
   return value ? `?${value}` : ''
-}
-
-function coverageLabel(
-  coverage: TournamentIndexFile['events'][number]['resultCoverage'],
-): string {
-  if (coverage.kind === 'winner-only') return '優勝デッキのみ'
-  if (coverage.kind === 'variable') return '取得済み結果'
-  return `${coverage.maxRank}位まで`
 }
 
 export function TournamentListPage({
@@ -380,10 +373,13 @@ export function TournamentListPage({
                       <dt>取得結果</dt>
                       <dd>
                         {event.resultCount}件（
-                        {coverageLabel(event.resultCoverage)}）
+                        {tournamentCoverageLabel(event.resultCoverage)}）
                       </dd>
                     </div>
                   </dl>
+                  <Link to={`/tournaments/${encodeURIComponent(event.id)}`}>
+                    大会詳細を見る
+                  </Link>
                 </article>
               </li>
             ))}

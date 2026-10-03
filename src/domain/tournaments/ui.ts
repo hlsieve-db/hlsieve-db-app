@@ -1,4 +1,8 @@
-import type { TournamentIndexFile } from './types'
+import type {
+  TournamentIndexFile,
+  TournamentResult,
+  TournamentResultCoverage,
+} from './types'
 
 export const TOURNAMENT_PAGE_SIZE = 20
 export const TOURNAMENT_NO_ROUND = 'none'
@@ -14,6 +18,25 @@ const TYPE_LABELS: Readonly<Record<string, string>> = {
 
 export function tournamentTypeLabel(type: string): string {
   return TYPE_LABELS[type] ?? 'その他'
+}
+
+export function tournamentCoverageLabel(
+  coverage: TournamentResultCoverage,
+): string {
+  if (coverage.kind === 'winner-only') return '優勝結果のみ収録'
+  if (coverage.kind === 'variable') return '取得できた結果のみ収録'
+  return `1〜${coverage.maxRank}位の結果を収録`
+}
+
+export function visibleTournamentResults(
+  results: readonly TournamentResult[],
+): TournamentResult[] {
+  return [...results]
+    .filter((result) => result.rank <= 8)
+    .sort(
+      (left, right) =>
+        left.rank - right.rank || left.id.localeCompare(right.id),
+    )
 }
 
 export function normalizeTournamentVenue(value: string): string {

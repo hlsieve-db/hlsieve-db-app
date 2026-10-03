@@ -5847,6 +5847,100 @@ main {
   margin-top: 1.5rem;
 }
 
+.tournament-detail-page,
+.tournament-detail-page section,
+.tournament-detail-page li,
+.tournament-detail-page dd,
+.tournament-detail-page code {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.tournament-detail-metadata {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(12rem, 100%), 1fr));
+  gap: 0.75rem;
+}
+
+.tournament-detail-metadata > div {
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+}
+
+.tournament-detail-metadata dt,
+.tournament-detail-metadata dd {
+  margin: 0;
+}
+
+.tournament-result-list,
+.tournament-deck-zone ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr));
+  gap: 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.tournament-result-card,
+.tournament-deck-entry {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+}
+
+.tournament-oshi-summary,
+.tournament-deck-entry {
+  grid-template-columns: minmax(5rem, 7rem) minmax(0, 1fr);
+  align-items: start;
+}
+
+.tournament-card-image {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 7rem;
+  border-radius: 0.5rem;
+  background: var(--color-surface-muted);
+}
+
+.tournament-card-image img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: inherit;
+}
+
+.tournament-deck-entry > div,
+.tournament-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+
+.tournament-deck-entry strong {
+  flex-basis: 100%;
+}
+
+.tournament-deck-log code {
+  display: block;
+  margin-block: 0.5rem 1rem;
+  font-size: 1rem;
+}
+
+@media (max-width: 30rem) {
+  .tournament-oshi-summary,
+  .tournament-deck-entry {
+    grid-template-columns: 1fr;
+  }
+
+  .tournament-card-image {
+    max-width: 10rem;
+  }
+}
+
 @media (max-width: 30rem) {
   .tournament-list-page__heading,
   .tournament-filters,

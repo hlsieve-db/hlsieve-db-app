@@ -3,10 +3,12 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   SYNTHETIC_TOURNAMENT_INDEX,
   SYNTHETIC_TOURNAMENT_OSHI_MASTER,
+  SYNTHETIC_TOURNAMENT_PUBLICATION,
 } from '../test/fixtures/tournaments'
 import {
   createTournamentDataLoaders,
   isTournamentIndexFile,
+  isTournamentEventFile,
   isTournamentOshiMasterFile,
 } from './loadTournamentData'
 
@@ -119,5 +121,76 @@ describe('Tournament static data loaders', () => {
         cards: { broken: { representativeImageUrl: 1 } },
       }),
     ).toBe(false)
+  })
+
+  it('loads and caches each encoded Event independently', async () => {
+    const source = SYNTHETIC_TOURNAMENT_PUBLICATION.events['synthetic-event-a']
+    const file = {
+      ...source,
+      event: { ...source.event, id: 'synthetic event/a' },
+    }
+    const fetchData = vi.fn(async () => jsonResponse(file))
+    const loaders = createTournamentDataLoaders(fetchData as typeof fetch)
+
+    await expect(
+      loaders.loadTournamentEvent('synthetic event/a'),
+    ).resolves.toEqual(file)
+    await expect(
+      loaders.loadTournamentEvent('synthetic event/a'),
+    ).resolves.toEqual(file)
+    expect(fetchData).toHaveBeenCalledOnce()
+    expect(fetchData).toHaveBeenCalledWith(
+      '/tournaments/events/synthetic%20event%2Fa.json',
+    )
+  })
+
+  it('classifies Event 404 and retries only the failed Event', async () => {
+    const file = SYNTHETIC_TOURNAMENT_PUBLICATION.events['synthetic-event-a']
+    const fetchData = vi
+      .fn()
+      .mockResolvedValueOnce(new Response('', { status: 404 }))
+      .mockResolvedValueOnce(jsonResponse(file))
+    const loaders = createTournamentDataLoaders(fetchData as typeof fetch)
+
+    await expect(
+      loaders.loadTournamentEvent('synthetic-event-a'),
+    ).rejects.toMatchObject({ status: 404 })
+    await expect(
+      loaders.loadTournamentEvent('synthetic-event-a'),
+    ).resolves.toEqual(file)
+    expect(fetchData).toHaveBeenCalledTimes(2)
+  })
+
+  it('rejects invalid Event JSON and nested schema', async () => {
+    const invalidJson = createTournamentDataLoaders(
+      vi.fn(async () => new Response('{')) as typeof fetch,
+    )
+    await expect(invalidJson.loadTournamentEvent('event')).rejects.toThrow(
+      'not valid JSON',
+    )
+
+    const file = SYNTHETIC_TOURNAMENT_PUBLICATION.events['synthetic-event-a']
+    const invalid = createTournamentDataLoaders(
+      vi.fn(async () =>
+        jsonResponse({
+          ...file,
+          event: { ...file.event, results: [{ id: 'bad' }] },
+        }),
+      ) as typeof fetch,
+    )
+    await expect(invalid.loadTournamentEvent('event')).rejects.toThrow(
+      'invalid shape',
+    )
+    expect(isTournamentEventFile(file)).toBe(true)
+  })
+
+  it('rejects an Event file whose stable ID differs from the request', async () => {
+    const file = SYNTHETIC_TOURNAMENT_PUBLICATION.events['synthetic-event-a']
+    const loaders = createTournamentDataLoaders(
+      vi.fn(async () => jsonResponse(file)) as typeof fetch,
+    )
+    await expect(
+      loaders.loadTournamentEvent('different-event'),
+    ).rejects.toThrow('does not match')
   })
 })

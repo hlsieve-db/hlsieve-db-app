@@ -1,4 +1,5 @@
 import type {
+  TournamentEventFile,
   TournamentIndexFile,
   TournamentOshiMasterFile,
   TournamentResultCoverage,
@@ -6,6 +7,7 @@ import type {
 
 const TOURNAMENT_INDEX_URL = '/tournaments/index.json'
 const TOURNAMENT_OSHI_MASTER_URL = '/tournaments/oshi-master.json'
+const TOURNAMENT_EVENT_ROOT = '/tournaments/events/'
 
 type RecordValue = Record<string, unknown>
 
@@ -88,6 +90,79 @@ function isIndexEvent(value: unknown): boolean {
   )
 }
 
+function isDeckEntry(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    isString(value.cardNumber) &&
+    Number.isSafeInteger(value.quantity) &&
+    (value.quantity as number) >= 1
+  )
+}
+
+function isDeck(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    Array.isArray(value.oshi) &&
+    value.oshi.every(isDeckEntry) &&
+    Array.isArray(value.main) &&
+    value.main.every(isDeckEntry) &&
+    Array.isArray(value.cheer) &&
+    value.cheer.every(isDeckEntry)
+  )
+}
+
+function isResult(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    isString(value.id) &&
+    Number.isSafeInteger(value.rank) &&
+    (value.rank as number) >= 1 &&
+    isString(value.oshiCardNumber) &&
+    isOptionalString(value.deckLogCode) &&
+    isDeck(value.deck)
+  )
+}
+
+function isSource(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    isString(value.sourceType) &&
+    isOptionalString(value.sourceEventId) &&
+    isOptionalString(value.sourceUrl)
+  )
+}
+
+function isEvent(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    isString(value.id) &&
+    isSeries(value.tournament) &&
+    isIsoDate(value.date) &&
+    isVenue(value.venue) &&
+    (value.participantCount === undefined ||
+      (Number.isSafeInteger(value.participantCount) &&
+        (value.participantCount as number) >= 1)) &&
+    isCoverage(value.resultCoverage) &&
+    Array.isArray(value.results) &&
+    value.results.every(isResult) &&
+    new Set(value.results.map((result) => result.id)).size ===
+      value.results.length &&
+    isSource(value.source)
+  )
+}
+
+export function isTournamentEventFile(
+  value: unknown,
+): value is TournamentEventFile {
+  return (
+    isRecord(value) &&
+    value.format === 'hlsieve-tournament-event' &&
+    value.formatVersion === 1 &&
+    isString(value.dataVersion) &&
+    isEvent(value.event)
+  )
+}
+
 export function isTournamentIndexFile(
   value: unknown,
 ): value is TournamentIndexFile {
@@ -146,9 +221,16 @@ async function loadJson(
   }
 }
 
+export class TournamentDataHttpError extends Error {
+  constructor(public readonly status: number) {
+    super(`Failed to load tournament data: HTTP ${status}.`)
+  }
+}
+
 export function createTournamentDataLoaders(fetchData: typeof fetch = fetch) {
   let indexCache: Promise<TournamentIndexFile | undefined> | undefined
   let oshiCache: Promise<TournamentOshiMasterFile> | undefined
+  const eventCache = new Map<string, Promise<TournamentEventFile>>()
 
   const loadTournamentIndex = () => {
     if (indexCache) return indexCache
@@ -183,9 +265,43 @@ export function createTournamentDataLoaders(fetchData: typeof fetch = fetch) {
     return request
   }
 
-  return { loadTournamentIndex, loadTournamentOshiMaster }
+  const loadTournamentEvent = (eventId: string) => {
+    const cached = eventCache.get(eventId)
+    if (cached) return cached
+    const request = (async () => {
+      const url = `${TOURNAMENT_EVENT_ROOT}${encodeURIComponent(eventId)}.json`
+      let response: Response
+      try {
+        response = await fetchData(url)
+      } catch (error) {
+        throw new Error('Failed to fetch tournament data.', { cause: error })
+      }
+      if (!response.ok) throw new TournamentDataHttpError(response.status)
+      let value: unknown
+      try {
+        value = await response.json()
+      } catch (error) {
+        throw new Error('Tournament data is not valid JSON.', { cause: error })
+      }
+      if (!isTournamentEventFile(value)) {
+        throw new Error('Tournament event has an invalid shape.')
+      }
+      if (value.event.id !== eventId) {
+        throw new Error('Tournament event ID does not match the request.')
+      }
+      return value
+    })()
+    eventCache.set(eventId, request)
+    void request.catch(() => {
+      if (eventCache.get(eventId) === request) eventCache.delete(eventId)
+    })
+    return request
+  }
+
+  return { loadTournamentIndex, loadTournamentOshiMaster, loadTournamentEvent }
 }
 
 const loaders = createTournamentDataLoaders()
 export const loadTournamentIndex = loaders.loadTournamentIndex
 export const loadTournamentOshiMaster = loaders.loadTournamentOshiMaster
+export const loadTournamentEvent = loaders.loadTournamentEvent
