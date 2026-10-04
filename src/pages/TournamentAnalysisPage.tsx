@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
 import { TournamentDistributionDonut } from '../components/tournaments/TournamentDistributionDonut'
+import { TournamentWeeklyTrendChart } from '../components/tournaments/TournamentWeeklyTrendChart'
 import {
   hasInvalidTournamentAnalysisDateRange,
   parseTournamentAnalysisUrlState,
@@ -24,6 +25,10 @@ import type {
   TournamentIndexFile,
   TournamentOshiMasterFile,
 } from '../domain/tournaments/types'
+import {
+  aggregateTournamentWeeklyTrends,
+  type TournamentWeeklyTrendResult,
+} from '../domain/tournaments/weeklyTrend'
 import { tournamentTypeLabel } from '../domain/tournaments/ui'
 import { useDocumentMetadata } from '../hooks/useDocumentMetadata'
 import {
@@ -195,9 +200,11 @@ function TierPanel({
 
 function EnvironmentSection({
   group,
+  weeklyTrend,
   master,
 }: {
   group: TournamentEnvironmentAggregation
+  weeklyTrend?: TournamentWeeklyTrendResult
   master?: TournamentOshiMasterFile
 }) {
   const heading = `${tournamentTypeLabel(group.environment.tournamentType)}／${group.environment.round ?? 'ラウンドなし'}`
@@ -249,6 +256,13 @@ function EnvironmentSection({
           <Ranking distribution={group.placements} master={master} />
         </section>
       </div>
+      {weeklyTrend && (
+        <TournamentWeeklyTrendChart
+          trend={weeklyTrend}
+          oshiMaster={master}
+          environmentLabel={heading}
+        />
+      )}
     </section>
   )
 }
@@ -332,6 +346,23 @@ export function TournamentAnalysisPage({
       return {
         status: 'loaded' as const,
         data: aggregateTournamentIndex(indexState.data, {
+          tournamentType: urlState.type,
+          round: urlState.round,
+          from: urlState.from,
+          to: urlState.to,
+        }),
+      }
+    } catch {
+      return { status: 'error' as const }
+    }
+  }, [indexState, invalidRange, urlState])
+  const weeklyAggregation = useMemo(() => {
+    if (indexState.status !== 'loaded' || !indexState.data || invalidRange)
+      return undefined
+    try {
+      return {
+        status: 'loaded' as const,
+        data: aggregateTournamentWeeklyTrends(indexState.data, {
           tournamentType: urlState.type,
           round: urlState.round,
           from: urlState.from,
@@ -508,6 +539,12 @@ export function TournamentAnalysisPage({
           大会データの集計に失敗しました。データの内容を確認してください。
         </p>
       )}
+      {weeklyAggregation?.status === 'error' &&
+        aggregation?.status !== 'error' && (
+          <p className="status-message status-message--error" role="alert">
+            週次推移の集計に失敗しました。データの内容を確認してください。
+          </p>
+        )}
       {oshiState.status === 'error' && indexState.status === 'loaded' && (
         <p className="status-message" role="status">
           推し名称を読み込めませんでした。カード番号で集計を表示します。
@@ -528,6 +565,17 @@ export function TournamentAnalysisPage({
               <EnvironmentSection
                 key={`${group.environment.tournamentType}:${group.environment.round ?? 'none'}`}
                 group={group}
+                weeklyTrend={
+                  weeklyAggregation?.status === 'loaded'
+                    ? weeklyAggregation.data.groups.find(
+                        (weeklyGroup) =>
+                          weeklyGroup.environment.tournamentType ===
+                            group.environment.tournamentType &&
+                          weeklyGroup.environment.round ===
+                            group.environment.round,
+                      )
+                    : undefined
+                }
                 master={
                   oshiState.status === 'loaded' ? oshiState.data : undefined
                 }

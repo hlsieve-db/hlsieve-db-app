@@ -5980,6 +5980,114 @@ main {
   color: var(--color-text-muted);
 }
 
+.tournament-weekly-trend {
+  min-width: 0;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border);
+  overflow-wrap: anywhere;
+}
+
+.tournament-weekly-trend__selector {
+  display: grid;
+  gap: 0.35rem;
+  max-width: 32rem;
+}
+
+.tournament-weekly-trend__selector select {
+  width: 100%;
+  min-width: 0;
+}
+
+.tournament-weekly-trend__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin-block: 1rem;
+}
+
+.tournament-weekly-trend__legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.tournament-weekly-trend__key {
+  width: 1.5rem;
+  border-top: 3px solid var(--color-accent);
+}
+
+.tournament-weekly-trend__key--placement {
+  border-top-style: dashed;
+  border-color: var(--color-text-muted);
+}
+
+.tournament-weekly-trend__chart {
+  width: min(100%, 50rem);
+  margin-inline: auto;
+}
+
+.tournament-weekly-trend__chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.tournament-weekly-trend__chart text {
+  fill: var(--color-text-muted);
+  font-size: 0.75rem;
+}
+
+.tournament-weekly-trend__grid {
+  stroke: var(--color-border);
+  stroke-width: 1;
+}
+
+.tournament-weekly-trend__line {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.tournament-weekly-trend__line--placement {
+  stroke: var(--color-text-muted);
+  stroke-dasharray: 7 5;
+}
+
+.tournament-weekly-trend__point {
+  fill: var(--color-surface);
+  stroke: var(--color-accent);
+  stroke-width: 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.tournament-weekly-trend__point--placement {
+  stroke: var(--color-text-muted);
+}
+
+.tournament-weekly-trend__weeks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: 0.75rem;
+  padding: 0;
+  list-style: none;
+}
+
+.tournament-weekly-trend__weeks li {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--color-surface-muted);
+}
+
+.tournament-weekly-trend__partial {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
 .tournament-list-page__eyebrow,
 .tournament-event-card__date {
   color: var(--color-text-muted);

@@ -10,6 +10,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import type { TournamentIndexFile } from '../domain/tournaments/types'
 import * as tierDomain from '../domain/tournaments/tier'
+import * as weeklyTrendDomain from '../domain/tournaments/weeklyTrend'
 import {
   SYNTHETIC_TOURNAMENT_INDEX,
   SYNTHETIC_TOURNAMENT_OSHI_MASTER,
@@ -105,6 +106,10 @@ const TIER_OSHI_MASTER = {
 
 describe('TournamentAnalysisPage', () => {
   it('loads the index once and renders separate environment text rankings', async () => {
+    const weeklyAggregator = vi.spyOn(
+      weeklyTrendDomain,
+      'aggregateTournamentWeeklyTrends',
+    )
     const { loadIndex } = renderPage()
     expect(screen.getByText('大会データを読み込んでいます…')).toBeVisible()
     expect(
@@ -117,6 +122,15 @@ describe('TournamentAnalysisPage', () => {
       screen.getByRole('heading', { name: 'その他／ラウンドなし' }),
     ).toBeVisible()
     expect(loadIndex).toHaveBeenCalledOnce()
+    expect(weeklyAggregator).toHaveBeenCalledWith(
+      SYNTHETIC_TOURNAMENT_INDEX,
+      expect.objectContaining({
+        tournamentType: undefined,
+        round: undefined,
+        from: undefined,
+        to: undefined,
+      }),
+    )
 
     const selection = screen
       .getByRole('heading', { name: 'セレクションカップ／bp08' })
@@ -169,6 +183,10 @@ describe('TournamentAnalysisPage', () => {
       within(placement).getByText('対象データがありません。'),
     ).toBeVisible()
     expect(within(placement).queryByRole('img')).not.toBeInTheDocument()
+    expect(
+      within(selection).getByRole('heading', { name: '週次推移' }),
+    ).toBeVisible()
+    weeklyAggregator.mockRestore()
   })
 
   it('renders sufficient domain tiers with accessible groups, metrics, and metadata fallback', async () => {
