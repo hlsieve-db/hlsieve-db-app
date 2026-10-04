@@ -4,6 +4,7 @@ import { validateTournamentImportPayload } from '../../../src/domain/tournaments
 import { createCollectorPayload } from '../collector/collector'
 import { KnownEventCollectionError } from '../collector/bushiNavi'
 import { LocalTournamentQueueRepository } from './repository'
+import { TournamentReadyArtifactRepository } from './readyArtifact'
 
 export type TournamentQueueProcessorResult = {
   sourceEventId?: string
@@ -17,6 +18,7 @@ export async function processOneTournamentQueueItem(options: {
   collect: (sourceEventId: string) => Promise<TournamentImportEvent>
   now: string
   leaseDurationMs: number
+  readyArtifacts?: TournamentReadyArtifactRepository
 }): Promise<TournamentQueueProcessorResult> {
   const claimed = await options.repository.claimDue(
     options.now,
@@ -68,10 +70,20 @@ export async function processOneTournamentQueueItem(options: {
         errorCode,
       }
     }
+    if (options.readyArtifacts) {
+      await options.readyArtifacts.save(
+        claimed.sourceEventId,
+        payload,
+        options.cardsData,
+      )
+    }
     await options.repository.transition(claimed.sourceEventId, 'ready')
     return { sourceEventId: claimed.sourceEventId, status: 'ready' }
-  } catch {
-    const errorCode = 'validation-failed'
+  } catch (error) {
+    const errorCode =
+      error instanceof Error && error.message.includes('artifact')
+        ? 'artifact-write-failed'
+        : 'validation-failed'
     await options.repository.transition(claimed.sourceEventId, 'needs-review', {
       errorCode,
     })

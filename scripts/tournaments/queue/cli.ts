@@ -2,6 +2,8 @@ export type TournamentQueueCliOptions =
   | { command: 'add'; input: string }
   | { command: 'list' }
   | { command: 'process'; maxItems: number }
+  | { command: 'refresh-ready'; sourceEventId: string }
+  | { command: 'publish'; sourceEventId: string; write: boolean }
   | { command: 'unlock'; force: boolean }
 
 export function describeTournamentQueueAdd(
@@ -50,5 +52,25 @@ export function parseTournamentQueueCli(
     }
     return { command, force: args[1] === '--force' }
   }
-  throw new Error('Queue command must be add, list, process, or unlock.')
+  if (command === 'refresh-ready') {
+    if (args.length !== 2 || !/^\d+$/.test(args[1] ?? '')) {
+      throw new Error('Usage: tournaments:queue -- refresh-ready <Event-ID>')
+    }
+    return { command, sourceEventId: args[1]! }
+  }
+  if (command === 'publish') {
+    if (
+      (args.length !== 2 && args.length !== 3) ||
+      !/^\d+$/.test(args[1] ?? '') ||
+      (args[2] !== undefined && args[2] !== '--write')
+    ) {
+      throw new Error(
+        'Usage: tournaments:queue -- publish <Event-ID> [--write]',
+      )
+    }
+    return { command, sourceEventId: args[1]!, write: args[2] === '--write' }
+  }
+  throw new Error(
+    'Queue command must be add, list, process, refresh-ready, publish, or unlock.',
+  )
 }

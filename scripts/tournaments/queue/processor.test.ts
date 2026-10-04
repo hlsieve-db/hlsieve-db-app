@@ -9,6 +9,7 @@ import type { TournamentImportEvent } from '../../../src/domain/tournaments/type
 import { KnownEventCollectionError } from '../collector/bushiNavi'
 import { processOneTournamentQueueItem } from './processor'
 import { LocalTournamentQueueRepository } from './repository'
+import { TournamentReadyArtifactRepository } from './readyArtifact'
 
 const NOW = '2026-10-04T00:00:00.000Z'
 
@@ -240,5 +241,53 @@ describe('Tournament queue processor', () => {
         (record) => record.status === 'published',
       ),
     ).toBe(false)
+  })
+
+  it('persists and reads back the artifact before transitioning to ready', async () => {
+    const repo = await repository()
+    const root = await mkdtemp(resolve(tmpdir(), 'hlsieve-artifact-order-'))
+    const artifacts = new TournamentReadyArtifactRepository(root)
+    const order: string[] = []
+    const save = artifacts.save.bind(artifacts)
+    artifacts.save = async (...args) => {
+      const result = await save(...args)
+      order.push('artifact')
+      return result
+    }
+    const transition = repo.transition.bind(repo)
+    repo.transition = async (sourceEventId, status, details) => {
+      if (status === 'ready') order.push('ready')
+      return transition(sourceEventId, status, details)
+    }
+    await processOneTournamentQueueItem({
+      repository: repo,
+      cardsData,
+      collect: async () => event(),
+      now: NOW,
+      leaseDurationMs: 60_000,
+      readyArtifacts: artifacts,
+    })
+    expect(order).toEqual(['artifact', 'ready'])
+  })
+
+  it('does not become ready when artifact persistence fails', async () => {
+    const repo = await repository()
+    const artifacts = new TournamentReadyArtifactRepository('unused')
+    artifacts.save = async () => {
+      throw new Error('artifact storage unavailable')
+    }
+    const result = await processOneTournamentQueueItem({
+      repository: repo,
+      cardsData,
+      collect: async () => event(),
+      now: NOW,
+      leaseDurationMs: 60_000,
+      readyArtifacts: artifacts,
+    })
+    expect(result).toMatchObject({
+      status: 'needs-review',
+      errorCode: 'artifact-write-failed',
+    })
+    expect((await repo.load()).records[0]?.status).toBe('needs-review')
   })
 })

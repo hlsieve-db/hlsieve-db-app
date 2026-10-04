@@ -2,5 +2,22 @@
   "format": "hlsieve-tournament-oshi-master",
   "formatVersion": 1,
   "cardsDataVersion": "sha256:e1cfb76a01d93e06a6da8f7c089ba20fc53156477dff6b25f374f7158345084a",
-  "cards": {}
+  "cards": {
+    "hBP09-001": {
+      "name": "大空スバル",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-001_OSR.png"
+    },
+    "hBP09-003": {
+      "name": "白銀ノエル",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-003_OSR.png"
+    },
+    "hBP09-004": {
+      "name": "カエラ・コヴァルスキア",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-004_OSR.png"
+    },
+    "hBP09-007": {
+      "name": "雪花ラミィ",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-007_OSR.png"
+    }
+  }
 }

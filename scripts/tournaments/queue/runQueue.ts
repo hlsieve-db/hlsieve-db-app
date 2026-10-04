@@ -14,11 +14,13 @@ import { parseDeckLogHtml, waitForDeckLogReady } from '../collector/deckLog'
 import { delayBetweenPages } from '../collector/policy'
 import { describeTournamentQueueAdd, parseTournamentQueueCli } from './cli'
 import { processOneTournamentQueueItem } from './processor'
+import { publishReadyTournamentEvent } from './publishReady'
 import {
   diagnoseTournamentQueueLock,
   forceUnlockTournamentQueue,
   LocalTournamentQueueRepository,
 } from './repository'
+import { TournamentReadyArtifactRepository } from './readyArtifact'
 import { parseTournamentSourceEventId } from './submission'
 
 async function processQueue(
@@ -29,6 +31,7 @@ async function processQueue(
     await readFile(resolve('public/cards.json'), 'utf8'),
   ) as CardsDataFile
   const cacheOptions: CollectorCacheOptions = {}
+  const readyArtifacts = new TournamentReadyArtifactRepository()
   const browser = await chromium.launch({ headless: false })
   try {
     const context = await browser.newContext()
@@ -40,6 +43,7 @@ async function processQueue(
         cardsData,
         now,
         leaseDurationMs: 15 * 60 * 1_000,
+        readyArtifacts,
         collect: async (sourceEventId) => {
           const event = await collectKnownTournamentEvent({
             page,
@@ -74,6 +78,54 @@ async function processQueue(
       console.log(JSON.stringify(result))
       if (result.status === 'idle') break
     }
+  } finally {
+    await browser.close()
+  }
+}
+
+async function collectReadyArtifact(
+  repository: LocalTournamentQueueRepository,
+  sourceEventId: string,
+): Promise<void> {
+  const record = (await repository.load()).records.find(
+    (candidate) => candidate.sourceEventId === sourceEventId,
+  )
+  if (record?.status !== 'ready' || record.leaseUntil || record.lastErrorCode) {
+    throw new Error('Queue Event is not ready for artifact refresh.')
+  }
+  const cardsData = JSON.parse(
+    await readFile(resolve('public/cards.json'), 'utf8'),
+  ) as CardsDataFile
+  const browser = await chromium.launch({ headless: false })
+  try {
+    const context = await browser.newContext()
+    const page = await context.newPage()
+    const now = new Date().toISOString()
+    const event = await collectKnownTournamentEvent({
+      page,
+      sourceEventId,
+      resolveDeck: async (deckCode, openPublicPage) =>
+        getOrCollectDeck(
+          deckCode,
+          async () => {
+            const deckPage = await openPublicPage()
+            await delayBetweenPages()
+            await waitForDeckLogReady(deckPage)
+            return parseDeckLogHtml(await deckPage.content())
+          },
+          cardsData.cards,
+          {},
+        ),
+    })
+    const payload = (
+      await import('../collector/collector')
+    ).createCollectorPayload([event], now)
+    await new TournamentReadyArtifactRepository().save(
+      sourceEventId,
+      payload,
+      cardsData,
+    )
+    console.log(JSON.stringify({ sourceEventId, artifact: 'ready' }))
   } finally {
     await browser.close()
   }
@@ -125,6 +177,29 @@ async function main(): Promise<void> {
     } else if (diagnosis.state !== 'absent') {
       throw new Error('Review the lock diagnosis, then rerun with --force.')
     }
+    return
+  }
+  if (options.command === 'refresh-ready') {
+    await collectReadyArtifact(repository, options.sourceEventId)
+    return
+  }
+  if (options.command === 'publish') {
+    const cardsData = JSON.parse(
+      await readFile(resolve('public/cards.json'), 'utf8'),
+    ) as CardsDataFile
+    console.log(
+      JSON.stringify(
+        await publishReadyTournamentEvent({
+          sourceEventId: options.sourceEventId,
+          write: options.write,
+          queue: repository,
+          artifacts: new TournamentReadyArtifactRepository(),
+          cardsData,
+        }),
+        null,
+        2,
+      ),
+    )
     return
   }
   await processQueue(repository, options.maxItems)
