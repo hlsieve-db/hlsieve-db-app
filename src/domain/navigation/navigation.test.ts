@@ -30,6 +30,7 @@ describe('site navigation definition', () => {
         label: '大会',
         routes: [
           '/tournaments',
+          '/tournaments/analysis',
           '/tournament-report',
           '/tournament-history',
           '/tournament-stats',
@@ -65,6 +66,7 @@ describe('site navigation definition', () => {
     ['/deck/share', 'decks'],
     ['/tournaments', 'tournament'],
     ['/tournaments/event-id', 'tournament'],
+    ['/tournaments/analysis', 'tournament'],
     ['/tournament-report', 'tournament'],
     ['/tournament-history', 'tournament'],
     ['/tournament-stats', 'tournament'],

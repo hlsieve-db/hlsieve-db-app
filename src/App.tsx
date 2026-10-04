@@ -30,6 +30,7 @@ import { TournamentReportPage } from './pages/TournamentReportPage'
 import { TournamentHistoryPage } from './pages/TournamentHistoryPage'
 import { TournamentStatsPage } from './pages/TournamentStatsPage'
 import { TournamentListPage } from './pages/TournamentListPage'
+import { TournamentAnalysisPage } from './pages/TournamentAnalysisPage'
 import {
   TournamentEventPage,
   TournamentResultPage,
@@ -74,6 +75,10 @@ function AppRoutes() {
           />
           <Route path="/tournament-stats" element={<TournamentStatsPage />} />
           <Route path="/tournaments" element={<TournamentListPage />} />
+          <Route
+            path="/tournaments/analysis"
+            element={<TournamentAnalysisPage />}
+          />
           <Route
             path="/tournaments/:eventId"
             element={<TournamentEventPage />}

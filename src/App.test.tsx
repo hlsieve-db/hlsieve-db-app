@@ -307,6 +307,18 @@ describe('App', () => {
     ).toHaveAttribute('href', `${SITE_ORIGIN}/tournament-stats`)
   })
 
+  it('routes tournament analysis before the dynamic Event route', () => {
+    render(
+      <MemoryRouter initialEntries={['/tournaments/analysis']}>
+        <App />
+      </MemoryRouter>,
+    )
+    expect(screen.getByRole('heading', { name: '大会環境分析' })).toBeVisible()
+    expect(
+      screen.queryByText('指定された大会は見つかりません。'),
+    ).not.toBeInTheDocument()
+  })
+
   it('renders a branded Not Found page with navigation', () => {
     render(
       <MemoryRouter initialEntries={['/this-does-not-exist']}>

@@ -61,6 +61,11 @@ export const NAV_GROUPS: readonly NavigationGroup[] = [
         to: '/tournaments',
       },
       {
+        label: '大会環境分析',
+        shortLabel: '環境分析',
+        to: '/tournaments/analysis',
+      },
+      {
         label: '大会戦績を作成',
         shortLabel: '戦績を作成',
         to: '/tournament-report',

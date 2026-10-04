@@ -5746,14 +5746,94 @@ main {
 }
 /* Tournament database */
 .tournament-list-page__heading,
+.tournament-analysis-page__heading,
 .tournament-filters,
-.tournament-results {
+.tournament-results,
+.tournament-analysis-results {
   width: min(100% - 2rem, 72rem);
   margin-inline: auto;
 }
 
 .tournament-list-page__heading {
   padding-block: 2rem 1rem;
+}
+
+.tournament-analysis-page__heading {
+  padding-block: 2rem 1rem;
+}
+
+.tournament-analysis-results {
+  display: grid;
+  gap: 1rem;
+  padding-block: 1.5rem 2rem;
+}
+
+.tournament-analysis-environment {
+  min-width: 0;
+  padding: 1rem;
+  overflow-wrap: anywhere;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  background: var(--color-surface);
+}
+
+.tournament-analysis-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+}
+
+.tournament-analysis-summary div {
+  min-width: 0;
+}
+
+.tournament-analysis-summary dt,
+.tournament-analysis-summary dd {
+  margin: 0;
+}
+
+.tournament-analysis-summary dt {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.tournament-analysis-distributions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.tournament-analysis-ranking {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tournament-analysis-ranking li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  min-width: 0;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--color-surface-muted);
+}
+
+.tournament-analysis-ranking__position {
+  font-weight: 700;
+}
+
+.tournament-analysis-ranking__identity {
+  display: grid;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.tournament-analysis-coverage-note {
+  color: var(--color-text-muted);
 }
 
 .tournament-list-page__eyebrow,
@@ -5943,8 +6023,10 @@ main {
 
 @media (max-width: 30rem) {
   .tournament-list-page__heading,
+  .tournament-analysis-page__heading,
   .tournament-filters,
-  .tournament-results {
+  .tournament-results,
+  .tournament-analysis-results {
     width: min(100% - 1rem, 72rem);
   }
 
@@ -5955,5 +6037,13 @@ main {
   .tournament-event-card dl {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tournament-analysis-distributions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tournament-analysis-ranking li {
+    grid-template-columns: auto minmax(0, 1fr);
   }
 }
