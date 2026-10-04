@@ -629,4 +629,119 @@ describe('detail cache and resume', () => {
       '36',
     ])
   })
+
+  it('reuses a fresh cache but refreshes a stale cache', async () => {
+    const directory = await cacheDirectory()
+    const html = await fixture()
+    const fetchedAt = Date.parse('2026-09-01T00:00:00.000Z')
+    await fetchCardDetails(discovery(), {
+      cacheDirectory: directory,
+      fetchImpl: mockFetch(htmlResponse(html)),
+      now: () => fetchedAt,
+    })
+
+    const freshFetch = mockFetch()
+    const fresh = await fetchCardDetails(discovery(), {
+      cacheDirectory: directory,
+      fetchImpl: freshFetch,
+      now: () => fetchedAt + 44 * 24 * 60 * 60 * 1_000,
+    })
+    expect(fresh).toMatchObject({ cacheHits: 1, fetched: 0 })
+    expect(freshFetch).not.toHaveBeenCalled()
+
+    const staleFetch = mockFetch(htmlResponse(html))
+    const stale = await fetchCardDetails(discovery(), {
+      cacheDirectory: directory,
+      fetchImpl: staleFetch,
+      now: () => fetchedAt + 46 * 24 * 60 * 60 * 1_000,
+    })
+    expect(stale).toMatchObject({ cacheHits: 0, fetched: 1 })
+    expect(staleFetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('force-refreshes only selected officialIds', async () => {
+    const directory = await cacheDirectory()
+    const html = await fixture()
+    const cards = ['34', '35'].map((officialId) =>
+      card({ officialId, detailUrl: detailUrl.replace('34', officialId) }),
+    )
+    const now = Date.parse('2026-10-05T00:00:00.000Z')
+    await fetchCardDetails(discovery(cards), {
+      cacheDirectory: directory,
+      fetchImpl: mockFetch(htmlResponse(html), htmlResponse(html)),
+      minIntervalMs: 0,
+      now: () => now,
+    })
+
+    const fetchImpl = mockFetch(htmlResponse(html))
+    const report = await fetchCardDetails(discovery(cards), {
+      cacheDirectory: directory,
+      fetchImpl,
+      minIntervalMs: 0,
+      now: () => now,
+      forceRefreshOfficialIds: new Set(['35']),
+    })
+    expect(report).toMatchObject({ cacheHits: 1, fetched: 1 })
+    expect(report.results.map((result) => result.source)).toEqual([
+      'cache',
+      'network',
+    ])
+    expect(fetchImpl).toHaveBeenCalledTimes(1)
+  })
+
+  it.each(['not-a-date', '2026-10-06T00:00:00.000Z'])(
+    'refreshes a cache with invalid fetchedAt %s',
+    async (fetchedAt) => {
+      const directory = await cacheDirectory()
+      const html = await fixture()
+      const now = Date.parse('2026-10-05T00:00:00.000Z')
+      await fetchCardDetails(discovery(), {
+        cacheDirectory: directory,
+        fetchImpl: mockFetch(htmlResponse(html)),
+        now: () => now,
+      })
+      const metaPath = join(directory, '34.meta.json')
+      const meta = JSON.parse(await readFile(metaPath, 'utf8')) as Record<
+        string,
+        unknown
+      >
+      meta.fetchedAt = fetchedAt
+      await writeFile(metaPath, JSON.stringify(meta))
+
+      const fetchImpl = mockFetch(htmlResponse(html))
+      const report = await fetchCardDetails(discovery(), {
+        cacheDirectory: directory,
+        fetchImpl,
+        now: () => now,
+      })
+      expect(report).toMatchObject({ cacheHits: 0, fetched: 1 })
+    },
+  )
+
+  it('keeps the previous cache intact when a forced refresh fails', async () => {
+    const directory = await cacheDirectory()
+    const html = await fixture()
+    const now = Date.parse('2026-10-05T00:00:00.000Z')
+    await fetchCardDetails(discovery(), {
+      cacheDirectory: directory,
+      fetchImpl: mockFetch(htmlResponse(html)),
+      now: () => now,
+    })
+    const htmlBefore = await readFile(join(directory, '34.html'), 'utf8')
+    const metaBefore = await readFile(join(directory, '34.meta.json'), 'utf8')
+
+    const report = await fetchCardDetails(discovery(), {
+      cacheDirectory: directory,
+      fetchImpl: mockFetch(new Response('', { status: 500 })),
+      maxAttempts: 1,
+      now: () => now,
+      forceRefreshOfficialIds: new Set(['34']),
+    })
+
+    expect(report).toMatchObject({ failed: 1, succeeded: 0, cacheHits: 0 })
+    expect(await readFile(join(directory, '34.html'), 'utf8')).toBe(htmlBefore)
+    expect(await readFile(join(directory, '34.meta.json'), 'utf8')).toBe(
+      metaBefore,
+    )
+  })
 })

@@ -9,6 +9,17 @@ import type { FetchedCardDetail } from './types'
 const CACHE_FORMAT = 'holocard-detail-cache'
 const CACHE_VERSION = 1
 
+// The official catalog is refreshed on a monthly cadence. The extra grace period
+// avoids turning a routine run into a bulk refetch near the boundary; targeted
+// corrections can still bypass the cache explicitly.
+export const DETAIL_CACHE_MAX_AGE_MS = 45 * 24 * 60 * 60 * 1_000
+
+export type DetailCacheReadOptions = {
+  now?: number
+  maxAgeMs?: number
+  forceRefresh?: boolean
+}
+
 export type DetailCacheMeta = {
   format: typeof CACHE_FORMAT
   version: typeof CACHE_VERSION
@@ -48,11 +59,26 @@ export async function readDetailCache(
   directory: string,
   card: DiscoveredCard,
   detailUrl: string,
+  options: DetailCacheReadOptions = {},
 ): Promise<FetchedCardDetail | undefined> {
+  if (options.forceRefresh) return undefined
   const paths = cachePaths(directory, card.officialId)
   try {
     const metaValue: unknown = JSON.parse(await readFile(paths.meta, 'utf8'))
     if (!isMeta(metaValue)) return undefined
+    const fetchedAt = Date.parse(metaValue.fetchedAt)
+    const now = options.now ?? Date.now()
+    const maxAgeMs = options.maxAgeMs ?? DETAIL_CACHE_MAX_AGE_MS
+    if (
+      !Number.isFinite(fetchedAt) ||
+      !Number.isFinite(now) ||
+      !Number.isFinite(maxAgeMs) ||
+      maxAgeMs < 0 ||
+      fetchedAt > now ||
+      now - fetchedAt > maxAgeMs
+    ) {
+      return undefined
+    }
     if (
       metaValue.officialId !== card.officialId ||
       metaValue.detailUrl !== detailUrl ||

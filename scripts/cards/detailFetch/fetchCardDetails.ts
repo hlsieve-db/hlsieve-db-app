@@ -284,6 +284,15 @@ export async function fetchCardDetails(
       options.cacheDirectory,
       target.card,
       target.validated.url,
+      {
+        now: now(),
+        ...(options.cacheMaxAgeMs !== undefined
+          ? { maxAgeMs: options.cacheMaxAgeMs }
+          : {}),
+        forceRefresh: options.forceRefreshOfficialIds?.has(
+          target.card.officialId,
+        ),
+      },
     )
     if (cached) {
       report.results.push(cached)

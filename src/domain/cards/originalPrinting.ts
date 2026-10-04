@@ -43,6 +43,12 @@ export const PRODUCT_RELEASE_DATES = {
 } as const satisfies Readonly<Record<string, string>>
 
 export const PRODUCTS_WITHOUT_SINGLE_RELEASE_DATE = {
+  '【使用可能カード】セレクションカップ': {
+    noSingleReleaseDate: true,
+    reason:
+      'Selection Cup eligibility is an event-rule grouping, not a product release with one release date.',
+    sources: ['https://hololive-official-cardgame.com/cardlist/'],
+  },
   PRカード: {
     noSingleReleaseDate: true,
     reason:

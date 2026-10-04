@@ -40,6 +40,9 @@ describe('getOriginalNonParallelImageUrl', () => {
       ]),
     })
     expect(hasNoSingleProductReleaseDate('PRカード')).toBe(true)
+    expect(
+      hasNoSingleProductReleaseDate('【使用可能カード】セレクションカップ'),
+    ).toBe(true)
     expect(hasNoSingleProductReleaseDate('未登録の商品')).toBe(false)
     expect(PRODUCT_RELEASE_DATES).not.toHaveProperty('PRカード')
     expect(

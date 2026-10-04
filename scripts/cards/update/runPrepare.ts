@@ -7,6 +7,7 @@ import { fetchCardDetails } from '../detailFetch/fetchCardDetails'
 import { discoverCardEntries } from '../discovery/discoverCardEntries'
 import { createHtmlFetcher } from '../discovery/fetchHtml'
 import { UPDATE_PATHS } from './paths'
+import { parsePrepareOptions } from './prepareOptions'
 import type { PreparedUpdateMetadata } from './types'
 import {
   buildRobots,
@@ -15,6 +16,7 @@ import {
 } from './workflow'
 
 const OFFICIAL_FORM_URL = 'https://hololive-official-cardgame.com/cardlist/'
+const options = parsePrepareOptions(process.argv.slice(2))
 
 await rm(UPDATE_PATHS.candidateDirectory, { recursive: true, force: true })
 const generatedAt = new Date().toISOString()
@@ -26,6 +28,7 @@ const discovery = await discoverCardEntries({
 })
 const details = await fetchCardDetails(discovery, {
   cacheDirectory: UPDATE_PATHS.detailsCache,
+  forceRefreshOfficialIds: options.forceRefreshOfficialIds,
   minIntervalMs: 750,
   onProgress: (progress) => {
     const completed = progress.succeeded + progress.failed

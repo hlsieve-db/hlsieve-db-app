@@ -63,6 +63,8 @@ export type FetchCardDetailsOptions = {
   minIntervalMs?: number
   sleep?: (milliseconds: number) => Promise<void>
   now?: () => number
+  cacheMaxAgeMs?: number
+  forceRefreshOfficialIds?: ReadonlySet<string>
   onProgress?: (progress: DetailFetchProgress) => void
 }
 
