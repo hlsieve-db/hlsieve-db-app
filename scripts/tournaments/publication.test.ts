@@ -65,23 +65,90 @@ afterEach(async () => {
 })
 
 describe('atomic Tournament publication', () => {
+  it('keeps Tournament dataset and Card catalog version semantics separate', () => {
+    const publication = createTournamentPublishedData(
+      [event],
+      cards,
+      'sha256:card-catalog-a',
+    )
+    expect(publication.oshiMaster.cardsDataVersion).toBe(
+      'sha256:card-catalog-a',
+    )
+    expect(publication.index.dataVersion).not.toBe('sha256:card-catalog-a')
+    expect(publication.events[event.id]?.dataVersion).toBe(
+      publication.index.dataVersion,
+    )
+  })
+
+  it('blocks publication when an Oshi is missing from the Card catalog', () => {
+    expect(() =>
+      createTournamentPublishedData([event], [], 'sha256:card-catalog-a'),
+    ).toThrow('Oshi card is missing: OSHI')
+  })
+
   it('accepts the official Production publication without synthetic data', async () => {
-    const [indexText, oshiMasterText] = await Promise.all([
+    const [cardsText, indexText, oshiMasterText] = await Promise.all([
+      readFile(join('public', 'cards.json'), 'utf8'),
       readFile(join('public', 'tournaments', 'index.json'), 'utf8'),
       readFile(join('public', 'tournaments', 'oshi-master.json'), 'utf8'),
     ])
+    const cards = JSON.parse(cardsText) as {
+      dataVersion: string
+      cards: { cardNumber: string }[]
+    }
     const index: unknown = JSON.parse(indexText)
     const oshiMaster: unknown = JSON.parse(oshiMasterText)
 
     expect(isTournamentIndexFile(index)).toBe(true)
     expect(index).toMatchObject({ startDate: '2026-09-19' })
-    expect((index as { events: unknown[] }).events).toHaveLength(1)
+    const summaries = (index as { events: { id: string }[] }).events
+    expect(summaries).toHaveLength(12)
     expect(isTournamentOshiMasterFile(oshiMaster)).toBe(true)
+    expect(oshiMaster).toMatchObject({
+      cardsDataVersion: cards.dataVersion,
+    })
     expect(
       Object.keys((oshiMaster as { cards: Record<string, unknown> }).cards),
-    ).toHaveLength(6)
-    expect(indexText).not.toMatch(/synthetic/i)
-    expect(oshiMasterText).not.toMatch(/synthetic/i)
+    ).toHaveLength(23)
+    const eventTexts = await Promise.all(
+      summaries.map(({ id }) =>
+        readFile(join('public', 'tournaments', 'events', `${id}.json`), 'utf8'),
+      ),
+    )
+    const events = eventTexts.map((text) => JSON.parse(text)) as {
+      event: {
+        id: string
+        source: { sourceEventId: string }
+        results: {
+          oshiCardNumber: string
+          deck: Record<'oshi' | 'main' | 'cheer', { cardNumber: string }[]>
+        }[]
+      }
+    }[]
+    expect(new Set(events.map(({ event }) => event.id)).size).toBe(12)
+    expect(
+      new Set(events.map(({ event }) => event.source.sourceEventId)).size,
+    ).toBe(12)
+    const cardNumbers = new Set(cards.cards.map((card) => card.cardNumber))
+    for (const { event } of events) {
+      for (const result of event.results) {
+        expect(cardNumbers.has(result.oshiCardNumber)).toBe(true)
+        for (const zone of ['oshi', 'main', 'cheer'] as const) {
+          expect(
+            result.deck[zone].every(({ cardNumber }) =>
+              cardNumbers.has(cardNumber),
+            ),
+          ).toBe(true)
+        }
+      }
+    }
+    const publicationText = [indexText, oshiMasterText, ...eventTexts].join(
+      '\n',
+    )
+    expect(publicationText).not.toMatch(/synthetic/i)
+    expect(publicationText).not.toMatch(
+      /playerName|address|queue|lease|\.cache|diagnostic/i,
+    )
   })
 
   it('leaves the existing publication untouched when staging validation fails', async () => {

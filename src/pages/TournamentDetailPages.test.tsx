@@ -358,6 +358,63 @@ describe('Tournament Result detail', () => {
     ).toBeNull()
   })
 
+  it('fails closed when the Oshi master targets another Card catalog version', async () => {
+    renderResult({
+      loadOshi: async () => ({
+        ...SYNTHETIC_TOURNAMENT_OSHI_MASTER,
+        cardsDataVersion: 'sha256:another-catalog',
+      }),
+    })
+    expect(
+      await screen.findByText(/カード情報を一部表示できません/),
+    ).toBeInTheDocument()
+    expect(screen.getByText('SYNTH-MAIN-a')).toBeInTheDocument()
+    expect(screen.queryByText('Synthetic Main Card')).not.toBeInTheDocument()
+  })
+
+  it('resolves refreshed Cheer names, images, and type from the matching Card catalog', async () => {
+    const cheerNumbers = ['hY01-015', 'hY03-017', 'hY04-014']
+    const cheerCards = cheerNumbers.map((cardNumber) => ({
+      ...cards.cards[1]!,
+      cardNumber,
+      name: `${cardNumber} Cheer`,
+      cardType: 'cheer' as const,
+      representativeImageUrl: `https://example.test/${cardNumber}.png`,
+    }))
+    const file: TournamentEventFile = {
+      ...eventFile,
+      event: {
+        ...eventFile.event,
+        results: eventFile.event.results.map((item, index) =>
+          index === 0
+            ? {
+                ...item,
+                deck: {
+                  ...item.deck,
+                  cheer: cheerNumbers.map((cardNumber) => ({
+                    cardNumber,
+                    quantity: 1,
+                  })),
+                },
+              }
+            : item,
+        ),
+      },
+    }
+    renderResult({
+      file,
+      loadCards: async () => ({
+        ...cards,
+        cards: [...cards.cards, ...cheerCards],
+      }),
+    })
+    for (const cardNumber of cheerNumbers) {
+      expect(await screen.findByText(`${cardNumber} Cheer`)).toBeVisible()
+      expect(screen.getByText(cardNumber)).toBeVisible()
+    }
+    expect(screen.queryByText(/カード情報を一部表示できません/)).toBeNull()
+  })
+
   it('places Deck Code actions before the deck recipe in DOM order', async () => {
     renderResult()
     const deckCode = await screen.findByRole('heading', { name: 'Deck Log' })

@@ -1,8 +1,64 @@
 {
   "format": "hlsieve-tournament-oshi-master",
   "formatVersion": 1,
-  "cardsDataVersion": "sha256:e1cfb76a01d93e06a6da8f7c089ba20fc53156477dff6b25f374f7158345084a",
+  "cardsDataVersion": "sha256:bb8cc445141984c75992408a96c06372f58826d5a5344f1a58403d627c632b8e",
   "cards": {
+    "hBP01-001": {
+      "name": "天音かなた",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP01/hBP01-001_OSR.png"
+    },
+    "hBP01-008": {
+      "name": "こぼ・かなえる",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP01/hBP01-008_OSR.png"
+    },
+    "hBP04-002": {
+      "name": "儒烏風亭らでん",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP04/hBP04-002_OSR.png"
+    },
+    "hBP06-002": {
+      "name": "響咲リオナ",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP06/hBP06-002_OSR.png"
+    },
+    "hBP06-003": {
+      "name": "風真いろは",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP06/hBP06-003_OSR.png"
+    },
+    "hBP06-006": {
+      "name": "ムーナ・ホシノヴァ",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP06/hBP06-006_OSR.png"
+    },
+    "hBP06-007": {
+      "name": "ロボ子さん",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP06/hBP06-007_OSR.png"
+    },
+    "hBP06-008": {
+      "name": "夏色まつり",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP06/hBP06-008_OSR.png"
+    },
+    "hBP07-001": {
+      "name": "角巻わため",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP07/hBP07-001_OSR.png"
+    },
+    "hBP07-003": {
+      "name": "大神ミオ",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP07/hBP07-003_OSR.png"
+    },
+    "hBP07-005": {
+      "name": "オーロ・クロニー",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP07/hBP07-005_OSR.png"
+    },
+    "hBP07-006": {
+      "name": "AZKi",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP07/hBP07-006_OSR.png"
+    },
+    "hBP07-007": {
+      "name": "桃鈴ねね",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP07/hBP07-007_OSR.png"
+    },
+    "hBP08-003": {
+      "name": "FUWAMOCO",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP08/hBP08-003_OSR.png"
+    },
     "hBP09-001": {
       "name": "大空スバル",
       "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-001_OSR.png"
@@ -23,9 +79,21 @@
       "name": "常闇トワ",
       "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-005_OSR.png"
     },
+    "hBP09-006": {
+      "name": "綺々羅々ヴィヴィ",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-006_OSR.png"
+    },
     "hBP09-007": {
       "name": "雪花ラミィ",
       "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-007_OSR.png"
+    },
+    "hEB01-002": {
+      "name": "宝鐘マリン",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hEB01/hEB01-002_OSR.png"
+    },
+    "hSD10-001": {
+      "name": "輪堂千速",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD10/hSD10-001_OSR.png"
     }
   }
 }
