@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
+import { TournamentDistributionDonut } from '../components/tournaments/TournamentDistributionDonut'
 import {
   hasInvalidTournamentAnalysisDateRange,
   parseTournamentAnalysisUrlState,
@@ -115,10 +116,22 @@ function EnvironmentSection({
       <div className="tournament-analysis-distributions">
         <section>
           <h3>優勝分布</h3>
+          <TournamentDistributionDonut
+            distribution={group.winners}
+            oshiMaster={master}
+            title="優勝データ"
+            ariaLabel={`${heading}の収録済み大会の優勝分布`}
+          />
           <Ranking distribution={group.winners} master={master} />
         </section>
         <section>
           <h3>入賞分布</h3>
+          <TournamentDistributionDonut
+            distribution={group.placements}
+            oshiMaster={master}
+            title="入賞データ"
+            ariaLabel={`${heading}の収録済み大会の入賞分布`}
+          />
           <Ranking distribution={group.placements} master={master} />
         </section>
       </div>

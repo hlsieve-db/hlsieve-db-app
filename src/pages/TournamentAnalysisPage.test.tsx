@@ -82,6 +82,29 @@ describe('TournamentAnalysisPage', () => {
     ).toBeGreaterThan(0)
     expect(within(selection).getAllByText('50.0%').length).toBeGreaterThan(0)
     expect(within(selection).getAllByRole('list')).toHaveLength(2)
+    expect(
+      within(selection).getByRole('img', {
+        name: 'セレクションカップ／bp08の収録済み大会の優勝分布',
+      }),
+    ).toBeVisible()
+    expect(
+      within(selection).getByRole('img', {
+        name: 'セレクションカップ／bp08の収録済み大会の入賞分布',
+      }),
+    ).toBeVisible()
+    const charts = within(selection).getAllByTestId(
+      'tournament-distribution-donut',
+    )
+    expect(
+      [...charts[0].querySelectorAll('[data-count]')].map((node) =>
+        node.getAttribute('data-count'),
+      ),
+    ).toEqual(['1'])
+    expect(
+      [...charts[1].querySelectorAll('[data-count]')].map((node) =>
+        node.getAttribute('data-count'),
+      ),
+    ).toEqual(['4', '4'])
     const winnerOnly = screen
       .getByRole('heading', { name: 'その他／ラウンドなし' })
       .closest('section')!
@@ -91,6 +114,7 @@ describe('TournamentAnalysisPage', () => {
     expect(
       within(placement).getByText('対象データがありません。'),
     ).toBeVisible()
+    expect(within(placement).queryByRole('img')).not.toBeInTheDocument()
   })
 
   it('keeps different rounds of the same type in stable separate groups', async () => {
@@ -170,6 +194,9 @@ describe('TournamentAnalysisPage', () => {
     ).toBeVisible()
     expect(screen.getAllByText('名称不明').length).toBeGreaterThan(0)
     expect(screen.getAllByText('SYNTH-OSHI-001').length).toBeGreaterThan(0)
+    expect(
+      document.querySelectorAll('[data-image-state="missing"]').length,
+    ).toBeGreaterThan(0)
   })
 
   it('filters type, round including none, and inclusive dates through the URL', async () => {

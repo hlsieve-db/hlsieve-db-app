@@ -5811,6 +5811,49 @@ main {
   list-style: none;
 }
 
+.tournament-distribution-chart {
+  width: min(100%, 20rem);
+  margin: 0 auto 1rem;
+}
+
+.tournament-distribution-chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+}
+
+.tournament-distribution-chart__fallback {
+  fill: var(--color-surface-muted);
+}
+
+.tournament-distribution-chart__boundary {
+  fill: transparent;
+  stroke: var(--color-border);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.tournament-distribution-chart__center {
+  fill: var(--color-surface);
+  stroke: var(--color-border);
+  stroke-width: 1;
+}
+
+.tournament-distribution-chart__center-label,
+.tournament-distribution-chart__center-count {
+  fill: var(--color-text);
+  font-weight: 700;
+}
+
+.tournament-distribution-chart__center-label {
+  font-size: 0.65rem;
+}
+
+.tournament-distribution-chart__center-count {
+  font-size: 0.9rem;
+}
+
 .tournament-analysis-ranking li {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto auto;
