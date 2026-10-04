@@ -21,10 +21,10 @@ describe('SectionLocalNavigation', () => {
       current: 'デッキ比較',
     },
     {
-      group: 'tournament' as const,
+      group: 'tournamentReport' as const,
       path: '/tournament-history',
       label: '大会戦績メニュー',
-      links: ['大会DB', '環境分析', '戦績を作成', '履歴', '統計'],
+      links: ['戦績を作成', '履歴', '統計'],
       current: '履歴',
     },
     {

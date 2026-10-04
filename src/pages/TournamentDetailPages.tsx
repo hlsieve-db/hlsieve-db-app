@@ -5,6 +5,7 @@ import { AppNavigation } from '../components/AppNavigation'
 import { ProgressiveCardImage } from '../components/cards/ProgressiveCardImage'
 import type { Card, CardsDataFile } from '../domain/cards/types'
 import type { Deck, DeckEntry } from '../domain/decks/types'
+import { sortDeckEntriesForDisplay } from '../domain/decks/displayOrder'
 import { buildDeckLogPublicUrl } from '../domain/tournaments/deckLog'
 import { convertTournamentResultToDeck } from '../domain/tournaments/deck'
 import type {
@@ -15,7 +16,6 @@ import type {
   TournamentResult,
 } from '../domain/tournaments/types'
 import {
-  tournamentCoverageLabel,
   tournamentTypeLabel,
   visibleTournamentResults,
 } from '../domain/tournaments/ui'
@@ -85,10 +85,6 @@ function EventMetadata({ event }: { event: TournamentEvent }) {
           <dd>{event.participantCount}人</dd>
         </div>
       )}
-      <div>
-        <dt>収録範囲</dt>
-        <dd>{tournamentCoverageLabel(event.resultCoverage)}</dd>
-      </div>
     </dl>
   )
 }
@@ -150,18 +146,24 @@ function useOptionalResource<T>(loader: () => Promise<T>, attempt: number) {
 function OshiSummary({
   result,
   master,
+  showImage = true,
 }: {
   result: TournamentResult
   master?: TournamentOshiMasterFile
+  showImage?: boolean
 }) {
   const oshi = master?.cards[result.oshiCardNumber]
   return (
-    <div className="tournament-oshi-summary">
-      <ProgressiveCardImage
-        src={oshi?.representativeImageUrl}
-        alt={oshi ? `${oshi.name}のカード画像` : '推しホロメン画像なし'}
-        className="tournament-card-image"
-      />
+    <div
+      className={`tournament-oshi-summary${showImage ? '' : ' tournament-oshi-summary--compact'}`}
+    >
+      {showImage && (
+        <ProgressiveCardImage
+          src={oshi?.representativeImageUrl}
+          alt={oshi ? `${oshi.name}のカード画像` : '推しホロメン画像なし'}
+          className="tournament-card-image"
+        />
+      )}
       <div>
         <p className="tournament-result-rank">{result.rank}位</p>
         <p>
@@ -254,9 +256,7 @@ function DeckZone({
   oshiMaster?: TournamentOshiMasterFile
   isOshi?: boolean
 }) {
-  const sorted = [...entries].sort((a, b) =>
-    a.cardNumber.localeCompare(b.cardNumber),
-  )
+  const sorted = sortDeckEntriesForDisplay(entries, cards ?? new Map())
   return (
     <section className="tournament-deck-zone">
       <h2>{title}</h2>
@@ -471,8 +471,14 @@ export function TournamentResultPage({
             <OshiSummary
               result={result}
               master={oshi.status === 'loaded' ? oshi.data : undefined}
+              showImage={false}
             />
           </section>
+          <DeckLogSection
+            code={result.deckLogCode}
+            deckCopyState={activeDeckCopyState}
+            onCopyToHlsieve={() => void copyToHlsieve()}
+          />
           <DeckZone
             title="推しホロメン構成"
             entries={result.deck.oshi}
@@ -489,11 +495,6 @@ export function TournamentResultPage({
             title="エールデッキ"
             entries={result.deck.cheer}
             cards={usableCards}
-          />
-          <DeckLogSection
-            code={result.deckLogCode}
-            deckCopyState={activeDeckCopyState}
-            onCopyToHlsieve={() => void copyToHlsieve()}
           />
         </>
       )}

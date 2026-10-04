@@ -159,9 +159,11 @@ describe('AppNavigation theme control', () => {
         <AppNavigation />
       </MemoryRouter>,
     )
-    expect(screen.getByRole('button', { name: 'カード' })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: 'カード' })).toHaveClass(
+      'is-active',
+    )
+    expect(screen.getByRole('button', { name: 'カード' })).not.toHaveAttribute(
       'aria-current',
-      'page',
     )
     expect(
       screen.getByRole('link', { name: 'HLSieve DB' }),
@@ -176,9 +178,8 @@ describe('AppNavigation theme control', () => {
     expect(screen.getByRole('button', { name: 'デッキ' })).toHaveClass(
       'is-active',
     )
-    expect(screen.getByRole('button', { name: 'デッキ' })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: 'デッキ' })).not.toHaveAttribute(
       'aria-current',
-      'page',
     )
   })
 
@@ -194,7 +195,7 @@ describe('AppNavigation theme control', () => {
       within(navigation)
         .getAllByRole('button')
         .map((button) => button.textContent?.replace('▾', '')),
-    ).toEqual(['カード', 'デッキ', '大会', 'ツール'])
+    ).toEqual(['カード', 'デッキ', '大会DB', '大会戦績', 'ツール'])
     expect(screen.getByRole('link', { name: '更新履歴' })).toHaveAttribute(
       'aria-current',
       'page',
@@ -258,7 +259,8 @@ describe('AppNavigation theme control', () => {
     })
     expect(within(mobileMenu).getByText('カード')).toBeVisible()
     expect(within(mobileMenu).getByText('デッキ')).toBeVisible()
-    expect(within(mobileMenu).getByText('大会')).toBeVisible()
+    expect(within(mobileMenu).getByText('大会DB')).toBeVisible()
+    expect(within(mobileMenu).getByText('大会戦績')).toBeVisible()
     expect(within(mobileMenu).getByText('ツール')).toBeVisible()
     expect(within(mobileMenu).getByText('その他')).toBeVisible()
     expect(screen.getByLabelText('テーマ')).toBeVisible()
@@ -271,6 +273,36 @@ describe('AppNavigation theme control', () => {
       ).not.toBeInTheDocument(),
     )
     expect(menuButton).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  it.each([
+    ['/tournaments', '大会DB', '大会データベース'],
+    ['/tournaments/analysis', '大会DB', '大会環境分析'],
+    ['/tournaments/event-id', '大会DB', '大会データベース'],
+    ['/tournaments/event-id/results/result-id', '大会DB', '大会データベース'],
+    ['/tournament-report', '大会戦績', '大会戦績を作成'],
+    ['/tournament-history', '大会戦績', '大会戦績履歴'],
+    ['/tournament-stats', '大会戦績', '大会戦績統計'],
+  ])('marks only the matching item current on %s', (path, group, item) => {
+    mockColorScheme(false)
+    render(
+      <MemoryRouter initialEntries={[path]}>
+        <AppNavigation />
+      </MemoryRouter>,
+    )
+    const groupButton = screen.getByRole('button', { name: group })
+    expect(groupButton).toHaveClass('is-active')
+    fireEvent.click(groupButton)
+    expect(screen.getByRole('link', { name: item })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+    expect(
+      screen
+        .getAllByRole('link')
+        .filter((link) => link.hasAttribute('aria-current')),
+    ).toHaveLength(1)
+    expect(screen.queryByRole('button', { name: '大会' })).toBeNull()
   })
 
   it('uses one accessible mobile trigger for the hamburger icon and menu label', () => {

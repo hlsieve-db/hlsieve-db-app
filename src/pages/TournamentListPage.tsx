@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
+import { ProgressiveCardImage } from '../components/cards/ProgressiveCardImage'
 import {
   hasInvalidTournamentDateRange,
   parseTournamentUrlState,
@@ -17,7 +18,6 @@ import {
   sortTournamentEvents,
   TOURNAMENT_NO_ROUND,
   TOURNAMENT_PAGE_SIZE,
-  tournamentCoverageLabel,
   tournamentTypeLabel,
 } from '../domain/tournaments/ui'
 import { useDocumentMetadata } from '../hooks/useDocumentMetadata'
@@ -337,52 +337,71 @@ export function TournamentListPage({
             className="tournament-event-list"
             start={(page - 1) * TOURNAMENT_PAGE_SIZE + 1}
           >
-            {visibleEvents.map((event) => (
-              <li className="tournament-event-card" key={event.id}>
-                <article>
-                  <p className="tournament-event-card__date">
-                    <time dateTime={event.date}>{event.date}</time>
-                  </p>
-                  <h3>
-                    {event.tournament.seriesName}／{event.venue.name}
-                  </h3>
-                  <dl>
-                    <div>
-                      <dt>種別</dt>
-                      <dd>{tournamentTypeLabel(event.tournament.type)}</dd>
+            {visibleEvents.map((event) => {
+              const winner = event.results.find((result) => result.rank === 1)
+              const winnerOshi =
+                winner && oshiState.status === 'loaded'
+                  ? oshiState.data.cards[winner.oshiCardNumber]
+                  : undefined
+              return (
+                <li className="tournament-event-card" key={event.id}>
+                  <article>
+                    {winnerOshi?.representativeImageUrl && (
+                      <div className="tournament-event-card__winner">
+                        <ProgressiveCardImage
+                          src={winnerOshi.representativeImageUrl}
+                          alt=""
+                          className="tournament-event-card__winner-image"
+                        />
+                        <p>
+                          <span>優勝推し</span>
+                          <strong>{winnerOshi.name}</strong>
+                        </p>
+                      </div>
+                    )}
+                    <div className="tournament-event-card__content">
+                      <p className="tournament-event-card__date">
+                        <time dateTime={event.date}>{event.date}</time>
+                      </p>
+                      <h3>
+                        {event.tournament.seriesName}／{event.venue.name}
+                      </h3>
+                      <dl>
+                        <div>
+                          <dt>種別</dt>
+                          <dd>{tournamentTypeLabel(event.tournament.type)}</dd>
+                        </div>
+                        {event.tournament.round && (
+                          <div>
+                            <dt>ラウンド</dt>
+                            <dd>{event.tournament.round}</dd>
+                          </div>
+                        )}
+                        {event.venue.prefecture && (
+                          <div>
+                            <dt>都道府県</dt>
+                            <dd>{event.venue.prefecture}</dd>
+                          </div>
+                        )}
+                        {event.participantCount !== undefined && (
+                          <div>
+                            <dt>参加者</dt>
+                            <dd>{event.participantCount}人</dd>
+                          </div>
+                        )}
+                        <div>
+                          <dt>取得結果</dt>
+                          <dd>{event.resultCount}件</dd>
+                        </div>
+                      </dl>
+                      <Link to={`/tournaments/${encodeURIComponent(event.id)}`}>
+                        大会詳細を見る
+                      </Link>
                     </div>
-                    {event.tournament.round && (
-                      <div>
-                        <dt>ラウンド</dt>
-                        <dd>{event.tournament.round}</dd>
-                      </div>
-                    )}
-                    {event.venue.prefecture && (
-                      <div>
-                        <dt>都道府県</dt>
-                        <dd>{event.venue.prefecture}</dd>
-                      </div>
-                    )}
-                    {event.participantCount !== undefined && (
-                      <div>
-                        <dt>参加者</dt>
-                        <dd>{event.participantCount}人</dd>
-                      </div>
-                    )}
-                    <div>
-                      <dt>取得結果</dt>
-                      <dd>
-                        {event.resultCount}件（
-                        {tournamentCoverageLabel(event.resultCoverage)}）
-                      </dd>
-                    </div>
-                  </dl>
-                  <Link to={`/tournaments/${encodeURIComponent(event.id)}`}>
-                    大会詳細を見る
-                  </Link>
-                </article>
-              </li>
-            ))}
+                  </article>
+                </li>
+              )
+            })}
           </ol>
           {totalPages > 1 && (
             <nav

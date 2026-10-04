@@ -6149,6 +6149,34 @@ main {
   background: var(--color-surface);
 }
 
+.tournament-event-card article {
+  display: grid;
+  grid-template-columns: minmax(5rem, 7rem) minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.tournament-event-card__winner-image img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+}
+
+.tournament-event-card__winner-image {
+  min-height: 0;
+}
+
+.tournament-event-card__winner p {
+  display: grid;
+  gap: 0.15rem;
+  margin-block: 0.5rem 0;
+  font-size: 0.8rem;
+}
+
+.tournament-event-card__content {
+  min-width: 0;
+}
+
 .tournament-event-card h3 {
   margin-block: 0.25rem 0.75rem;
 }
@@ -6229,6 +6257,10 @@ main {
   align-items: start;
 }
 
+.tournament-oshi-summary--compact {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .tournament-card-image {
   display: grid;
   place-items: center;
@@ -6263,6 +6295,14 @@ main {
 }
 
 @media (max-width: 30rem) {
+  .tournament-event-card article {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tournament-event-card__winner {
+    width: 6rem;
+  }
+
   .tournament-oshi-summary,
   .tournament-deck-entry {
     grid-template-columns: 1fr;

@@ -4,6 +4,7 @@ import { Link, NavLink, useLocation } from 'react-router-dom'
 import {
   ACCOUNT_NAV_ITEM,
   activeNavigationGroup,
+  activeNavigationItem,
   NAV_GROUPS,
   UPDATES_NAV_ITEM,
   type NavigationGroupKey,
@@ -134,7 +135,6 @@ export function AppNavigation() {
                     className={active ? 'is-active' : undefined}
                     aria-expanded={expanded}
                     aria-controls={`navigation-${group.key}`}
-                    aria-current={active ? 'page' : undefined}
                     onClick={(event) => {
                       lastGroupButtonRef.current = event.currentTarget
                       setOpenGroupState(
@@ -151,13 +151,19 @@ export function AppNavigation() {
                       className="primary-navigation__dropdown"
                     >
                       {group.items.map((item) => (
-                        <NavLink
+                        <Link
                           key={item.to}
                           to={item.to}
+                          aria-current={
+                            activeNavigationItem(location.pathname, group) ===
+                            item.to
+                              ? 'page'
+                              : undefined
+                          }
                           onClick={() => setOpenGroupState(undefined)}
                         >
                           {item.label}
-                        </NavLink>
+                        </Link>
                       ))}
                     </div>
                   )}
@@ -202,13 +208,18 @@ export function AppNavigation() {
                   {group.label}
                 </h2>
                 {group.items.map((item) => (
-                  <NavLink
+                  <Link
                     key={item.to}
                     to={item.to}
+                    aria-current={
+                      activeNavigationItem(location.pathname, group) === item.to
+                        ? 'page'
+                        : undefined
+                    }
                     onClick={() => setMobileOpenLocation(undefined)}
                   >
                     {item.label}
-                  </NavLink>
+                  </Link>
                 ))}
               </section>
             ))}

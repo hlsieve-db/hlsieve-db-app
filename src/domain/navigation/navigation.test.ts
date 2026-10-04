@@ -2,12 +2,13 @@ import { describe, expect, it } from 'vitest'
 
 import {
   activeNavigationGroup,
+  activeNavigationItem,
   NAV_GROUPS,
   UPDATES_NAV_ITEM,
 } from './navigation'
 
 describe('site navigation definition', () => {
-  it('keeps the four category groups and their routes in the agreed order', () => {
+  it('keeps the five category groups and their routes in the agreed order', () => {
     expect(
       NAV_GROUPS.map(({ key, label, items }) => ({
         key,
@@ -26,11 +27,14 @@ describe('site navigation definition', () => {
         routes: ['/decks', '/deck-compare'],
       },
       {
-        key: 'tournament',
-        label: '大会',
+        key: 'tournamentDb',
+        label: '大会DB',
+        routes: ['/tournaments', '/tournaments/analysis'],
+      },
+      {
+        key: 'tournamentReport',
+        label: '大会戦績',
         routes: [
-          '/tournaments',
-          '/tournaments/analysis',
           '/tournament-report',
           '/tournament-history',
           '/tournament-stats',
@@ -64,12 +68,13 @@ describe('site navigation definition', () => {
     ['/decks/deck-id', 'decks'],
     ['/deck-compare', 'decks'],
     ['/deck/share', 'decks'],
-    ['/tournaments', 'tournament'],
-    ['/tournaments/event-id', 'tournament'],
-    ['/tournaments/analysis', 'tournament'],
-    ['/tournament-report', 'tournament'],
-    ['/tournament-history', 'tournament'],
-    ['/tournament-stats', 'tournament'],
+    ['/tournaments', 'tournamentDb'],
+    ['/tournaments/event-id', 'tournamentDb'],
+    ['/tournaments/event-id/results/result-id', 'tournamentDb'],
+    ['/tournaments/analysis', 'tournamentDb'],
+    ['/tournament-report', 'tournamentReport'],
+    ['/tournament-history', 'tournamentReport'],
+    ['/tournament-stats', 'tournamentReport'],
     ['/probability', 'tools'],
     ['/mulligan', 'tools'],
     ['/swiss', 'tools'],
@@ -81,6 +86,29 @@ describe('site navigation definition', () => {
     'does not invent an active category for %s',
     (pathname) => {
       expect(activeNavigationGroup(pathname)).toBeUndefined()
+    },
+  )
+
+  it.each([
+    ['/tournaments', 'tournamentDb', '/tournaments'],
+    ['/tournaments/analysis', 'tournamentDb', '/tournaments/analysis'],
+    ['/tournaments/event-id', 'tournamentDb', '/tournaments'],
+    ['/tournaments/event-id/results/result-id', 'tournamentDb', '/tournaments'],
+    ['/tournament-report', 'tournamentReport', '/tournament-report'],
+    ['/tournament-history', 'tournamentReport', '/tournament-history'],
+    ['/tournament-stats', 'tournamentReport', '/tournament-stats'],
+  ] as const)(
+    'maps %s to exactly one current item',
+    (pathname, groupKey, expected) => {
+      const group = NAV_GROUPS.find(({ key }) => key === groupKey)!
+      expect(activeNavigationItem(pathname, group)).toBe(expected)
+      expect(
+        NAV_GROUPS.flatMap((candidate) =>
+          candidate.items.filter(
+            (item) => activeNavigationItem(pathname, candidate) === item.to,
+          ),
+        ),
+      ).toHaveLength(1)
     },
   )
 })

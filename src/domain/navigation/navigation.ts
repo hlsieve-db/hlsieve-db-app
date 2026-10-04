@@ -1,4 +1,5 @@
-export type NavigationGroupKey = 'cards' | 'decks' | 'tournament' | 'tools'
+export type NavigationGroupKey =
+  'cards' | 'decks' | 'tournamentDb' | 'tournamentReport' | 'tools'
 
 export type NavigationItem = {
   label: string
@@ -48,12 +49,10 @@ export const NAV_GROUPS: readonly NavigationGroup[] = [
     ],
   },
   {
-    key: 'tournament',
-    label: '大会',
+    key: 'tournamentDb',
+    label: '大会DB',
     matches: (pathname) =>
-      pathname.startsWith('/tournament-') ||
-      pathname === '/tournaments' ||
-      pathname.startsWith('/tournaments/'),
+      pathname === '/tournaments' || pathname.startsWith('/tournaments/'),
     items: [
       {
         label: '大会データベース',
@@ -65,6 +64,13 @@ export const NAV_GROUPS: readonly NavigationGroup[] = [
         shortLabel: '環境分析',
         to: '/tournaments/analysis',
       },
+    ],
+  },
+  {
+    key: 'tournamentReport',
+    label: '大会戦績',
+    matches: (pathname) => pathname.startsWith('/tournament-'),
+    items: [
       {
         label: '大会戦績を作成',
         shortLabel: '戦績を作成',
@@ -117,4 +123,19 @@ export function activeNavigationGroup(
   pathname: string,
 ): NavigationGroupKey | undefined {
   return NAV_GROUPS.find((group) => group.matches(pathname))?.key
+}
+
+export function activeNavigationItem(
+  pathname: string,
+  group: NavigationGroup,
+): string | undefined {
+  if (!group.matches(pathname)) return undefined
+  if (group.key === 'tournamentDb') {
+    return pathname === '/tournaments/analysis'
+      ? '/tournaments/analysis'
+      : '/tournaments'
+  }
+  return group.items.find(
+    (item) => pathname === item.to || pathname.startsWith(`${item.to}/`),
+  )?.to
 }

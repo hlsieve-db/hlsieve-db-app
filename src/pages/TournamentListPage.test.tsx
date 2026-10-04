@@ -85,6 +85,91 @@ describe('TournamentListPage', () => {
     expect(await screen.findByText('60人')).toBeVisible()
   })
 
+  it('uses the actual rank 1 Result and representative image for the winner thumbnail', async () => {
+    const first = SYNTHETIC_TOURNAMENT_INDEX.events[0]!
+    renderPage({
+      index: {
+        ...SYNTHETIC_TOURNAMENT_INDEX,
+        events: [
+          {
+            ...first,
+            results: [first.results[1]!, first.results[0]!],
+            resultCount: 2,
+          },
+        ],
+      },
+    })
+    expect(await screen.findByText('優勝推し')).toBeVisible()
+    expect(screen.getByText('Synthetic Oshi')).toBeVisible()
+    expect(
+      document.querySelector('.tournament-event-card__winner img'),
+    ).toHaveAttribute(
+      'src',
+      SYNTHETIC_TOURNAMENT_OSHI_MASTER.cards['SYNTH-OSHI-001']
+        .representativeImageUrl,
+    )
+  })
+
+  it.each([
+    {
+      label: 'rank 1なし',
+      index: {
+        ...SYNTHETIC_TOURNAMENT_INDEX,
+        events: [
+          {
+            ...SYNTHETIC_TOURNAMENT_INDEX.events[0]!,
+            results: SYNTHETIC_TOURNAMENT_INDEX.events[0]!.results.filter(
+              ({ rank }) => rank !== 1,
+            ),
+          },
+        ],
+      },
+      master: SYNTHETIC_TOURNAMENT_OSHI_MASTER,
+    },
+    {
+      label: 'oshi master欠損',
+      index: {
+        ...SYNTHETIC_TOURNAMENT_INDEX,
+        events: [SYNTHETIC_TOURNAMENT_INDEX.events[0]!],
+      },
+      master: { ...SYNTHETIC_TOURNAMENT_OSHI_MASTER, cards: {} },
+    },
+    {
+      label: '画像URL欠損',
+      index: {
+        ...SYNTHETIC_TOURNAMENT_INDEX,
+        events: [
+          {
+            ...SYNTHETIC_TOURNAMENT_INDEX.events[1]!,
+            results: [
+              {
+                ...SYNTHETIC_TOURNAMENT_INDEX.events[1]!.results[0]!,
+                oshiCardNumber: 'SYNTH-OSHI-NO-IMAGE',
+              },
+            ],
+          },
+        ],
+      },
+      master: SYNTHETIC_TOURNAMENT_OSHI_MASTER,
+    },
+  ])(
+    'keeps Event information usable when $label',
+    async ({ index, master }) => {
+      renderPage({ index, loadOshiMaster: vi.fn(async () => master) })
+      expect(await screen.findByRole('heading', { level: 3 })).toBeVisible()
+      expect(screen.queryByText('優勝推し')).toBeNull()
+      expect(screen.queryByRole('img')).toBeNull()
+    },
+  )
+
+  it('does not render coverage labels in the list', async () => {
+    renderPage()
+    await screen.findByRole('heading', { name: /Synthetic Selection Cup/ })
+    expect(screen.queryByText('収録範囲')).toBeNull()
+    expect(screen.queryByText('1〜8位の結果を収録')).toBeNull()
+    expect(screen.getByText('8件')).toBeVisible()
+  })
+
   it('shows preparation for missing or empty indexes and distinguishes filter emptiness', async () => {
     const loadIndex = vi.fn(async () => ({
       ...SYNTHETIC_TOURNAMENT_INDEX,

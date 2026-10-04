@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { CardsDataFile } from '../domain/cards/types'
 import type { Deck } from '../domain/decks/types'
+import { sortDeckEntriesForDisplay } from '../domain/decks/displayOrder'
 import { buildDeckLogPublicUrl } from '../domain/tournaments/deckLog'
 import type {
   TournamentEvent,
@@ -172,7 +173,7 @@ describe('Tournament Event detail', () => {
     expect(await screen.findByText('60人')).toBeVisible()
   })
 
-  it('renders metadata, coverage and only real top-eight Results in stable Result-ID links', async () => {
+  it('renders metadata without coverage and only real top-eight Results in stable Result-ID links', async () => {
     const sparse = SYNTHETIC_TOURNAMENT_PUBLICATION.events['synthetic-event-b']
     renderEvent({
       file: {
@@ -193,7 +194,8 @@ describe('Tournament Event detail', () => {
         name: 'Synthetic Bloom Cup',
       }),
     ).toBeInTheDocument()
-    expect(screen.getByText('取得できた結果のみ収録')).toBeInTheDocument()
+    expect(screen.queryByText('収録範囲')).not.toBeInTheDocument()
+    expect(screen.queryByText('取得できた結果のみ収録')).not.toBeInTheDocument()
     expect(screen.getAllByRole('listitem')).toHaveLength(4)
     expect(screen.queryByText('4位')).not.toBeInTheDocument()
     expect(screen.queryByText('9位')).not.toBeInTheDocument()
@@ -284,7 +286,7 @@ describe('Tournament Event detail', () => {
     })
     expect(await screen.findByText('その他')).toBeInTheDocument()
     expect(screen.queryByText('参加者')).not.toBeInTheDocument()
-    expect(screen.getByText('優勝結果のみ収録')).toBeInTheDocument()
+    expect(screen.queryByText('優勝結果のみ収録')).not.toBeInTheDocument()
   })
 
   it('keeps Results when the Oshi master is missing', async () => {
@@ -339,6 +341,89 @@ describe('Tournament Result detail', () => {
     expect(screen.getByText('Synthetic Main Card')).toBeInTheDocument()
     expect(screen.getByText('50枚')).toBeInTheDocument()
     expect(screen.getByText('20枚')).toBeInTheDocument()
+    expect(screen.queryByText('収録範囲')).not.toBeInTheDocument()
+    expect(screen.queryByText('1〜8位の結果を収録')).not.toBeInTheDocument()
+    expect(
+      screen
+        .getByRole('heading', { name: '推しホロメン' })
+        .closest('section')
+        ?.querySelector('img'),
+    ).toBeNull()
+  })
+
+  it('places Deck Code actions before the deck recipe in DOM order', async () => {
+    renderResult()
+    const deckCode = await screen.findByRole('heading', { name: 'Deck Log' })
+    const recipe = screen.getByRole('heading', { name: '推しホロメン構成' })
+    expect(
+      deckCode.compareDocumentPosition(recipe) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'コードをコピー' })).toBeEnabled()
+    expect(
+      screen.getByRole('button', { name: 'HLSieveにコピー' }),
+    ).toBeEnabled()
+    expect(screen.getByRole('link', { name: /DECK LOGで見る/ })).toBeVisible()
+  })
+
+  it('matches Deck Editor display order for shuffled Main entries without mutation or quantity loss', async () => {
+    const support = {
+      ...cards.cards[0]!,
+      cardNumber: 'A-SUPPORT',
+      name: 'Support Card',
+      cardType: 'support' as const,
+      supportSearchCategory: 'general' as const,
+    }
+    const holomem = {
+      ...cards.cards[0]!,
+      cardNumber: 'Z-HOLOMEM',
+      name: 'Holomem Card',
+      cardType: 'holomem' as const,
+      bloomLevel: 'debut' as const,
+    }
+    const shuffled = [
+      { cardNumber: support.cardNumber, quantity: 4 },
+      { cardNumber: holomem.cardNumber, quantity: 2 },
+    ]
+    const original = structuredClone(shuffled)
+    const file: TournamentEventFile = {
+      ...eventFile,
+      event: {
+        ...eventFile.event,
+        results: eventFile.event.results.map((item, index) =>
+          index === 0
+            ? { ...item, deck: { ...item.deck, main: shuffled } }
+            : item,
+        ),
+      },
+    }
+    const cardFile = { ...cards, cards: [support, holomem, ...cards.cards] }
+    renderResult({ file, loadCards: async () => cardFile })
+    const section = (
+      await screen.findByRole('heading', {
+        name: 'メインデッキ',
+      })
+    ).closest('section')!
+    const rendered = Array.from(section.querySelectorAll('li')).map(
+      (item) => item.querySelectorAll('span')[0]?.textContent,
+    )
+    const map = new Map(cardFile.cards.map((card) => [card.cardNumber, card]))
+    expect(rendered).toEqual(
+      sortDeckEntriesForDisplay(shuffled, map).map(
+        ({ cardNumber }) => cardNumber,
+      ),
+    )
+    expect(rendered).toEqual(['Z-HOLOMEM', 'A-SUPPORT'])
+    expect(shuffled).toEqual(original)
+    expect(shuffled.reduce((sum, item) => sum + item.quantity, 0)).toBe(6)
+    expect(
+      Array.from(section.querySelectorAll('li')).reduce(
+        (sum, item) =>
+          sum +
+          Number.parseInt(item.textContent?.match(/(\d+)枚/)?.[1] ?? '0', 10),
+        0,
+      ),
+    ).toBe(6)
   })
 
   it('renders Result not-found without falling back to rank', async () => {

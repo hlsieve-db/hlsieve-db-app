@@ -8,7 +8,8 @@ import {
 const LABELS: Record<NavigationGroupKey, string> = {
   cards: 'カードメニュー',
   decks: 'デッキメニュー',
-  tournament: '大会戦績メニュー',
+  tournamentDb: '大会データベースメニュー',
+  tournamentReport: '大会戦績メニュー',
   tools: 'ツールメニュー',
 }
 
