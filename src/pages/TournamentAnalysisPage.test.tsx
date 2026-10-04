@@ -9,6 +9,7 @@ import { MemoryRouter, useLocation } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
 import type { TournamentIndexFile } from '../domain/tournaments/types'
+import * as tierDomain from '../domain/tournaments/tier'
 import {
   SYNTHETIC_TOURNAMENT_INDEX,
   SYNTHETIC_TOURNAMENT_OSHI_MASTER,
@@ -55,6 +56,53 @@ function renderPage({
   return { loadIndex, loadOshiMaster }
 }
 
+function sufficientTierIndex(): TournamentIndexFile {
+  const seed = SYNTHETIC_TOURNAMENT_INDEX.events[0]!
+  const winnerCards = [
+    ...Array<string>(10).fill('TIER-S'),
+    ...Array<string>(6).fill('TIER-A'),
+    ...Array<string>(4).fill('TIER-B'),
+    'TIER-C-UNKNOWN-WITH-A-DELIBERATELY-LONG-CARD-NUMBER',
+  ]
+  const remainingCards = [
+    ...Array<string>(70).fill('TIER-S'),
+    ...Array<string>(42).fill('TIER-A'),
+    ...Array<string>(28).fill('TIER-B'),
+    ...Array<string>(7).fill(
+      'TIER-C-UNKNOWN-WITH-A-DELIBERATELY-LONG-CARD-NUMBER',
+    ),
+  ]
+  return {
+    ...SYNTHETIC_TOURNAMENT_INDEX,
+    events: winnerCards.map((winner, eventIndex) => {
+      const cardNumbers = [
+        winner,
+        ...remainingCards.slice(eventIndex * 7, eventIndex * 7 + 7),
+      ]
+      return {
+        ...seed,
+        id: `tier-event-${eventIndex}`,
+        resultCount: 8,
+        results: cardNumbers.map((oshiCardNumber, rankIndex) => ({
+          id: `tier-result-${eventIndex}-${rankIndex + 1}`,
+          rank: rankIndex + 1,
+          oshiCardNumber,
+        })),
+      }
+    }),
+  }
+}
+
+const TIER_OSHI_MASTER = {
+  ...SYNTHETIC_TOURNAMENT_OSHI_MASTER,
+  cards: {
+    ...SYNTHETIC_TOURNAMENT_OSHI_MASTER.cards,
+    'TIER-S': { name: 'Tier S Oshi' },
+    'TIER-A': { name: 'Tier A Oshi' },
+    'TIER-B': { name: 'Tier B Oshi' },
+  },
+}
+
 describe('TournamentAnalysisPage', () => {
   it('loads the index once and renders separate environment text rankings', async () => {
     const { loadIndex } = renderPage()
@@ -73,7 +121,11 @@ describe('TournamentAnalysisPage', () => {
     const selection = screen
       .getByRole('heading', { name: 'セレクションカップ／bp08' })
       .closest('section')!
-    expect(within(selection).getByText('8件', { selector: 'dd' })).toBeVisible()
+    expect(
+      within(
+        selection.querySelector('.tournament-analysis-summary')!,
+      ).getByText('8件', { selector: 'dd' }),
+    ).toBeVisible()
     expect(
       within(selection).getAllByText('Synthetic Oshi').length,
     ).toBeGreaterThan(0)
@@ -81,7 +133,9 @@ describe('TournamentAnalysisPage', () => {
       within(selection).getAllByText('SYNTH-OSHI-001').length,
     ).toBeGreaterThan(0)
     expect(within(selection).getAllByText('50.0%').length).toBeGreaterThan(0)
-    expect(within(selection).getAllByRole('list')).toHaveLength(2)
+    expect(
+      selection.querySelectorAll('.tournament-analysis-ranking'),
+    ).toHaveLength(2)
     expect(
       within(selection).getByRole('img', {
         name: 'セレクションカップ／bp08の収録済み大会の優勝分布',
@@ -115,6 +169,138 @@ describe('TournamentAnalysisPage', () => {
       within(placement).getByText('対象データがありません。'),
     ).toBeVisible()
     expect(within(placement).queryByRole('img')).not.toBeInTheDocument()
+  })
+
+  it('renders sufficient domain tiers with accessible groups, metrics, and metadata fallback', async () => {
+    const evaluator = vi.spyOn(tierDomain, 'evaluateTournamentTier')
+    renderPage({
+      index: sufficientTierIndex(),
+      loadOshiMaster: vi.fn(async () => TIER_OSHI_MASTER),
+    })
+
+    const environmentHeading = await screen.findByRole('heading', {
+      name: 'セレクションカップ／bp08',
+    })
+    const environment = environmentHeading.closest('section')!
+    const tierHeading = within(environment).getByRole('heading', {
+      name: '収録大会実績Tier',
+    })
+    const tierSection = tierHeading.closest('section')!
+
+    expect(evaluator).toHaveBeenCalledOnce()
+    expect(evaluator.mock.calls[0]?.[0].environment).toEqual({
+      tournamentType: 'selectioncup',
+      round: 'bp08',
+    })
+    expect(
+      within(tierSection)
+        .getAllByRole('heading', { level: 4 })
+        .map((heading) => heading.textContent?.trim()),
+    ).toEqual(['STier S', 'ATier A', 'BTier B', 'CTier C'])
+    expect(within(tierSection).getByText('Tier S Oshi')).toBeVisible()
+    expect(within(tierSection).getByText('Tier A Oshi')).toBeVisible()
+    expect(within(tierSection).getByText('Tier B Oshi')).toBeVisible()
+    expect(within(tierSection).getByText('名称不明')).toBeVisible()
+    expect(
+      within(tierSection).getByText(
+        'TIER-C-UNKNOWN-WITH-A-DELIBERATELY-LONG-CARD-NUMBER',
+      ),
+    ).toBeVisible()
+    expect(within(tierSection).getByText('優勝 10件 / 47.6%')).toBeVisible()
+    expect(within(tierSection).getByText('入賞 80件 / 47.6%')).toBeVisible()
+    expect(within(tierSection).queryByText(/^勝率/)).not.toBeInTheDocument()
+    expect(within(tierSection).queryByText(/^使用率/)).not.toBeInTheDocument()
+    expect(within(tierSection).getAllByRole('list')).toHaveLength(4)
+    expect(
+      within(environment).getAllByTestId('tournament-distribution-donut'),
+    ).toHaveLength(2)
+    expect(
+      environment.querySelectorAll('.tournament-analysis-ranking'),
+    ).toHaveLength(2)
+    evaluator.mockRestore()
+  })
+
+  it('renders limited sample details and reasons without any Tier group', async () => {
+    renderPage({
+      path: '/tournaments/analysis?type=selectioncup&round=bp08',
+    })
+    const tierHeading = await screen.findByRole('heading', {
+      name: '収録大会実績Tier',
+    })
+    const tierSection = tierHeading.closest('section')!
+    expect(
+      within(tierSection).getByText(
+        '収録結果が少ないため、実績Tierはまだ判定していません。',
+      ),
+    ).toBeVisible()
+    expect(
+      within(tierSection).getByText('優勝データがまだ少ないです'),
+    ).toBeVisible()
+    expect(
+      within(tierSection).getByText('入賞集計対象の大会数がまだ少ないです'),
+    ).toBeVisible()
+    expect(
+      within(tierSection).getByText('入賞データがまだ少ないです'),
+    ).toBeVisible()
+    expect(
+      within(tierSection).getByText('優勝データ').parentElement,
+    ).toHaveTextContent('1件')
+    expect(
+      within(tierSection).getByText('入賞対象大会').parentElement,
+    ).toHaveTextContent('1件')
+    expect(
+      within(tierSection).getByText('入賞データ').parentElement,
+    ).toHaveTextContent('8件')
+    expect(
+      within(tierSection).queryByRole('heading', { name: /^Tier [SABC]$/ }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('omits empty Tier groups', async () => {
+    const index = sufficientTierIndex()
+    const onlyLeader: TournamentIndexFile = {
+      ...index,
+      events: index.events.map((event) => ({
+        ...event,
+        results: event.results.map((result) => ({
+          ...result,
+          oshiCardNumber: 'TIER-S',
+        })),
+      })),
+    }
+    renderPage({
+      index: onlyLeader,
+      loadOshiMaster: vi.fn(async () => TIER_OSHI_MASTER),
+    })
+    const tier = (
+      await screen.findByRole('heading', {
+        name: '収録大会実績Tier',
+      })
+    ).closest('section')!
+    expect(within(tier).getByRole('heading', { name: 'Tier S' })).toBeVisible()
+    expect(
+      within(tier).queryByRole('heading', { name: /^Tier [ABC]$/ }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('explains the relative reference-only calculation without presenting rates as strength', async () => {
+    renderPage({
+      path: '/tournaments/analysis?type=selectioncup&round=bp08',
+    })
+    const tier = (
+      await screen.findByRole('heading', {
+        name: '収録大会実績Tier',
+      })
+    ).closest('section')!
+    expect(within(tier).getByText(/収録された大会結果/)).toHaveTextContent(
+      '相対評価',
+    )
+    expect(within(tier).getByText(/収録された大会結果/)).toHaveTextContent(
+      '絶対的な強さや勝率を示すものではなく',
+    )
+    expect(within(tier).getByText(/50:50/)).toHaveTextContent(
+      '同じ大会環境内の首位実績に対する相対値',
+    )
   })
 
   it('keeps different rounds of the same type in stable separate groups', async () => {
@@ -264,6 +450,6 @@ describe('TournamentAnalysisPage', () => {
     }
     renderPage({ index: noResults })
     await screen.findByRole('heading', { name: 'セレクションカップ／bp08' })
-    expect(screen.getAllByText('対象データがありません。')).toHaveLength(2)
+    expect(screen.getAllByText('対象データがありません。')).toHaveLength(3)
   })
 })
