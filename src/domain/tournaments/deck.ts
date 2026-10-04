@@ -29,7 +29,7 @@ export function convertTournamentResultToDeck(
   })
   const regulationId = getTournamentRegulationId(
     event.tournament.type,
-    event.tournament.round,
+    event.tournament.environment,
   )
   return {
     ...deck,

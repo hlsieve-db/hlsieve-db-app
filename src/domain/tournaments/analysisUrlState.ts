@@ -1,8 +1,8 @@
-import { TOURNAMENT_NO_ROUND } from './ui'
+import { TOURNAMENT_NO_ENVIRONMENT } from './ui'
 
 export type TournamentAnalysisUrlState = {
   type?: string
-  round?: string | null
+  environment?: string | null
   from?: string
   to?: string
 }
@@ -29,13 +29,17 @@ export function parseTournamentAnalysisUrlState(
       ? new URLSearchParams(input.startsWith('?') ? input.slice(1) : input)
       : input
   const type = trimmed(params.get('type'))
-  const serializedRound = type ? trimmed(params.get('round')) : undefined
+  const serializedEnvironment = type
+    ? trimmed(params.get('environment'))
+    : undefined
   return {
     ...(type ? { type } : {}),
-    ...(serializedRound
+    ...(serializedEnvironment
       ? {
-          round:
-            serializedRound === TOURNAMENT_NO_ROUND ? null : serializedRound,
+          environment:
+            serializedEnvironment === TOURNAMENT_NO_ENVIRONMENT
+              ? null
+              : serializedEnvironment,
         }
       : {}),
     ...(validDate(params.get('from'))
@@ -50,10 +54,10 @@ export function serializeTournamentAnalysisUrlState(
 ): URLSearchParams {
   const params = new URLSearchParams()
   if (state.type) params.set('type', state.type)
-  if (state.type && state.round === null)
-    params.set('round', TOURNAMENT_NO_ROUND)
-  if (state.type && typeof state.round === 'string')
-    params.set('round', state.round)
+  if (state.type && state.environment === null)
+    params.set('environment', TOURNAMENT_NO_ENVIRONMENT)
+  if (state.type && typeof state.environment === 'string')
+    params.set('environment', state.environment)
   if (state.from) params.set('from', state.from)
   if (state.to) params.set('to', state.to)
   return params

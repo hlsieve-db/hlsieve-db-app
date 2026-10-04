@@ -39,7 +39,8 @@ proof that every Event was discovered. A complete backfill from 2026-09-19 is
 not available. Local headless collection and GitHub Actions/cloud headless
 collection are also not available.
 
-Series `3440` remains mapped to `selectioncup`, round `bp08`. It is not limited
+Series `3440` is mapped to `selectioncup`, environment `bp09` (9th set), with
+no round value. It is not limited
 to 2026-09-19 through 2026-09-23: a public Result was also observed on
 2026-09-26. The overall Tournament DB collection start date remains
 2026-09-19.

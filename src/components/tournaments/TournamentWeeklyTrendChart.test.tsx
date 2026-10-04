@@ -7,7 +7,7 @@ import { TournamentWeeklyTrendChart } from './TournamentWeeklyTrendChart'
 function trend(candidates = ['CARD-A', 'CARD-B']): TournamentWeeklyTrendResult {
   const shares = [0.2, 0.25, null, 0.3]
   return {
-    environment: { tournamentType: 'selectioncup', round: 'bp08' },
+    environment: { tournamentType: 'selectioncup', environment: 'bp09' },
     candidates,
     points: ['2026-09-07', '2026-09-14', '2026-09-21', '2026-09-28'].map(
       (weekStart, index) => ({
@@ -55,7 +55,7 @@ describe('TournamentWeeklyTrendChart', () => {
       <TournamentWeeklyTrendChart
         trend={trend()}
         oshiMaster={master}
-        environmentLabel="セレクションカップ／bp08"
+        environmentLabel="セレクションカップ／9弾"
       />,
     )
     expect(screen.getByRole('heading', { name: '週次推移' })).toBeVisible()

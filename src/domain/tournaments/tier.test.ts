@@ -23,7 +23,7 @@ function group(
   const winnerDistribution = distribution(winners)
   const placementDistribution = distribution(placements)
   return {
-    environment: { tournamentType: 'selectioncup', round: 'bp08' },
+    environment: { tournamentType: 'selectioncup', environment: 'bp09' },
     summary: {
       totalEvents: 20,
       eligibleWinnerEvents: winnerDistribution.totalResults,
@@ -356,7 +356,7 @@ describe('evaluateTournamentTier', () => {
     const first = group([['A', 5]], [['A', 20]])
     const second = {
       ...group([['B', 5]], [['B', 20]]),
-      environment: { tournamentType: 'bloomcup', round: 'bp08' },
+      environment: { tournamentType: 'bloomcup', environment: 'bp09' },
     }
     const results = evaluateTournamentTiers([first, second])
     expect(results.map((result) => result.environment)).toEqual([

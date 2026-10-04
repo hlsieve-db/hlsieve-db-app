@@ -1,15 +1,16 @@
 import type { TournamentIndexFile } from './types'
+import { selectTournamentPlacementResults } from './placement'
 
 export type TournamentAggregationFilter = {
   from?: string
   to?: string
   tournamentType?: string
-  round?: string | null
+  environment?: string | null
 }
 
 export type TournamentEnvironment = {
   tournamentType: string
-  round?: string
+  environment?: string
 }
 
 export type TournamentDistributionEntry = {
@@ -86,8 +87,10 @@ function validateFilter(filter: TournamentAggregationFilter): void {
   if (filter.from && filter.to && filter.from > filter.to) {
     throw new Error('Tournament aggregation date range is invalid.')
   }
-  if (filter.round !== undefined && filter.tournamentType === undefined) {
-    throw new Error('Tournament aggregation round requires a tournament type.')
+  if (filter.environment !== undefined && filter.tournamentType === undefined) {
+    throw new Error(
+      'Tournament aggregation environment requires a tournament type.',
+    )
   }
 }
 
@@ -132,11 +135,11 @@ function matchesFilter(
   ) {
     return false
   }
-  if (filter.round === null && event.tournament.round !== undefined)
+  if (filter.environment === null && event.tournament.environment !== undefined)
     return false
   if (
-    typeof filter.round === 'string' &&
-    event.tournament.round !== filter.round
+    typeof filter.environment === 'string' &&
+    event.tournament.environment !== filter.environment
   ) {
     return false
   }
@@ -144,7 +147,10 @@ function matchesFilter(
 }
 
 function environmentKey(environment: TournamentEnvironment): string {
-  return JSON.stringify([environment.tournamentType, environment.round ?? null])
+  return JSON.stringify([
+    environment.tournamentType,
+    environment.environment ?? null,
+  ])
 }
 
 function increment(counts: Map<string, number>, cardNumber: string): void {
@@ -177,10 +183,10 @@ function compareEnvironment(
   if (left.tournamentType !== right.tournamentType) {
     return left.tournamentType < right.tournamentType ? -1 : 1
   }
-  if (left.round === right.round) return 0
-  if (left.round === undefined) return -1
-  if (right.round === undefined) return 1
-  return left.round < right.round ? -1 : 1
+  if (left.environment === right.environment) return 0
+  if (left.environment === undefined) return -1
+  if (right.environment === undefined) return 1
+  return left.environment < right.environment ? -1 : 1
 }
 
 function addSummary(
@@ -219,9 +225,9 @@ export function aggregateSelectedTournamentEvents(
   for (const event of events) {
     const environment: TournamentEnvironment = {
       tournamentType: event.tournament.type,
-      ...(event.tournament.round === undefined
+      ...(event.tournament.environment === undefined
         ? {}
-        : { round: event.tournament.round }),
+        : { environment: event.tournament.environment }),
     }
     const key = environmentKey(environment)
     let group = mutableGroups.get(key)
@@ -244,7 +250,10 @@ export function aggregateSelectedTournamentEvents(
     }
 
     if (event.resultCoverage.kind !== 'winner-only') {
-      const placements = event.results.filter((result) => result.rank <= 8)
+      const placements = selectTournamentPlacementResults(
+        event.results,
+        event.participantCount,
+      )
       if (placements.length > 0) {
         group.summary.eligiblePlacementEvents += 1
       }

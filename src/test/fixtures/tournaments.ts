@@ -30,7 +30,7 @@ export const SYNTHETIC_TOURNAMENT_EVENTS: readonly TournamentEvent[] = [
     id: 'synthetic-event-a',
     tournament: {
       type: 'selectioncup',
-      round: 'bp08',
+      environment: 'bp09',
       seriesName: 'Synthetic Selection Cup',
     },
     date: '2026-09-26',
@@ -55,6 +55,7 @@ export const SYNTHETIC_TOURNAMENT_EVENTS: readonly TournamentEvent[] = [
     tournament: { type: 'bloomcup', seriesName: 'Synthetic Bloom Cup' },
     date: '2026-09-20',
     venue: { slug: 'synthetic-south-store', name: 'Synthetic South Store' },
+    participantCount: 32,
     resultCoverage: { kind: 'variable' },
     results: [1, 2, 3, 5].map((rank) =>
       result('b', rank, rank === 5 ? 'SYNTH-OSHI-NO-IMAGE' : 'SYNTH-OSHI-001'),
@@ -69,6 +70,7 @@ export const SYNTHETIC_TOURNAMENT_EVENTS: readonly TournamentEvent[] = [
       slug: 'synthetic-future-space',
       name: 'Synthetic Future Space With A Deliberately Long Venue Name',
     },
+    participantCount: 32,
     resultCoverage: { kind: 'winner-only' },
     results: [result('c', 1, 'SYNTH-OSHI-002')],
     source: { sourceType: 'synthetic-test-fixture' },

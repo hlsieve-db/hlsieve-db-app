@@ -226,7 +226,7 @@ describe('TournamentListPage', () => {
     })
     expect(screen.getByTestId('location')).toHaveTextContent('?type=bloomcup')
     expect(screen.getByTestId('location')).not.toHaveTextContent('page=')
-    fireEvent.change(screen.getByRole('combobox', { name: 'ラウンド' }), {
+    fireEvent.change(screen.getByRole('combobox', { name: '環境' }), {
       target: { value: 'none' },
     })
     fireEvent.change(

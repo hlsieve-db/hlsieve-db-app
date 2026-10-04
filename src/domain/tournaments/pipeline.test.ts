@@ -61,7 +61,7 @@ function event(overrides: Partial<TournamentEvent> = {}): TournamentEvent {
     id: 'evt-one',
     tournament: {
       type: 'selectioncup',
-      round: 'bp08',
+      environment: 'bp09',
       seriesName: 'Selection Cup',
     },
     date: '2026-09-19',
@@ -139,7 +139,7 @@ describe('Tournament static JSON generation', () => {
       events: [
         {
           id: 'evt-one',
-          tournament: { type: 'selectioncup', round: 'bp08' },
+          tournament: { type: 'selectioncup', environment: 'bp09' },
           date: '2026-09-19',
           participantCount: 60,
           resultCount: 2,
@@ -198,12 +198,12 @@ describe('Tournament static JSON generation', () => {
       index.events.map((item) => [
         item.date,
         item.tournament.type,
-        item.tournament.round,
+        item.tournament.environment,
       ]),
     ).toEqual([
       ['2026-09-21', 'bloomcup', undefined],
-      ['2026-09-20', 'selectioncup', 'bp08'],
-      ['2026-09-19', 'selectioncup', 'bp08'],
+      ['2026-09-20', 'selectioncup', 'bp09'],
+      ['2026-09-19', 'selectioncup', 'bp09'],
     ])
   })
 

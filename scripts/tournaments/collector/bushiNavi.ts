@@ -1,6 +1,10 @@
 import type { Page } from 'playwright'
 
 import { TOURNAMENT_DATA_START_DATE } from '../../../src/domain/tournaments/constants'
+import {
+  getTournamentPlacementMaxRank,
+  selectTournamentPlacementResults,
+} from '../../../src/domain/tournaments/placement'
 import type {
   TournamentDeck,
   TournamentImportEvent,
@@ -21,7 +25,6 @@ const BUSHI_NAVI_RESULT_LIST_URL =
 const BUSHI_NAVI_ORIGIN = 'https://www.bushi-navi.com'
 const DECK_LOG_ORIGIN = 'https://decklog.bushiroad.com'
 const RESULT_SATURATION_COUNT = 10
-const MAX_IMPORTED_RANK = 8
 
 export type DateRange = { from: string; to: string }
 
@@ -272,6 +275,7 @@ export function parseKnownEventMetadata(input: KnownEventMetadataInput): {
     )
   }
   const displayedSeriesName = input.title.split(/\s+\/\s+/)[0]
+  const titleVenueName = /\s+\/\s+in\s+(.+)$/i.exec(input.title)?.[1]
   if (!displayedSeriesName) {
     throw new KnownEventCollectionError(
       'invalid-metadata',
@@ -289,7 +293,7 @@ export function parseKnownEventMetadata(input: KnownEventMetadataInput): {
   const dateMatch = input.dateTimeText
     .normalize('NFKC')
     .match(/(\d{1,2})月(\d{1,2})日/)
-  const venueName = input.venueName.normalize('NFKC').trim()
+  const venueName = (titleVenueName ?? input.venueName).normalize('NFKC').trim()
   if (!dateMatch?.[1] || !dateMatch[2] || !venueName) {
     throw new KnownEventCollectionError(
       'invalid-metadata',
@@ -367,12 +371,6 @@ export function determineCoverage(
     return { kind: 'exact', maxRank: ranks.at(-1) ?? 1 }
   }
   return { kind: 'variable' }
-}
-
-export function limitToTopEight<T extends { rank: number }>(
-  results: readonly T[],
-): T[] {
-  return results.filter((result) => result.rank >= 1 && result.rank <= 8)
 }
 
 async function navigate(
@@ -660,7 +658,7 @@ async function collectCurrentEvent(
   range: DateRange,
   discovery: DiscoveryCard,
   resolveDeck: BushiNaviCollectorOptions['resolveDeck'],
-  resultLimit = MAX_IMPORTED_RANK,
+  resultLimit?: number,
 ): Promise<TournamentImportEvent> {
   const sourceEventId = parseSourceEventId(page.url())
   const sourceUrl = `${BUSHI_NAVI_ORIGIN}/event/result/${sourceEventId}`
@@ -683,7 +681,19 @@ async function collectCurrentEvent(
     exact: true,
   })
   const resultCount = await resultButtons.count()
-  const safeResultLimit = Math.min(resultLimit, MAX_IMPORTED_RANK)
+  let placementMaxRank: 8 | 16
+  try {
+    placementMaxRank = getTournamentPlacementMaxRank(participantCount)
+  } catch (error) {
+    throw new KnownEventCollectionError(
+      'invalid-metadata',
+      error instanceof Error ? error.message : String(error),
+    )
+  }
+  const safeResultLimit = Math.min(
+    resultLimit ?? placementMaxRank,
+    placementMaxRank,
+  )
   const results: TournamentImportResult[] = []
   for (let index = 0; index < resultCount; index += 1) {
     const row = resultButtons.nth(index).locator('xpath=ancestor::tr[1]')
@@ -699,9 +709,10 @@ async function collectCurrentEvent(
       throw new Error(`Oshi is missing for Deck ${deckLogCode}.`)
     results.push({ rank, oshiCardNumber, deckLogCode, deck })
   }
-  const limitedResults = limitToTopEight(results).sort(
-    (left, right) => left.rank - right.rank,
-  )
+  const limitedResults = selectTournamentPlacementResults(
+    results,
+    participantCount,
+  ).sort((left, right) => left.rank - right.rank)
   const date = resolveEventDate(discovery.dateTimeText, series.year, range)
   const venueName = discovery.venueName.normalize('NFKC').trim()
   if (!venueName)
@@ -711,6 +722,7 @@ async function collectCurrentEvent(
     identity: { sourceEventId },
     tournament: {
       type: series.type,
+      ...(series.environment ? { environment: series.environment } : {}),
       ...(series.round ? { round: series.round } : {}),
       seriesName: series.seriesName,
     },
@@ -793,9 +805,18 @@ export async function collectKnownTournamentEvent(
       `Bushi Navi Result is not published for ${options.sourceEventId}.`,
     )
   }
+  let placementMaxRank: 8 | 16
+  try {
+    placementMaxRank = getTournamentPlacementMaxRank(metadata.participantCount)
+  } catch (error) {
+    throw new KnownEventCollectionError(
+      'invalid-metadata',
+      error instanceof Error ? error.message : String(error),
+    )
+  }
   const safeResultLimit = Math.min(
-    options.resultLimit ?? MAX_IMPORTED_RANK,
-    MAX_IMPORTED_RANK,
+    options.resultLimit ?? placementMaxRank,
+    placementMaxRank,
   )
   const results: TournamentImportResult[] = []
   for (let index = 0; index < resultCount; index += 1) {
@@ -821,13 +842,17 @@ export async function collectKnownTournamentEvent(
       )
     }
   }
-  const limitedResults = limitToTopEight(results).sort(
-    (left, right) => left.rank - right.rank,
-  )
+  const limitedResults = selectTournamentPlacementResults(
+    results,
+    metadata.participantCount,
+  ).sort((left, right) => left.rank - right.rank)
   return {
     identity: { sourceEventId: options.sourceEventId },
     tournament: {
       type: metadata.series.type,
+      ...(metadata.series.environment
+        ? { environment: metadata.series.environment }
+        : {}),
       ...(metadata.series.round ? { round: metadata.series.round } : {}),
       seriesName: metadata.series.seriesName,
     },
@@ -922,5 +947,5 @@ export async function collectBushiNaviEvents(
 
 export const BUSHI_NAVI_TEST_CONSTANTS = {
   resultSaturationCount: RESULT_SATURATION_COUNT,
-  maxImportedRank: MAX_IMPORTED_RANK,
+  maxImportedRank: 16,
 }

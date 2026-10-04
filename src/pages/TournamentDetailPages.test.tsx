@@ -173,7 +173,7 @@ describe('Tournament Event detail', () => {
     expect(await screen.findByText('60人')).toBeVisible()
   })
 
-  it('renders metadata without coverage and only real top-eight Results in stable Result-ID links', async () => {
+  it('renders metadata without coverage and all real Results in stable Result-ID links', async () => {
     const sparse = SYNTHETIC_TOURNAMENT_PUBLICATION.events['synthetic-event-b']
     renderEvent({
       file: {
@@ -196,9 +196,9 @@ describe('Tournament Event detail', () => {
     ).toBeInTheDocument()
     expect(screen.queryByText('収録範囲')).not.toBeInTheDocument()
     expect(screen.queryByText('取得できた結果のみ収録')).not.toBeInTheDocument()
-    expect(screen.getAllByRole('listitem')).toHaveLength(4)
+    expect(screen.getAllByRole('listitem')).toHaveLength(5)
     expect(screen.queryByText('4位')).not.toBeInTheDocument()
-    expect(screen.queryByText('9位')).not.toBeInTheDocument()
+    expect(screen.getByText('9位')).toBeInTheDocument()
     expect(
       screen.getAllByRole('link', { name: '結果詳細を見る' })[0],
     ).toHaveAttribute(
@@ -282,7 +282,14 @@ describe('Tournament Event detail', () => {
   it('renders an unknown type and missing participant count safely', async () => {
     const future = SYNTHETIC_TOURNAMENT_PUBLICATION.events['synthetic-event-c']
     renderEvent({
-      file: { ...future, event: { ...future.event, id: 'synthetic-event-a' } },
+      file: {
+        ...future,
+        event: {
+          ...future.event,
+          id: 'synthetic-event-a',
+          participantCount: undefined,
+        },
+      },
     })
     expect(await screen.findByText('その他')).toBeInTheDocument()
     expect(screen.queryByText('参加者')).not.toBeInTheDocument()

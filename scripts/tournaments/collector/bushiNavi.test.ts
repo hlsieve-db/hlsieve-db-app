@@ -8,7 +8,6 @@ import {
   buildOfficialDeckLogUrl,
   classifyKnownEventAvailability,
   determineCoverage,
-  limitToTopEight,
   parseDeckCodeFromModalImage,
   parseKnownEventMetadata,
   parseParticipantCount,
@@ -23,14 +22,8 @@ import {
 } from './bushiNavi'
 
 describe('Bushi Navi Collector rules', () => {
-  it('limits Selection Cup source ranks 1-16 to ranks 1-8', () => {
-    expect(BUSHI_NAVI_TEST_CONSTANTS.maxImportedRank).toBe(8)
-    const results = Array.from({ length: 16 }, (_, index) => ({
-      rank: index + 1,
-    }))
-    expect(limitToTopEight(results).map(({ rank }) => rank)).toEqual([
-      1, 2, 3, 4, 5, 6, 7, 8,
-    ])
+  it('supports collecting through rank 16', () => {
+    expect(BUSHI_NAVI_TEST_CONSTANTS.maxImportedRank).toBe(16)
   })
 
   it('uses exact coverage only for contiguous ranks from one', () => {
@@ -140,14 +133,14 @@ describe('Bushi Navi Collector rules', () => {
         title:
           '【ホロカ】先行開催！セレクションカップ（2026年9月） / in 竜星の嵐 名古屋店',
         dateTimeText: '09月23日（水）13時00分',
-        venueName: '竜星の嵐 名古屋店',
+        venueName: '竜星の嵐 名古屋店 名古屋市中村区椿町21-5 桜木ビル3F',
         pageText: '大会結果\n参加者: 60人',
       }),
     ).toMatchObject({
       date: '2026-09-23',
       participantCount: 60,
       venueName: '竜星の嵐 名古屋店',
-      series: { type: 'selectioncup', round: 'bp08' },
+      series: { type: 'selectioncup', environment: 'bp09' },
     })
     expect(
       parseKnownEventMetadata({

@@ -2,6 +2,7 @@ import type { DeckEntry } from '../decks/types'
 
 export type TournamentSeries = {
   type: string
+  environment?: string
   round?: string
   seriesName: string
 }

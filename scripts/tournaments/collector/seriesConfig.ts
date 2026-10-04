@@ -9,7 +9,7 @@ export const TOURNAMENT_SERIES_CONFIGS: readonly TournamentSeriesConfig[] = [
   {
     seriesId: '3440',
     type: 'selectioncup',
-    round: 'bp08',
+    environment: 'bp09',
     seriesName: '【ホロカ】先行開催！セレクションカップ（2026年9月）',
     year: 2026,
   },

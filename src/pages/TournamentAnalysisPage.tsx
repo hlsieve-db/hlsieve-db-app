@@ -29,7 +29,10 @@ import {
   aggregateTournamentWeeklyTrends,
   type TournamentWeeklyTrendResult,
 } from '../domain/tournaments/weeklyTrend'
-import { tournamentTypeLabel } from '../domain/tournaments/ui'
+import {
+  tournamentEnvironmentLabel,
+  tournamentTypeLabel,
+} from '../domain/tournaments/ui'
 import { useDocumentMetadata } from '../hooks/useDocumentMetadata'
 import {
   loadTournamentIndex,
@@ -56,9 +59,9 @@ function searchString(params: URLSearchParams): string {
   return value ? `?${value}` : ''
 }
 
-function roundValue(round: string | null | undefined): string {
-  if (round === null) return 'none'
-  return round ?? ''
+function environmentValue(environment: string | null | undefined): string {
+  if (environment === null) return 'none'
+  return environment ?? ''
 }
 
 function Ranking({
@@ -112,10 +115,10 @@ function TierPanel({
   return (
     <section
       className="tournament-tier"
-      aria-labelledby={`tier-${encodeURIComponent(result.environment.tournamentType)}-${encodeURIComponent(result.environment.round ?? 'none')}`}
+      aria-labelledby={`tier-${encodeURIComponent(result.environment.tournamentType)}-${encodeURIComponent(result.environment.environment ?? 'none')}`}
     >
       <h3
-        id={`tier-${encodeURIComponent(result.environment.tournamentType)}-${encodeURIComponent(result.environment.round ?? 'none')}`}
+        id={`tier-${encodeURIComponent(result.environment.tournamentType)}-${encodeURIComponent(result.environment.environment ?? 'none')}`}
       >
         収録大会実績Tier
       </h3>
@@ -207,15 +210,15 @@ function EnvironmentSection({
   weeklyTrend?: TournamentWeeklyTrendResult
   master?: TournamentOshiMasterFile
 }) {
-  const heading = `${tournamentTypeLabel(group.environment.tournamentType)}／${group.environment.round ?? 'ラウンドなし'}`
+  const heading = `${tournamentTypeLabel(group.environment.tournamentType)}／${group.environment.environment ? tournamentEnvironmentLabel(group.environment.environment) : '環境指定なし'}`
   const tierResult = evaluateTournamentTier(group)
   return (
     <section
       className="tournament-analysis-environment"
-      aria-labelledby={`environment-${encodeURIComponent(group.environment.tournamentType)}-${encodeURIComponent(group.environment.round ?? 'none')}`}
+      aria-labelledby={`environment-${encodeURIComponent(group.environment.tournamentType)}-${encodeURIComponent(group.environment.environment ?? 'none')}`}
     >
       <h2
-        id={`environment-${encodeURIComponent(group.environment.tournamentType)}-${encodeURIComponent(group.environment.round ?? 'none')}`}
+        id={`environment-${encodeURIComponent(group.environment.tournamentType)}-${encodeURIComponent(group.environment.environment ?? 'none')}`}
       >
         {heading}
       </h2>
@@ -325,14 +328,14 @@ export function TournamentAnalysisPage({
   const types = [
     ...new Set(events.map((event) => event.tournament.type)),
   ].sort()
-  const rounds = useMemo(
+  const environments = useMemo(
     () =>
       urlState.type
         ? [
             ...new Set(
               events
                 .filter((event) => event.tournament.type === urlState.type)
-                .map((event) => event.tournament.round),
+                .map((event) => event.tournament.environment),
             ),
           ]
         : [],
@@ -347,7 +350,7 @@ export function TournamentAnalysisPage({
         status: 'loaded' as const,
         data: aggregateTournamentIndex(indexState.data, {
           tournamentType: urlState.type,
-          round: urlState.round,
+          environment: urlState.environment,
           from: urlState.from,
           to: urlState.to,
         }),
@@ -364,7 +367,7 @@ export function TournamentAnalysisPage({
         status: 'loaded' as const,
         data: aggregateTournamentWeeklyTrends(indexState.data, {
           tournamentType: urlState.type,
-          round: urlState.round,
+          environment: urlState.environment,
           from: urlState.from,
           to: urlState.to,
         }),
@@ -377,13 +380,15 @@ export function TournamentAnalysisPage({
   useEffect(() => {
     if (
       !urlState.type ||
-      urlState.round === undefined ||
+      urlState.environment === undefined ||
       indexState.status !== 'loaded'
     )
       return
-    const valid = rounds.some((round) => round === urlState.round)
+    const valid = environments.some(
+      (environment) => environment === urlState.environment,
+    )
     if (!valid) {
-      const next = { ...urlState, round: undefined }
+      const next = { ...urlState, environment: undefined }
       navigate(
         {
           pathname: '/tournaments/analysis',
@@ -392,7 +397,7 @@ export function TournamentAnalysisPage({
         { replace: true },
       )
     }
-  }, [indexState.status, navigate, rounds, urlState])
+  }, [environments, indexState.status, navigate, urlState])
 
   const update = (patch: Partial<TournamentAnalysisUrlState>) => {
     const next = { ...urlState, ...patch }
@@ -431,17 +436,20 @@ export function TournamentAnalysisPage({
               value={urlState.type ?? ''}
               onChange={(event) => {
                 const type = event.currentTarget.value || undefined
-                const keepsRound =
+                const keepsEnvironment =
                   type !== undefined &&
-                  urlState.round !== undefined &&
+                  urlState.environment !== undefined &&
                   events.some(
                     (item) =>
                       item.tournament.type === type &&
-                      (item.tournament.round ?? null) === urlState.round,
+                      (item.tournament.environment ?? null) ===
+                        urlState.environment,
                   )
                 update({
                   type,
-                  round: keepsRound ? urlState.round : undefined,
+                  environment: keepsEnvironment
+                    ? urlState.environment
+                    : undefined,
                 })
               }}
             >
@@ -454,13 +462,13 @@ export function TournamentAnalysisPage({
             </select>
           </label>
           <label>
-            ラウンド
+            環境
             <select
               disabled={!urlState.type}
-              value={roundValue(urlState.round)}
+              value={environmentValue(urlState.environment)}
               onChange={(event) =>
                 update({
-                  round:
+                  environment:
                     event.currentTarget.value === ''
                       ? undefined
                       : event.currentTarget.value === 'none'
@@ -470,15 +478,18 @@ export function TournamentAnalysisPage({
               }
             >
               <option value="">すべて</option>
-              {rounds.includes(undefined) && (
-                <option value="none">ラウンドなし</option>
+              {environments.includes(undefined) && (
+                <option value="none">環境指定なし</option>
               )}
-              {rounds
-                .filter((round): round is string => round !== undefined)
+              {environments
+                .filter(
+                  (environment): environment is string =>
+                    environment !== undefined,
+                )
                 .sort()
-                .map((round) => (
-                  <option key={round} value={round}>
-                    {round}
+                .map((environment) => (
+                  <option key={environment} value={environment}>
+                    {tournamentEnvironmentLabel(environment)}
                   </option>
                 ))}
             </select>
@@ -563,7 +574,7 @@ export function TournamentAnalysisPage({
           <div className="tournament-analysis-results">
             {aggregation.data.groups.map((group) => (
               <EnvironmentSection
-                key={`${group.environment.tournamentType}:${group.environment.round ?? 'none'}`}
+                key={`${group.environment.tournamentType}:${group.environment.environment ?? 'none'}`}
                 group={group}
                 weeklyTrend={
                   weeklyAggregation?.status === 'loaded'
@@ -571,8 +582,8 @@ export function TournamentAnalysisPage({
                         (weeklyGroup) =>
                           weeklyGroup.environment.tournamentType ===
                             group.environment.tournamentType &&
-                          weeklyGroup.environment.round ===
-                            group.environment.round,
+                          weeklyGroup.environment.environment ===
+                            group.environment.environment,
                       )
                     : undefined
                 }

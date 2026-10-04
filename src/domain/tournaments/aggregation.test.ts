@@ -21,18 +21,22 @@ function event(
     coverage?: TournamentResultCoverage
     date?: string
     type?: string
-    round?: string
+    environment?: string
+    participantCount?: number
   } = {},
 ): IndexEvent {
   return {
     id,
     tournament: {
       type: options.type ?? 'selectioncup',
-      ...(options.round === undefined ? {} : { round: options.round }),
+      ...(options.environment === undefined
+        ? {}
+        : { environment: options.environment }),
       seriesName: 'Tournament',
     },
     date: options.date ?? '2026-09-20',
     venue: { slug: `venue-${id}`, name: `Venue ${id}` },
+    participantCount: options.participantCount ?? 32,
     resultCoverage: options.coverage ?? { kind: 'exact', maxRank: 8 },
     resultCount: results.length,
     results,
@@ -60,7 +64,7 @@ describe('aggregateTournamentIndex', () => {
           `exact-${offset + 1}`,
         ),
       ),
-      { coverage: { kind: 'exact', maxRank: 8 }, round: 'bp08' },
+      { coverage: { kind: 'exact', maxRank: 8 }, environment: 'bp09' },
     )
     const variable = event(
       'variable',
@@ -70,14 +74,14 @@ describe('aggregateTournamentIndex', () => {
         result(3, 'OSHI-C', 'variable-3'),
         result(5, 'OSHI-D', 'variable-5'),
       ],
-      { coverage: { kind: 'variable' }, round: 'bp08' },
+      { coverage: { kind: 'variable' }, environment: 'bp09' },
     )
     const winnerOnly = event(
       'winner-only',
       [result(1, 'OSHI-B', 'winner-only-1')],
       {
         coverage: { kind: 'winner-only' },
-        round: 'bp08',
+        environment: 'bp09',
       },
     )
 
@@ -139,23 +143,26 @@ describe('aggregateTournamentIndex', () => {
     ).toEqual(['A', 'B', 'C'])
   })
 
-  it('keeps every type and round in a separate, stably ordered environment', () => {
+  it('keeps every type and environment in a separate, stably ordered group', () => {
     const aggregated = aggregateTournamentIndex(
       index([
-        event('z-round', [result(1, 'Z')], { type: 'zeta', round: 'r2' }),
-        event('a-r2', [result(1, 'A2')], { type: 'alpha', round: 'r2' }),
+        event('z-round', [result(1, 'Z')], { type: 'zeta', environment: 'r2' }),
+        event('a-r2', [result(1, 'A2')], { type: 'alpha', environment: 'r2' }),
         event('a-none', [result(1, 'AN')], { type: 'alpha' }),
-        event('a-r1', [result(1, 'A1')], { type: 'alpha', round: 'r1' }),
-        event('unknown', [result(1, 'U')], { type: 'future', round: 'x' }),
+        event('a-r1', [result(1, 'A1')], { type: 'alpha', environment: 'r1' }),
+        event('unknown', [result(1, 'U')], {
+          type: 'future',
+          environment: 'x',
+        }),
       ]),
     )
 
     expect(aggregated.groups.map((group) => group.environment)).toEqual([
       { tournamentType: 'alpha' },
-      { tournamentType: 'alpha', round: 'r1' },
-      { tournamentType: 'alpha', round: 'r2' },
-      { tournamentType: 'future', round: 'x' },
-      { tournamentType: 'zeta', round: 'r2' },
+      { tournamentType: 'alpha', environment: 'r1' },
+      { tournamentType: 'alpha', environment: 'r2' },
+      { tournamentType: 'future', environment: 'x' },
+      { tournamentType: 'zeta', environment: 'r2' },
     ])
     expect(
       aggregateTournamentIndex(index(aggregated.groups.flatMap(() => [])))
@@ -163,28 +170,28 @@ describe('aggregateTournamentIndex', () => {
     ).toEqual([])
   })
 
-  it('applies inclusive date, type, round, and explicit no-round filters', () => {
+  it('applies inclusive date, type, environment, and no-environment filters', () => {
     const source = index([
       event('before', [result(1, 'A')], {
         date: '2026-09-19',
         type: 'cup',
-        round: 'r1',
+        environment: 'r1',
       }),
       event('start', [result(1, 'B')], {
         date: '2026-09-20',
         type: 'cup',
-        round: 'r1',
+        environment: 'r1',
       }),
       event('no-round', [result(1, 'C')], { date: '2026-09-21', type: 'cup' }),
       event('end', [result(1, 'D')], {
         date: '2026-09-22',
         type: 'cup',
-        round: 'r2',
+        environment: 'r2',
       }),
       event('other', [result(1, 'E')], {
         date: '2026-09-21',
         type: 'other',
-        round: 'r1',
+        environment: 'r1',
       }),
     ])
 
@@ -193,12 +200,16 @@ describe('aggregateTournamentIndex', () => {
         .summary.totalEvents,
     ).toBe(4)
     expect(
-      aggregateTournamentIndex(source, { tournamentType: 'cup', round: 'r1' })
-        .summary.totalEvents,
+      aggregateTournamentIndex(source, {
+        tournamentType: 'cup',
+        environment: 'r1',
+      }).summary.totalEvents,
     ).toBe(2)
     expect(
-      aggregateTournamentIndex(source, { tournamentType: 'cup', round: null })
-        .summary.totalEvents,
+      aggregateTournamentIndex(source, {
+        tournamentType: 'cup',
+        environment: null,
+      }).summary.totalEvents,
     ).toBe(1)
     expect(
       aggregateTournamentIndex(source, { tournamentType: 'cup' }).groups,
@@ -209,8 +220,8 @@ describe('aggregateTournamentIndex', () => {
     [{ from: '2026-02-30' }, 'from date'],
     [{ to: 'not-a-date' }, 'to date'],
     [{ from: '2026-09-22', to: '2026-09-20' }, 'date range'],
-    [{ round: 'bp08' }, 'requires a tournament type'],
-    [{ round: null }, 'requires a tournament type'],
+    [{ environment: 'bp09' }, 'requires a tournament type'],
+    [{ environment: null }, 'requires a tournament type'],
   ] as const)('rejects an invalid filter: %s', (filter, message) => {
     expect(() => aggregateTournamentIndex(index([]), filter)).toThrow(message)
   })
@@ -346,5 +357,26 @@ describe('aggregateTournamentIndex', () => {
       winnerResultCount: 1,
       placementResultCount: 0,
     })
+  })
+
+  it('uses Top16 for 33-64 participants and excludes rank 17', () => {
+    const results = [1, 8, 9, 16, 17].map((rank) =>
+      result(rank, `OSHI-${rank}`, `result-${rank}`),
+    )
+    const aggregated = aggregateTournamentIndex(
+      index([
+        event('sixty-player-event', results, {
+          participantCount: 60,
+          coverage: { kind: 'exact', maxRank: 16 },
+          environment: 'bp09',
+        }),
+      ]),
+    )
+    expect(aggregated.summary.placementResultCount).toBe(4)
+    expect(
+      aggregated.groups[0]?.placements.entries.map(
+        (entry) => entry.oshiCardNumber,
+      ),
+    ).not.toContain('OSHI-17')
   })
 })

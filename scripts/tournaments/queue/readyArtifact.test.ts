@@ -56,7 +56,7 @@ const payload: TournamentImportPayload = {
       identity: { sourceEventId: '1764903' },
       tournament: {
         type: 'selectioncup',
-        round: 'bp08',
+        environment: 'bp09',
         seriesName: 'Selection Cup',
       },
       date: '2026-09-23',
@@ -213,20 +213,29 @@ describe('Tournament ready artifact', () => {
     })
     expect((await queue.load()).records[0]?.status).toBe('ready')
 
-    const conflictingPayload = structuredClone(payload)
-    conflictingPayload.events[0]!.date = '2026-09-24'
-    await artifacts.save('1764903', conflictingPayload, cardsData)
-    await expect(
-      publishReadyTournamentEvent({
-        sourceEventId: '1764903',
-        write: true,
-        queue,
-        artifacts,
-        cardsData,
-        publicDirectory,
-        stagingDirectory: resolve(root, 'conflict'),
+    const correctedPayload = structuredClone(payload)
+    correctedPayload.events[0]!.date = '2026-09-24'
+    correctedPayload.events[0]!.tournament.environment = 'bp09'
+    await artifacts.save('1764903', correctedPayload, cardsData)
+    await publishReadyTournamentEvent({
+      sourceEventId: '1764903',
+      write: true,
+      queue,
+      artifacts,
+      cardsData,
+      publicDirectory,
+      stagingDirectory: resolve(root, 'corrected'),
+    })
+    const correctedIndex = JSON.parse(
+      await readFile(resolve(publicDirectory, 'index.json'), 'utf8'),
+    )
+    expect(correctedIndex.events).toEqual([
+      expect.objectContaining({
+        id: JSON.parse(publishedText).event.id,
+        date: '2026-09-24',
+        tournament: expect.objectContaining({ environment: 'bp09' }),
       }),
-    ).rejects.toThrow(/pending conflicts/)
+    ])
     expect((await queue.load()).records[0]?.status).toBe('ready')
   })
 })

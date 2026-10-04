@@ -66,7 +66,7 @@ function event(
     identity: { sourceEventId: 'event-1' },
     tournament: {
       type: 'selectioncup',
-      round: 'bp08',
+      environment: 'bp09',
       seriesName: 'Selection Cup',
     },
     date: '2026-09-19',
@@ -120,7 +120,7 @@ describe('validateTournamentImportPayload', () => {
     expect(checked.pending).toEqual([])
     expect(checked.events).toHaveLength(1)
     expect(checked.events[0]).toMatchObject({
-      tournament: { type: 'selectioncup', round: 'bp08' },
+      tournament: { type: 'selectioncup', environment: 'bp09' },
       results: [{ rank: 1, oshiCardNumber: 'OSHI-001' }],
     })
   })

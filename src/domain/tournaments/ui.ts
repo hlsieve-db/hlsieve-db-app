@@ -5,7 +5,7 @@ import type {
 } from './types'
 
 export const TOURNAMENT_PAGE_SIZE = 20
-export const TOURNAMENT_NO_ROUND = 'none'
+export const TOURNAMENT_NO_ENVIRONMENT = 'none'
 
 export type TournamentSort = 'date-desc' | 'date-asc'
 export type TournamentIndexEvent = TournamentIndexFile['events'][number]
@@ -20,6 +20,11 @@ export function tournamentTypeLabel(type: string): string {
   return TYPE_LABELS[type] ?? 'その他'
 }
 
+export function tournamentEnvironmentLabel(environment: string): string {
+  const match = /^bp0*(\d+)$/i.exec(environment)
+  return match?.[1] ? `${Number(match[1])}弾` : environment
+}
+
 export function tournamentCoverageLabel(
   coverage: TournamentResultCoverage,
 ): string {
@@ -31,12 +36,9 @@ export function tournamentCoverageLabel(
 export function visibleTournamentResults(
   results: readonly TournamentResult[],
 ): TournamentResult[] {
-  return [...results]
-    .filter((result) => result.rank <= 8)
-    .sort(
-      (left, right) =>
-        left.rank - right.rank || left.id.localeCompare(right.id),
-    )
+  return [...results].sort(
+    (left, right) => left.rank - right.rank || left.id.localeCompare(right.id),
+  )
 }
 
 export function normalizeTournamentVenue(value: string): string {
@@ -49,7 +51,7 @@ export function filterTournamentEvents(
     from?: string
     to?: string
     type?: string
-    round?: string
+    environment?: string
     oshi?: string
     venue?: string
   },
@@ -60,10 +62,10 @@ export function filterTournamentEvents(
     if (filters.to && event.date > filters.to) return false
     if (filters.type && event.tournament.type !== filters.type) return false
     if (
-      filters.round &&
-      (filters.round === TOURNAMENT_NO_ROUND
-        ? event.tournament.round !== undefined
-        : event.tournament.round !== filters.round)
+      filters.environment &&
+      (filters.environment === TOURNAMENT_NO_ENVIRONMENT
+        ? event.tournament.environment !== undefined
+        : event.tournament.environment !== filters.environment)
     ) {
       return false
     }

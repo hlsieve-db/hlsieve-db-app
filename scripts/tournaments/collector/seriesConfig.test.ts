@@ -9,9 +9,10 @@ describe('Tournament Collector series config', () => {
   it('maps the approved Selection Cup and Bloom Cup series', () => {
     expect(getTournamentSeriesConfig('3440')).toMatchObject({
       type: 'selectioncup',
-      round: 'bp08',
+      environment: 'bp09',
       year: 2026,
     })
+    expect(getTournamentSeriesConfig('3440')).not.toHaveProperty('round')
     const bloom = getTournamentSeriesConfig('3396')
     expect(bloom).toMatchObject({
       type: 'bloomcup',

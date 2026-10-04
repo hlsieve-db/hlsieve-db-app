@@ -48,7 +48,7 @@ function event(mainCardNumber = 'MAIN-1'): TournamentImportEvent {
     identity: { sourceEventId: '1764903' },
     tournament: {
       type: 'selectioncup',
-      round: 'bp08',
+      environment: 'bp09',
       seriesName: 'Selection Cup',
     },
     date: '2026-09-23',

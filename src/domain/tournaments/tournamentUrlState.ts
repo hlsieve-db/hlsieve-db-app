@@ -1,10 +1,10 @@
-import { TOURNAMENT_NO_ROUND, type TournamentSort } from './ui'
+import { TOURNAMENT_NO_ENVIRONMENT, type TournamentSort } from './ui'
 
 export type TournamentUrlState = {
   from?: string
   to?: string
   type?: string
-  round?: string
+  environment?: string
   oshi?: string
   venue?: string
   sort: TournamentSort
@@ -44,12 +44,15 @@ export function parseTournamentUrlState(
       ? new URLSearchParams(input.startsWith('?') ? input.slice(1) : input)
       : input
   const sort = params.get('sort') === 'date-asc' ? 'date-asc' : 'date-desc'
-  const round = trimmed(params.get('round'))
+  const environment = trimmed(params.get('environment'))
   return {
     from: validDate(params.get('from')),
     to: validDate(params.get('to')),
     type: trimmed(params.get('type')),
-    round: round === TOURNAMENT_NO_ROUND ? TOURNAMENT_NO_ROUND : round,
+    environment:
+      environment === TOURNAMENT_NO_ENVIRONMENT
+        ? TOURNAMENT_NO_ENVIRONMENT
+        : environment,
     oshi: trimmed(params.get('oshi')),
     venue: trimmed(params.get('venue')),
     sort,
@@ -64,7 +67,7 @@ export function serializeTournamentUrlState(
   if (state.from) params.set('from', state.from)
   if (state.to) params.set('to', state.to)
   if (state.type) params.set('type', state.type)
-  if (state.round) params.set('round', state.round)
+  if (state.environment) params.set('environment', state.environment)
   if (state.oshi) params.set('oshi', state.oshi)
   if (state.venue) params.set('venue', state.venue)
   if (state.sort !== 'date-desc') params.set('sort', state.sort)

@@ -57,15 +57,18 @@ const EMPTY_SUMMARY: TournamentAggregationSummary = {
 }
 
 function environmentKey(environment: TournamentEnvironment): string {
-  return JSON.stringify([environment.tournamentType, environment.round ?? null])
+  return JSON.stringify([
+    environment.tournamentType,
+    environment.environment ?? null,
+  ])
 }
 
 function eventEnvironmentKey(event: TournamentIndexEvent): string {
   return environmentKey({
     tournamentType: event.tournament.type,
-    ...(event.tournament.round === undefined
+    ...(event.tournament.environment === undefined
       ? {}
-      : { round: event.tournament.round }),
+      : { environment: event.tournament.environment }),
   })
 }
 
@@ -117,7 +120,7 @@ export function aggregateTournamentWeeklyTrends(
   const selectedEvents = selectTournamentEvents(index, filter)
   const environmentEvents = selectTournamentEvents(index, {
     tournamentType: filter.tournamentType,
-    round: filter.round,
+    environment: filter.environment,
   })
   const knownGroups =
     aggregateSelectedTournamentEvents(environmentEvents).groups

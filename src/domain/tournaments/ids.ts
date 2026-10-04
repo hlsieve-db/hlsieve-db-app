@@ -36,15 +36,17 @@ export function createTournamentEventId(event: TournamentImportEvent): string {
   if (!discriminator || discriminator.endsWith(':')) {
     throw new Error('Tournament event identity is ambiguous.')
   }
-  return `evt_${stableHash(
-    [
-      event.date,
-      event.tournament.type,
-      event.tournament.round ?? '',
-      event.venue.slug,
-      discriminator,
-    ].join('\n'),
-  )}`
+  const identity = event.identity.sourceEventId
+    ? [discriminator]
+    : [
+        event.date,
+        event.tournament.type,
+        event.tournament.environment ?? '',
+        event.tournament.round ?? '',
+        event.venue.slug,
+        discriminator,
+      ]
+  return `evt_${stableHash(identity.join('\n'))}`
 }
 
 export function createTournamentResultId(

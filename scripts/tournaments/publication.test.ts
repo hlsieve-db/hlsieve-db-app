@@ -79,7 +79,7 @@ describe('atomic Tournament publication', () => {
     expect(isTournamentOshiMasterFile(oshiMaster)).toBe(true)
     expect(
       Object.keys((oshiMaster as { cards: Record<string, unknown> }).cards),
-    ).toHaveLength(4)
+    ).toHaveLength(6)
     expect(indexText).not.toMatch(/synthetic/i)
     expect(oshiMasterText).not.toMatch(/synthetic/i)
   })

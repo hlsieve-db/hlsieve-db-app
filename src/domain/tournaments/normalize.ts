@@ -35,6 +35,10 @@ function series(value: unknown): TournamentSeries {
   const input = record(value, 'tournament')
   return {
     type: string(input.type, 'tournament.type').toLowerCase(),
+    environment: optionalString(
+      input.environment,
+      'tournament.environment',
+    )?.toLowerCase(),
     round: optionalString(input.round, 'tournament.round')?.toLowerCase(),
     seriesName: string(input.seriesName, 'tournament.seriesName'),
   }

@@ -4,14 +4,15 @@ import { SYNTHETIC_TOURNAMENT_INDEX } from '../../test/fixtures/tournaments'
 import {
   filterTournamentEvents,
   sortTournamentEvents,
-  TOURNAMENT_NO_ROUND,
+  TOURNAMENT_NO_ENVIRONMENT,
+  tournamentEnvironmentLabel,
   tournamentTypeLabel,
 } from './ui'
 
 describe('Tournament list domain helpers', () => {
   const events = SYNTHETIC_TOURNAMENT_INDEX.events
 
-  it('filters dates, type, round, Oshi card number and normalized venue', () => {
+  it('filters dates, type, environment, Oshi card number and venue', () => {
     expect(filterTournamentEvents(events, { from: '2026-09-25' })).toHaveLength(
       1,
     )
@@ -19,11 +20,13 @@ describe('Tournament list domain helpers', () => {
     expect(filterTournamentEvents(events, { type: 'bloomcup' })[0]?.id).toBe(
       'synthetic-event-b',
     )
-    expect(filterTournamentEvents(events, { round: 'bp08' })[0]?.id).toBe(
+    expect(filterTournamentEvents(events, { environment: 'bp09' })[0]?.id).toBe(
       'synthetic-event-a',
     )
     expect(
-      filterTournamentEvents(events, { round: TOURNAMENT_NO_ROUND }),
+      filterTournamentEvents(events, {
+        environment: TOURNAMENT_NO_ENVIRONMENT,
+      }),
     ).toHaveLength(2)
     expect(
       filterTournamentEvents(events, { oshi: 'SYNTH-OSHI-NO-IMAGE' })[0]?.id,
@@ -49,5 +52,6 @@ describe('Tournament list domain helpers', () => {
   it('uses safe labels for known and future tournament types', () => {
     expect(tournamentTypeLabel('selectioncup')).toBe('セレクションカップ')
     expect(tournamentTypeLabel('future-format')).toBe('その他')
+    expect(tournamentEnvironmentLabel('bp09')).toBe('9弾')
   })
 })

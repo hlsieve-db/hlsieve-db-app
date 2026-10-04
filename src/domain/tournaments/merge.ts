@@ -1,4 +1,8 @@
-import { createSemanticDataVersion, stableSerialize } from './ids'
+import {
+  createSemanticDataVersion,
+  createTournamentResultId,
+  stableSerialize,
+} from './ids'
 import type {
   TournamentEvent,
   TournamentPendingRecord,
@@ -52,9 +56,25 @@ function sameFixedIdentity(
   return (
     left.date === right.date &&
     left.tournament.type === right.tournament.type &&
+    left.tournament.environment === right.tournament.environment &&
     left.tournament.round === right.tournament.round &&
     left.venue.slug === right.venue.slug
   )
+}
+
+function preservePublishedIdentity(
+  existing: TournamentEvent,
+  incoming: TournamentEvent,
+): TournamentEvent {
+  if (existing.id === incoming.id) return incoming
+  return {
+    ...incoming,
+    id: existing.id,
+    results: incoming.results.map((result) => ({
+      ...result,
+      id: createTournamentResultId(existing.id, result),
+    })),
+  }
 }
 
 function withoutSourceAndResults(event: TournamentEvent): unknown {
@@ -94,6 +114,7 @@ function mergeSameSourceEvent(
   return {
     ...existing,
     tournament: incoming.tournament,
+    date: incoming.date,
     venue: incoming.venue,
     participantCount:
       incoming.participantCount === undefined
@@ -116,9 +137,23 @@ export function mergeTournamentEvents(
   const pending: TournamentPendingRecord[] = []
 
   for (const incoming of incomingEvents) {
-    const existing = merged.get(incoming.id)
+    const existingById = merged.get(incoming.id)
+    const existingBySource = incoming.source.sourceEventId
+      ? [...merged.values()].find((candidate) =>
+          sameSource(candidate, incoming),
+        )
+      : undefined
+    const existing = existingById ?? existingBySource
     if (!existing) {
       merged.set(incoming.id, incoming)
+      continue
+    }
+    if (sameSource(existing, incoming)) {
+      const stableIncoming = preservePublishedIdentity(existing, incoming)
+      merged.set(
+        existing.id,
+        mergeSameSourceEvent(existing, stableIncoming, pending),
+      )
       continue
     }
     if (!sameFixedIdentity(existing, incoming)) {
@@ -135,7 +170,6 @@ export function mergeTournamentEvents(
       }
       continue
     }
-    merged.set(incoming.id, mergeSameSourceEvent(existing, incoming, pending))
   }
 
   return {

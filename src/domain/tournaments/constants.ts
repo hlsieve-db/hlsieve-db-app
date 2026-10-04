@@ -8,7 +8,7 @@ export const KNOWN_TOURNAMENT_TYPES = {
 
 export type TournamentRegulationMapping = {
   tournamentType: string
-  round: string
+  environment: string
   regulationId: string
 }
 
@@ -16,17 +16,18 @@ export const TOURNAMENT_REGULATION_MAPPINGS: readonly TournamentRegulationMappin
   [
     {
       tournamentType: KNOWN_TOURNAMENT_TYPES.SELECTION_CUP,
-      round: 'bp08',
+      environment: 'bp09',
       regulationId: 'selection-cup-2026-autumn',
     },
   ]
 
 export function getTournamentRegulationId(
   tournamentType: string,
-  round?: string,
+  environment?: string,
 ): string | undefined {
   return TOURNAMENT_REGULATION_MAPPINGS.find(
     (mapping) =>
-      mapping.tournamentType === tournamentType && mapping.round === round,
+      mapping.tournamentType === tournamentType &&
+      mapping.environment === environment,
   )?.regulationId
 }

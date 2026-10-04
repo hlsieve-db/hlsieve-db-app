@@ -50,12 +50,6 @@ export async function publishReadyTournamentEvent(options: {
   const publicDirectory =
     options.publicDirectory ?? resolve('public/tournaments')
   const existing = await loadPublishedTournamentEvents(publicDirectory)
-  const existingSource = existing.find(
-    (event) => event.source.sourceEventId === options.sourceEventId,
-  )
-  if (existingSource && existingSource.id !== artifact.event.id) {
-    throw new Error('Publication merge produced pending conflicts.')
-  }
   const merged = mergeTournamentEvents(existing, [artifact.event])
   if (merged.pending.length > 0) {
     throw new Error('Publication merge produced pending conflicts.')

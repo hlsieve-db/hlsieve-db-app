@@ -1,27 +1,27 @@
 {
   "format": "hlsieve-tournament-index",
   "formatVersion": 1,
-  "dataVersion": "701040b62b01d712",
+  "dataVersion": "ffe3d25501c1ee89",
   "startDate": "2026-09-19",
   "events": [
     {
       "id": "evt_946d954415b708f8",
       "tournament": {
         "type": "selectioncup",
-        "round": "bp08",
+        "environment": "bp09",
         "seriesName": "【ホロカ】先行開催！セレクションカップ（2026年9月）"
       },
       "date": "2026-09-23",
       "venue": {
-        "slug": "venue-c48ac1983388c802",
-        "name": "竜星の嵐 名古屋店\n\n名古屋市中村区椿町21-5 桜木ビル3F"
+        "slug": "venue-45da6644c343d961",
+        "name": "竜星の嵐 名古屋店"
       },
       "participantCount": 60,
       "resultCoverage": {
         "kind": "exact",
-        "maxRank": 8
+        "maxRank": 16
       },
-      "resultCount": 8,
+      "resultCount": 16,
       "results": [
         {
           "id": "res_e355428abf36a856",
@@ -62,6 +62,46 @@
           "id": "res_af23e75afbebb23e",
           "rank": 8,
           "oshiCardNumber": "hBP09-003"
+        },
+        {
+          "id": "res_8da00586fd55f912",
+          "rank": 9,
+          "oshiCardNumber": "hBP09-004"
+        },
+        {
+          "id": "res_80fc4917d396a9a3",
+          "rank": 10,
+          "oshiCardNumber": "hBP09-002"
+        },
+        {
+          "id": "res_53b7a25c07654878",
+          "rank": 11,
+          "oshiCardNumber": "hBP09-005"
+        },
+        {
+          "id": "res_46b374a29430b666",
+          "rank": 12,
+          "oshiCardNumber": "hBP09-002"
+        },
+        {
+          "id": "res_d4ae30d62b18c8b2",
+          "rank": 13,
+          "oshiCardNumber": "hBP09-002"
+        },
+        {
+          "id": "res_020764095c61fe4d",
+          "rank": 14,
+          "oshiCardNumber": "hBP09-004"
+        },
+        {
+          "id": "res_fb74d30e05c6717a",
+          "rank": 15,
+          "oshiCardNumber": "hBP09-004"
+        },
+        {
+          "id": "res_22778e7767588c63",
+          "rank": 16,
+          "oshiCardNumber": "hBP09-004"
         }
       ]
     }

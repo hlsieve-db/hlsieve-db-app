@@ -66,6 +66,8 @@ function eventReasons(event: TournamentImportEvent): TournamentPendingReason[] {
     !isDate(event.date) ||
     event.date < TOURNAMENT_DATA_START_DATE ||
     !isSlug(event.tournament.type) ||
+    (event.tournament.environment !== undefined &&
+      !isSlug(event.tournament.environment)) ||
     (event.tournament.round !== undefined && !isSlug(event.tournament.round)) ||
     !event.tournament.seriesName ||
     !isSlug(event.venue.slug) ||

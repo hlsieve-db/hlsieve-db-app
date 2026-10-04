@@ -113,27 +113,27 @@ describe('TournamentAnalysisPage', () => {
     const { loadIndex } = renderPage()
     expect(screen.getByText('大会データを読み込んでいます…')).toBeVisible()
     expect(
-      await screen.findByRole('heading', { name: 'セレクションカップ／bp08' }),
+      await screen.findByRole('heading', { name: 'セレクションカップ／9弾' }),
     ).toBeVisible()
     expect(
-      screen.getByRole('heading', { name: 'ブルームカップ／ラウンドなし' }),
+      screen.getByRole('heading', { name: 'ブルームカップ／環境指定なし' }),
     ).toBeVisible()
     expect(
-      screen.getByRole('heading', { name: 'その他／ラウンドなし' }),
+      screen.getByRole('heading', { name: 'その他／環境指定なし' }),
     ).toBeVisible()
     expect(loadIndex).toHaveBeenCalledOnce()
     expect(weeklyAggregator).toHaveBeenCalledWith(
       SYNTHETIC_TOURNAMENT_INDEX,
       expect.objectContaining({
         tournamentType: undefined,
-        round: undefined,
+        environment: undefined,
         from: undefined,
         to: undefined,
       }),
     )
 
     const selection = screen
-      .getByRole('heading', { name: 'セレクションカップ／bp08' })
+      .getByRole('heading', { name: 'セレクションカップ／9弾' })
       .closest('section')!
     expect(
       within(
@@ -152,12 +152,12 @@ describe('TournamentAnalysisPage', () => {
     ).toHaveLength(2)
     expect(
       within(selection).getByRole('img', {
-        name: 'セレクションカップ／bp08の収録済み大会の優勝分布',
+        name: 'セレクションカップ／9弾の収録済み大会の優勝分布',
       }),
     ).toBeVisible()
     expect(
       within(selection).getByRole('img', {
-        name: 'セレクションカップ／bp08の収録済み大会の入賞分布',
+        name: 'セレクションカップ／9弾の収録済み大会の入賞分布',
       }),
     ).toBeVisible()
     const charts = within(selection).getAllByTestId(
@@ -174,7 +174,7 @@ describe('TournamentAnalysisPage', () => {
       ),
     ).toEqual(['4', '4'])
     const winnerOnly = screen
-      .getByRole('heading', { name: 'その他／ラウンドなし' })
+      .getByRole('heading', { name: 'その他／環境指定なし' })
       .closest('section')!
     const placement = within(winnerOnly)
       .getByRole('heading', { name: '入賞分布' })
@@ -197,7 +197,7 @@ describe('TournamentAnalysisPage', () => {
     })
 
     const environmentHeading = await screen.findByRole('heading', {
-      name: 'セレクションカップ／bp08',
+      name: 'セレクションカップ／9弾',
     })
     const environment = environmentHeading.closest('section')!
     const tierHeading = within(environment).getByRole('heading', {
@@ -208,7 +208,7 @@ describe('TournamentAnalysisPage', () => {
     expect(evaluator).toHaveBeenCalledOnce()
     expect(evaluator.mock.calls[0]?.[0].environment).toEqual({
       tournamentType: 'selectioncup',
-      round: 'bp08',
+      environment: 'bp09',
     })
     expect(
       within(tierSection)
@@ -240,7 +240,7 @@ describe('TournamentAnalysisPage', () => {
 
   it('renders limited sample details and reasons without any Tier group', async () => {
     renderPage({
-      path: '/tournaments/analysis?type=selectioncup&round=bp08',
+      path: '/tournaments/analysis?type=selectioncup&environment=bp09',
     })
     const tierHeading = await screen.findByRole('heading', {
       name: '収録大会実績Tier',
@@ -303,7 +303,7 @@ describe('TournamentAnalysisPage', () => {
 
   it('explains the relative reference-only calculation without presenting rates as strength', async () => {
     renderPage({
-      path: '/tournaments/analysis?type=selectioncup&round=bp08',
+      path: '/tournaments/analysis?type=selectioncup&environment=bp09',
     })
     const tier = (
       await screen.findByRole('heading', {
@@ -330,17 +330,17 @@ describe('TournamentAnalysisPage', () => {
           {
             ...seed,
             id: 'r2',
-            tournament: { ...seed.tournament, round: 'r2' },
+            tournament: { ...seed.tournament, environment: 'r2' },
           },
           {
             ...seed,
             id: 'no-round',
-            tournament: { ...seed.tournament, round: undefined },
+            tournament: { ...seed.tournament, environment: undefined },
           },
           {
             ...seed,
             id: 'r1',
-            tournament: { ...seed.tournament, round: 'r1' },
+            tournament: { ...seed.tournament, environment: 'r1' },
           },
         ],
       },
@@ -349,7 +349,7 @@ describe('TournamentAnalysisPage', () => {
       name: /セレクションカップ／/,
     })
     expect(headings.map((heading) => heading.textContent)).toEqual([
-      'セレクションカップ／ラウンドなし',
+      'セレクションカップ／環境指定なし',
       'セレクションカップ／r1',
       'セレクションカップ／r2',
     ])
@@ -372,7 +372,7 @@ describe('TournamentAnalysisPage', () => {
     renderPage({ loadIndex })
     fireEvent.click(await screen.findByRole('button', { name: '再試行' }))
     expect(
-      await screen.findByRole('heading', { name: 'セレクションカップ／bp08' }),
+      await screen.findByRole('heading', { name: 'セレクションカップ／9弾' }),
     ).toBeVisible()
     expect(loadIndex).toHaveBeenCalledTimes(2)
 
@@ -405,34 +405,36 @@ describe('TournamentAnalysisPage', () => {
 
   it('filters type, round including none, and inclusive dates through the URL', async () => {
     renderPage({
-      path: '/tournaments/analysis?type=bloomcup&round=none&from=2026-09-20&to=2026-09-20',
+      path: '/tournaments/analysis?type=bloomcup&environment=none&from=2026-09-20&to=2026-09-20',
     })
     expect(
       await screen.findByRole('heading', {
-        name: 'ブルームカップ／ラウンドなし',
+        name: 'ブルームカップ／環境指定なし',
       }),
     ).toBeVisible()
     expect(
-      screen.queryByRole('heading', { name: /セレクションカップ／bp08/ }),
+      screen.queryByRole('heading', { name: /セレクションカップ／9弾/ }),
     ).not.toBeInTheDocument()
     expect(screen.getByLabelText('開始日')).toHaveValue('2026-09-20')
     expect(screen.getByLabelText('終了日')).toHaveValue('2026-09-20')
     expect(screen.getByLabelText('開始日')).toHaveAttribute('min', '2026-09-19')
   })
 
-  it('disables round without type and clears it when type changes', async () => {
-    renderPage({ path: '/tournaments/analysis?type=selectioncup&round=bp08' })
-    const round = await screen.findByRole('combobox', { name: 'ラウンド' })
-    expect(round).toHaveValue('bp08')
+  it('disables environment without type and clears it when type changes', async () => {
+    renderPage({
+      path: '/tournaments/analysis?type=selectioncup&environment=bp09',
+    })
+    const environment = await screen.findByRole('combobox', { name: '環境' })
+    expect(environment).toHaveValue('bp09')
     fireEvent.change(screen.getByRole('combobox', { name: '大会種別' }), {
       target: { value: 'bloomcup' },
     })
     expect(screen.getByTestId('location')).toHaveTextContent('?type=bloomcup')
-    expect(round).toHaveValue('')
+    expect(environment).toHaveValue('')
     fireEvent.change(screen.getByRole('combobox', { name: '大会種別' }), {
       target: { value: '' },
     })
-    expect(round).toBeDisabled()
+    expect(environment).toBeDisabled()
   })
 
   it('validates reversed dates without calling aggregation or canonical loops', async () => {
@@ -467,7 +469,7 @@ describe('TournamentAnalysisPage', () => {
       ],
     }
     renderPage({ index: noResults })
-    await screen.findByRole('heading', { name: 'セレクションカップ／bp08' })
+    await screen.findByRole('heading', { name: 'セレクションカップ／9弾' })
     expect(screen.getAllByText('対象データがありません。')).toHaveLength(3)
   })
 })

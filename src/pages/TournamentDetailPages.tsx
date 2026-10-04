@@ -16,6 +16,7 @@ import type {
   TournamentResult,
 } from '../domain/tournaments/types'
 import {
+  tournamentEnvironmentLabel,
   tournamentTypeLabel,
   visibleTournamentResults,
 } from '../domain/tournaments/ui'
@@ -57,10 +58,10 @@ function EventMetadata({ event }: { event: TournamentEvent }) {
         <dt>種別</dt>
         <dd>{tournamentTypeLabel(event.tournament.type)}</dd>
       </div>
-      {event.tournament.round && (
+      {event.tournament.environment && (
         <div>
-          <dt>ラウンド</dt>
-          <dd>{event.tournament.round}</dd>
+          <dt>環境</dt>
+          <dd>{tournamentEnvironmentLabel(event.tournament.environment)}</dd>
         </div>
       )}
       <div>

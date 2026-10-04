@@ -7,41 +7,41 @@ import {
 } from './analysisUrlState'
 
 describe('Tournament analysis URL state', () => {
-  it('parses type, round, no-round and inclusive date values', () => {
+  it('parses type, environment, no-environment and inclusive dates', () => {
     expect(
       parseTournamentAnalysisUrlState(
-        '?type=selectioncup&round=bp08&from=2026-09-19&to=2026-10-31',
+        '?type=selectioncup&environment=bp09&from=2026-09-19&to=2026-10-31',
       ),
     ).toEqual({
       type: 'selectioncup',
-      round: 'bp08',
+      environment: 'bp09',
       from: '2026-09-19',
       to: '2026-10-31',
     })
     expect(
-      parseTournamentAnalysisUrlState('?type=bloomcup&round=none'),
+      parseTournamentAnalysisUrlState('?type=bloomcup&environment=none'),
     ).toEqual({
       type: 'bloomcup',
-      round: null,
+      environment: null,
     })
   })
 
-  it('ignores unknown keys, invalid dates, and round without type', () => {
+  it('ignores unknown keys, invalid dates, and environment without type', () => {
     expect(
       parseTournamentAnalysisUrlState(
-        '?round=bp08&from=2026-02-30&unknown=value',
+        '?environment=bp09&from=2026-02-30&unknown=value',
       ),
     ).toEqual({})
   })
 
-  it('omits defaults and serializes no-round as none', () => {
+  it('omits defaults and serializes no-environment as none', () => {
     expect(serializeTournamentAnalysisUrlState({}).toString()).toBe('')
     expect(
       serializeTournamentAnalysisUrlState({
         type: 'bloomcup',
-        round: null,
+        environment: null,
       }).toString(),
-    ).toBe('type=bloomcup&round=none')
+    ).toBe('type=bloomcup&environment=none')
   })
 
   it('detects a reversed range without changing it', () => {

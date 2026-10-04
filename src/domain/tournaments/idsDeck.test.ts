@@ -16,7 +16,7 @@ function importEvent(): TournamentImportEvent {
     },
     tournament: {
       type: 'selectioncup',
-      round: 'bp08',
+      environment: 'bp09',
       seriesName: 'Selection Cup',
     },
     date: '2026-09-19',
@@ -67,6 +67,23 @@ describe('Tournament identity', () => {
     expect(() =>
       createTournamentEventId({ ...importEvent(), identity: {} }),
     ).toThrow('ambiguous')
+  })
+
+  it('uses sourceEventId as the canonical identity across metadata corrections', () => {
+    const input = {
+      ...importEvent(),
+      identity: { sourceEventId: '1764903' },
+      source: { sourceType: 'fixture', sourceEventId: '1764903' },
+    }
+    const id = createTournamentEventId(input)
+    expect(
+      createTournamentEventId({
+        ...input,
+        date: '2026-09-26',
+        tournament: { ...input.tournament, environment: 'bp10' },
+        venue: { slug: 'corrected-venue', name: 'Corrected Venue' },
+      }),
+    ).toBe(id)
   })
 
   it('keeps Result ID stable across rank correction and input order', () => {
@@ -125,7 +142,11 @@ describe('Tournament Deck integration', () => {
     const event: TournamentEvent = {
       ...input,
       id: 'future-event',
-      tournament: { ...input.tournament, type: 'future', round: 'unknown' },
+      tournament: {
+        ...input.tournament,
+        type: 'future',
+        environment: 'unknown',
+      },
       results: [],
     }
     const deck = convertTournamentResultToDeck(

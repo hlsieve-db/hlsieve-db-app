@@ -11,7 +11,7 @@ function event(
   results: readonly ResultInput[],
   options: {
     type?: string
-    round?: string
+    environment?: string
     winnerOnly?: boolean
   } = {},
 ): TournamentIndexFile['events'][number] {
@@ -19,11 +19,14 @@ function event(
     id,
     tournament: {
       type: options.type ?? 'selectioncup',
-      ...(options.round === undefined ? {} : { round: options.round }),
+      ...(options.environment === undefined
+        ? {}
+        : { environment: options.environment }),
       seriesName: 'Test Series',
     },
     date,
     venue: { slug: `venue-${id}`, name: `Venue ${id}` },
+    participantCount: 32,
     resultCoverage: options.winnerOnly
       ? { kind: 'winner-only' }
       : { kind: 'variable' },
@@ -166,10 +169,10 @@ describe('aggregateTournamentWeeklyTrends', () => {
     const result = aggregateTournamentWeeklyTrends(
       index([
         event('selection-r2', '2026-09-07', [[1, 'A']], {
-          round: 'r2',
+          environment: 'r2',
         }),
         event('selection-r1', '2026-09-07', [[1, 'B']], {
-          round: 'r1',
+          environment: 'r1',
         }),
         event('bloom', '2026-09-07', [[1, 'C']], { type: 'bloomcup' }),
         event('unknown', '2026-09-07', [[1, 'D']], { type: 'zzz' }),
@@ -177,8 +180,8 @@ describe('aggregateTournamentWeeklyTrends', () => {
     )
     expect(result.groups.map((group) => group.environment)).toEqual([
       { tournamentType: 'bloomcup' },
-      { tournamentType: 'selectioncup', round: 'r1' },
-      { tournamentType: 'selectioncup', round: 'r2' },
+      { tournamentType: 'selectioncup', environment: 'r1' },
+      { tournamentType: 'selectioncup', environment: 'r2' },
       { tournamentType: 'zzz' },
     ])
     expect(result.groups.map((group) => group.candidates)).toEqual([
@@ -195,12 +198,12 @@ describe('aggregateTournamentWeeklyTrends', () => {
   it('applies inclusive filters and retains a known environment over an explicit empty range', () => {
     const input = index([
       event('no-round', '2026-09-07', [[1, 'A']]),
-      event('round', '2026-09-14', [[1, 'B']], { round: 'bp08' }),
-      event('to', '2026-09-21', [[1, 'C']], { round: 'bp08' }),
+      event('round', '2026-09-14', [[1, 'B']], { environment: 'bp09' }),
+      event('to', '2026-09-21', [[1, 'C']], { environment: 'bp09' }),
     ])
     const result = aggregateTournamentWeeklyTrends(input, {
       tournamentType: 'selectioncup',
-      round: 'bp08',
+      environment: 'bp09',
       from: '2026-09-14',
       to: '2026-09-21',
     })
@@ -212,7 +215,7 @@ describe('aggregateTournamentWeeklyTrends', () => {
 
     const empty = aggregateTournamentWeeklyTrends(input, {
       tournamentType: 'selectioncup',
-      round: null,
+      environment: null,
       from: '2026-10-05',
       to: '2026-10-11',
     })
@@ -230,8 +233,8 @@ describe('aggregateTournamentWeeklyTrends', () => {
       },
     ])
     expect(() =>
-      aggregateTournamentWeeklyTrends(input, { round: 'bp08' }),
-    ).toThrow('round requires a tournament type')
+      aggregateTournamentWeeklyTrends(input, { environment: 'bp09' }),
+    ).toThrow('environment requires a tournament type')
   })
 
   it('returns no groups for an empty production index', () => {

@@ -16,8 +16,9 @@ import type {
 import {
   filterTournamentEvents,
   sortTournamentEvents,
-  TOURNAMENT_NO_ROUND,
+  TOURNAMENT_NO_ENVIRONMENT,
   TOURNAMENT_PAGE_SIZE,
+  tournamentEnvironmentLabel,
   tournamentTypeLabel,
 } from '../domain/tournaments/ui'
 import { useDocumentMetadata } from '../hooks/useDocumentMetadata'
@@ -157,14 +158,14 @@ export function TournamentListPage({
   const types = [
     ...new Set(events.map((event) => event.tournament.type)),
   ].sort()
-  const rounds = [
+  const environments = [
     ...new Set(
       events.flatMap((event) =>
-        event.tournament.round ? [event.tournament.round] : [],
+        event.tournament.environment ? [event.tournament.environment] : [],
       ),
     ),
   ].sort()
-  const hasNoRound = events.some((event) => !event.tournament.round)
+  const hasNoEnvironment = events.some((event) => !event.tournament.environment)
   const oshiOptions =
     oshiState.status === 'loaded'
       ? Object.entries(oshiState.data.cards).sort(
@@ -226,20 +227,22 @@ export function TournamentListPage({
             </select>
           </label>
           <label>
-            ラウンド
+            環境
             <select
-              value={urlState.round ?? ''}
+              value={urlState.environment ?? ''}
               onChange={(event) =>
-                update({ round: event.currentTarget.value || undefined })
+                update({
+                  environment: event.currentTarget.value || undefined,
+                })
               }
             >
               <option value="">すべて</option>
-              {hasNoRound && (
-                <option value={TOURNAMENT_NO_ROUND}>ラウンドなし</option>
+              {hasNoEnvironment && (
+                <option value={TOURNAMENT_NO_ENVIRONMENT}>環境指定なし</option>
               )}
-              {rounds.map((round) => (
-                <option key={round} value={round}>
-                  {round}
+              {environments.map((environment) => (
+                <option key={environment} value={environment}>
+                  {tournamentEnvironmentLabel(environment)}
                 </option>
               ))}
             </select>
@@ -371,10 +374,14 @@ export function TournamentListPage({
                           <dt>種別</dt>
                           <dd>{tournamentTypeLabel(event.tournament.type)}</dd>
                         </div>
-                        {event.tournament.round && (
+                        {event.tournament.environment && (
                           <div>
-                            <dt>ラウンド</dt>
-                            <dd>{event.tournament.round}</dd>
+                            <dt>環境</dt>
+                            <dd>
+                              {tournamentEnvironmentLabel(
+                                event.tournament.environment,
+                              )}
+                            </dd>
                           </div>
                         )}
                         {event.venue.prefecture && (
