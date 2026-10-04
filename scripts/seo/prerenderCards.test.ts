@@ -50,15 +50,15 @@ function makeCard(overrides: Partial<Card> = {}): Card {
 }
 
 describe('Card Detail static prerender', () => {
-  it('generates indexable static pages and all 1381 logical Card Detail routes deterministically', async () => {
+  it('generates indexable static pages and all 1387 logical Card Detail routes deterministically', async () => {
     const [template, data] = await Promise.all([readTemplate(), readCards()])
     const routes = buildPrerenderRoutes(template, data.cards)
     const rerun = buildPrerenderRoutes(template, [...data.cards].reverse())
 
-    expect(routes).toHaveLength(1396)
+    expect(routes).toHaveLength(1402)
     expect(
       routes.filter((route) => route.routePath.startsWith('/cards/')),
-    ).toHaveLength(1381)
+    ).toHaveLength(1387)
     expect(routes.map((route) => route.routePath)).toEqual(
       rerun.map((route) => route.routePath),
     )
@@ -197,7 +197,7 @@ describe('Card Detail static prerender', () => {
       .map((match) => match[1])
       .filter((url) => url.startsWith(`${SITE_ORIGIN}/cards/`))
 
-    expect(new Set(prerenderUrls).size).toBe(1381)
+    expect(new Set(prerenderUrls).size).toBe(1387)
     expect(prerenderUrls).toEqual(sitemapUrls)
   })
 
@@ -251,9 +251,9 @@ describe('Card Detail static prerender', () => {
     )
     const hosts = imageUrls.map((imageUrl) => new URL(imageUrl).host)
 
-    expect(data.cards).toHaveLength(1381)
-    expect(imageUrls).toHaveLength(1381)
-    expect(new Set(imageUrls).size).toBe(1381)
+    expect(data.cards).toHaveLength(1387)
+    expect(imageUrls).toHaveLength(1387)
+    expect(new Set(imageUrls).size).toBe(1387)
     expect(new Set(hosts)).toEqual(new Set(['hololive-official-cardgame.com']))
   })
 

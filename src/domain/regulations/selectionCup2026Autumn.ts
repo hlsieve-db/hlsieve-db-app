@@ -43,7 +43,7 @@ export const SELECTION_CUP_2026_AUTUMN: RegulationDefinition = {
       'エクストラブースター サマー・ホログラム',
       'ブースターパック「ボリュームヴォルテックス」',
     ],
-    expectedCardCount: 364,
+    expectedCardCount: 370,
     appliesTo: ['oshi', 'main'],
   },
 }

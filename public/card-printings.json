@@ -1,8 +1,8 @@
 {
   "format": "hlsieve-card-printings",
   "formatVersion": 1,
-  "cardsDataVersion": "sha256:e1cfb76a01d93e06a6da8f7c089ba20fc53156477dff6b25f374f7158345084a",
-  "dataVersion": "sha256:4b9eb6b47999b1809d07f79e484ddc777c47aab7ab62eac6182b11661d67b9a4",
+  "cardsDataVersion": "sha256:bb8cc445141984c75992408a96c06372f58826d5a5344f1a58403d627c632b8e",
+  "dataVersion": "sha256:5ff6de8ecc3d565dce79bcaf33c6a14baed200a82a4ed041224819cbd3e59de4",
   "cards": {
     "hBD24-001": {
       "defaultPrintingOfficialId": "199",
@@ -3579,6 +3579,18 @@
             "PRカード",
             "【使用可能カード】hGS 2026 大阪 セレクションロード"
           ]
+        },
+        {
+          "officialId": "2965",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2965",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP01-072_HR.png",
+          "rarity": "HR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "Re:co"
         }
       ]
     },
@@ -4101,6 +4113,18 @@
             "PRカード",
             "【使用可能カード】hGS 2026 大阪 セレクションロード"
           ]
+        },
+        {
+          "officialId": "2966",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2966",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP01-088_HR.png",
+          "rarity": "HR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "deru"
         }
       ]
     },
@@ -4727,6 +4751,18 @@
             "【使用可能カード】hGS 2026 大阪 セレクションロード",
             "エクストラブースター サマー・ホログラム",
             "ブースターパック「ブルーミングレディアンス」"
+          ],
+          "illustrator": "JinArt こばやかわやまと"
+        },
+        {
+          "officialId": "2990",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2990",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hPR/hBP01-107_P.png",
+          "rarity": "P",
+          "products": [
+            "PRカード",
+            "【使用可能カード】セレクションカップ"
           ],
           "illustrator": "JinArt こばやかわやまと"
         }
@@ -6174,6 +6210,18 @@
             "【使用可能カード】hGS 2026 大阪 セレクションロード"
           ],
           "illustrator": "teffish"
+        },
+        {
+          "officialId": "2967",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2967",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP02-024_HR.png",
+          "rarity": "HR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "洋歩"
         }
       ]
     },
@@ -10774,6 +10822,18 @@
             "PRカード"
           ],
           "illustrator": "花澤明"
+        },
+        {
+          "officialId": "2968",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2968",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP03-051_HR.png",
+          "rarity": "HR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "がり"
         }
       ]
     },
@@ -15709,6 +15769,18 @@
             "PRカード",
             "【使用可能カード】hGS 2026 大阪 セレクションロード"
           ]
+        },
+        {
+          "officialId": "2969",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2969",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP04-079_HR.png",
+          "rarity": "HR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "カロクチトセ"
         }
       ]
     },
@@ -27280,6 +27352,18 @@
             "ブースターパック バウンサーバウンド"
           ],
           "illustrator": "misyune"
+        },
+        {
+          "officialId": "2977",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2977",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hPR/hBP08-021_P.png",
+          "rarity": "P",
+          "products": [
+            "PRカード",
+            "【使用可能カード】セレクションカップ"
+          ],
+          "illustrator": "misyune"
         }
       ]
     },
@@ -28080,6 +28164,18 @@
           "products": [
             "【使用可能カード】hGS 2026 大阪 セレクションロード",
             "ブースターパック バウンサーバウンド"
+          ],
+          "illustrator": "ZETTO"
+        },
+        {
+          "officialId": "2978",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2978",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hPR/hBP08-047_P.png",
+          "rarity": "P",
+          "products": [
+            "PRカード",
+            "【使用可能カード】セレクションカップ"
           ],
           "illustrator": "ZETTO"
         }
@@ -30080,6 +30176,7 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-001_OSR.png",
           "rarity": "OSR",
           "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "にゃまそ"
@@ -30091,7 +30188,20 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hPR/hBP09-001_P.png",
           "rarity": "P",
           "products": [
-            "PRカード"
+            "PRカード",
+            "【使用可能カード】セレクションカップ"
+          ],
+          "illustrator": "にゃまそ"
+        },
+        {
+          "officialId": "2851",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2851",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-001_OUR.png",
+          "rarity": "OUR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "にゃまそ"
         }
@@ -30107,6 +30217,30 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-002_OSR.png",
           "rarity": "OSR",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "ぽふやみ"
+        },
+        {
+          "officialId": "2847",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2847",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-002_SEC.png",
+          "rarity": "SEC",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "ぽふやみ"
+        },
+        {
+          "officialId": "2852",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2852",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-002_OUR.png",
+          "rarity": "OUR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "ぽふやみ"
@@ -30137,6 +30271,30 @@
             "PRカード"
           ],
           "illustrator": "WOODDAK"
+        },
+        {
+          "officialId": "2848",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2848",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-003_SEC.png",
+          "rarity": "SEC",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "わたお"
+        },
+        {
+          "officialId": "2853",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2853",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-003_OUR.png",
+          "rarity": "OUR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "WOODDAK"
         }
       ]
     },
@@ -30150,6 +30308,30 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-004_OSR.png",
           "rarity": "OSR",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "yuki"
+        },
+        {
+          "officialId": "2849",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2849",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-004_SEC.png",
+          "rarity": "SEC",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "yuki"
+        },
+        {
+          "officialId": "2854",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2854",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-004_OUR.png",
+          "rarity": "OUR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "yuki"
@@ -30169,6 +30351,18 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "しえりあ"
+        },
+        {
+          "officialId": "2855",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2855",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-005_OUR.png",
+          "rarity": "OUR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "しえりあ"
         }
       ]
     },
@@ -30182,6 +30376,30 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-006_OSR.png",
           "rarity": "OSR",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "釧路くき"
+        },
+        {
+          "officialId": "2850",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2850",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-006_SEC.png",
+          "rarity": "SEC",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "釧路くき"
+        },
+        {
+          "officialId": "2856",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2856",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-006_OUR.png",
+          "rarity": "OUR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "釧路くき"
@@ -30212,6 +30430,18 @@
             "PRカード"
           ],
           "illustrator": "那桜"
+        },
+        {
+          "officialId": "2857",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2857",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-007_OUR.png",
+          "rarity": "OUR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "那桜"
         }
       ]
     },
@@ -30228,6 +30458,30 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "さく之輔"
+        },
+        {
+          "officialId": "2907",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2907",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-008_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "さく之輔"
+        },
+        {
+          "officialId": "2979",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2979",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hPR/hBP09-008_P.png",
+          "rarity": "P",
+          "products": [
+            "PRカード",
+            "【使用可能カード】セレクションカップ"
+          ],
+          "illustrator": "しらま"
         }
       ]
     },
@@ -30271,6 +30525,18 @@
             "PRカード"
           ],
           "illustrator": "チェリ子"
+        },
+        {
+          "officialId": "2908",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2908",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-010_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "松尾 省吾"
         }
       ]
     },
@@ -30284,6 +30550,18 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-011_C.png",
           "rarity": "C",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "へちま"
+        },
+        {
+          "officialId": "2909",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2909",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-011_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "へちま"
@@ -30303,6 +30581,18 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "乾まひろ"
+        },
+        {
+          "officialId": "2870",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2870",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-012_SR.png",
+          "rarity": "SR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "乾まひろ"
         }
       ]
     },
@@ -30316,6 +30606,18 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-013_U.png",
           "rarity": "U",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "カロクチトセ"
+        },
+        {
+          "officialId": "2910",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2910",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-013_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "カロクチトセ"
@@ -30335,6 +30637,30 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "トマル"
+        },
+        {
+          "officialId": "2858",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2858",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-014_UR.png",
+          "rarity": "UR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "トマル"
+        },
+        {
+          "officialId": "2871",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2871",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-014_SR.png",
+          "rarity": "SR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "トマル"
         }
       ]
     },
@@ -30348,6 +30674,18 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-015_C.png",
           "rarity": "C",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "Migyu"
+        },
+        {
+          "officialId": "2911",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2911",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-015_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "Migyu"
@@ -30383,6 +30721,18 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "Aちき"
+        },
+        {
+          "officialId": "2912",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2912",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-017_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "Aちき"
         }
       ]
     },
@@ -30396,6 +30746,18 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-018_C.png",
           "rarity": "C",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "hitokoto"
+        },
+        {
+          "officialId": "2913",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2913",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-018_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "hitokoto"
@@ -30415,6 +30777,18 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "すすもく"
+        },
+        {
+          "officialId": "2872",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2872",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-019_SR.png",
+          "rarity": "SR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "すすもく"
         }
       ]
     },
@@ -30428,6 +30802,18 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-020_U.png",
           "rarity": "U",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "満水"
+        },
+        {
+          "officialId": "2914",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2914",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-020_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "満水"
@@ -30447,6 +30833,30 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "nik_ibi"
+        },
+        {
+          "officialId": "2859",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2859",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-021_UR.png",
+          "rarity": "UR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "nik_ibi"
+        },
+        {
+          "officialId": "2873",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2873",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-021_SR.png",
+          "rarity": "SR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "nik_ibi"
         }
       ]
     },
@@ -30460,6 +30870,19 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-022_R.png",
           "rarity": "R",
           "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "和錆"
+        },
+        {
+          "officialId": "2874",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2874",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-022_SR.png",
+          "rarity": "SR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "和錆"
@@ -30479,6 +30902,18 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "あるてら"
+        },
+        {
+          "officialId": "2875",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2875",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-023_SR.png",
+          "rarity": "SR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "あるてら"
         }
       ]
     },
@@ -30492,6 +30927,18 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-024_R.png",
           "rarity": "R",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "よもさか"
+        },
+        {
+          "officialId": "2876",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2876",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-024_SR.png",
+          "rarity": "SR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "よもさか"
@@ -30511,6 +30958,30 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "がり"
+        },
+        {
+          "officialId": "2915",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2915",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-025_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "がり"
+        },
+        {
+          "officialId": "2980",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2980",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hPR/hBP09-025_P.png",
+          "rarity": "P",
+          "products": [
+            "PRカード",
+            "【使用可能カード】セレクションカップ"
+          ],
+          "illustrator": "ごろー＊"
         }
       ]
     },
@@ -30543,6 +31014,18 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "松浦健人"
+        },
+        {
+          "officialId": "2916",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2916",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-027_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "松浦健人"
         }
       ]
     },
@@ -30556,6 +31039,18 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-028_C.png",
           "rarity": "C",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "ぶるー太"
+        },
+        {
+          "officialId": "2917",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2917",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-028_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "ぶるー太"
@@ -30575,6 +31070,18 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "虫晃"
+        },
+        {
+          "officialId": "2877",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2877",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-029_SR.png",
+          "rarity": "SR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "虫晃"
         }
       ]
     },
@@ -30588,6 +31095,18 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-030_U.png",
           "rarity": "U",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "강소"
+        },
+        {
+          "officialId": "2918",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2918",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-030_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "강소"
@@ -30607,6 +31126,30 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "EEJU"
+        },
+        {
+          "officialId": "2860",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2860",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-031_UR.png",
+          "rarity": "UR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "EEJU"
+        },
+        {
+          "officialId": "2878",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2878",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-031_SR.png",
+          "rarity": "SR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "EEJU"
         }
       ]
     },
@@ -30620,6 +31163,18 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-032_C.png",
           "rarity": "C",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "蓮深ふみ"
+        },
+        {
+          "officialId": "2919",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2919",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-032_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "蓮深ふみ"
@@ -30639,6 +31194,18 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "泉彩"
+        },
+        {
+          "officialId": "2920",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2920",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-033_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "泉彩"
         }
       ]
     },
@@ -30652,6 +31219,18 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-034_R.png",
           "rarity": "R",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "泉彩"
+        },
+        {
+          "officialId": "2879",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2879",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-034_SR.png",
+          "rarity": "SR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "泉彩"
@@ -30671,6 +31250,30 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "gaha"
+        },
+        {
+          "officialId": "2861",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2861",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-035_UR.png",
+          "rarity": "UR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "gaha"
+        },
+        {
+          "officialId": "2880",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2880",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-035_SR.png",
+          "rarity": "SR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "gaha"
         }
       ]
     },
@@ -30684,6 +31287,18 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-036_R.png",
           "rarity": "R",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "うみぼうず"
+        },
+        {
+          "officialId": "2881",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2881",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-036_SR.png",
+          "rarity": "SR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "うみぼうず"
@@ -30703,6 +31318,18 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "やも"
+        },
+        {
+          "officialId": "2882",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2882",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-037_SR.png",
+          "rarity": "SR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "やも"
         }
       ]
     },
@@ -30716,6 +31343,18 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-038_C.png",
           "rarity": "C",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "May.L"
+        },
+        {
+          "officialId": "2921",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2921",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-038_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "May.L"
@@ -30735,6 +31374,18 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "mint-tan"
+        },
+        {
+          "officialId": "2981",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2981",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hPR/hBP09-039_P.png",
+          "rarity": "P",
+          "products": [
+            "PRカード",
+            "【使用可能カード】セレクションカップ"
+          ],
+          "illustrator": "mint-tan"
         }
       ]
     },
@@ -30748,6 +31399,18 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-040_C.png",
           "rarity": "C",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "きな"
+        },
+        {
+          "officialId": "2922",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2922",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-040_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "きな"
@@ -30767,6 +31430,18 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "S.M.S"
+        },
+        {
+          "officialId": "2923",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2923",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-041_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "S.M.S"
         }
       ]
     },
@@ -30780,6 +31455,18 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-042_R.png",
           "rarity": "R",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "ろわんて"
+        },
+        {
+          "officialId": "2883",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2883",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-042_SR.png",
+          "rarity": "SR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "ろわんて"
@@ -30799,6 +31486,18 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "yujico"
+        },
+        {
+          "officialId": "2924",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2924",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-043_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "yujico"
         }
       ]
     },
@@ -30812,6 +31511,30 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-044_RR.png",
           "rarity": "RR",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "ウラシマ"
+        },
+        {
+          "officialId": "2862",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2862",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-044_UR.png",
+          "rarity": "UR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "ウラシマ"
+        },
+        {
+          "officialId": "2884",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2884",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-044_SR.png",
+          "rarity": "SR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "ウラシマ"
@@ -30831,6 +31554,18 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "ちょん＊"
+        },
+        {
+          "officialId": "2885",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2885",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-045_SR.png",
+          "rarity": "SR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "ちょん＊"
         }
       ]
     },
@@ -30844,6 +31579,18 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-046_U.png",
           "rarity": "U",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "あるてら"
+        },
+        {
+          "officialId": "2925",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2925",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-046_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "あるてら"
@@ -30863,6 +31610,30 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "なかゥま"
+        },
+        {
+          "officialId": "2926",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2926",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-047_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "なかゥま"
+        },
+        {
+          "officialId": "2982",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2982",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hPR/hBP09-047_P.png",
+          "rarity": "P",
+          "products": [
+            "PRカード",
+            "【使用可能カード】セレクションカップ"
+          ],
+          "illustrator": "Cranee"
         }
       ]
     },
@@ -30876,6 +31647,18 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-048_U.png",
           "rarity": "U",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "はねゆき"
+        },
+        {
+          "officialId": "2927",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2927",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-048_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "はねゆき"
@@ -30895,6 +31678,18 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "かずえ"
+        },
+        {
+          "officialId": "2886",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2886",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-049_SR.png",
+          "rarity": "SR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "かずえ"
         }
       ]
     },
@@ -30911,6 +31706,30 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "GULI"
+        },
+        {
+          "officialId": "2863",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2863",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-050_UR.png",
+          "rarity": "UR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "GULI"
+        },
+        {
+          "officialId": "2887",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2887",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-050_SR.png",
+          "rarity": "SR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "GULI"
         }
       ]
     },
@@ -30924,6 +31743,18 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-051_C.png",
           "rarity": "C",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "イマフク"
+        },
+        {
+          "officialId": "2928",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2928",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-051_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "イマフク"
@@ -30959,6 +31790,18 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "オットン"
+        },
+        {
+          "officialId": "2929",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2929",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-053_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "オットン"
         }
       ]
     },
@@ -30972,6 +31815,18 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-054_C.png",
           "rarity": "C",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "松浦健人"
+        },
+        {
+          "officialId": "2930",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2930",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-054_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "松浦健人"
@@ -30991,6 +31846,18 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "こぶりなとま"
+        },
+        {
+          "officialId": "2888",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2888",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-055_SR.png",
+          "rarity": "SR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "こぶりなとま"
         }
       ]
     },
@@ -31004,6 +31871,18 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-056_U.png",
           "rarity": "U",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "イマフク"
+        },
+        {
+          "officialId": "2931",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2931",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-056_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "イマフク"
@@ -31023,6 +31902,30 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "risumi"
+        },
+        {
+          "officialId": "2864",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2864",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-057_UR.png",
+          "rarity": "UR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "risumi"
+        },
+        {
+          "officialId": "2889",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2889",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-057_SR.png",
+          "rarity": "SR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "risumi"
         }
       ]
     },
@@ -31036,6 +31939,18 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-058_R.png",
           "rarity": "R",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "みずあめ"
+        },
+        {
+          "officialId": "2890",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2890",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-058_SR.png",
+          "rarity": "SR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "みずあめ"
@@ -31055,6 +31970,18 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "きな"
+        },
+        {
+          "officialId": "2932",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2932",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-059_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "きな"
         }
       ]
     },
@@ -31068,6 +31995,18 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-060_U.png",
           "rarity": "U",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "mint-tan"
+        },
+        {
+          "officialId": "2933",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2933",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-060_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "mint-tan"
@@ -31087,6 +32026,18 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "雨ノ坂のの"
+        },
+        {
+          "officialId": "2891",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2891",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-061_SR.png",
+          "rarity": "SR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "雨ノ坂のの"
         }
       ]
     },
@@ -31100,6 +32051,30 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-062_RR.png",
           "rarity": "RR",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "Spiro"
+        },
+        {
+          "officialId": "2865",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2865",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-062_UR.png",
+          "rarity": "UR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "Spiro"
+        },
+        {
+          "officialId": "2892",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2892",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-062_SR.png",
+          "rarity": "SR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "Spiro"
@@ -31119,6 +32094,18 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "Ryota-H"
+        },
+        {
+          "officialId": "2893",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2893",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-063_SR.png",
+          "rarity": "SR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "Ryota-H"
         }
       ]
     },
@@ -31132,6 +32119,18 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-064_C.png",
           "rarity": "C",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "柚杞ゆぎな"
+        },
+        {
+          "officialId": "2934",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2934",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-064_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "柚杞ゆぎな"
@@ -31151,6 +32150,18 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "Aria"
+        },
+        {
+          "officialId": "2983",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2983",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hPR/hBP09-065_P.png",
+          "rarity": "P",
+          "products": [
+            "PRカード",
+            "【使用可能カード】セレクションカップ"
+          ],
+          "illustrator": "Aria"
         }
       ]
     },
@@ -31164,6 +32175,18 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-066_C.png",
           "rarity": "C",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "赤木渉"
+        },
+        {
+          "officialId": "2935",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2935",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-066_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "赤木渉"
@@ -31183,6 +32206,18 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "時坂まこと"
+        },
+        {
+          "officialId": "2936",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2936",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-067_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "時坂まこと"
         }
       ]
     },
@@ -31196,6 +32231,18 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-068_R.png",
           "rarity": "R",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "ぶし"
+        },
+        {
+          "officialId": "2894",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2894",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-068_SR.png",
+          "rarity": "SR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "ぶし"
@@ -31215,6 +32262,18 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "mado*pen"
+        },
+        {
+          "officialId": "2937",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2937",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-069_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "mado*pen"
         }
       ]
     },
@@ -31228,6 +32287,30 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-070_RR.png",
           "rarity": "RR",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "samo*cha"
+        },
+        {
+          "officialId": "2866",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2866",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-070_UR.png",
+          "rarity": "UR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "samo*cha"
+        },
+        {
+          "officialId": "2895",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2895",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-070_SR.png",
+          "rarity": "SR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "samo*cha"
@@ -31247,6 +32330,18 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "U35"
+        },
+        {
+          "officialId": "2896",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2896",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-071_SR.png",
+          "rarity": "SR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "U35"
         }
       ]
     },
@@ -31260,6 +32355,18 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-072_R.png",
           "rarity": "R",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "水季"
+        },
+        {
+          "officialId": "2897",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2897",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-072_SR.png",
+          "rarity": "SR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "水季"
@@ -31279,6 +32386,18 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "ODD"
+        },
+        {
+          "officialId": "2938",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2938",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-073_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "ODD"
         }
       ]
     },
@@ -31292,6 +32411,18 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-074_U.png",
           "rarity": "U",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "よもさか"
+        },
+        {
+          "officialId": "2939",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2939",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-074_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "よもさか"
@@ -31311,6 +32442,18 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "犬乃ぴすけ Cranee"
+        },
+        {
+          "officialId": "2898",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2898",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-075_SR.png",
+          "rarity": "SR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "犬乃ぴすけ Cranee"
         }
       ]
     },
@@ -31324,6 +32467,30 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-076_RR.png",
           "rarity": "RR",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "CHAPPU"
+        },
+        {
+          "officialId": "2867",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2867",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-076_UR.png",
+          "rarity": "UR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "CHAPPU"
+        },
+        {
+          "officialId": "2899",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2899",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-076_SR.png",
+          "rarity": "SR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "CHAPPU"
@@ -31343,6 +32510,30 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "洋歩"
+        },
+        {
+          "officialId": "2940",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2940",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-077_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "洋歩"
+        },
+        {
+          "officialId": "2984",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2984",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hPR/hBP09-077_P.png",
+          "rarity": "P",
+          "products": [
+            "PRカード",
+            "【使用可能カード】セレクションカップ"
+          ],
+          "illustrator": "ちひろ綺華"
         }
       ]
     },
@@ -31357,6 +32548,18 @@
           "rarity": "U",
           "products": [
             "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "Cranee"
+        },
+        {
+          "officialId": "2985",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2985",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hPR/hBP09-078_P.png",
+          "rarity": "P",
+          "products": [
+            "PRカード",
+            "【使用可能カード】セレクションカップ"
           ],
           "illustrator": "Cranee"
         }
@@ -31375,6 +32578,18 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "松尾 省吾"
+        },
+        {
+          "officialId": "2941",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2941",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-079_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "松尾 省吾"
         }
       ]
     },
@@ -31388,6 +32603,18 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-080_C.png",
           "rarity": "C",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "赤木渉"
+        },
+        {
+          "officialId": "2942",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2942",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-080_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "赤木渉"
@@ -31418,6 +32645,18 @@
             "PRカード"
           ],
           "illustrator": "矢吹健太朗"
+        },
+        {
+          "officialId": "2900",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2900",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-081_SR.png",
+          "rarity": "SR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "スライム"
         }
       ]
     },
@@ -31431,6 +32670,18 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-082_U.png",
           "rarity": "U",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "Bosack"
+        },
+        {
+          "officialId": "2943",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2943",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-082_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "Bosack"
@@ -31450,6 +32701,30 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "emduck"
+        },
+        {
+          "officialId": "2868",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2868",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-083_UR.png",
+          "rarity": "UR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "emduck"
+        },
+        {
+          "officialId": "2901",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2901",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-083_SR.png",
+          "rarity": "SR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "emduck"
         }
       ]
     },
@@ -31463,6 +32738,18 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-084_C.png",
           "rarity": "C",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "星らすく"
+        },
+        {
+          "officialId": "2944",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2944",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-084_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "星らすく"
@@ -31482,6 +32769,18 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "時坂まこと"
+        },
+        {
+          "officialId": "2945",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2945",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-085_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "時坂まこと"
         }
       ]
     },
@@ -31495,6 +32794,18 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-086_R.png",
           "rarity": "R",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "MyungYi"
+        },
+        {
+          "officialId": "2902",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2902",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-086_SR.png",
+          "rarity": "SR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "MyungYi"
@@ -31514,6 +32825,30 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "81"
+        },
+        {
+          "officialId": "2869",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2869",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-087_UR.png",
+          "rarity": "UR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "81"
+        },
+        {
+          "officialId": "2903",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2903",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-087_SR.png",
+          "rarity": "SR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "81"
         }
       ]
     },
@@ -31527,6 +32862,18 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-088_R.png",
           "rarity": "R",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "みずあめ"
+        },
+        {
+          "officialId": "2904",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2904",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-088_SR.png",
+          "rarity": "SR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "みずあめ"
@@ -31546,6 +32893,18 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "よもさか"
+        },
+        {
+          "officialId": "2905",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2905",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-089_SR.png",
+          "rarity": "SR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "よもさか"
         }
       ]
     },
@@ -31559,6 +32918,18 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-090_C.png",
           "rarity": "C",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "kaerunrun"
+        },
+        {
+          "officialId": "2946",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2946",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-090_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "kaerunrun"
@@ -31578,6 +32949,18 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "green322"
+        },
+        {
+          "officialId": "2947",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2947",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-091_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "green322"
         }
       ]
     },
@@ -31591,6 +32974,18 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-092_C.png",
           "rarity": "C",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "狛乃"
+        },
+        {
+          "officialId": "2948",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2948",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-092_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "狛乃"
@@ -31610,6 +33005,18 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "888BUN"
+        },
+        {
+          "officialId": "2949",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2949",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-093_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "888BUN"
         }
       ]
     },
@@ -31626,6 +33033,30 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "さかなへん"
+        },
+        {
+          "officialId": "2991",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2991",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hPR/hBP09-094_P.png",
+          "rarity": "P",
+          "products": [
+            "PRカード",
+            "【使用可能カード】セレクションカップ"
+          ],
+          "illustrator": "さかなへん"
+        },
+        {
+          "officialId": "2992",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2992",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hPR/hBP09-094_P_02.png",
+          "rarity": "P",
+          "products": [
+            "PRカード",
+            "【使用可能カード】セレクションカップ"
+          ],
+          "illustrator": "こまいぬ"
         }
       ]
     },
@@ -31639,6 +33070,18 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-095_C.png",
           "rarity": "C",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "もも寝子"
+        },
+        {
+          "officialId": "2950",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2950",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-095_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "もも寝子"
@@ -31658,6 +33101,18 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "紺藤ココン"
+        },
+        {
+          "officialId": "2951",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2951",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-096_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "紺藤ココン"
         }
       ]
     },
@@ -31671,6 +33126,18 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-097_U.png",
           "rarity": "U",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "roena"
+        },
+        {
+          "officialId": "2952",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2952",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-097_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "roena"
@@ -31690,6 +33157,18 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "紅緒"
+        },
+        {
+          "officialId": "2953",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2953",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-098_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "紅緒"
         }
       ]
     },
@@ -31703,6 +33182,18 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-099_C.png",
           "rarity": "C",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "roena"
+        },
+        {
+          "officialId": "2954",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2954",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-099_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "roena"
@@ -31722,6 +33213,18 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "祀花よう子"
+        },
+        {
+          "officialId": "2955",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2955",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-100_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "祀花よう子"
         }
       ]
     },
@@ -31735,6 +33238,18 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-101_U.png",
           "rarity": "U",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "楪"
+        },
+        {
+          "officialId": "2956",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2956",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-101_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "楪"
@@ -31754,6 +33269,18 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "楪"
+        },
+        {
+          "officialId": "2957",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2957",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-102_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "楪"
         }
       ]
     },
@@ -31770,6 +33297,18 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "狛乃"
+        },
+        {
+          "officialId": "2958",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2958",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-103_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "狛乃"
         }
       ]
     },
@@ -31783,6 +33322,18 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-104_C.png",
           "rarity": "C",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "ぱとり"
+        },
+        {
+          "officialId": "2959",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2959",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-104_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "ぱとり"
@@ -31813,6 +33364,18 @@
             "PRカード"
           ],
           "illustrator": "茶ちえ"
+        },
+        {
+          "officialId": "2906",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2906",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-105_SR.png",
+          "rarity": "SR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "茶ちえ"
         }
       ]
     },
@@ -31826,6 +33389,18 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-106_C.png",
           "rarity": "C",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "憂"
+        },
+        {
+          "officialId": "2960",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2960",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-106_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "憂"
@@ -31845,6 +33420,18 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "mado*pen"
+        },
+        {
+          "officialId": "2961",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2961",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-107_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "mado*pen"
         }
       ]
     },
@@ -31861,6 +33448,18 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "鏑木康隆"
+        },
+        {
+          "officialId": "2962",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2962",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-108_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "鏑木康隆"
         }
       ]
     },
@@ -31874,6 +33473,18 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-109_U.png",
           "rarity": "U",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "呱々唄七つ"
+        },
+        {
+          "officialId": "2963",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2963",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-109_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "呱々唄七つ"
@@ -31906,6 +33517,18 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-111_C.png",
           "rarity": "C",
           "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "しまりすゆきち"
+        },
+        {
+          "officialId": "2964",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2964",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hBP09-111_S.png",
+          "rarity": "S",
+          "products": [
+            "【使用可能カード】セレクションカップ",
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "しまりすゆきち"
@@ -33257,7 +34880,6 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD01/hSD01-016_C.png",
           "rarity": "C",
           "products": [
-            "【使用可能カード】hGS 2026 大阪 セレクションロード",
             "スタートデッキ FLOW GLOW 推し 虎金妃笑虎",
             "スタートデッキ FLOW GLOW 推し 輪堂千速",
             "スタートデッキ 推し Advent",
@@ -33322,7 +34944,6 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD01/hSD01-017_C.png",
           "rarity": "C",
           "products": [
-            "【使用可能カード】hGS 2026 大阪 セレクションロード",
             "スタートデッキ FLOW GLOW 推し 虎金妃笑虎",
             "スタートデッキ FLOW GLOW 推し 輪堂千速",
             "スタートデッキ 白 天音かなた",
@@ -33391,7 +35012,7 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD01/hSD01-018_C.png",
           "rarity": "C",
           "products": [
-            "【使用可能カード】hGS 2026 大阪 セレクションロード",
+            "【使用可能カード】セレクションカップ",
             "エクストラブースター サマー・ホログラム",
             "スタートデッキ 赤 百鬼あやめ",
             "スタートデッキ 黄 不知火フレア",
@@ -33435,7 +35056,6 @@
           "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD01/hSD01-019_C_02.png",
           "rarity": "C",
           "products": [
-            "【使用可能カード】hGS 2026 大阪 セレクションロード",
             "スタートデッキ FLOW GLOW 推し 虎金妃笑虎",
             "スタートデッキ 推し Justice",
             "スタートデッキ 紫 癒月ちょこ",
@@ -33590,6 +35210,17 @@
           "rarity": "U",
           "products": [
             "スタートデッキ 赤 百鬼あやめ"
+          ],
+          "illustrator": "ななかぐら"
+        },
+        {
+          "officialId": "2986",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2986",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hPR/hSD02-004_P.png",
+          "rarity": "P",
+          "products": [
+            "PRカード"
           ],
           "illustrator": "ななかぐら"
         }
@@ -34547,6 +36178,18 @@
           "products": [
             "PRカード"
           ]
+        },
+        {
+          "officialId": "2970",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2970",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hSD05-002_HR.png",
+          "rarity": "HR",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "耳ン"
         }
       ]
     },
@@ -37119,6 +38762,17 @@
             "ライブスタートデッキ 白上フブキ"
           ],
           "illustrator": "もも寝子"
+        },
+        {
+          "officialId": "2987",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2987",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hPR/hSD14-004_P.png",
+          "rarity": "P",
+          "products": [
+            "PRカード"
+          ],
+          "illustrator": "もも寝子"
         }
       ]
     },
@@ -37358,6 +39012,17 @@
             "ライブスタートデッキ 儒烏風亭らでん"
           ],
           "illustrator": "ぶし"
+        },
+        {
+          "officialId": "2988",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2988",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hPR/hSD15-004_P.png",
+          "rarity": "P",
+          "products": [
+            "PRカード"
+          ],
+          "illustrator": "ぶし"
         }
       ]
     },
@@ -37525,6 +39190,17 @@
           "products": [
             "【使用可能カード】hGS 2026 大阪 セレクションロード",
             "ライブスタートデッキ さくらみこ"
+          ],
+          "illustrator": "ミュシャ"
+        },
+        {
+          "officialId": "2989",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2989",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hPR/hSD16-004_P.png",
+          "rarity": "P",
+          "products": [
+            "PRカード"
           ],
           "illustrator": "ミュシャ"
         }
@@ -38362,6 +40038,22 @@
         }
       ]
     },
+    "hY01-015": {
+      "defaultPrintingOfficialId": "2971",
+      "printings": [
+        {
+          "officialId": "2971",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2971",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hY01-015_SY.png",
+          "rarity": "SY",
+          "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "くるみつ"
+        }
+      ]
+    },
     "hY02-001": {
       "defaultPrintingOfficialId": "169",
       "printings": [
@@ -38552,6 +40244,22 @@
             "エクストラブースター サマー・ホログラム"
           ],
           "illustrator": "ごとー"
+        }
+      ]
+    },
+    "hY02-013": {
+      "defaultPrintingOfficialId": "2972",
+      "printings": [
+        {
+          "officialId": "2972",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2972",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hY02-013_SY.png",
+          "rarity": "SY",
+          "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "くるみつ"
         }
       ]
     },
@@ -38807,6 +40515,22 @@
         }
       ]
     },
+    "hY03-017": {
+      "defaultPrintingOfficialId": "2973",
+      "printings": [
+        {
+          "officialId": "2973",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2973",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hY03-017_SY.png",
+          "rarity": "SY",
+          "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "くるみつ"
+        }
+      ]
+    },
     "hY03-018": {
       "defaultPrintingOfficialId": "2684",
       "printings": [
@@ -39032,6 +40756,22 @@
         }
       ]
     },
+    "hY04-014": {
+      "defaultPrintingOfficialId": "2974",
+      "printings": [
+        {
+          "officialId": "2974",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2974",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hY04-014_SY.png",
+          "rarity": "SY",
+          "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "くるみつ"
+        }
+      ]
+    },
     "hY04-015": {
       "defaultPrintingOfficialId": "2685",
       "printings": [
@@ -39223,6 +40963,22 @@
         }
       ]
     },
+    "hY05-012": {
+      "defaultPrintingOfficialId": "2975",
+      "printings": [
+        {
+          "officialId": "2975",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2975",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hY05-012_SY.png",
+          "rarity": "SY",
+          "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "くるみつ"
+        }
+      ]
+    },
     "hY06-001": {
       "defaultPrintingOfficialId": "561",
       "printings": [
@@ -39394,6 +41150,22 @@
             "エクストラブースター サマー・ホログラム"
           ],
           "illustrator": "ごとー"
+        }
+      ]
+    },
+    "hY06-012": {
+      "defaultPrintingOfficialId": "2976",
+      "printings": [
+        {
+          "officialId": "2976",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2976",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP09/hY06-012_SY.png",
+          "rarity": "SY",
+          "products": [
+            "ブースターパック「ボリュームヴォルテックス」"
+          ],
+          "illustrator": "くるみつ"
         }
       ]
     },

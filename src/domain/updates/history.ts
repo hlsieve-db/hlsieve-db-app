@@ -3,6 +3,24 @@ import type { CardDataUpdateEntry } from './types'
 // Add only reviewed, actually published updates. Do not infer historical entries.
 export const CARD_DATA_UPDATE_HISTORY: readonly CardDataUpdateEntry[] = [
   {
+    id: 'card-data-2026-10-05',
+    publishedAt: '2026-10-05',
+    cardsDataVersion:
+      'sha256:bb8cc445141984c75992408a96c06372f58826d5a5344f1a58403d627c632b8e',
+    printingsDataVersion:
+      'sha256:5ff6de8ecc3d565dce79bcaf33c6a14baed200a82a4ed041224819cbd3e59de4',
+    summary: '公式カード情報を更新しました',
+    addedCards: 6,
+    changedCards: 121,
+    removedCards: 0,
+    addedPrintings: 146,
+    removedPrintings: 0,
+    notes: [
+      'エールカード6枚を追加しました。',
+      'セレクションカップ収録情報と公式Q&Aを更新しました。',
+    ],
+  },
+  {
     id: 'deck-regulation-2026-09-25-selection-cup',
     publishedAt: '2026-09-25',
     summary: 'セレクションカップのデッキ構築ルールを更新しました',

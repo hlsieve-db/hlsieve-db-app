@@ -198,12 +198,15 @@ describe('production Card update audit', () => {
     const report = auditProductionUpdate(input())
 
     expect(report.chronology).toMatchObject({
-      products: 37,
+      products: 38,
       missingProductReleaseDates: [],
-      intentionallyNoSingleReleaseDate: ['PRカード'],
+      intentionallyNoSingleReleaseDate: [
+        '【使用可能カード】セレクションカップ',
+        'PRカード',
+      ],
       multipleNonParallelCards: 111,
       ambiguousCards: [],
-      fallbackCount: 67,
+      fallbackCount: 73,
     })
     expect(report.status).toBe('safe')
   }, 15_000)
@@ -408,6 +411,7 @@ describe('production Card update audit', () => {
       '未登録の商品',
     )
     expect(report.chronology.intentionallyNoSingleReleaseDate).toEqual([
+      '【使用可能カード】セレクションカップ',
       'PRカード',
     ])
     expect(report.warnings.map((item) => item.code)).toContain(

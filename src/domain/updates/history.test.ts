@@ -20,6 +20,27 @@ const entry = (
 })
 
 describe('Card data update history', () => {
+  it('records the reviewed October 2026 official catalog refresh', () => {
+    expect(CARD_DATA_UPDATE_HISTORY).toContainEqual({
+      id: 'card-data-2026-10-05',
+      publishedAt: '2026-10-05',
+      cardsDataVersion:
+        'sha256:bb8cc445141984c75992408a96c06372f58826d5a5344f1a58403d627c632b8e',
+      printingsDataVersion:
+        'sha256:5ff6de8ecc3d565dce79bcaf33c6a14baed200a82a4ed041224819cbd3e59de4',
+      summary: '公式カード情報を更新しました',
+      addedCards: 6,
+      changedCards: 121,
+      removedCards: 0,
+      addedPrintings: 146,
+      removedPrintings: 0,
+      notes: [
+        'エールカード6枚を追加しました。',
+        'セレクションカップ収録情報と公式Q&Aを更新しました。',
+      ],
+    })
+  })
+
   it('records the reviewed hBP07-076 correction against published versions', () => {
     expect(CARD_DATA_UPDATE_HISTORY).toContainEqual(
       expect.objectContaining({
@@ -139,7 +160,7 @@ describe('the Selection Cup rule update', () => {
     )
   })
 
-  it('is the newest entry in the history', () => {
-    expect(latestFirst(CARD_DATA_UPDATE_HISTORY)[0]).toBe(entry)
+  it('remains in the latest-first history after later card updates', () => {
+    expect(latestFirst(CARD_DATA_UPDATE_HISTORY)).toContain(entry)
   })
 })

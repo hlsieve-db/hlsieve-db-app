@@ -53,12 +53,12 @@ describe('the Selection Cup pool in the published data', () => {
   it('holds what each product contributes', () => {
     expect(cardsIn(BOUNCER)).toHaveLength(127)
     expect(cardsIn(SUMMER)).toHaveLength(114)
-    expect(cardsIn(VOLUME)).toHaveLength(123)
+    expect(cardsIn(VOLUME)).toHaveLength(129)
   })
 
   // The number the definition carries, checked against the data it describes.
   it('holds exactly the number of cards the definition expects', () => {
-    expect(pool?.expectedCardCount).toBe(364)
+    expect(pool?.expectedCardCount).toBe(370)
     expect(allowed?.size).toBe(pool?.expectedCardCount)
   })
 
@@ -78,7 +78,7 @@ describe('the Selection Cup pool in the published data', () => {
     const sections = cardsInPool().map((card) => getDeckZone(card))
     expect(sections.filter((section) => section === 'oshi')).toHaveLength(17)
     expect(sections.filter((section) => section === 'main')).toHaveLength(329)
-    expect(sections.filter((section) => section === 'cheer')).toHaveLength(18)
+    expect(sections.filter((section) => section === 'cheer')).toHaveLength(24)
   })
 
   it('restricts the oshi and the main deck, and says so explicitly', () => {
