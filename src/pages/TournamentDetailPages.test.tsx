@@ -1,10 +1,15 @@
-import { fireEvent, render, screen } from '@testing-library/react'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { describe, expect, it, vi } from 'vitest'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { CardsDataFile } from '../domain/cards/types'
+import type { Deck } from '../domain/decks/types'
 import { buildDeckLogPublicUrl } from '../domain/tournaments/deckLog'
-import type { TournamentEventFile } from '../domain/tournaments/types'
+import type {
+  TournamentEvent,
+  TournamentEventFile,
+  TournamentResult,
+} from '../domain/tournaments/types'
 import {
   SYNTHETIC_TOURNAMENT_INDEX,
   SYNTHETIC_TOURNAMENT_OSHI_MASTER,
@@ -28,6 +33,14 @@ vi.mock('../domain/tournaments/deckLog', () => ({
       `https://deck-log-helper.invalid/${encodeURIComponent(code)}`,
   ),
 }))
+const repositoryMocks = vi.hoisted(() => ({ saveDeck: vi.fn() }))
+vi.mock('../repositories/useAppRepositories', () => ({
+  useAppRepositories: () => ({ decks: { saveDeck: repositoryMocks.saveDeck } }),
+}))
+
+beforeEach(() => {
+  repositoryMocks.saveDeck.mockReset().mockResolvedValue(undefined)
+})
 
 const eventFile = SYNTHETIC_TOURNAMENT_PUBLICATION.events['synthetic-event-a']
 const result = eventFile.event.results[0]
@@ -106,11 +119,18 @@ function renderEvent(
   )
 }
 
+function LocationProbe() {
+  const location = useLocation()
+  return <output data-testid="location">{location.pathname}</output>
+}
+
 function renderResult(
   options: {
     path?: string
     loadOshi?: () => Promise<typeof SYNTHETIC_TOURNAMENT_OSHI_MASTER>
     loadCards?: () => Promise<CardsDataFile>
+    convertResult?: (event: TournamentEvent, result: TournamentResult) => Deck
+    file?: TournamentEventFile
   } = {},
 ) {
   render(
@@ -125,16 +145,18 @@ function renderResult(
           element={
             <TournamentResultPage
               loadIndex={async () => SYNTHETIC_TOURNAMENT_INDEX}
-              loadEvent={async () => eventFile}
+              loadEvent={async () => options.file ?? eventFile}
               loadOshiMaster={
                 options.loadOshi ??
                 (async () => SYNTHETIC_TOURNAMENT_OSHI_MASTER)
               }
               loadCards={options.loadCards ?? (async () => cards)}
+              convertResult={options.convertResult}
             />
           }
         />
       </Routes>
+      <LocationProbe />
     </MemoryRouter>,
   )
 }
@@ -283,6 +305,15 @@ describe('Tournament Event detail', () => {
 })
 
 describe('Tournament Result detail', () => {
+  const copiedDeck: Deck = {
+    id: 'copied-deck-id',
+    name: 'Synthetic Selection Cup 2026-09-26 1位',
+    entries: [{ cardNumber: 'SYNTH-MAIN-a', quantity: 50 }],
+    createdAt: '2026-10-03T00:00:00.000Z',
+    updatedAt: '2026-10-03T00:00:00.000Z',
+    regulationId: 'selection-cup-2026-autumn',
+  }
+
   it('uses stable Result ID and renders Oshi, Main, Cheer and quantities', async () => {
     renderResult()
     expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent(
@@ -318,6 +349,8 @@ describe('Tournament Result detail', () => {
     ).toBeInTheDocument()
     expect(screen.getByText('SYNTH-MAIN-a')).toBeInTheDocument()
     expect(screen.getByText('50枚')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'HLSieveにコピー' }))
+    await waitFor(() => expect(repositoryMocks.saveDeck).toHaveBeenCalledOnce())
   })
 
   it('shows Deck Log helper URL and external attributes', async () => {
@@ -344,9 +377,9 @@ describe('Tournament Result detail', () => {
     renderResult()
     const button = await screen.findByRole('button', { name: 'コードをコピー' })
     fireEvent.click(button)
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'コピーしました',
-    )
+    expect(
+      await screen.findByText('Deck Codeをコピーしました。'),
+    ).toBeInTheDocument()
     expect(writeText).toHaveBeenCalledWith(result.deckLogCode)
     fireEvent.click(button)
     expect(await screen.findByRole('alert')).toHaveTextContent(
@@ -385,6 +418,27 @@ describe('Tournament Result detail', () => {
       screen.queryByRole('link', { name: /DECK LOGで見る/ }),
     ).not.toBeInTheDocument()
     expect(screen.queryByText(/DECK LOGで見る/)).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'HLSieveにコピー' }),
+    ).toBeEnabled()
+  })
+
+  it('copies a valid Tournament Deck without a Deck Log code', async () => {
+    const noCode = SYNTHETIC_TOURNAMENT_PUBLICATION.events['synthetic-event-b']
+    renderResult({
+      path: '/tournaments/synthetic-event-a/results/synthetic-result-b-5',
+      file: {
+        ...noCode,
+        event: { ...noCode.event, id: 'synthetic-event-a' },
+      },
+      convertResult: () => copiedDeck,
+    })
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'HLSieveにコピー' }),
+    )
+    await waitFor(() =>
+      expect(repositoryMocks.saveDeck).toHaveBeenCalledWith(copiedDeck),
+    )
   })
 
   it('keeps text and actions after an image fails', async () => {
@@ -396,6 +450,8 @@ describe('Tournament Result detail', () => {
     expect(screen.getByText('画像を読み込めませんでした')).toBeInTheDocument()
     expect(screen.getAllByText('Synthetic Oshi').length).toBeGreaterThan(0)
     expect(screen.getByRole('button', { name: 'コードをコピー' })).toBeEnabled()
+    fireEvent.click(screen.getByRole('button', { name: 'HLSieveにコピー' }))
+    await waitFor(() => expect(repositoryMocks.saveDeck).toHaveBeenCalledOnce())
   })
 
   it('reports unavailable clipboard as an error', async () => {
@@ -410,5 +466,80 @@ describe('Tournament Result detail', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Deck Codeをコピーできませんでした。',
     )
+  })
+
+  it('allows copying when the Oshi master fails', async () => {
+    renderResult({
+      loadOshi: async () => {
+        throw new Error('missing')
+      },
+      convertResult: () => copiedDeck,
+    })
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'HLSieveにコピー' }),
+    )
+    await waitFor(() =>
+      expect(repositoryMocks.saveDeck).toHaveBeenCalledWith(copiedDeck),
+    )
+  })
+
+  it('converts the stable Result, saves through the repository, then navigates', async () => {
+    const convertResult = vi.fn(() => copiedDeck)
+    renderResult({ convertResult })
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'HLSieveにコピー' }),
+    )
+    await waitFor(() =>
+      expect(screen.getByTestId('location')).toHaveTextContent(
+        '/decks/copied-deck-id',
+      ),
+    )
+    expect(convertResult).toHaveBeenCalledWith(eventFile.event, result)
+    expect(repositoryMocks.saveDeck).toHaveBeenCalledWith(copiedDeck)
+  })
+
+  it('keeps the generated Deck after failure and reuses it on retry', async () => {
+    repositoryMocks.saveDeck
+      .mockRejectedValueOnce(new Error('write failed'))
+      .mockResolvedValueOnce(undefined)
+    const convertResult = vi.fn(() => copiedDeck)
+    renderResult({ convertResult })
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'HLSieveにコピー' }),
+    )
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'デッキを保存できませんでした',
+    )
+    expect(screen.getByTestId('location')).not.toHaveTextContent('/decks/')
+    fireEvent.click(screen.getByRole('button', { name: 'HLSieveにコピー' }))
+    await waitFor(() =>
+      expect(screen.getByTestId('location')).toHaveTextContent(
+        '/decks/copied-deck-id',
+      ),
+    )
+    expect(convertResult).toHaveBeenCalledOnce()
+    expect(repositoryMocks.saveDeck).toHaveBeenNthCalledWith(1, copiedDeck)
+    expect(repositoryMocks.saveDeck).toHaveBeenNthCalledWith(2, copiedDeck)
+  })
+
+  it('disables saving and prevents a rapid double submit', async () => {
+    let resolveSave: (() => void) | undefined
+    repositoryMocks.saveDeck.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveSave = resolve
+        }),
+    )
+    renderResult({ convertResult: () => copiedDeck })
+    const button = await screen.findByRole('button', {
+      name: 'HLSieveにコピー',
+    })
+    fireEvent.click(button)
+    fireEvent.click(button)
+    expect(screen.getByRole('button', { name: 'コピー中…' })).toBeDisabled()
+    expect(screen.getByText('デッキをコピーしています…')).toBeInTheDocument()
+    expect(repositoryMocks.saveDeck).toHaveBeenCalledOnce()
+    expect(screen.getByTestId('location')).not.toHaveTextContent('/decks/')
+    resolveSave?.()
   })
 })

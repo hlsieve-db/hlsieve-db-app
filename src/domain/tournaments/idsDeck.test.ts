@@ -102,6 +102,9 @@ describe('Tournament Deck integration', () => {
     })
     expect(deck).toMatchObject({
       id: 'new-deck',
+      name: 'Selection Cup 2026-09-19 1位',
+      createdAt: '2026-09-25T00:00:00.000Z',
+      updatedAt: '2026-09-25T00:00:00.000Z',
       regulationId: 'selection-cup-2026-autumn',
       entries: [
         { cardNumber: 'OSHI', quantity: 1 },
@@ -110,6 +113,28 @@ describe('Tournament Deck integration', () => {
         { cardNumber: 'CHEER', quantity: 20 },
       ],
     })
+    expect(deck.entries).not.toBe(result.deck.main)
+    expect(deck.entries[0]).not.toBe(result.deck.oshi[0])
+    deck.entries[0].quantity = 99
+    expect(result.deck.oshi[0].quantity).toBe(1)
+  })
+
+  it('allows an unknown Tournament mapping without a regulation ID', () => {
+    const input = importEvent()
+    const importedResult = importResult()
+    const event: TournamentEvent = {
+      ...input,
+      id: 'future-event',
+      tournament: { ...input.tournament, type: 'future', round: 'unknown' },
+      results: [],
+    }
+    const deck = convertTournamentResultToDeck(
+      event,
+      { ...importedResult, id: 'future-result' },
+      { id: () => 'future-deck', now: () => '2026-10-03T00:00:00.000Z' },
+    )
+    expect(deck.regulationId).toBeUndefined()
+    expect(deck.id).toBe('future-deck')
   })
 
   it('builds the public Deck Log URL from one centralized base', () => {

@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
 import { ProgressiveCardImage } from '../components/cards/ProgressiveCardImage'
 import type { Card, CardsDataFile } from '../domain/cards/types'
-import type { DeckEntry } from '../domain/decks/types'
+import type { Deck, DeckEntry } from '../domain/decks/types'
 import { buildDeckLogPublicUrl } from '../domain/tournaments/deckLog'
+import { convertTournamentResultToDeck } from '../domain/tournaments/deck'
 import type {
   TournamentEvent,
   TournamentEventFile,
@@ -20,6 +21,7 @@ import {
 } from '../domain/tournaments/ui'
 import { useDocumentMetadata } from '../hooks/useDocumentMetadata'
 import { loadCardsData } from '../repositories/loadCardsData'
+import { useAppRepositories } from '../repositories/useAppRepositories'
 import {
   loadTournamentEvent,
   loadTournamentIndex,
@@ -41,6 +43,7 @@ type DetailPageProps = {
   loadEvent?: (eventId: string) => Promise<TournamentEventFile>
   loadOshiMaster?: () => Promise<TournamentOshiMasterFile>
   loadCards?: () => Promise<CardsDataFile>
+  convertResult?: typeof convertTournamentResultToDeck
 }
 
 function encoded(value: string): string {
@@ -287,47 +290,75 @@ function DeckZone({
   )
 }
 
-function DeckLogSection({ code }: { code?: string }) {
-  const [copyState, setCopyState] = useState<'idle' | 'success' | 'error'>(
-    'idle',
-  )
-  if (!code)
-    return (
-      <section>
-        <h2>Deck Log</h2>
-        <p>Deck Codeなし</p>
-      </section>
-    )
+type TournamentCopyState = 'idle' | 'saving' | 'error'
+
+function DeckLogSection({
+  code,
+  deckCopyState,
+  onCopyToHlsieve,
+}: {
+  code?: string
+  deckCopyState: TournamentCopyState
+  onCopyToHlsieve: () => void
+}) {
+  const [clipboardState, setClipboardState] = useState<
+    'idle' | 'success' | 'error'
+  >('idle')
   const copy = async () => {
     try {
       if (!navigator.clipboard) throw new Error('Clipboard unavailable')
-      await navigator.clipboard.writeText(code)
-      setCopyState('success')
+      await navigator.clipboard.writeText(code ?? '')
+      setClipboardState('success')
     } catch {
-      setCopyState('error')
+      setClipboardState('error')
     }
   }
   return (
     <section className="tournament-deck-log">
       <h2>Deck Log</h2>
-      <p>Deck Code</p>
-      <code>{code}</code>
+      {code ? (
+        <>
+          <p>Deck Code</p>
+          <code>{code}</code>
+        </>
+      ) : (
+        <p>Deck Codeなし</p>
+      )}
       <div className="tournament-detail-actions">
-        <button type="button" onClick={() => void copy()}>
-          コードをコピー
-        </button>
-        <a
-          href={buildDeckLogPublicUrl(code)}
-          target="_blank"
-          rel="noopener noreferrer"
+        <button
+          type="button"
+          disabled={deckCopyState === 'saving'}
+          onClick={onCopyToHlsieve}
         >
-          DECK LOGで見る（外部サイト）
-        </a>
+          {deckCopyState === 'saving' ? 'コピー中…' : 'HLSieveにコピー'}
+        </button>
+        {code && (
+          <>
+            <button type="button" onClick={() => void copy()}>
+              コードをコピー
+            </button>
+            <a
+              href={buildDeckLogPublicUrl(code)}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              DECK LOGで見る（外部サイト）
+            </a>
+          </>
+        )}
       </div>
-      {copyState === 'success' && (
+      {deckCopyState === 'saving' && (
+        <p role="status">デッキをコピーしています…</p>
+      )}
+      {deckCopyState === 'error' && (
+        <p role="alert">
+          デッキを保存できませんでした。もう一度お試しください。
+        </p>
+      )}
+      {clipboardState === 'success' && (
         <p role="status">Deck Codeをコピーしました。</p>
       )}
-      {copyState === 'error' && (
+      {clipboardState === 'error' && (
         <p role="alert">Deck Codeをコピーできませんでした。</p>
       )}
     </section>
@@ -339,9 +370,20 @@ export function TournamentResultPage({
   loadEvent = loadTournamentEvent,
   loadOshiMaster: loadOshi = loadTournamentOshiMaster,
   loadCards = loadCardsData,
+  convertResult = convertTournamentResultToDeck,
 }: DetailPageProps) {
   const { eventId = '', resultId = '' } = useParams()
+  const navigate = useNavigate()
+  const repositories = useAppRepositories()
   const [attempt, setAttempt] = useState(0)
+  const [deckCopyState, setDeckCopyState] = useState<{
+    resultId: string
+    status: TournamentCopyState
+  }>({ resultId, status: 'idle' })
+  const pendingCopy = useRef<{ resultId: string; deck: Deck } | undefined>(
+    undefined,
+  )
+  const savingCopy = useRef(false)
   const core = useTournamentCore(eventId, loadIndex, loadEvent, attempt)
   const oshi = useOptionalResource(loadOshi, attempt)
   const cardData = useOptionalResource(loadCards, attempt)
@@ -365,6 +407,27 @@ export function TournamentResultPage({
     cardData.status !== 'loaded' ||
     oshi.data.cardsDataVersion === cardData.data.dataVersion
   const usableCards = cardVersionsMatch ? cards : undefined
+  const activeDeckCopyState =
+    deckCopyState.resultId === resultId ? deckCopyState.status : 'idle'
+
+  const copyToHlsieve = async () => {
+    if (savingCopy.current || core.status !== 'loaded' || !result) return
+    savingCopy.current = true
+    setDeckCopyState({ resultId, status: 'saving' })
+    const deck =
+      pendingCopy.current?.resultId === resultId
+        ? pendingCopy.current.deck
+        : convertResult(core.event, result)
+    pendingCopy.current = { resultId, deck }
+    try {
+      await repositories.decks.saveDeck(deck)
+      navigate(`/decks/${encoded(deck.id)}`)
+    } catch {
+      setDeckCopyState({ resultId, status: 'error' })
+    } finally {
+      savingCopy.current = false
+    }
+  }
 
   return (
     <main className="page tournament-detail-page">
@@ -427,7 +490,11 @@ export function TournamentResultPage({
             entries={result.deck.cheer}
             cards={usableCards}
           />
-          <DeckLogSection code={result.deckLogCode} />
+          <DeckLogSection
+            code={result.deckLogCode}
+            deckCopyState={activeDeckCopyState}
+            onCopyToHlsieve={() => void copyToHlsieve()}
+          />
         </>
       )}
     </main>
