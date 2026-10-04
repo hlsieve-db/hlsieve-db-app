@@ -8,6 +8,10 @@ import type { Card } from '../../src/domain/cards/types'
 import { createTournamentPublishedData } from '../../src/domain/tournaments/published'
 import type { TournamentEvent } from '../../src/domain/tournaments/types'
 import {
+  isTournamentIndexFile,
+  isTournamentOshiMasterFile,
+} from '../../src/repositories/loadTournamentData'
+import {
   publishTournamentPublication,
   writeTournamentPublication,
 } from './publication'
@@ -61,6 +65,33 @@ afterEach(async () => {
 })
 
 describe('atomic Tournament publication', () => {
+  it('accepts the empty Production publication without synthetic data', async () => {
+    const [indexText, oshiMasterText] = await Promise.all([
+      readFile(join('public', 'tournaments', 'index.json'), 'utf8'),
+      readFile(join('public', 'tournaments', 'oshi-master.json'), 'utf8'),
+    ])
+    const index: unknown = JSON.parse(indexText)
+    const oshiMaster: unknown = JSON.parse(oshiMasterText)
+
+    expect(isTournamentIndexFile(index)).toBe(true)
+    expect(index).toMatchObject({
+      dataVersion: '741638a568efd6f9',
+      startDate: '2026-09-19',
+      events: [],
+    })
+    expect(isTournamentOshiMasterFile(oshiMaster)).toBe(true)
+    expect((oshiMaster as { cards: Record<string, unknown> }).cards).toEqual({})
+    expect(indexText).not.toMatch(/synthetic/i)
+    expect(oshiMasterText).not.toMatch(/synthetic/i)
+    expect(
+      createTournamentPublishedData(
+        [],
+        [],
+        'sha256:e1cfb76a01d93e06a6da8f7c089ba20fc53156477dff6b25f374f7158345084a',
+      ),
+    ).toMatchObject({ index, events: {}, oshiMaster })
+  })
+
   it('leaves the existing publication untouched when staging validation fails', async () => {
     const root = await mkdtemp(join(tmpdir(), 'hlsieve-tournaments-'))
     temporaryDirectories.push(root)

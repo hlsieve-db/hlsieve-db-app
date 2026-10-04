@@ -65,6 +65,20 @@ describe('Tournament static data loaders', () => {
     await expect(loaders.loadTournamentIndex()).rejects.toThrow('HTTP 503')
   })
 
+  it('does not turn a 200 HTML fallback into a missing publication', async () => {
+    const loaders = createTournamentDataLoaders(
+      vi.fn(
+        async () =>
+          new Response('<!doctype html><title>SPA</title>', {
+            headers: { 'content-type': 'text/html' },
+          }),
+      ) as typeof fetch,
+    )
+    await expect(loaders.loadTournamentIndex()).rejects.toThrow(
+      'not valid JSON',
+    )
+  })
+
   it('rejects invalid JSON and invalid runtime shapes', async () => {
     const invalidJson = createTournamentDataLoaders(
       vi.fn(async () => new Response('{')) as typeof fetch,

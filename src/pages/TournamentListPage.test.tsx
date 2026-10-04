@@ -74,11 +74,16 @@ describe('TournamentListPage', () => {
   })
 
   it('shows preparation for missing or empty indexes and distinguishes filter emptiness', async () => {
-    const loadIndex = vi.fn(async () => undefined)
+    const loadIndex = vi.fn(async () => ({
+      ...SYNTHETIC_TOURNAMENT_INDEX,
+      dataVersion: '741638a568efd6f9',
+      events: [],
+    }))
     const first = renderPage({ loadIndex })
     expect(
       await screen.findByText('大会データは現在準備中です。'),
     ).toBeVisible()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     expect(first.loadIndex).toHaveBeenCalledOnce()
   })
 
