@@ -16,6 +16,8 @@ import {
   planDiscoveryResult,
   resolveEventDate,
   readReadyResultDeckCode,
+  readKnownEventVenueName,
+  resolveKnownEventVenueName,
   splitDateRange,
   validateKnownSeriesYear,
   waitForTournamentResultReady,
@@ -162,6 +164,36 @@ describe('Bushi Navi Collector rules', () => {
     ).toMatchObject({ type: 'bloomcup', year: 2026 })
   })
 
+  it('uses only strict title or explicit child venue sources', () => {
+    expect(
+      resolveKnownEventVenueName(
+        'Series / in 竜星の嵐 名古屋店',
+        '竜星の嵐 名古屋店\n名古屋市中村区椿町21-5',
+      ),
+    ).toBe('竜星の嵐 名古屋店')
+    expect(
+      resolveKnownEventVenueName(
+        'Series / Bloom/アメニティードリーム横浜店',
+        'アメニティードリーム横浜店',
+      ),
+    ).toBe('アメニティードリーム横浜店')
+    expect(
+      resolveKnownEventVenueName(
+        'Series / ホビーステーション金沢店',
+        'ホビーステーション金沢店',
+      ),
+    ).toBe('ホビーステーション金沢店')
+    expect(() => resolveKnownEventVenueName('Series')).toThrow(
+      /venue is missing/,
+    )
+    expect(() =>
+      resolveKnownEventVenueName(
+        'Series',
+        'アメニティードリーム横浜店\n横浜市西区南幸1-5-39',
+      ),
+    ).toThrow(/venue is missing/)
+  })
+
   it('rejects partial or unknown series and unsafe years', () => {
     const base = {
       dateTimeText: '09月23日（水）13時00分',
@@ -229,7 +261,7 @@ describe('Bushi Navi Event metadata readiness', () => {
     await page.setContent(`<main>
       <h3>${title}</h3>
       <time>09月23日（水）13時00分</time>
-      <div class="eventResult-organizerName">Venue</div>
+      <div class="eventResult-organizerName"><span>Venue</span><p>Address</p></div>
       <section id="result">大会結果${participantMarkup}</section>
     </main>`)
     return page
@@ -276,7 +308,7 @@ describe('Bushi Navi Event metadata readiness', () => {
     const page = await metadataPage('')
     await expect(
       waitForTournamentResultReady(page, {
-        timeoutMs: 100,
+        timeoutMs: 500,
         pollIntervalMs: 10,
       }),
     ).resolves.toBeUndefined()
@@ -286,6 +318,22 @@ describe('Bushi Navi Event metadata readiness', () => {
     expect(
       await page.getByRole('button', { name: 'デッキを見る' }).count(),
     ).toBe(0)
+  })
+
+  it('reads the explicit store child without accepting the parent address', async () => {
+    const page = await metadataPage('')
+    await expect(
+      waitForTournamentResultReady(page, {
+        timeoutMs: 500,
+        pollIntervalMs: 10,
+      }),
+    ).resolves.toBeUndefined()
+    expect(
+      await page.locator('.eventResult-organizerName').innerText(),
+    ).toContain('Address')
+    await expect(
+      readKnownEventVenueName(page.locator('main'), 'Bloom Series'),
+    ).resolves.toBe('Venue')
   })
 
   it('rejects malformed final metadata and generic errors', async () => {

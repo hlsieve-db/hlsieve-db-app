@@ -8,9 +8,11 @@ import type { Card } from '../../../src/domain/cards/types'
 import type { TournamentDeck } from '../../../src/domain/tournaments/types'
 import {
   COLLECTOR_PARSER_VERSION,
+  diagnoseDeckValidation,
   getOrCollectDeck,
   loadCachedDeck,
   saveValidatedDeck,
+  validateDeckForCache,
 } from './cache'
 
 const roots: string[] = []
@@ -62,6 +64,71 @@ async function root(): Promise<string> {
 }
 
 describe('Deck Collector cache', () => {
+  it('diagnoses strict validation failures without changing validator parity', () => {
+    const cases: TournamentDeck[] = [
+      deck,
+      { ...deck, main: [{ cardNumber: 'UNKNOWN', quantity: 50 }] },
+      { ...deck, main: [{ cardNumber: 'OSHI-1', quantity: 50 }] },
+      { ...deck, main: [{ cardNumber: 'MAIN-1', quantity: 49 }] },
+      {
+        ...deck,
+        main: [
+          { cardNumber: 'MAIN-1', quantity: 25 },
+          { cardNumber: 'MAIN-1', quantity: 25 },
+        ],
+      },
+    ]
+    for (const candidate of cases) {
+      expect(diagnoseDeckValidation(candidate, cards).valid).toBe(
+        validateDeckForCache(candidate, cards),
+      )
+    }
+    expect(diagnoseDeckValidation(deck, cards)).toEqual({
+      valid: true,
+      issues: [],
+    })
+    expect(diagnoseDeckValidation(cases[1]!, cards).issues).toContainEqual({
+      type: 'unknown-card',
+      cardNumber: 'UNKNOWN',
+      expectedZone: 'main',
+    })
+    expect(diagnoseDeckValidation(cases[2]!, cards).issues).toContainEqual({
+      type: 'zone-mismatch',
+      cardNumber: 'OSHI-1',
+      deckZone: 'main',
+      catalogZone: 'oshi',
+    })
+    expect(diagnoseDeckValidation(cases[3]!, cards).issues).toContainEqual({
+      type: 'invalid-total',
+      zone: 'main',
+      expected: 50,
+      actual: 49,
+    })
+    expect(diagnoseDeckValidation(cases[4]!, cards).issues).toContainEqual({
+      type: 'duplicate',
+      zone: 'main',
+      cardNumber: 'MAIN-1',
+    })
+  })
+
+  it('keeps malformed parsed data outside the valid cache boundary', async () => {
+    const malformed = {
+      ...deck,
+      main: [{ cardNumber: 'MAIN-1', quantity: 0 }],
+    } as TournamentDeck
+    expect(diagnoseDeckValidation(malformed, cards)).toMatchObject({
+      valid: false,
+      issues: expect.arrayContaining([
+        { type: 'malformed-entry', zone: 'main', index: 0 },
+        { type: 'invalid-total', zone: 'main', expected: 50, actual: 0 },
+      ]),
+    })
+    expect(validateDeckForCache(malformed, cards)).toBe(false)
+    await expect(
+      saveValidatedDeck('INVALID', malformed, cards, { root: await root() }),
+    ).rejects.toThrow(/Refusing to cache/)
+  })
+
   it('does not recollect a known validated Deck code', async () => {
     const cacheRoot = await root()
     await saveValidatedDeck('CODE1', deck, cards, { root: cacheRoot })

@@ -27,6 +27,30 @@ export type CollectorCacheOptions = {
   refresh?: boolean
 }
 
+type DeckZone = keyof TournamentDeck
+
+export type DeckValidationIssue =
+  | { type: 'malformed-entry'; zone: DeckZone; index: number }
+  | { type: 'duplicate'; zone: DeckZone; cardNumber: string }
+  | {
+      type: 'invalid-total'
+      zone: DeckZone
+      expected: number
+      actual: number
+    }
+  | { type: 'unknown-card'; cardNumber: string; expectedZone: DeckZone }
+  | {
+      type: 'zone-mismatch'
+      cardNumber: string
+      deckZone: DeckZone
+      catalogZone: DeckZone
+    }
+
+export type DeckValidationDiagnostic = {
+  valid: boolean
+  issues: DeckValidationIssue[]
+}
+
 function safeName(value: string): string {
   return encodeURIComponent(value).replaceAll('%', '_')
 }
@@ -54,33 +78,73 @@ function isDeckShape(value: unknown): value is TournamentDeck {
   )
 }
 
-export function validateDeckForCache(
+export function diagnoseDeckValidation(
   deck: TournamentDeck,
   cards: readonly Card[],
-): boolean {
+): DeckValidationDiagnostic {
   const cardsByNumber = new Map(cards.map((card) => [card.cardNumber, card]))
   const expected = {
     oshi: DECK_ZONE_COUNTS.oshi,
     main: DECK_ZONE_COUNTS.main,
     cheer: DECK_ZONE_COUNTS.cheer,
   }
-  return (['oshi', 'main', 'cheer'] as const).every((zone) => {
+  const issues: DeckValidationIssue[] = []
+  for (const zone of ['oshi', 'main', 'cheer'] as const) {
     const entries = deck[zone]
-    if (
-      new Set(entries.map((entry) => entry.cardNumber)).size !== entries.length
-    ) {
-      return false
-    }
-    if (
-      entries.reduce((sum, entry) => sum + entry.quantity, 0) !== expected[zone]
-    ) {
-      return false
-    }
-    return entries.every((entry) => {
+    const seen = new Set<string>()
+    let actualTotal = 0
+    entries.forEach((entry, index) => {
+      if (
+        !entry ||
+        typeof entry.cardNumber !== 'string' ||
+        !entry.cardNumber ||
+        !Number.isSafeInteger(entry.quantity) ||
+        entry.quantity < 1
+      ) {
+        issues.push({ type: 'malformed-entry', zone, index })
+        return
+      }
+      actualTotal += entry.quantity
+      if (seen.has(entry.cardNumber)) {
+        issues.push({ type: 'duplicate', zone, cardNumber: entry.cardNumber })
+      }
+      seen.add(entry.cardNumber)
       const card = cardsByNumber.get(entry.cardNumber)
-      return card !== undefined && getDeckZone(card) === zone
+      if (!card) {
+        issues.push({
+          type: 'unknown-card',
+          cardNumber: entry.cardNumber,
+          expectedZone: zone,
+        })
+        return
+      }
+      const catalogZone = getDeckZone(card)
+      if (catalogZone !== zone) {
+        issues.push({
+          type: 'zone-mismatch',
+          cardNumber: entry.cardNumber,
+          deckZone: zone,
+          catalogZone,
+        })
+      }
     })
-  })
+    if (actualTotal !== expected[zone]) {
+      issues.push({
+        type: 'invalid-total',
+        zone,
+        expected: expected[zone],
+        actual: actualTotal,
+      })
+    }
+  }
+  return { valid: issues.length === 0, issues }
+}
+
+export function validateDeckForCache(
+  deck: TournamentDeck,
+  cards: readonly Card[],
+): boolean {
+  return diagnoseDeckValidation(deck, cards).valid
 }
 
 export async function loadCachedDeck(

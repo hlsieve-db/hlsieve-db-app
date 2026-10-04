@@ -1,4 +1,4 @@
-import type { Page } from 'playwright'
+import type { Locator, Page } from 'playwright'
 
 import { TOURNAMENT_DATA_START_DATE } from '../../../src/domain/tournaments/constants'
 import {
@@ -166,7 +166,7 @@ export async function waitForTournamentResultReady(
         'Bushi Navi returned a generic source error.',
       )
     }
-    const [title, dateTimeText, venueName] = await Promise.all([
+    const [title, dateTimeText] = await Promise.all([
       main
         .locator('h3')
         .allInnerTexts()
@@ -175,11 +175,8 @@ export async function waitForTournamentResultReady(
         .locator('time')
         .allInnerTexts()
         .then((values) => values[0] ?? ''),
-      main
-        .locator('.icon-store, .eventResult-organizerName')
-        .allInnerTexts()
-        .then((values) => values[0] ?? ''),
     ])
+    const venueName = await readKnownEventVenueName(main, title).catch(() => '')
     let participantCount: number | undefined
     participantInvalid = /参加\s*[：:]\s*人/.test(pageText.normalize('NFKC'))
     try {
@@ -232,6 +229,34 @@ export type KnownEventMetadataInput = {
   pageText: string
 }
 
+export function resolveKnownEventVenueName(
+  title: string,
+  explicitStoreName?: string,
+): string {
+  const titleVenueName = /\s+\/\s+in\s+(.+)$/i.exec(title)?.[1]
+  const venueName = (titleVenueName ?? explicitStoreName)
+    ?.normalize('NFKC')
+    .trim()
+  if (!venueName || /[\r\n]/.test(venueName)) {
+    throw new KnownEventCollectionError(
+      'invalid-metadata',
+      'Bushi Navi venue is missing.',
+    )
+  }
+  return venueName
+}
+
+export async function readKnownEventVenueName(
+  main: Locator,
+  title: string,
+): Promise<string> {
+  const explicitStoreName = await main
+    .locator('.eventResult-organizerName > span, .icon-store span')
+    .allInnerTexts()
+    .then((values) => values.find((value) => /\S/.test(value)))
+  return resolveKnownEventVenueName(title, explicitStoreName)
+}
+
 export function classifyKnownEventAvailability(input: {
   metadataValid: boolean
   resultCount: number
@@ -275,7 +300,6 @@ export function parseKnownEventMetadata(input: KnownEventMetadataInput): {
     )
   }
   const displayedSeriesName = input.title.split(/\s+\/\s+/)[0]
-  const titleVenueName = /\s+\/\s+in\s+(.+)$/i.exec(input.title)?.[1]
   if (!displayedSeriesName) {
     throw new KnownEventCollectionError(
       'invalid-metadata',
@@ -293,7 +317,7 @@ export function parseKnownEventMetadata(input: KnownEventMetadataInput): {
   const dateMatch = input.dateTimeText
     .normalize('NFKC')
     .match(/(\d{1,2})月(\d{1,2})日/)
-  const venueName = (titleVenueName ?? input.venueName).normalize('NFKC').trim()
+  const venueName = resolveKnownEventVenueName(input.title, input.venueName)
   if (!dateMatch?.[1] || !dateMatch[2] || !venueName) {
     throw new KnownEventCollectionError(
       'invalid-metadata',
@@ -775,10 +799,7 @@ export async function collectKnownTournamentEvent(
       .first()
       .innerText()
     dateTimeText = await main.locator('time').first().innerText()
-    venueName = await main
-      .locator('.icon-store, .eventResult-organizerName')
-      .first()
-      .innerText()
+    venueName = await readKnownEventVenueName(main, title)
   } catch {
     throw new KnownEventCollectionError(
       'invalid-metadata',
