@@ -61,8 +61,7 @@ export async function waitForProductionPublication(options: {
 }
 
 export async function smokeProductionUi(
-  eventId: string,
-  resultId: string,
+  representatives: ReadonlyArray<{ eventId: string; resultId: string }>,
 ): Promise<void> {
   const browser = await chromium.launch({ headless: true })
   try {
@@ -71,8 +70,10 @@ export async function smokeProductionUi(
     })
     const paths = [
       '/tournaments',
-      `/tournaments/${eventId}`,
-      `/tournaments/${eventId}/results/${resultId}`,
+      ...representatives.flatMap(({ eventId, resultId }) => [
+        `/tournaments/${eventId}`,
+        `/tournaments/${eventId}/results/${resultId}`,
+      ]),
       '/tournaments/analysis',
     ]
     for (const path of paths) {

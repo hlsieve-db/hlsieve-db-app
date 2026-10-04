@@ -10,7 +10,10 @@ function event(sourceEventId: string, date: string): TournamentEvent {
     tournament: { type: 'bloomcup', seriesName: 'Bloom' },
     date,
     venue: { slug: 'venue', name: 'Venue' },
-    resultCoverage: { kind: 'exact', maxRank: 8 },
+    resultCoverage: {
+      kind: 'exact',
+      maxRank: sourceEventId === '2' ? 16 : 8,
+    },
     results: [
       {
         id: `res_${sourceEventId}`,
@@ -129,6 +132,26 @@ describe('Tournament Daily workflow', () => {
     expect(deps.commit).not.toHaveBeenCalled()
     expect(deps.push).not.toHaveBeenCalled()
     expect(deps.transitionPublished).not.toHaveBeenCalled()
+  })
+  it('smokes one representative for each published Top8/Top16 range', async () => {
+    const deps = dependencies(
+      queue([
+        ['1', 'ready'],
+        ['2', 'ready'],
+      ]),
+    )
+    vi.mocked(deps.loadArtifact).mockImplementation(async (id) =>
+      artifact(id, '2026-10-04'),
+    )
+    await runDailyWorkflow({ targetDate: '2026-10-04', dryRun: false }, deps)
+    expect(deps.production).toHaveBeenCalledWith(
+      'version',
+      ['evt_1', 'evt_2'],
+      [
+        { eventId: 'evt_1', resultId: 'res_1' },
+        { eventId: 'evt_2', resultId: 'res_2' },
+      ],
+    )
   })
   it('does not mark published when push or Production verification fails', async () => {
     for (const stage of ['push', 'production'] as const) {

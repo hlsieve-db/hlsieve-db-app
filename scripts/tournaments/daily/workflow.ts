@@ -37,7 +37,7 @@ export type DailyDependencies = {
   production: (
     version: string,
     eventIds: string[],
-    representative: { eventId: string; resultId: string },
+    representatives: Array<{ eventId: string; resultId: string }>,
   ) => Promise<void>
   transitionPublished: (
     sourceEventId: string,
@@ -104,13 +104,23 @@ export async function runDailyWorkflow(
   const commit = await deps.commit(paths)
   if (commit || resume === 'commit-pending-push') await deps.push()
   const eventIds = Object.values(written.publishedEventIds)
-  const representative = targets[0]?.event
-  if (!representative?.results[0])
+  const representatives = [
+    ...new Set(targets.map(({ event }) => event.resultCoverage.maxRank)),
+  ].map(
+    (maxRank) =>
+      targets.find(({ event }) => event.resultCoverage.maxRank === maxRank)!
+        .event,
+  )
+  if (representatives.some((event) => !event.results[0]))
     throw new Error('Daily publication has no representative Result.')
-  await deps.production(written.datasetVersion, eventIds, {
-    eventId: representative.id,
-    resultId: representative.results[0].id,
-  })
+  await deps.production(
+    written.datasetVersion,
+    eventIds,
+    representatives.map((event) => ({
+      eventId: event.id,
+      resultId: event.results[0]!.id,
+    })),
+  )
   for (const sourceEventId of ready)
     await deps.transitionPublished(
       sourceEventId,

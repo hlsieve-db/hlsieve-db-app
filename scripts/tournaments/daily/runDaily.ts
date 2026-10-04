@@ -148,13 +148,13 @@ try {
       checkpoint = { ...checkpoint, phase: 'pushed' }
       await writeDailyCheckpoint(checkpoint)
     },
-    production: async (version, eventIds, representative) => {
+    production: async (version, eventIds, representatives) => {
       await waitForProductionPublication({
         expectedVersion: version,
         cardsDataVersion: cardsData.dataVersion,
         eventIds,
       })
-      await smokeProductionUi(representative.eventId, representative.resultId)
+      await smokeProductionUi(representatives)
       checkpoint = {
         ...checkpoint,
         phase: 'production-verified',
