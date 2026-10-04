@@ -5,7 +5,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react'
-import { useLocation, MemoryRouter } from 'react-router-dom'
+import { useLocation, useNavigate, MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
 import type { TournamentIndexFile } from '../domain/tournaments/types'
@@ -24,11 +24,17 @@ vi.mock('../hooks/useDocumentMetadata', () => ({
 
 function LocationProbe() {
   const location = useLocation()
+  const navigate = useNavigate()
   return (
-    <output data-testid="location">
-      {location.pathname}
-      {location.search}
-    </output>
+    <>
+      <output data-testid="location">
+        {location.pathname}
+        {location.search}
+      </output>
+      <button type="button" onClick={() => navigate('?venue=url-value')}>
+        外部URL更新
+      </button>
+    </>
   )
 }
 
@@ -242,6 +248,61 @@ describe('TournamentListPage', () => {
     expect(
       screen.getByRole('heading', { name: /Synthetic Bloom Cup/ }),
     ).toBeVisible()
+  })
+
+  it('keeps IME composition local and commits the final venue once', async () => {
+    renderPage()
+    await screen.findByRole('heading', { name: /Synthetic Selection Cup/ })
+    const input = screen.getByRole('searchbox', {
+      name: '店舗名・都道府県',
+    })
+
+    fireEvent.compositionStart(input)
+    for (const value of ['a', 'あ', 'あい', 'あいち']) {
+      fireEvent.change(input, { target: { value } })
+      expect(input).toHaveValue(value)
+      expect(screen.getByTestId('location')).not.toHaveTextContent('venue=')
+    }
+
+    fireEvent.compositionEnd(input, { data: 'あいち' })
+    expect(input).toHaveValue('あいち')
+    await waitFor(() =>
+      expect(screen.getByTestId('location')).toHaveTextContent(
+        'venue=%E3%81%82%E3%81%84%E3%81%A1',
+      ),
+    )
+  })
+
+  it('keeps ordinary venue input immediate and synchronized with the URL', async () => {
+    renderPage()
+    await screen.findByRole('heading', { name: /Synthetic Selection Cup/ })
+    const input = screen.getByRole('searchbox', {
+      name: '店舗名・都道府県',
+    })
+
+    fireEvent.change(input, { target: { value: 'aichi' } })
+
+    expect(input).toHaveValue('aichi')
+    await waitFor(() =>
+      expect(screen.getByTestId('location')).toHaveTextContent('venue=aichi'),
+    )
+  })
+
+  it('does not overwrite the composition draft during an external URL update', async () => {
+    renderPage()
+    await screen.findByRole('heading', { name: /Synthetic Selection Cup/ })
+    const input = screen.getByRole('searchbox', {
+      name: '店舗名・都道府県',
+    })
+
+    fireEvent.compositionStart(input)
+    fireEvent.change(input, { target: { value: 'あい' } })
+    fireEvent.click(screen.getByRole('button', { name: '外部URL更新' }))
+
+    expect(input).toHaveValue('あい')
+    expect(screen.getByTestId('location')).toHaveTextContent('venue=url-value')
+    fireEvent.compositionEnd(input, { data: 'あい' })
+    await waitFor(() => expect(input).toHaveValue('あい'))
   })
 
   it('announces a reversed date range without swapping it', async () => {

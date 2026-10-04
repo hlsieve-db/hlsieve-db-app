@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type CompositionEvent,
+} from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
@@ -71,6 +78,12 @@ export function TournamentListPage({
     () => searchString(serializeTournamentUrlState(urlState)),
     [urlState],
   )
+  const [venueDraft, setVenueDraft] = useState(urlState.venue ?? '')
+  const isVenueComposing = useRef(false)
+
+  useEffect(() => {
+    if (!isVenueComposing.current) setVenueDraft(urlState.venue ?? '')
+  }, [urlState.venue])
 
   useEffect(() => {
     if (location.search !== canonicalSearch) {
@@ -140,6 +153,25 @@ export function TournamentListPage({
         serializeTournamentUrlState({ ...urlState, ...patch, page: 1 }),
       ),
     })
+  }
+  const commitVenue = (venue: string) => {
+    update({ venue: venue || undefined })
+  }
+  const handleVenueChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const value = event.currentTarget.value
+    setVenueDraft(value)
+    if (!isVenueComposing.current) commitVenue(value)
+  }
+  const handleVenueCompositionStart = () => {
+    isVenueComposing.current = true
+  }
+  const handleVenueCompositionEnd = (
+    event: CompositionEvent<HTMLInputElement>,
+  ) => {
+    isVenueComposing.current = false
+    const value = event.currentTarget.value
+    setVenueDraft(value)
+    commitVenue(value)
   }
   const changePage = (nextPage: number) => {
     navigate({
@@ -272,10 +304,10 @@ export function TournamentListPage({
             店舗名・都道府県
             <input
               type="search"
-              value={urlState.venue ?? ''}
-              onChange={(event) =>
-                update({ venue: event.currentTarget.value || undefined })
-              }
+              value={venueDraft}
+              onChange={handleVenueChange}
+              onCompositionStart={handleVenueCompositionStart}
+              onCompositionEnd={handleVenueCompositionEnd}
             />
           </label>
           <label>
