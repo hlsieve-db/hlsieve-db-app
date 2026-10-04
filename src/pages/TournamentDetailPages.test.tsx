@@ -162,6 +162,16 @@ function renderResult(
 }
 
 describe('Tournament Event detail', () => {
+  it('renders a propagated participant count', async () => {
+    renderEvent({
+      file: {
+        ...eventFile,
+        event: { ...eventFile.event, participantCount: 60 },
+      },
+    })
+    expect(await screen.findByText('60人')).toBeVisible()
+  })
+
   it('renders metadata, coverage and only real top-eight Results in stable Result-ID links', async () => {
     const sparse = SYNTHETIC_TOURNAMENT_PUBLICATION.events['synthetic-event-b']
     renderEvent({

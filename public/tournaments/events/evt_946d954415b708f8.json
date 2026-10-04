@@ -1,7 +1,7 @@
 {
   "format": "hlsieve-tournament-event",
   "formatVersion": 1,
-  "dataVersion": "9828e4aa5715316e",
+  "dataVersion": "701040b62b01d712",
   "event": {
     "id": "evt_946d954415b708f8",
     "tournament": {
@@ -740,6 +740,7 @@
       "sourceType": "bushi-navi-public-browser-dom",
       "sourceEventId": "1764903",
       "sourceUrl": "https://www.bushi-navi.com/event/result/1764903"
-    }
+    },
+    "participantCount": 60
   }
 }

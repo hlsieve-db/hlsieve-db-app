@@ -61,6 +61,7 @@ const payload: TournamentImportPayload = {
       },
       date: '2026-09-23',
       venue: { slug: 'venue', name: 'Venue' },
+      participantCount: 60,
       resultCoverage: { kind: 'exact', maxRank: 1 },
       results: [
         {
@@ -85,11 +86,17 @@ describe('Tournament ready artifact', () => {
     const repository = new TournamentReadyArtifactRepository(root)
     const saved = await repository.save('1764903', payload, cardsData)
     expect(saved.event.source.sourceEventId).toBe('1764903')
+    expect(saved.payload.events[0]?.participantCount).toBe(60)
+    expect(saved.event.participantCount).toBe(60)
     expect(saved.semanticHash).toMatch(/^[a-f0-9]{64}$/)
     expect(await repository.load('1764903', cardsData)).toEqual(saved)
     expect(await readFile(repository.path('1764903'), 'utf8')).not.toMatch(
       /playerName|queue|lease/i,
     )
+    const changed = structuredClone(payload)
+    changed.events[0]!.participantCount = 61
+    const changedArtifact = await repository.save('1764903', changed, cardsData)
+    expect(changedArtifact.semanticHash).not.toBe(saved.semanticHash)
   })
 
   it('rejects missing, corrupt, mismatched, and tampered artifacts', async () => {

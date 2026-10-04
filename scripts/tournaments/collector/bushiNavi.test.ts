@@ -19,6 +19,7 @@ import {
   readReadyResultDeckCode,
   splitDateRange,
   validateKnownSeriesYear,
+  waitForTournamentResultReady,
 } from './bushiNavi'
 
 describe('Bushi Navi Collector rules', () => {
@@ -87,12 +88,28 @@ describe('Bushi Navi Collector rules', () => {
 
   it('parses participant count, rank, and the public Deck Log code', () => {
     expect(parseParticipantCount('大会結果参加者: 60人')).toBe(60)
+    expect(parseParticipantCount('大会結果\n  参加者\n  60 人')).toBe(60)
+    expect(parseParticipantCount('大会結果 参加者： ６０人')).toBe(60)
+    expect(parseParticipantCount('大会結果\n順位 1\n結果 8')).toBeUndefined()
+    expect(parseParticipantCount('別情報 参加者: 99人')).toBeUndefined()
     expect(parseRankText('8')).toBe(8)
     expect(
       parseDeckCodeFromModalImage(
         'https://decklog.bushiroad.com/deckimages/KE8C4.png',
       ),
     ).toBe('KE8C4')
+  })
+
+  it.each([
+    '大会結果 参加者: --人',
+    '大会結果 参加者: 0人',
+    '大会結果 参加者: -1人',
+    '大会結果 参加者: 1.5人',
+    '大会結果 参加者: 999999999999999999999人',
+  ])('fails closed for malformed participant metadata: %s', (pageText) => {
+    expect(() => parseParticipantCount(pageText)).toThrow(
+      /participant count is invalid/,
+    )
   })
 
   it('rejects a missing rank or missing Deck Log code', () => {
@@ -132,6 +149,15 @@ describe('Bushi Navi Collector rules', () => {
       venueName: '竜星の嵐 名古屋店',
       series: { type: 'selectioncup', round: 'bp08' },
     })
+    expect(
+      parseKnownEventMetadata({
+        title:
+          '【ホロカ】先行開催！セレクションカップ（2026年9月） / in 竜星の嵐 名古屋店',
+        dateTimeText: '09月23日（水）13時00分',
+        venueName: '竜星の嵐 名古屋店',
+        pageText: '大会結果\n参加者\n60人',
+      }).participantCount,
+    ).toBe(60)
     expect(
       parseKnownEventMetadata({
         title:
@@ -191,6 +217,99 @@ describe('Bushi Navi Collector rules', () => {
     expect(
       classifyKnownEventAvailability({ metadataValid: false, resultCount: 0 }),
     ).toBe('needs-review')
+  })
+})
+
+describe('Bushi Navi Event metadata readiness', () => {
+  let browser: Browser
+
+  beforeAll(async () => {
+    browser = await chromium.launch({ headless: true })
+  })
+
+  afterAll(async () => {
+    await browser.close()
+  })
+
+  async function metadataPage(participantMarkup: string, title = 'Series') {
+    const page = await browser.newPage()
+    await page.setContent(`<main>
+      <h3>${title}</h3>
+      <time>09月23日（水）13時00分</time>
+      <div class="eventResult-organizerName">Venue</div>
+      <section id="result">大会結果${participantMarkup}</section>
+    </main>`)
+    return page
+  }
+
+  it('waits through a zero-participant placeholder until metadata is stable', async () => {
+    const page = await metadataPage('<span id="participant">参加者: 0人</span>')
+    await page.evaluate(() => {
+      setTimeout(() => {
+        document.querySelector('#participant')!.textContent = '参加者: 60人'
+      }, 30)
+    })
+    await expect(
+      waitForTournamentResultReady(page, {
+        timeoutMs: 500,
+        pollIntervalMs: 10,
+        stableSnapshots: 2,
+      }),
+    ).resolves.toBeUndefined()
+    expect(parseParticipantCount(await page.locator('main').innerText())).toBe(
+      60,
+    )
+  })
+
+  it('fails safely when placeholder or incomplete metadata remains', async () => {
+    const placeholder = await metadataPage('<span>参加者: 0人</span>')
+    await expect(
+      waitForTournamentResultReady(placeholder, {
+        timeoutMs: 30,
+        pollIntervalMs: 10,
+      }),
+    ).rejects.toThrow(/remained invalid/)
+
+    const incomplete = await metadataPage('', '')
+    await expect(
+      waitForTournamentResultReady(incomplete, {
+        timeoutMs: 30,
+        pollIntervalMs: 10,
+      }),
+    ).rejects.toThrow(/not ready/)
+  })
+
+  it('allows absent participants and zero Result rows after stable metadata', async () => {
+    const page = await metadataPage('')
+    await expect(
+      waitForTournamentResultReady(page, {
+        timeoutMs: 100,
+        pollIntervalMs: 10,
+      }),
+    ).resolves.toBeUndefined()
+    expect(
+      parseParticipantCount(await page.locator('main').innerText()),
+    ).toBeUndefined()
+    expect(
+      await page.getByRole('button', { name: 'デッキを見る' }).count(),
+    ).toBe(0)
+  })
+
+  it('rejects malformed final metadata and generic errors', async () => {
+    const malformed = await metadataPage('<span>参加者: --人</span>')
+    await expect(
+      waitForTournamentResultReady(malformed, {
+        timeoutMs: 30,
+        pollIntervalMs: 10,
+      }),
+    ).rejects.toThrow(/remained invalid/)
+
+    const generic = await metadataPage(
+      '<span>参加者: 0人</span><p>サーバーからの応答がありません</p>',
+    )
+    await expect(waitForTournamentResultReady(generic)).rejects.toThrow(
+      /generic source error/,
+    )
   })
 })
 

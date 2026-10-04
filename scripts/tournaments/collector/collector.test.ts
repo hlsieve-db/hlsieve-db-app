@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import type { Card, CardsDataFile } from '../../../src/domain/cards/types'
 import type { TournamentImportEvent } from '../../../src/domain/tournaments/types'
+import { validateTournamentImportPayload } from '../../../src/domain/tournaments/validation'
 import { executeCollector } from './collector'
 
 function card(cardNumber: string, cardType: Card['cardType']): Card {
@@ -79,6 +80,11 @@ describe('executeCollector', () => {
     })
     expect(result.validEvents).toBe(1)
     expect(result.pendingRecords).toBe(0)
+    expect(result.payload.events[0]?.participantCount).toBe(60)
+    expect(
+      validateTournamentImportPayload(result.payload, cardsData.cards).events[0]
+        ?.participantCount,
+    ).toBe(60)
     expect(publish).not.toHaveBeenCalled()
   })
 

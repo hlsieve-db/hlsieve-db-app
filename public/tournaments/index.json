@@ -1,7 +1,7 @@
 {
   "format": "hlsieve-tournament-index",
   "formatVersion": 1,
-  "dataVersion": "9828e4aa5715316e",
+  "dataVersion": "701040b62b01d712",
   "startDate": "2026-09-19",
   "events": [
     {
@@ -16,6 +16,7 @@
         "slug": "venue-c48ac1983388c802",
         "name": "竜星の嵐 名古屋店\n\n名古屋市中村区椿町21-5 桜木ビル3F"
       },
+      "participantCount": 60,
       "resultCoverage": {
         "kind": "exact",
         "maxRank": 8

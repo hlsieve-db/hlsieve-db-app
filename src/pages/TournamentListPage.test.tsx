@@ -73,6 +73,18 @@ describe('TournamentListPage', () => {
     expect(screen.queryByText(/Synthetic Bloom Cup.*参加者/)).toBeNull()
   })
 
+  it('renders a propagated participant count', async () => {
+    renderPage({
+      index: {
+        ...SYNTHETIC_TOURNAMENT_INDEX,
+        events: SYNTHETIC_TOURNAMENT_INDEX.events.map((event, index) =>
+          index === 0 ? { ...event, participantCount: 60 } : event,
+        ),
+      },
+    })
+    expect(await screen.findByText('60人')).toBeVisible()
+  })
+
   it('shows preparation for missing or empty indexes and distinguishes filter emptiness', async () => {
     const loadIndex = vi.fn(async () => ({
       ...SYNTHETIC_TOURNAMENT_INDEX,

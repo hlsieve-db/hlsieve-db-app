@@ -103,8 +103,18 @@ export function parseSourceEventId(url: string): string {
 }
 
 export function parseParticipantCount(text: string): number | undefined {
-  const match = text.normalize('NFKC').match(/大会結果\s*参加者:\s*(\d+)人/)
-  return match ? Number(match[1]) : undefined
+  const normalized = text.normalize('NFKC').replace(/\s+/g, ' ').trim()
+  const label = /大会結果\s*参加者\s*:?\s*/
+  if (!label.test(normalized)) return undefined
+  const match = normalized.match(/大会結果\s*参加者\s*:?\s*(\d+)\s*人/)
+  const participantCount = match?.[1] ? Number(match[1]) : Number.NaN
+  if (!Number.isSafeInteger(participantCount) || participantCount < 1) {
+    throw new KnownEventCollectionError(
+      'invalid-metadata',
+      'Bushi Navi participant count is invalid.',
+    )
+  }
+  return participantCount
 }
 
 export type KnownEventErrorCode =
@@ -124,6 +134,85 @@ export class KnownEventCollectionError extends Error {
   ) {
     super(message)
   }
+}
+
+type TournamentResultReadyOptions = {
+  timeoutMs?: number
+  pollIntervalMs?: number
+  stableSnapshots?: number
+}
+
+export async function waitForTournamentResultReady(
+  page: Page,
+  options: TournamentResultReadyOptions = {},
+): Promise<void> {
+  const timeoutMs = options.timeoutMs ?? 5_000
+  const pollIntervalMs = options.pollIntervalMs ?? 100
+  const stableSnapshots = options.stableSnapshots ?? 2
+  const startedAt = Date.now()
+  let previousSnapshot: string | undefined
+  let stableCount = 0
+  let participantInvalid = false
+
+  while (Date.now() - startedAt <= timeoutMs) {
+    const main = page.locator('main')
+    const pageText = await main.innerText().catch(() => '')
+    if (/サーバーからの応答がありません|undefined/i.test(pageText)) {
+      throw new KnownEventCollectionError(
+        'generic-source-error',
+        'Bushi Navi returned a generic source error.',
+      )
+    }
+    const [title, dateTimeText, venueName] = await Promise.all([
+      main
+        .locator('h3')
+        .allInnerTexts()
+        .then((values) => values.find((value) => /\S/.test(value)) ?? ''),
+      main
+        .locator('time')
+        .allInnerTexts()
+        .then((values) => values[0] ?? ''),
+      main
+        .locator('.icon-store, .eventResult-organizerName')
+        .allInnerTexts()
+        .then((values) => values[0] ?? ''),
+    ])
+    let participantCount: number | undefined
+    participantInvalid = /参加\s*[：:]\s*人/.test(pageText.normalize('NFKC'))
+    try {
+      participantCount = parseParticipantCount(pageText)
+    } catch (error) {
+      if (!(error instanceof KnownEventCollectionError)) throw error
+      participantInvalid = true
+    }
+    const complete =
+      title.trim().length > 0 &&
+      /\d{1,2}月\d{1,2}日/.test(dateTimeText.normalize('NFKC')) &&
+      venueName.trim().length > 0 &&
+      /大会結果/.test(pageText) &&
+      !participantInvalid
+    if (complete) {
+      const snapshot = JSON.stringify({
+        title: title.normalize('NFKC').trim(),
+        dateTimeText: dateTimeText.normalize('NFKC').trim(),
+        venueName: venueName.normalize('NFKC').trim(),
+        participantCount,
+      })
+      stableCount = snapshot === previousSnapshot ? stableCount + 1 : 1
+      previousSnapshot = snapshot
+      if (stableCount >= stableSnapshots) return
+    } else {
+      previousSnapshot = undefined
+      stableCount = 0
+    }
+    await page.waitForTimeout(pollIntervalMs)
+  }
+  throw new KnownEventCollectionError(
+    'invalid-metadata',
+    participantInvalid
+      ? 'Bushi Navi participant metadata remained invalid.'
+      : 'Bushi Navi Event metadata was not ready before timeout.',
+  )
 }
 
 export function buildOfficialDeckLogUrl(deckCode: string): string {
@@ -655,6 +744,7 @@ export async function collectKnownTournamentEvent(
 ): Promise<TournamentImportEvent> {
   const sourceUrl = buildOfficialTournamentResultUrl(options.sourceEventId)
   await navigate(options.page, sourceUrl, options.delayMs)
+  await waitForTournamentResultReady(options.page)
   const main = options.page.locator('main')
   const pageText = await main.innerText()
   if (/サーバーからの応答がありません|undefined/i.test(pageText)) {

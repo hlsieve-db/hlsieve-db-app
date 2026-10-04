@@ -96,6 +96,14 @@ describe('mergeTournamentEvents', () => {
     })
   })
 
+  it('adopts participantCount when the existing Event omits it', () => {
+    const existing = event({ participantCount: undefined })
+    const incoming = event({ participantCount: 60 })
+    expect(
+      mergeTournamentEvents([existing], [incoming]).events[0],
+    ).toMatchObject({ participantCount: 60 })
+  })
+
   it('accepts a correction only for the same stable Result identity', () => {
     const corrected = event({ results: [result('res-one', 4)] })
     const merged = mergeTournamentEvents([event()], [corrected])
@@ -121,6 +129,7 @@ describe('mergeTournamentEvents', () => {
 describe('Tournament static JSON generation', () => {
   it('generates index, Event details, and an Oshi-only master', () => {
     const input = event({
+      participantCount: 60,
       results: [result('res-one', 1), result('res-two', 3, 'OSHI-B')],
     })
     const published = createTournamentPublishedData([input], cards, 'cards-v1')
@@ -132,6 +141,7 @@ describe('Tournament static JSON generation', () => {
           id: 'evt-one',
           tournament: { type: 'selectioncup', round: 'bp08' },
           date: '2026-09-19',
+          participantCount: 60,
           resultCount: 2,
           results: [
             { rank: 1, oshiCardNumber: 'OSHI-A' },
