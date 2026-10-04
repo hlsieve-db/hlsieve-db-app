@@ -44,6 +44,13 @@ export type TournamentAggregationResult = {
   groups: TournamentEnvironmentAggregation[]
 }
 
+export type TournamentIndexEvent = TournamentIndexFile['events'][number]
+
+export type TournamentSelectedAggregation = {
+  summary: TournamentAggregationSummary
+  groups: TournamentEnvironmentAggregation[]
+}
+
 type MutableGroup = {
   environment: TournamentEnvironment
   summary: TournamentAggregationSummary
@@ -191,12 +198,25 @@ export function aggregateTournamentIndex(
   index: TournamentIndexFile,
   filter: TournamentAggregationFilter = {},
 ): TournamentAggregationResult {
+  const events = selectTournamentEvents(index, filter)
+  const { summary, groups } = aggregateSelectedTournamentEvents(events)
+  return { filter: { ...filter }, summary, groups }
+}
+
+export function selectTournamentEvents(
+  index: TournamentIndexFile,
+  filter: TournamentAggregationFilter = {},
+): TournamentIndexEvent[] {
   validateFilter(filter)
   validateIndex(index)
+  return index.events.filter((event) => matchesFilter(event, filter))
+}
 
+export function aggregateSelectedTournamentEvents(
+  events: readonly TournamentIndexEvent[],
+): TournamentSelectedAggregation {
   const mutableGroups = new Map<string, MutableGroup>()
-  for (const event of index.events) {
-    if (!matchesFilter(event, filter)) continue
+  for (const event of events) {
     const environment: TournamentEnvironment = {
       tournamentType: event.tournament.type,
       ...(event.tournament.round === undefined
@@ -247,6 +267,5 @@ export function aggregateTournamentIndex(
     }))
   const summary = emptySummary()
   for (const group of groups) addSummary(summary, group.summary)
-
-  return { filter: { ...filter }, summary, groups }
+  return { summary, groups }
 }
