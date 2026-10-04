@@ -11,7 +11,11 @@ import {
   publishTournamentPublication,
   writeTournamentPublication,
 } from '../publication'
-import { publishReadyTournamentEvent } from './publishReady'
+import {
+  publishReadyTournamentEvent,
+  publishReadyTournamentEvents,
+  validateTournamentPublicationPrivacy,
+} from './publishReady'
 import { LocalTournamentQueueRepository } from './repository'
 import { TournamentReadyArtifactRepository } from './readyArtifact'
 
@@ -81,6 +85,20 @@ const payload: TournamentImportPayload = {
 }
 
 describe('Tournament ready artifact', () => {
+  it.each([
+    'playerName',
+    'address',
+    'submitter',
+    'attemptCount',
+    'leaseUntil',
+    '.cache/tournaments',
+    'C:\\local',
+    'diagnostic',
+  ])('rejects private publication content: %s', (field) =>
+    expect(() =>
+      validateTournamentPublicationPrivacy(`{"${field}":"value"}`),
+    ).toThrow('privacy'),
+  )
   it('atomically writes and revalidates a normalized artifact', async () => {
     const root = await mkdtemp(resolve(tmpdir(), 'hlsieve-ready-'))
     const repository = new TournamentReadyArtifactRepository(root)
@@ -164,6 +182,39 @@ describe('Tournament ready artifact', () => {
       indexEvents: 1,
       indexResults: 1,
     })
+    await expect(
+      publishReadyTournamentEvents({
+        sourceEventIds: ['1764903'],
+        write: false,
+        queue,
+        artifacts,
+        cardsData,
+        publicDirectory,
+        stagingDirectory: resolve(root, 'batch-preview'),
+      }),
+    ).resolves.toMatchObject({
+      datasetVersion: expect.any(String),
+      publishedEventIds: { '1764903': expect.stringMatching(/^evt_/) },
+    })
+    expect(
+      JSON.parse(
+        await readFile(
+          resolve(root, 'batch-preview', 'oshi-master.json'),
+          'utf8',
+        ),
+      ),
+    ).toMatchObject({ cardsDataVersion: cardsData.dataVersion })
+    await expect(
+      publishReadyTournamentEvents({
+        sourceEventIds: ['1764903', '1764903'],
+        write: false,
+        queue,
+        artifacts,
+        cardsData,
+        publicDirectory,
+        stagingDirectory: resolve(root, 'duplicate-preview'),
+      }),
+    ).rejects.toThrow('duplicate')
     expect(
       JSON.parse(
         await readFile(resolve(publicDirectory, 'index.json'), 'utf8'),

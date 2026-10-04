@@ -268,6 +268,9 @@ describe('Tournament queue processor', () => {
       readyArtifacts: artifacts,
     })
     expect(order).toEqual(['artifact', 'ready'])
+    expect(
+      (await artifacts.load('1764903', cardsData)).event.participantCount,
+    ).toBe(60)
   })
 
   it('does not become ready when artifact persistence fails', async () => {
