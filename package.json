@@ -20,6 +20,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "tournaments:collect": "tsx scripts/tournaments/collector/runCollector.ts",
+    "tournaments:queue": "tsx scripts/tournaments/queue/runQueue.ts",
     "tournaments:import": "tsx scripts/tournaments/runImport.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

@@ -1,6 +1,7 @@
 import { mkdir, open, readFile, rename, rm } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { randomUUID } from 'node:crypto'
+import { hostname as systemHostname } from 'node:os'
 
 import {
   claimDueTournament,
@@ -15,6 +16,7 @@ import {
 import { parseTournamentSourceEventId } from './submission'
 
 const DEFAULT_QUEUE_PATH = resolve('.cache/tournaments/queue/queue.json')
+export const TOURNAMENT_QUEUE_LOCK_TTL_MS = 30 * 60 * 1_000
 const QUEUE_STATUSES: readonly TournamentQueueStatus[] = [
   'queued',
   'collecting',
@@ -41,6 +43,132 @@ export class TournamentQueueCorruptError extends Error {
 
 export class TournamentQueueLeaseConflictError extends Error {
   readonly code = 'lease-conflict'
+}
+
+export class TournamentQueueLockCorruptError extends Error {
+  readonly code = 'lock-corrupt'
+}
+
+export type TournamentQueueLockMetadata = {
+  format: 'hlsieve-tournament-queue-lock'
+  formatVersion: 1
+  pid: number
+  acquiredAt: string
+  hostname: string
+}
+
+export type TournamentQueueLockDiagnosis = {
+  metadata?: TournamentQueueLockMetadata
+  state:
+    'absent' | 'active-local' | 'stale-candidate' | 'foreign-host' | 'corrupt'
+  ageMs?: number
+}
+
+function lockPath(queuePath: string): string {
+  return `${queuePath}.lock`
+}
+
+export function parseTournamentQueueLock(
+  value: unknown,
+): TournamentQueueLockMetadata {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new TournamentQueueLockCorruptError(
+      'Tournament queue lock is invalid.',
+    )
+  }
+  const input = value as Record<string, unknown>
+  if (
+    Object.keys(input).some(
+      (key) =>
+        !['format', 'formatVersion', 'pid', 'acquiredAt', 'hostname'].includes(
+          key,
+        ),
+    ) ||
+    input.format !== 'hlsieve-tournament-queue-lock' ||
+    input.formatVersion !== 1 ||
+    !Number.isSafeInteger(input.pid) ||
+    (input.pid as number) < 1 ||
+    !isIso(input.acquiredAt) ||
+    typeof input.hostname !== 'string' ||
+    input.hostname.length === 0
+  ) {
+    throw new TournamentQueueLockCorruptError(
+      'Tournament queue lock schema is invalid.',
+    )
+  }
+  return input as TournamentQueueLockMetadata
+}
+
+export async function diagnoseTournamentQueueLock(
+  queuePath: string,
+  options: {
+    now?: string
+    hostname?: string
+    pidExists?: (pid: number) => boolean
+    ttlMs?: number
+  } = {},
+): Promise<TournamentQueueLockDiagnosis> {
+  let text: string
+  try {
+    text = await readFile(lockPath(queuePath), 'utf8')
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return { state: 'absent' }
+    }
+    throw error
+  }
+  let metadata: TournamentQueueLockMetadata
+  try {
+    metadata = parseTournamentQueueLock(JSON.parse(text) as unknown)
+  } catch {
+    return { state: 'corrupt' }
+  }
+  const now = options.now ?? new Date().toISOString()
+  if (!isIso(now))
+    throw new Error('Lock diagnosis now must be an ISO timestamp.')
+  const ageMs = Date.parse(now) - Date.parse(metadata.acquiredAt)
+  const currentHostname = options.hostname ?? systemHostname()
+  if (metadata.hostname !== currentHostname) {
+    return { metadata, state: 'foreign-host', ageMs }
+  }
+  const pidExists =
+    options.pidExists ??
+    ((pid: number) => {
+      try {
+        process.kill(pid, 0)
+        return true
+      } catch {
+        return false
+      }
+    })
+  const stale =
+    ageMs > (options.ttlMs ?? TOURNAMENT_QUEUE_LOCK_TTL_MS) &&
+    !pidExists(metadata.pid)
+  return {
+    metadata,
+    state: stale ? 'stale-candidate' : 'active-local',
+    ageMs,
+  }
+}
+
+export async function forceUnlockTournamentQueue(
+  queuePath: string,
+  options: Parameters<typeof diagnoseTournamentQueueLock>[1] & {
+    force: boolean
+  },
+): Promise<TournamentQueueLockDiagnosis> {
+  const diagnosis = await diagnoseTournamentQueueLock(queuePath, options)
+  if (!options.force)
+    throw new Error('Tournament queue unlock requires --force.')
+  if (diagnosis.state === 'active-local') {
+    throw new TournamentQueueLeaseConflictError(
+      'Refusing to unlock a queue held by a possibly active local process.',
+    )
+  }
+  if (diagnosis.state !== 'absent') {
+    await rm(lockPath(queuePath), { force: true })
+  }
+  return diagnosis
 }
 
 function isIso(value: unknown): value is string {
@@ -121,6 +249,7 @@ export function parseTournamentQueueFile(value: unknown): TournamentQueueFile {
 export type TournamentQueueRepositoryOptions = {
   path?: string
   replaceFile?: (temporaryPath: string, targetPath: string) => Promise<void>
+  lockIdentity?: { pid: number; hostname: string; now: () => string }
 }
 
 export class LocalTournamentQueueRepository {
@@ -129,10 +258,20 @@ export class LocalTournamentQueueRepository {
     temporaryPath: string,
     targetPath: string,
   ) => Promise<void>
+  private readonly lockIdentity: {
+    pid: number
+    hostname: string
+    now: () => string
+  }
 
   constructor(options: TournamentQueueRepositoryOptions = {}) {
     this.path = options.path ?? DEFAULT_QUEUE_PATH
     this.replaceFile = options.replaceFile ?? rename
+    this.lockIdentity = options.lockIdentity ?? {
+      pid: process.pid,
+      hostname: systemHostname(),
+      now: () => new Date().toISOString(),
+    }
   }
 
   async load(): Promise<TournamentQueueFile> {
@@ -221,10 +360,10 @@ export class LocalTournamentQueueRepository {
 
   private async withMutationLock<T>(action: () => Promise<T>): Promise<T> {
     await mkdir(dirname(this.path), { recursive: true })
-    const lockPath = `${this.path}.lock`
+    const targetLockPath = lockPath(this.path)
     let lock
     try {
-      lock = await open(lockPath, 'wx')
+      lock = await open(targetLockPath, 'wx')
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'EEXIST') {
         throw new TournamentQueueLeaseConflictError(
@@ -234,10 +373,20 @@ export class LocalTournamentQueueRepository {
       throw error
     }
     try {
+      const metadata: TournamentQueueLockMetadata = {
+        format: 'hlsieve-tournament-queue-lock',
+        formatVersion: 1,
+        pid: this.lockIdentity.pid,
+        acquiredAt: this.lockIdentity.now(),
+        hostname: this.lockIdentity.hostname,
+      }
+      parseTournamentQueueLock(metadata)
+      await lock.writeFile(`${JSON.stringify(metadata, null, 2)}\n`, 'utf8')
+      await lock.sync()
       return await action()
     } finally {
       await lock.close()
-      await rm(lockPath, { force: true })
+      await rm(targetLockPath, { force: true })
     }
   }
 }

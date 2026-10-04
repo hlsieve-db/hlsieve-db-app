@@ -8,12 +8,18 @@ import type {
   TournamentResultCoverage,
 } from '../../../src/domain/tournaments/types'
 import { createVenueSlug, extractPrefecture } from './venue'
-import type { TournamentSeriesConfig } from './seriesConfig'
+import {
+  findTournamentSeriesByPublicName,
+  normalizePublicSeriesName,
+  type TournamentSeriesConfig,
+} from './seriesConfig'
 import { assertPublicPage, delayBetweenPages } from './policy'
+import { buildOfficialTournamentResultUrl } from '../queue/submission'
 
 const BUSHI_NAVI_RESULT_LIST_URL =
   'https://www.bushi-navi.com/event/result/list?game_title_id%5B%5D=10'
 const BUSHI_NAVI_ORIGIN = 'https://www.bushi-navi.com'
+const DECK_LOG_ORIGIN = 'https://decklog.bushiroad.com'
 const RESULT_SATURATION_COUNT = 10
 const MAX_IMPORTED_RANK = 8
 
@@ -97,8 +103,125 @@ export function parseSourceEventId(url: string): string {
 }
 
 export function parseParticipantCount(text: string): number | undefined {
-  const match = text.normalize('NFKC').match(/大会結果参加者:\s*(\d+)人/)
+  const match = text.normalize('NFKC').match(/大会結果\s*参加者:\s*(\d+)人/)
   return match ? Number(match[1]) : undefined
+}
+
+export type KnownEventErrorCode =
+  | 'unknown-series'
+  | 'year-mismatch'
+  | 'missing-year'
+  | 'generic-source-error'
+  | 'invalid-metadata'
+  | 'result-not-published'
+  | 'deck-navigation-failed'
+  | 'deck-parse-failed'
+
+export class KnownEventCollectionError extends Error {
+  constructor(
+    readonly code: KnownEventErrorCode,
+    message: string,
+  ) {
+    super(message)
+  }
+}
+
+export function buildOfficialDeckLogUrl(deckCode: string): string {
+  if (!/^[A-Za-z0-9]+$/.test(deckCode)) {
+    throw new Error('Deck Log code must be alphanumeric.')
+  }
+  return `${DECK_LOG_ORIGIN}/view/${deckCode}`
+}
+
+export type KnownEventMetadataInput = {
+  title: string
+  dateTimeText: string
+  venueName: string
+  pageText: string
+}
+
+export function classifyKnownEventAvailability(input: {
+  metadataValid: boolean
+  resultCount: number
+}): 'collect' | 'waiting-result' | 'needs-review' {
+  if (!input.metadataValid) return 'needs-review'
+  return input.resultCount === 0 ? 'waiting-result' : 'collect'
+}
+
+export function validateKnownSeriesYear(
+  displayedSeriesName: string,
+  configuredYear: number,
+): void {
+  const yearMatches = [
+    ...normalizePublicSeriesName(displayedSeriesName).matchAll(/(\d{4})年/g),
+  ].map((match) => Number(match[1]))
+  const years = [...new Set(yearMatches)]
+  if (years.length !== 1) {
+    throw new KnownEventCollectionError(
+      'missing-year',
+      'Bushi Navi series year is missing or ambiguous.',
+    )
+  }
+  if (years[0] !== configuredYear) {
+    throw new KnownEventCollectionError(
+      'year-mismatch',
+      `Bushi Navi series year does not match config: ${years[0]} != ${configuredYear}`,
+    )
+  }
+}
+
+export function parseKnownEventMetadata(input: KnownEventMetadataInput): {
+  series: TournamentSeriesConfig
+  date: string
+  venueName: string
+  participantCount?: number
+} {
+  if (/サーバーからの応答がありません|undefined/i.test(input.pageText)) {
+    throw new KnownEventCollectionError(
+      'generic-source-error',
+      'Bushi Navi returned a generic source error.',
+    )
+  }
+  const displayedSeriesName = input.title.split(/\s+\/\s+/)[0]
+  if (!displayedSeriesName) {
+    throw new KnownEventCollectionError(
+      'invalid-metadata',
+      'Bushi Navi series name is missing.',
+    )
+  }
+  const series = findTournamentSeriesByPublicName(displayedSeriesName)
+  if (!series) {
+    throw new KnownEventCollectionError(
+      'unknown-series',
+      `Unknown Bushi Navi series: ${normalizePublicSeriesName(displayedSeriesName)}`,
+    )
+  }
+  validateKnownSeriesYear(displayedSeriesName, series.year)
+  const dateMatch = input.dateTimeText
+    .normalize('NFKC')
+    .match(/(\d{1,2})月(\d{1,2})日/)
+  const venueName = input.venueName.normalize('NFKC').trim()
+  if (!dateMatch?.[1] || !dateMatch[2] || !venueName) {
+    throw new KnownEventCollectionError(
+      'invalid-metadata',
+      'Bushi Navi date or venue is missing.',
+    )
+  }
+  const date = `${series.year}-${dateMatch[1].padStart(2, '0')}-${dateMatch[2].padStart(2, '0')}`
+  const parsedDate = new Date(`${date}T00:00:00Z`)
+  if (Number.isNaN(parsedDate.valueOf()) || isoDate(parsedDate) !== date) {
+    throw new KnownEventCollectionError(
+      'invalid-metadata',
+      `Bushi Navi date is invalid: ${date}`,
+    )
+  }
+  const participantCount = parseParticipantCount(input.pageText)
+  return {
+    series,
+    date,
+    venueName,
+    ...(participantCount ? { participantCount } : {}),
+  }
 }
 
 export function parseRankText(text: string): number {
@@ -350,48 +473,95 @@ async function readDiscoveryCard(
   })
 }
 
-async function readDeckCodeAndDeck(
+export async function readReadyResultDeckCode(
   page: Page,
   resultButtonIndex: number,
-  resolveDeck: BushiNaviCollectorOptions['resolveDeck'],
-): Promise<{ deckLogCode: string; deck: TournamentDeck }> {
-  await page
+): Promise<string> {
+  const resultButton = page
     .getByRole('button', { name: 'デッキを見る', exact: true })
     .nth(resultButtonIndex)
-    .press('Enter')
+  const row = resultButton.locator('xpath=ancestor::tr[1]')
+  const expectedPlayerName = (await row.locator('a').first().innerText()).trim()
+  if (!expectedPlayerName) {
+    throw new KnownEventCollectionError(
+      'deck-navigation-failed',
+      'Bushi Navi Result row identity is missing.',
+    )
+  }
+  const modal = page.locator('#eventResultDeckModal')
+  if (await modal.isVisible()) {
+    await modal.locator('button.buttonClose').click()
+    await modal.waitFor({ state: 'hidden' })
+  }
+
+  await resultButton.press('Enter')
   const deckLogButton = page.getByRole('button', {
     name: 'デッキログへ',
     exact: true,
   })
   await deckLogButton.waitFor({ state: 'visible' })
+  await page.waitForFunction((expectedName: string) => {
+    const modal = document.querySelector('#eventResultDeckModal')
+    if (!modal) return false
+    const playerName = modal.querySelector('.playerName')?.textContent?.trim()
+    const imageSource = modal
+      .querySelector('img[src*="decklog.bushiroad.com/deckimages/"]')
+      ?.getAttribute('src')
+    return (
+      playerName === expectedName &&
+      /^https:\/\/decklog\.bushiroad\.com\/deckimages\/[A-Za-z0-9]+\.png$/.test(
+        imageSource ?? '',
+      )
+    )
+  }, expectedPlayerName)
   const imageSource = await deckLogButton.evaluate((element) =>
     element.parentElement?.parentElement
       ?.querySelector('img[src*="decklog.bushiroad.com/deckimages/"]')
       ?.getAttribute('src'),
   )
-  const candidate = parseDeckCodeFromModalImage(imageSource)
+  return parseDeckCodeFromModalImage(imageSource)
+}
 
-  let popup: Page | undefined
+async function readDeckCodeAndDeck(
+  page: Page,
+  resultButtonIndex: number,
+  resolveDeck: BushiNaviCollectorOptions['resolveDeck'],
+): Promise<{ deckLogCode: string; deck: TournamentDeck }> {
+  const candidate = await readReadyResultDeckCode(page, resultButtonIndex)
+  const modal = page.locator('#eventResultDeckModal')
+
+  let deckPage: Page | undefined
   try {
     const deck = await resolveDeck(candidate, async () => {
-      const popupPromise = page.waitForEvent('popup', { timeout: 10_000 })
-      await deckLogButton.click()
-      popup = await popupPromise
-      await popup.waitForLoadState('domcontentloaded')
-      await assertPublicPage(popup, null)
-      const match = new URL(popup.url()).pathname.match(/^\/view\/([^/]+)$/)
+      try {
+        deckPage = await page.context().newPage()
+        await deckPage.goto(buildOfficialDeckLogUrl(candidate), {
+          waitUntil: 'domcontentloaded',
+        })
+        await assertPublicPage(deckPage, null)
+      } catch (error) {
+        throw new KnownEventCollectionError(
+          'deck-navigation-failed',
+          `Deck Log navigation failed for ${candidate}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        )
+      }
+      const match = new URL(deckPage.url()).pathname.match(/^\/view\/([^/]+)$/)
       if (!match?.[1] || decodeURIComponent(match[1]) !== candidate) {
         throw new Error(
           'Deck Log public URL does not match the public modal code.',
         )
       }
-      return popup
+      return deckPage
     })
     return { deckLogCode: candidate, deck }
   } finally {
-    await popup?.close()
-    const close = page.locator('button.buttonClose').filter({ visible: true })
-    if ((await close.count()) > 0) await close.first().click()
+    await deckPage?.close()
+    if (await modal.isVisible()) {
+      await modal.locator('button.buttonClose').click()
+      await modal.waitFor({ state: 'hidden' })
+    }
   }
 }
 
@@ -467,6 +637,123 @@ async function collectCurrentEvent(
     source: {
       sourceType: 'bushi-navi-public-browser-dom',
       sourceEventId,
+      sourceUrl,
+    },
+  }
+}
+
+export type KnownTournamentCollectorOptions = {
+  page: Page
+  sourceEventId: string
+  resolveDeck: BushiNaviCollectorOptions['resolveDeck']
+  resultLimit?: number
+  delayMs?: number
+}
+
+export async function collectKnownTournamentEvent(
+  options: KnownTournamentCollectorOptions,
+): Promise<TournamentImportEvent> {
+  const sourceUrl = buildOfficialTournamentResultUrl(options.sourceEventId)
+  await navigate(options.page, sourceUrl, options.delayMs)
+  const main = options.page.locator('main')
+  const pageText = await main.innerText()
+  if (/サーバーからの応答がありません|undefined/i.test(pageText)) {
+    throw new KnownEventCollectionError(
+      'generic-source-error',
+      `Bushi Navi returned a generic source error for ${options.sourceEventId}.`,
+    )
+  }
+  let title: string
+  let dateTimeText: string
+  let venueName: string
+  try {
+    title = await main
+      .locator('h3')
+      .filter({ hasText: /\S/ })
+      .first()
+      .innerText()
+    dateTimeText = await main.locator('time').first().innerText()
+    venueName = await main
+      .locator('.icon-store, .eventResult-organizerName')
+      .first()
+      .innerText()
+  } catch {
+    throw new KnownEventCollectionError(
+      'invalid-metadata',
+      `Bushi Navi required metadata is missing for ${options.sourceEventId}.`,
+    )
+  }
+  const metadata = parseKnownEventMetadata({
+    title,
+    dateTimeText,
+    venueName,
+    pageText,
+  })
+  const resultButtons = options.page.getByRole('button', {
+    name: 'デッキを見る',
+    exact: true,
+  })
+  const resultCount = await resultButtons.count()
+  if (
+    classifyKnownEventAvailability({ metadataValid: true, resultCount }) ===
+    'waiting-result'
+  ) {
+    throw new KnownEventCollectionError(
+      'result-not-published',
+      `Bushi Navi Result is not published for ${options.sourceEventId}.`,
+    )
+  }
+  const safeResultLimit = Math.min(
+    options.resultLimit ?? MAX_IMPORTED_RANK,
+    MAX_IMPORTED_RANK,
+  )
+  const results: TournamentImportResult[] = []
+  for (let index = 0; index < resultCount; index += 1) {
+    const row = resultButtons.nth(index).locator('xpath=ancestor::tr[1]')
+    const rank = parseRankText(await row.locator('td').first().innerText())
+    if (rank < 1 || rank > safeResultLimit) continue
+    try {
+      const { deckLogCode, deck } = await readDeckCodeAndDeck(
+        options.page,
+        index,
+        options.resolveDeck,
+      )
+      const oshiCardNumber = deck.oshi[0]?.cardNumber
+      if (!oshiCardNumber) {
+        throw new Error(`Oshi is missing for Deck ${deckLogCode}.`)
+      }
+      results.push({ rank, oshiCardNumber, deckLogCode, deck })
+    } catch (error) {
+      if (error instanceof KnownEventCollectionError) throw error
+      throw new KnownEventCollectionError(
+        'deck-parse-failed',
+        error instanceof Error ? error.message : String(error),
+      )
+    }
+  }
+  const limitedResults = limitToTopEight(results).sort(
+    (left, right) => left.rank - right.rank,
+  )
+  return {
+    identity: { sourceEventId: options.sourceEventId },
+    tournament: {
+      type: metadata.series.type,
+      ...(metadata.series.round ? { round: metadata.series.round } : {}),
+      seriesName: metadata.series.seriesName,
+    },
+    date: metadata.date,
+    venue: {
+      slug: createVenueSlug(metadata.venueName),
+      name: metadata.venueName,
+    },
+    ...(metadata.participantCount
+      ? { participantCount: metadata.participantCount }
+      : {}),
+    resultCoverage: determineCoverage(limitedResults),
+    results: limitedResults,
+    source: {
+      sourceType: 'bushi-navi-public-browser-dom',
+      sourceEventId: options.sourceEventId,
       sourceUrl,
     },
   }

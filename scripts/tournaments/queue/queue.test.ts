@@ -58,6 +58,43 @@ describe('Tournament queue domain', () => {
     })
   })
 
+  it('requeues needs-review but preserves active and waiting work', () => {
+    const queued = enqueueTournament(emptyTournamentQueue(), '1764903', DAY_0)
+    const collecting = transitionTournamentQueueRecord(
+      queued.records[0]!,
+      'collecting',
+    )
+    const review = transitionTournamentQueueRecord(collecting, 'needs-review', {
+      errorCode: 'deck-navigation-failed',
+    })
+    const retried = enqueueTournament(
+      { ...queued, records: [review] },
+      '1764903',
+      '2026-10-05T00:00:00.000Z',
+    ).records[0]!
+    expect(retried).toMatchObject({ status: 'queued', attemptCount: 0 })
+    expect(retried).not.toHaveProperty('lastErrorCode')
+
+    const active = enqueueTournament(
+      { ...queued, records: [collecting] },
+      '1764903',
+      '2026-10-05T00:00:00.000Z',
+    ).records[0]!
+    expect(active.status).toBe('collecting')
+
+    const waiting = transitionTournamentQueueRecord(
+      { ...collecting, attemptCount: 1 },
+      'waiting-result',
+    )
+    expect(
+      enqueueTournament(
+        { ...queued, records: [waiting] },
+        '1764903',
+        '2026-10-05T00:00:00.000Z',
+      ).records[0]?.status,
+    ).toBe('waiting-result')
+  })
+
   it('fixes the waiting-result schedule at Day 0, 1, 3, 7, and 14', () => {
     expect(
       [0, 1, 2, 3, 4, 5].map((attempt) =>

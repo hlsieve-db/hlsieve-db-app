@@ -83,7 +83,7 @@ export function enqueueTournament(
     ...existing,
     lastSubmittedAt: now,
   }
-  if (existing.status === 'published') {
+  if (existing.status === 'published' || existing.status === 'needs-review') {
     resubmitted.status = 'queued'
     delete resubmitted.nextAttemptAt
     delete resubmitted.leaseUntil

@@ -14,7 +14,7 @@ import {
 } from './cache'
 import { parseCollectorCli } from './cli'
 import { executeCollector } from './collector'
-import { parseDeckLogHtml } from './deckLog'
+import { parseDeckLogHtml, waitForDeckLogReady } from './deckLog'
 import { delayBetweenPages } from './policy'
 import { getTournamentSeriesConfig } from './seriesConfig'
 
@@ -51,10 +51,7 @@ async function main(): Promise<void> {
                 async () => {
                   const deckPage = await openPublicPage()
                   await delayBetweenPages(options.delayMs)
-                  await deckPage
-                    .locator('h3')
-                    .filter({ hasText: '推しホロメン' })
-                    .waitFor({ state: 'attached' })
+                  await waitForDeckLogReady(deckPage)
                   return parseDeckLogHtml(await deckPage.content())
                 },
                 cardsData.cards,

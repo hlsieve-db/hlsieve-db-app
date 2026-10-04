@@ -1,4 +1,5 @@
 import { load } from 'cheerio'
+import type { Page } from 'playwright'
 
 import type { DeckEntry } from '../../../src/domain/decks/types'
 import type { TournamentDeck } from '../../../src/domain/tournaments/types'
@@ -8,6 +9,45 @@ const SECTION_NAMES = {
   main: 'メインデッキ',
   cheer: 'エールデッキ',
 } as const
+
+export class DeckLogReadinessError extends Error {
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options)
+    this.name = 'DeckLogReadinessError'
+  }
+}
+
+export async function waitForDeckLogReady(page: Page): Promise<void> {
+  try {
+    await page.waitForFunction((headings: string[]) => {
+      const semanticHeadings = [...document.querySelectorAll('h3')]
+      return headings.every((heading) => {
+        const matches = semanticHeadings.filter(
+          (element) => element.textContent?.trim() === heading,
+        )
+        if (matches.length !== 1) return false
+        const container = matches[0]?.nextElementSibling
+        if (!container) return false
+        const items = [...container.querySelectorAll('.card-item')]
+        return (
+          items.length > 0 &&
+          items.every((item) => {
+            const title = item
+              .querySelector('img[title]')
+              ?.getAttribute('title')
+            const quantity = item.querySelector('.num')?.textContent?.trim()
+            return Boolean(title) && Boolean(quantity && /^\d+$/.test(quantity))
+          })
+        )
+      })
+    }, Object.values(SECTION_NAMES))
+  } catch (error) {
+    throw new DeckLogReadinessError(
+      'Deck Log did not reach the parser-ready DOM state.',
+      { cause: error },
+    )
+  }
+}
 
 function parseCardNumber(title: string): string {
   const match = title.normalize('NFKC').match(/^([^\s:：]+)\s*[:：]\s*.+$/)

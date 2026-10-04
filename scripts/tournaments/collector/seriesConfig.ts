@@ -21,6 +21,20 @@ export const TOURNAMENT_SERIES_CONFIGS: readonly TournamentSeriesConfig[] = [
   },
 ]
 
+export function normalizePublicSeriesName(value: string): string {
+  return value.normalize('NFKC').replace(/\s+/g, ' ').trim()
+}
+
+export function findTournamentSeriesByPublicName(
+  publicSeriesName: string,
+): TournamentSeriesConfig | undefined {
+  const normalized = normalizePublicSeriesName(publicSeriesName)
+  return TOURNAMENT_SERIES_CONFIGS.find(
+    (candidate) =>
+      normalizePublicSeriesName(candidate.seriesName) === normalized,
+  )
+}
+
 export function getTournamentSeriesConfig(
   seriesId: string,
 ): TournamentSeriesConfig {

@@ -7,6 +7,9 @@ import { describe, expect, it, vi } from 'vitest'
 import { emptyTournamentQueue, enqueueTournament } from './queue'
 import {
   LocalTournamentQueueRepository,
+  diagnoseTournamentQueueLock,
+  forceUnlockTournamentQueue,
+  parseTournamentQueueLock,
   parseTournamentQueueFile,
   TournamentQueueCorruptError,
   TournamentQueueLeaseConflictError,
@@ -138,5 +141,88 @@ describe('parseTournamentQueueFile', () => {
         records: [record, record],
       }),
     ).toThrow(/duplicate Events/)
+  })
+})
+
+describe('Tournament queue lock diagnosis', () => {
+  const lock = {
+    format: 'hlsieve-tournament-queue-lock' as const,
+    formatVersion: 1 as const,
+    pid: 4321,
+    acquiredAt: NOW,
+    hostname: 'test-host',
+  }
+
+  it('validates metadata and distinguishes active, stale, and foreign locks', async () => {
+    expect(parseTournamentQueueLock(lock)).toEqual(lock)
+    const path = await queuePath()
+    await writeFile(`${path}.lock`, JSON.stringify(lock), 'utf8')
+    await expect(
+      diagnoseTournamentQueueLock(path, {
+        now: '2026-10-04T00:10:00.000Z',
+        hostname: 'test-host',
+        pidExists: () => true,
+        ttlMs: 60_000,
+      }),
+    ).resolves.toMatchObject({ state: 'active-local', metadata: lock })
+    await expect(
+      diagnoseTournamentQueueLock(path, {
+        now: '2026-10-04T00:10:00.000Z',
+        hostname: 'test-host',
+        pidExists: () => false,
+        ttlMs: 60_000,
+      }),
+    ).resolves.toMatchObject({ state: 'stale-candidate' })
+    await expect(
+      diagnoseTournamentQueueLock(path, {
+        now: '2026-10-04T00:10:00.000Z',
+        hostname: 'other-host',
+      }),
+    ).resolves.toMatchObject({ state: 'foreign-host' })
+    expect(await readFile(`${path}.lock`, 'utf8')).toContain('test-host')
+  })
+
+  it('never auto-deletes and only force-unlocks a non-active lock', async () => {
+    const path = await queuePath()
+    await writeFile(`${path}.lock`, JSON.stringify(lock), 'utf8')
+    await expect(
+      forceUnlockTournamentQueue(path, {
+        force: false,
+        hostname: 'test-host',
+        pidExists: () => false,
+        now: '2026-10-04T01:00:00.000Z',
+        ttlMs: 1,
+      }),
+    ).rejects.toThrow(/--force/)
+    expect(await readFile(`${path}.lock`, 'utf8')).toContain('test-host')
+    await forceUnlockTournamentQueue(path, {
+      force: true,
+      hostname: 'test-host',
+      pidExists: () => false,
+      now: '2026-10-04T01:00:00.000Z',
+      ttlMs: 1,
+    })
+    await expect(readFile(`${path}.lock`, 'utf8')).rejects.toMatchObject({
+      code: 'ENOENT',
+    })
+  })
+
+  it('refuses to unlock an active local PID and reports corrupt metadata', async () => {
+    const activePath = await queuePath()
+    await writeFile(`${activePath}.lock`, JSON.stringify(lock), 'utf8')
+    await expect(
+      forceUnlockTournamentQueue(activePath, {
+        force: true,
+        hostname: 'test-host',
+        pidExists: () => true,
+        now: '2026-10-04T00:10:00.000Z',
+        ttlMs: 1,
+      }),
+    ).rejects.toBeInstanceOf(TournamentQueueLeaseConflictError)
+    const corruptPath = await queuePath()
+    await writeFile(`${corruptPath}.lock`, '{bad', 'utf8')
+    await expect(diagnoseTournamentQueueLock(corruptPath)).resolves.toEqual({
+      state: 'corrupt',
+    })
   })
 })

@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import { getTournamentSeriesConfig } from './seriesConfig'
+import {
+  findTournamentSeriesByPublicName,
+  getTournamentSeriesConfig,
+} from './seriesConfig'
 
 describe('Tournament Collector series config', () => {
   it('maps the approved Selection Cup and Bloom Cup series', () => {
@@ -15,5 +18,18 @@ describe('Tournament Collector series config', () => {
       year: 2026,
     })
     expect(bloom).not.toHaveProperty('round')
+  })
+})
+
+describe('public series name mapping', () => {
+  it('normalizes whitespace but requires an exact full name', () => {
+    expect(
+      findTournamentSeriesByPublicName(
+        '  【ホロカ】先行開催！セレクションカップ（2026年9月）  ',
+      )?.seriesId,
+    ).toBe('3440')
+    expect(
+      findTournamentSeriesByPublicName('セレクションカップ'),
+    ).toBeUndefined()
   })
 })
