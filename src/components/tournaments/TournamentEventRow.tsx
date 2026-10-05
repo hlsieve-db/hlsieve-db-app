@@ -17,36 +17,32 @@ export function TournamentEventRow({
   event,
   winnerOshiName,
 }: TournamentEventRowProps) {
-  const venue = [event.venue.prefecture, event.venue.name]
-    .filter(Boolean)
-    .join('／')
+  const venueName = event.venue.name.trim()
 
   return (
     <tr>
       <td>
         <time dateTime={event.date}>{event.date}</time>
       </td>
-      <th scope="row" className="tournament-table__event">
+      <th scope="row" className="tournament-table__venue">
         <Link to={`/tournaments/${encodeURIComponent(event.id)}`}>
-          {event.tournament.seriesName}
+          {venueName || '大会詳細を見る'}
         </Link>
       </th>
+      <td className="tournament-table__winner">{winnerOshiName ?? '—'}</td>
       <td>{tournamentTypeLabel(event.tournament.type)}</td>
       <td>
         {event.tournament.environment
           ? tournamentEnvironmentLabel(event.tournament.environment)
           : '—'}
       </td>
-      <td className="tournament-table__venue" title={venue}>
-        {venue}
-      </td>
+      <td>{event.venue.prefecture ?? '—'}</td>
       <td>
         {event.participantCount !== undefined
           ? `${event.participantCount}人`
           : '—'}
       </td>
       <td>{event.resultCount}件</td>
-      <td>{winnerOshiName ?? '—'}</td>
     </tr>
   )
 }

@@ -68,11 +68,24 @@ describe('TournamentListPage', () => {
       '大会データを読み込んでいます',
     )
     expect(
-      await screen.findByRole('link', { name: 'Synthetic Selection Cup' }),
+      await screen.findByRole('link', { name: 'Synthetic North Hall' }),
     ).toHaveAttribute('href', '/tournaments/synthetic-event-a')
     expect(screen.getByRole('table', { name: '大会一覧' })).toBeVisible()
     expect(screen.getAllByRole('row')).toHaveLength(4)
-    expect(screen.getByText('テスト県／Synthetic North Hall')).toBeVisible()
+    expect(
+      screen.getAllByRole('columnheader').map((header) => header.textContent),
+    ).toEqual([
+      '日付',
+      '店名',
+      '優勝推し',
+      '種別',
+      '環境',
+      '地域',
+      '参加者',
+      '入賞数',
+    ])
+    expect(screen.queryByRole('columnheader', { name: 'イベント' })).toBeNull()
+    expect(screen.getByText('テスト県')).toBeVisible()
     expect(screen.getByText('64人')).toBeVisible()
     expect(screen.getAllByText('セレクションカップ')).toHaveLength(2)
     expect(screen.getAllByText('その他')).toHaveLength(2)
@@ -90,6 +103,37 @@ describe('TournamentListPage', () => {
       },
     })
     expect(await screen.findByText('60人')).toBeVisible()
+  })
+
+  it('keeps the full venue name as the detail link and preserves a fallback link', async () => {
+    const first = SYNTHETIC_TOURNAMENT_INDEX.events[0]!
+    const longVenueName =
+      'Synthetic Card Shop With A Deliberately Long Complete Store Name'
+    renderPage({
+      index: {
+        ...SYNTHETIC_TOURNAMENT_INDEX,
+        events: [
+          {
+            ...first,
+            id: 'long-venue',
+            venue: { ...first.venue, name: longVenueName },
+          },
+          {
+            ...first,
+            id: 'missing-venue',
+            venue: { ...first.venue, name: '' },
+          },
+        ],
+      },
+    })
+
+    expect(
+      await screen.findByRole('link', { name: longVenueName }),
+    ).toHaveAttribute('href', '/tournaments/long-venue')
+    expect(
+      screen.getByRole('link', { name: '大会詳細を見る' }),
+    ).toHaveAttribute('href', '/tournaments/missing-venue')
+    expect(document.querySelector('.tournament-table__event')).toBeNull()
   })
 
   it('uses the single actual rank 1 Result as winner text without rendering images', async () => {
@@ -128,7 +172,7 @@ describe('TournamentListPage', () => {
 
     const row = (
       await screen.findByRole('link', {
-        name: 'Synthetic Selection Cup',
+        name: 'Synthetic North Hall',
       })
     ).closest('tr')
     expect(row).not.toBeNull()
@@ -141,7 +185,7 @@ describe('TournamentListPage', () => {
     const region = await screen.findByRole('region', { name: '大会一覧表' })
 
     expect(
-      within(region).getByRole('link', { name: 'Synthetic Selection Cup' }),
+      within(region).getByRole('link', { name: 'Synthetic North Hall' }),
     ).toBeVisible()
     expect(
       within(region).queryByRole('searchbox', { name: '店舗名・都道府県' }),
@@ -204,7 +248,7 @@ describe('TournamentListPage', () => {
 
   it('does not render coverage labels in the list', async () => {
     renderPage()
-    await screen.findByRole('link', { name: /Synthetic Selection Cup/ })
+    await screen.findByRole('link', { name: /Synthetic North Hall/ })
     expect(screen.queryByText('収録範囲')).toBeNull()
     expect(screen.queryByText('1〜8位の結果を収録')).toBeNull()
     expect(screen.getByText('8件')).toBeVisible()
@@ -236,13 +280,13 @@ describe('TournamentListPage', () => {
       'oshi=SYNTH-OSHI-002',
     )
     expect(
-      screen.getByRole('link', { name: /Synthetic Selection Cup/ }),
+      screen.getByRole('link', { name: /Synthetic North Hall/ }),
     ).toBeVisible()
     expect(
-      screen.getByRole('link', { name: /Synthetic Future Event/ }),
+      screen.getByRole('link', { name: /Synthetic Future Space/ }),
     ).toBeVisible()
     expect(
-      screen.queryByRole('link', { name: /Synthetic Bloom Cup/ }),
+      screen.queryByRole('link', { name: /Synthetic South Store/ }),
     ).toBeNull()
   })
 
@@ -260,7 +304,7 @@ describe('TournamentListPage', () => {
       ],
     }
     renderPage({ path: '/tournaments?page=2', index })
-    await screen.findAllByRole('link', { name: /Synthetic Selection Cup/ })
+    await screen.findAllByRole('link', { name: /Synthetic North Hall/ })
     fireEvent.change(screen.getByRole('combobox', { name: '大会種別' }), {
       target: { value: 'bloomcup' },
     })
@@ -280,13 +324,13 @@ describe('TournamentListPage', () => {
       target: { value: '2026-09-20' },
     })
     expect(
-      screen.getByRole('link', { name: /Synthetic Bloom Cup/ }),
+      screen.getByRole('link', { name: /Synthetic South Store/ }),
     ).toBeVisible()
   })
 
   it('keeps IME composition local and commits the final venue once', async () => {
     renderPage()
-    await screen.findByRole('link', { name: /Synthetic Selection Cup/ })
+    await screen.findByRole('link', { name: /Synthetic North Hall/ })
     const input = screen.getByRole('searchbox', {
       name: '店舗名・都道府県',
     })
@@ -309,7 +353,7 @@ describe('TournamentListPage', () => {
 
   it('keeps ordinary venue input immediate and synchronized with the URL', async () => {
     renderPage()
-    await screen.findByRole('link', { name: /Synthetic Selection Cup/ })
+    await screen.findByRole('link', { name: /Synthetic North Hall/ })
     const input = screen.getByRole('searchbox', {
       name: '店舗名・都道府県',
     })
@@ -324,7 +368,7 @@ describe('TournamentListPage', () => {
 
   it('does not overwrite the composition draft during an external URL update', async () => {
     renderPage()
-    await screen.findByRole('link', { name: /Synthetic Selection Cup/ })
+    await screen.findByRole('link', { name: /Synthetic North Hall/ })
     const input = screen.getByRole('searchbox', {
       name: '店舗名・都道府県',
     })
@@ -359,7 +403,7 @@ describe('TournamentListPage', () => {
       })),
     }
     renderPage({ path: '/tournaments?page=2', index })
-    await screen.findAllByRole('link', { name: /Synthetic Selection Cup/ })
+    await screen.findAllByRole('link', { name: /Synthetic North Hall/ })
     fireEvent.change(screen.getByRole('combobox', { name: '大会種別' }), {
       target: { value: 'selectioncup' },
     })
@@ -371,7 +415,7 @@ describe('TournamentListPage', () => {
       loadOshiMaster: vi.fn(async () => Promise.reject(new Error('missing'))),
     })
     expect(
-      await screen.findByRole('link', { name: /Synthetic Selection Cup/ }),
+      await screen.findByRole('link', { name: /Synthetic North Hall/ }),
     ).toBeVisible()
     expect(
       screen.getByRole('combobox', { name: '推しホロメン' }),
@@ -389,7 +433,7 @@ describe('TournamentListPage', () => {
     renderPage({ loadIndex })
     fireEvent.click(await screen.findByRole('button', { name: '再試行' }))
     expect(
-      await screen.findByRole('link', { name: /Synthetic Selection Cup/ }),
+      await screen.findByRole('link', { name: /Synthetic North Hall/ }),
     ).toBeVisible()
     expect(loadIndex).toHaveBeenCalledTimes(2)
   })

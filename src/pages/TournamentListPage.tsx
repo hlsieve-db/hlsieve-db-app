@@ -381,13 +381,13 @@ export function TournamentListPage({
               <thead>
                 <tr>
                   <th scope="col">日付</th>
-                  <th scope="col">イベント</th>
+                  <th scope="col">店名</th>
+                  <th scope="col">優勝推し</th>
                   <th scope="col">種別</th>
                   <th scope="col">環境</th>
-                  <th scope="col">地域／店舗</th>
+                  <th scope="col">地域</th>
                   <th scope="col">参加者</th>
                   <th scope="col">入賞数</th>
-                  <th scope="col">優勝推し</th>
                 </tr>
               </thead>
               <tbody>
