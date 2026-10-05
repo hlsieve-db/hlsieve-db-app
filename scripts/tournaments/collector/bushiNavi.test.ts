@@ -371,7 +371,11 @@ describe('Bushi Navi Result modal binding', () => {
     await browser.close()
   })
 
-  async function modalPage(updateDelay: number | undefined, code = '1GXSK6') {
+  async function modalPage(
+    updateDelay: number | undefined,
+    code = '1GXSK6',
+    secondName = 'Rank Two',
+  ) {
     const page = await browser.newPage()
     await page.setContent(`<table><tbody>
       <tr><td>1</td><td><a>Rank One</a><button id="rank1">デッキを見る</button></td></tr>
@@ -389,7 +393,7 @@ describe('Bushi Navi Result modal binding', () => {
       document.querySelector('#rank1').onclick = () => { modal.style.display = 'block'; update('Rank One', 'KE8C4') }
       document.querySelector('#rank2').onclick = () => {
         modal.style.display = 'block'
-        ${updateDelay === undefined ? '' : `setTimeout(() => update('Rank Two', '${code}'), ${updateDelay})`}
+        ${updateDelay === undefined ? '' : `setTimeout(() => update(${JSON.stringify(secondName)}, '${code}'), ${updateDelay})`}
       }
       modal.querySelector('.buttonClose').onclick = () => {
         modal.style.display = 'none'
@@ -416,6 +420,15 @@ describe('Bushi Navi Result modal binding', () => {
       }
     },
   )
+
+  it('matches modal identity after NFKC and whitespace normalization', async () => {
+    const page = await modalPage(0, '1GXSK6', 'Ｒａｎｋ　Ｔｗｏ')
+    try {
+      await expect(readReadyResultDeckCode(page, 1)).resolves.toBe('1GXSK6')
+    } finally {
+      await page.close()
+    }
+  })
 
   it.each([
     ['never updates', undefined, '1GXSK6'],
