@@ -346,8 +346,8 @@ describe('Tournament Result detail', () => {
       screen.getByRole('heading', { name: 'エールデッキ' }),
     ).toBeInTheDocument()
     expect(screen.getByText('Synthetic Main Card')).toBeInTheDocument()
-    expect(screen.getByText('50枚')).toBeInTheDocument()
-    expect(screen.getByText('20枚')).toBeInTheDocument()
+    expect(screen.getByLabelText('現在 50枚')).toHaveTextContent('50')
+    expect(screen.getByLabelText('現在 20枚')).toHaveTextContent('20')
     expect(screen.queryByText('収録範囲')).not.toBeInTheDocument()
     expect(screen.queryByText('1〜8位の結果を収録')).not.toBeInTheDocument()
     expect(
@@ -430,6 +430,31 @@ describe('Tournament Result detail', () => {
     expect(screen.getByRole('link', { name: /DECK LOGで見る/ })).toBeVisible()
   })
 
+  it('reuses Deck Editor entry presentation for Oshi, Main, and Cheer', async () => {
+    renderResult()
+    const oshi = (
+      await screen.findByRole('heading', { name: '推しホロメン構成' })
+    ).closest('section')!
+    const main = screen
+      .getByRole('heading', { name: 'メインデッキ' })
+      .closest('section')!
+    const cheer = screen
+      .getByRole('heading', { name: 'エールデッキ' })
+      .closest('section')!
+
+    expect(oshi.querySelector('ul')).toHaveClass('deck-entry-list')
+    expect(oshi.querySelector('li')).toHaveClass('deck-entry')
+    for (const zone of [main, cheer]) {
+      expect(zone.querySelector('ul')).toHaveClass('deck-entry-list--compact')
+      expect(zone.querySelector('li')).toHaveClass('deck-entry--compact')
+      expect(zone.querySelector('.deck-card-image')).toBeInTheDocument()
+      expect(zone.querySelector('.deck-entry__information')).toBeInTheDocument()
+      expect(zone.querySelector('.deck-quantity-control')).toBeInTheDocument()
+      expect(zone.querySelector('.tournament-card-image')).toBeNull()
+      expect(zone.querySelector('.tournament-deck-entry')).toBeNull()
+    }
+  })
+
   it('matches Deck Editor display order for shuffled Main entries without mutation or quantity loss', async () => {
     const support = {
       ...cards.cards[0]!,
@@ -469,7 +494,7 @@ describe('Tournament Result detail', () => {
       })
     ).closest('section')!
     const rendered = Array.from(section.querySelectorAll('li')).map(
-      (item) => item.querySelectorAll('span')[0]?.textContent,
+      (item) => item.querySelector('.deck-entry__information p')?.textContent,
     )
     const map = new Map(cardFile.cards.map((card) => [card.cardNumber, card]))
     expect(rendered).toEqual(
@@ -484,7 +509,7 @@ describe('Tournament Result detail', () => {
       Array.from(section.querySelectorAll('li')).reduce(
         (sum, item) =>
           sum +
-          Number.parseInt(item.textContent?.match(/(\d+)枚/)?.[1] ?? '0', 10),
+          Number.parseInt(item.querySelector('output')?.textContent ?? '0', 10),
         0,
       ),
     ).toBe(6)
@@ -507,7 +532,7 @@ describe('Tournament Result detail', () => {
       await screen.findByText(/カード情報を一部表示できません/),
     ).toBeInTheDocument()
     expect(screen.getByText('SYNTH-MAIN-a')).toBeInTheDocument()
-    expect(screen.getByText('50枚')).toBeInTheDocument()
+    expect(screen.getByLabelText('現在 50枚')).toHaveTextContent('50')
     fireEvent.click(screen.getByRole('button', { name: 'HLSieveにコピー' }))
     await waitFor(() => expect(repositoryMocks.saveDeck).toHaveBeenCalledOnce())
   })

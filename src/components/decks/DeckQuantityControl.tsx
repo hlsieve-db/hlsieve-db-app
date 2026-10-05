@@ -1,3 +1,5 @@
+import { DeckQuantityValue } from './DeckEntryPresentation'
+
 type DeckQuantityControlProps = {
   cardName: string
   quantity: number
@@ -23,7 +25,7 @@ export function DeckQuantityControl({
       >
         −
       </button>
-      <output aria-label={`現在 ${quantity}枚`}>{quantity}</output>
+      <DeckQuantityValue quantity={quantity} />
       <button
         type="button"
         aria-label={`${cardName}を1枚追加`}

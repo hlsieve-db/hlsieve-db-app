@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { AppNavigation } from '../components/AppNavigation'
 import { ProgressiveCardImage } from '../components/cards/ProgressiveCardImage'
+import { DeckEntryPresentation } from '../components/decks/DeckEntryPresentation'
 import type { Card, CardsDataFile } from '../domain/cards/types'
 import type { Deck, DeckEntry } from '../domain/decks/types'
 import { sortDeckEntriesForDisplay } from '../domain/decks/displayOrder'
@@ -261,7 +262,13 @@ function DeckZone({
   return (
     <section className="tournament-deck-zone">
       <h2>{title}</h2>
-      <ul>
+      <ul
+        className={
+          isOshi
+            ? 'deck-entry-list'
+            : 'deck-entry-list deck-entry-list--compact'
+        }
+      >
         {sorted.map((entry) => {
           const card = cards?.get(entry.cardNumber)
           const masterCard = isOshi
@@ -272,18 +279,20 @@ function DeckZone({
             ? masterCard?.representativeImageUrl
             : (card?.representativeImageUrl ?? card?.imageUrl)
           return (
-            <li key={entry.cardNumber} className="tournament-deck-entry">
-              <ProgressiveCardImage
-                src={image}
-                alt={`${name}のカード画像`}
-                className="tournament-card-image"
-              />
-              <div>
-                <strong>{name}</strong>
-                <span>{entry.cardNumber}</span>
-                <span>{entry.quantity}枚</span>
-              </div>
-            </li>
+            <DeckEntryPresentation
+              key={entry.cardNumber}
+              cardNumber={entry.cardNumber}
+              compact={!isOshi}
+              name={name}
+              quantity={entry.quantity}
+              image={
+                <ProgressiveCardImage
+                  src={image}
+                  alt={`${name}のカード画像`}
+                  className="deck-card-image"
+                />
+              }
+            />
           )
         })}
       </ul>

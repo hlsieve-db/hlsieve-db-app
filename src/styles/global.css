@@ -6228,8 +6228,7 @@ main {
   margin: 0;
 }
 
-.tournament-result-list,
-.tournament-deck-zone ul {
+.tournament-result-list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr));
   gap: 1rem;
@@ -6237,8 +6236,7 @@ main {
   list-style: none;
 }
 
-.tournament-result-card,
-.tournament-deck-entry {
+.tournament-result-card {
   display: grid;
   gap: 0.75rem;
   padding: 1rem;
@@ -6246,8 +6244,11 @@ main {
   border-radius: 0.75rem;
 }
 
-.tournament-oshi-summary,
-.tournament-deck-entry {
+.tournament-deck-zone {
+  max-width: 44rem;
+}
+
+.tournament-oshi-summary {
   grid-template-columns: minmax(5rem, 7rem) minmax(0, 1fr);
   align-items: start;
 }
@@ -6272,15 +6273,14 @@ main {
   border-radius: inherit;
 }
 
-.tournament-deck-entry > div,
 .tournament-detail-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem 1rem;
 }
 
-.tournament-deck-entry strong {
-  flex-basis: 100%;
+.deck-quantity-control--readonly {
+  justify-content: center;
 }
 
 .tournament-deck-log code {
@@ -6290,8 +6290,7 @@ main {
 }
 
 @media (max-width: 30rem) {
-  .tournament-oshi-summary,
-  .tournament-deck-entry {
+  .tournament-oshi-summary {
     grid-template-columns: 1fr;
   }
 

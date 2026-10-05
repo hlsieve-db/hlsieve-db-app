@@ -14,6 +14,7 @@ import { useAuth } from '../auth/useAuth'
 import { AppNavigation } from '../components/AppNavigation'
 import { ProgressiveCardImage } from '../components/cards/ProgressiveCardImage'
 import { DeckAnalysisSummary } from '../components/decks/DeckAnalysisSummary'
+import { DeckEntryPresentation } from '../components/decks/DeckEntryPresentation'
 import { DeckLegalitySummary } from '../components/decks/DeckLegalitySummary'
 import { DeckQuantityControl } from '../components/decks/DeckQuantityControl'
 import { DECK_ZONE_LABELS } from '../components/decks/constants'
@@ -945,23 +946,96 @@ function DeckEditor({
                       const displayName = card?.name ?? entry.cardNumber
                       if (group.key !== 'oshi') {
                         return (
-                          <li
-                            className="deck-entry deck-entry--compact"
+                          <DeckEntryPresentation
                             key={entry.cardNumber}
-                          >
-                            {cardViewMode === 'image' && (
+                            cardNumber={entry.cardNumber}
+                            compact
+                            name={displayName}
+                            quantity={entry.quantity}
+                            image={
+                              cardViewMode === 'image' ? (
+                                <DeckCardImage
+                                  card={card}
+                                  linkToDetail
+                                  buildDetailState={captureDetailState}
+                                />
+                              ) : undefined
+                            }
+                            quantityControl={
+                              <DeckQuantityControl
+                                cardName={displayName}
+                                quantity={entry.quantity}
+                                onDecrement={() =>
+                                  applyDeckChange((current) =>
+                                    decrementCardQuantity(
+                                      current,
+                                      entry.cardNumber,
+                                    ),
+                                  )
+                                }
+                                onIncrement={() =>
+                                  applyDeckChange((current) =>
+                                    incrementCardQuantity(
+                                      current,
+                                      entry.cardNumber,
+                                    ),
+                                  )
+                                }
+                              />
+                            }
+                            afterInformation={
+                              cardsState.status === 'loaded' && !card ? (
+                                <span
+                                  className="deck-entry__warning"
+                                  role="alert"
+                                >
+                                  カード情報なし
+                                </span>
+                              ) : undefined
+                            }
+                            removeAction={
+                              <button
+                                type="button"
+                                className="button button--secondary deck-entry__remove"
+                                aria-label={`${displayName}をデッキから削除`}
+                                onClick={() =>
+                                  applyDeckChange((current) =>
+                                    removeCardFromDeck(
+                                      current,
+                                      entry.cardNumber,
+                                    ),
+                                  )
+                                }
+                              >
+                                削除
+                              </button>
+                            }
+                          />
+                        )
+                      }
+                      return (
+                        <DeckEntryPresentation
+                          key={entry.cardNumber}
+                          cardNumber={entry.cardNumber}
+                          name={displayName}
+                          quantity={entry.quantity}
+                          image={
+                            cardViewMode === 'image' ? (
                               <DeckCardImage
                                 card={card}
                                 linkToDetail
                                 buildDetailState={captureDetailState}
                               />
-                            )}
-                            <div className="deck-entry__information">
-                              <h4>{displayName}</h4>
-                              {displayName !== entry.cardNumber && (
-                                <p>{entry.cardNumber}</p>
-                              )}
-                            </div>
+                            ) : undefined
+                          }
+                          informationExtra={
+                            cardsState.status === 'loaded' && !card ? (
+                              <p className="deck-entry__warning" role="alert">
+                                カードデータに存在しないカードです
+                              </p>
+                            ) : undefined
+                          }
+                          quantityControl={
                             <DeckQuantityControl
                               cardName={displayName}
                               quantity={entry.quantity}
@@ -982,14 +1056,8 @@ function DeckEditor({
                                 )
                               }
                             />
-                            {cardsState.status === 'loaded' && !card && (
-                              <span
-                                className="deck-entry__warning"
-                                role="alert"
-                              >
-                                カード情報なし
-                              </span>
-                            )}
+                          }
+                          removeAction={
                             <button
                               type="button"
                               className="button button--secondary deck-entry__remove"
@@ -1002,69 +1070,8 @@ function DeckEditor({
                             >
                               削除
                             </button>
-                          </li>
-                        )
-                      }
-                      return (
-                        <li
-                          className={`deck-entry${
-                            cardViewMode === 'text'
-                              ? ' deck-entry--without-image'
-                              : ''
-                          }`}
-                          key={entry.cardNumber}
-                        >
-                          {cardViewMode === 'image' && (
-                            <DeckCardImage
-                              card={card}
-                              linkToDetail
-                              buildDetailState={captureDetailState}
-                            />
-                          )}
-                          <div className="deck-entry__information">
-                            <h4>{displayName}</h4>
-                            {displayName !== entry.cardNumber && (
-                              <p>{entry.cardNumber}</p>
-                            )}
-                            {cardsState.status === 'loaded' && !card && (
-                              <p className="deck-entry__warning" role="alert">
-                                カードデータに存在しないカードです
-                              </p>
-                            )}
-                          </div>
-                          <DeckQuantityControl
-                            cardName={displayName}
-                            quantity={entry.quantity}
-                            onDecrement={() =>
-                              applyDeckChange((current) =>
-                                decrementCardQuantity(
-                                  current,
-                                  entry.cardNumber,
-                                ),
-                              )
-                            }
-                            onIncrement={() =>
-                              applyDeckChange((current) =>
-                                incrementCardQuantity(
-                                  current,
-                                  entry.cardNumber,
-                                ),
-                              )
-                            }
-                          />
-                          <button
-                            type="button"
-                            className="button button--secondary deck-entry__remove"
-                            aria-label={`${displayName}をデッキから削除`}
-                            onClick={() =>
-                              applyDeckChange((current) =>
-                                removeCardFromDeck(current, entry.cardNumber),
-                              )
-                            }
-                          >
-                            削除
-                          </button>
-                        </li>
+                          }
+                        />
                       )
                     })}
                   </ul>
