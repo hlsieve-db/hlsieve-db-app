@@ -2,6 +2,20 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 
 const exec = promisify(execFile)
+const PUBLICATION_PATH =
+  /^public\/tournaments\/(index\.json|oshi-master\.json|events\/.+\.json)$/
+const PUBLICATION_TEMP_PATH =
+  /^public\/\.tournaments\.[0-9a-f-]+\.(candidate|backup)(?:\/.*)?$/
+
+export type DailyGitStart =
+  'synced' | 'publication-pending-commit' | 'commit-pending-push'
+
+export type PublicationInventory = {
+  allowed: string[]
+  temporary: string[]
+  unexpectedTracked: string[]
+  unexpectedUntracked: string[]
+}
 async function git(args: string[]): Promise<string> {
   return (await exec('git', args, { encoding: 'utf8' })).stdout.trim()
 }
@@ -34,22 +48,83 @@ export function validateDailyGitState(input: {
 }
 
 export function validatePublicationPaths(paths: string[]): string[] {
-  if (
-    paths.some(
-      (path) =>
-        !/^public\/tournaments\/(index\.json|oshi-master\.json|events\/.+\.json)$/.test(
-          path,
-        ),
-    )
-  )
+  if (paths.some((path) => !PUBLICATION_PATH.test(path)))
     throw new Error('Daily found an unexpected tracked or untracked diff.')
   return paths
+}
+
+export function classifyPublicationStatus(
+  status: string,
+): PublicationInventory {
+  const inventory: PublicationInventory = {
+    allowed: [],
+    temporary: [],
+    unexpectedTracked: [],
+    unexpectedUntracked: [],
+  }
+  for (const line of status.split('\n').filter(Boolean)) {
+    const path = line.slice(3).replace(/^"|"$/g, '')
+    if (PUBLICATION_PATH.test(path)) inventory.allowed.push(path)
+    else if (PUBLICATION_TEMP_PATH.test(path)) inventory.temporary.push(path)
+    else if (line.startsWith('??')) inventory.unexpectedUntracked.push(path)
+    else inventory.unexpectedTracked.push(path)
+  }
+  return inventory
+}
+
+function inventoryError(
+  inventory: PublicationInventory,
+  reason: string,
+): Error {
+  return new Error(
+    [
+      `Daily publication diff guard failed: ${reason}.`,
+      `Allowed changed: ${inventory.allowed.join(', ') || '-'}`,
+      `Unexpected tracked: ${inventory.unexpectedTracked.join(', ') || '-'}`,
+      `Unexpected untracked: ${inventory.unexpectedUntracked.join(', ') || '-'}`,
+      `Observed temp files: ${inventory.temporary.join(', ') || '-'}`,
+    ].join('\n'),
+  )
+}
+
+export async function waitForStablePublicationDiff(options: {
+  scan: () => Promise<string>
+  pause?: () => Promise<void>
+  now?: () => number
+  timeoutMs?: number
+}): Promise<string[]> {
+  const pause =
+    options.pause ??
+    (() => new Promise<void>((resolve) => setTimeout(resolve, 100)))
+  const now = options.now ?? Date.now
+  const timeoutMs = options.timeoutMs ?? 5_000
+  const startedAt = now()
+  let previous: string | undefined
+  while (true) {
+    const status = await options.scan()
+    const latest = classifyPublicationStatus(status)
+    const stable = status === previous && latest.temporary.length === 0
+    if (stable) {
+      if (
+        latest.unexpectedTracked.length > 0 ||
+        latest.unexpectedUntracked.length > 0
+      ) {
+        throw inventoryError(latest, 'unexpected paths remained stable')
+      }
+      return validatePublicationPaths(latest.allowed)
+    }
+    if (now() - startedAt >= timeoutMs) {
+      throw inventoryError(latest, 'filesystem did not settle before timeout')
+    }
+    previous = status
+    await pause()
+  }
 }
 
 export async function assertDailyGitStart(
   targetDate: string,
   allowPublicationDiff = false,
-): Promise<'synced' | 'commit-pending-push'> {
+): Promise<DailyGitStart> {
   const branch = await git(['branch', '--show-current'])
   const status = await git(['status', '--porcelain'])
   if (status.length > 0) {
@@ -64,7 +139,7 @@ export async function assertDailyGitStart(
     .map(Number)
   const subject =
     ahead === 1 ? await git(['log', '-1', '--format=%s']) : undefined
-  return validateDailyGitState({
+  const state = validateDailyGitState({
     branch,
     status,
     behind: behind!,
@@ -73,6 +148,9 @@ export async function assertDailyGitStart(
     targetDate,
     allowPublicationDiff,
   })
+  return status.length > 0 && allowPublicationDiff && state === 'synced'
+    ? 'publication-pending-commit'
+    : state
 }
 
 export async function fetchAndAssertNotBehind(
@@ -89,11 +167,9 @@ export async function fetchAndAssertNotBehind(
 }
 
 export async function publicationDiff(): Promise<string[]> {
-  const lines = (await git(['status', '--porcelain']))
-    .split('\n')
-    .filter(Boolean)
-  const paths = lines.map((line) => line.slice(3).replace(/^"|"$/g, ''))
-  return validatePublicationPaths(paths)
+  return waitForStablePublicationDiff({
+    scan: () => git(['status', '--porcelain']),
+  })
 }
 
 export async function commitDailyPublication(

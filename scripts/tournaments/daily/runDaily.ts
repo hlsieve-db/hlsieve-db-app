@@ -4,6 +4,10 @@ import { resolve } from 'node:path'
 import { chromium, type Browser, type Page } from 'playwright'
 
 import type { CardsDataFile } from '../../../src/domain/cards/types'
+import type {
+  TournamentIndexFile,
+  TournamentOshiMasterFile,
+} from '../../../src/domain/tournaments/types'
 import { acquireDailyLock } from './lock'
 import { parseTournamentDailyCli } from './cli'
 import {
@@ -21,6 +25,7 @@ import {
 import { waitForProductionPublication, smokeProductionUi } from './production'
 import { runDailyWorkflow } from './workflow'
 import { runNpmScript } from './childProcess'
+import { recoverWrittenPublication } from './recovery'
 import {
   processSelectedTournamentEvents,
   selectDueTournamentEventsForDate,
@@ -32,9 +37,13 @@ import { publishReadyTournamentEvents } from '../queue/publishReady'
 
 const options = parseTournamentDailyCli(process.argv.slice(2))
 const previous = await readDailyCheckpoint(options.targetDate)
+const hasWrittenPublication =
+  previous?.expectedDatasetVersion !== undefined &&
+  previous.publicationEventIds.length > 0 &&
+  (previous.phase === 'written' || previous.phase === 'failed')
 const gitStart = await assertDailyGitStart(
   options.targetDate,
-  previous?.phase === 'written',
+  hasWrittenPublication,
 )
 const release = await acquireDailyLock(options.targetDate)
 const repository = new LocalTournamentQueueRepository()
@@ -148,6 +157,26 @@ try {
       }
       await writeDailyCheckpoint(checkpoint)
       return result
+    },
+    recoverWritten: async (ids) => {
+      if (!previous?.expectedDatasetVersion) {
+        throw new Error('Daily recovery checkpoint has no dataset version.')
+      }
+      const [index, oshiMaster, readyArtifacts] = await Promise.all([
+        readFile(resolve('public/tournaments/index.json'), 'utf8').then(
+          (text) => JSON.parse(text) as TournamentIndexFile,
+        ),
+        readFile(resolve('public/tournaments/oshi-master.json'), 'utf8').then(
+          (text) => JSON.parse(text) as TournamentOshiMasterFile,
+        ),
+        Promise.all(ids.map((id) => artifacts.load(id, cardsData))),
+      ])
+      return recoverWrittenPublication({
+        artifacts: readyArtifacts,
+        index,
+        oshiMaster,
+        expectedDatasetVersion: previous.expectedDatasetVersion,
+      })
     },
     fetchAndAssertSync: () =>
       fetchAndAssertNotBehind(gitStart === 'commit-pending-push'),

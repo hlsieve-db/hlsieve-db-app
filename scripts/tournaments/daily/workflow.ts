@@ -1,6 +1,12 @@
 import type { TournamentQueueFile, TournamentQueueRecord } from '../queue/queue'
 import type { TournamentReadyArtifact } from '../queue/readyArtifact'
 import type { ReadyPublicationSummary } from '../queue/publishReady'
+import type { DailyGitStart } from './git'
+
+type PublishedSummary = ReadyPublicationSummary & {
+  publishedEventIds: Record<string, string>
+  datasetVersion: string
+}
 
 export type DailySummary = {
   targetDate: string
@@ -17,19 +23,12 @@ export type DailySummary = {
 }
 
 export type DailyDependencies = {
-  assertGitStart: () => Promise<'synced' | 'commit-pending-push'>
+  assertGitStart: () => Promise<DailyGitStart>
   processDue: () => Promise<string[]>
   loadQueue: () => Promise<TournamentQueueFile>
   loadArtifact: (sourceEventId: string) => Promise<TournamentReadyArtifact>
-  publish: (
-    ids: string[],
-    write: boolean,
-  ) => Promise<
-    ReadyPublicationSummary & {
-      publishedEventIds: Record<string, string>
-      datasetVersion: string
-    }
-  >
+  publish: (ids: string[], write: boolean) => Promise<PublishedSummary>
+  recoverWritten: (ids: string[]) => Promise<PublishedSummary>
   fetchAndAssertSync: () => Promise<void>
   publicationDiff: () => Promise<string[]>
   commit: (paths: string[]) => Promise<string | undefined>
@@ -83,7 +82,10 @@ export async function runDailyWorkflow(
       exitCode: review.length ? 2 : 0,
     }
   }
-  const dry = await deps.publish(ready, false)
+  const recoveringWritten = resume === 'publication-pending-commit'
+  const dry = recoveringWritten
+    ? await deps.recoverWritten(ready)
+    : await deps.publish(ready, false)
   if (options.dryRun) {
     return {
       targetDate: options.targetDate,
@@ -98,7 +100,7 @@ export async function runDailyWorkflow(
       exitCode: review.length ? 2 : 0,
     }
   }
-  const written = await deps.publish(ready, true)
+  const written = recoveringWritten ? dry : await deps.publish(ready, true)
   await deps.fetchAndAssertSync()
   const paths = await deps.publicationDiff()
   const commit = await deps.commit(paths)

@@ -88,6 +88,19 @@ function dependencies(q: TournamentQueueFile): DailyDependencies {
       publishedEventIds: Object.fromEntries(ids.map((id) => [id, `evt_${id}`])),
       datasetVersion: 'version',
     })),
+    recoverWritten: vi.fn(async (ids) => ({
+      sourceEventId: ids.join(','),
+      write: true,
+      eventAdded: ids.length,
+      resultAdded: ids.length,
+      pending: 0,
+      indexEvents: ids.length,
+      indexResults: ids.length,
+      oshiMasterCards: 1,
+      generatedFiles: [],
+      publishedEventIds: Object.fromEntries(ids.map((id) => [id, `evt_${id}`])),
+      datasetVersion: 'version',
+    })),
     fetchAndAssertSync: vi.fn(),
     publicationDiff: vi.fn(async () => ['public/tournaments/index.json']),
     commit: vi.fn(async () => 'sha'),
@@ -173,6 +186,17 @@ describe('Tournament Daily workflow', () => {
     expect(deps.commit).not.toHaveBeenCalled()
     expect(deps.transitionPublished).not.toHaveBeenCalled()
   })
+  it('never commits when the publication diff guard fails', async () => {
+    const deps = dependencies(queue([['1', 'ready']]))
+    vi.mocked(deps.publicationDiff).mockRejectedValue(
+      new Error('unexpected publication path'),
+    )
+    await expect(
+      runDailyWorkflow({ targetDate: '2026-10-04', dryRun: false }, deps),
+    ).rejects.toThrow('unexpected publication path')
+    expect(deps.commit).not.toHaveBeenCalled()
+    expect(deps.push).not.toHaveBeenCalled()
+  })
   it('stops before publication when the queue processor fails', async () => {
     const deps = dependencies(queue([['1', 'ready']]))
     vi.mocked(deps.processDue).mockRejectedValue(new Error('spawn EINVAL'))
@@ -218,6 +242,18 @@ describe('Tournament Daily workflow', () => {
     vi.mocked(deps.commit).mockResolvedValue(undefined)
     await runDailyWorkflow({ targetDate: '2026-10-04', dryRun: false }, deps)
     expect(deps.commit).toHaveBeenCalledWith([])
+    expect(deps.push).toHaveBeenCalledTimes(1)
+  })
+  it('recovers a written publication without recollection or regeneration', async () => {
+    const deps = dependencies(queue([['1', 'ready']]))
+    vi.mocked(deps.assertGitStart).mockResolvedValue(
+      'publication-pending-commit',
+    )
+    await runDailyWorkflow({ targetDate: '2026-10-04', dryRun: false }, deps)
+    expect(deps.processDue).not.toHaveBeenCalled()
+    expect(deps.publish).not.toHaveBeenCalled()
+    expect(deps.recoverWritten).toHaveBeenCalledWith(['1'])
+    expect(deps.commit).toHaveBeenCalledTimes(1)
     expect(deps.push).toHaveBeenCalledTimes(1)
   })
 })
