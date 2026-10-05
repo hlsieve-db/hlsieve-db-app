@@ -34,8 +34,17 @@ const cards: Card[] = [
     illustrators: [],
     qas: [],
     searchText: 'oshi',
+    representativeImageUrl: 'https://example.com/oshi.png',
   },
 ]
+
+const secondCard: Card = {
+  ...cards[0]!,
+  cardNumber: 'OSHI-2',
+  name: 'Oshi 2',
+  searchText: 'oshi 2',
+  representativeImageUrl: 'https://example.com/oshi-2.png',
+}
 
 const event: TournamentEvent = {
   id: 'evt-one',
@@ -86,6 +95,34 @@ describe('atomic Tournament publication', () => {
     ).toThrow('Oshi card is missing: OSHI')
   })
 
+  it('derives an empty or expanded Oshi master from published Results', () => {
+    const empty = createTournamentPublishedData([], cards, 'cards-v1')
+    expect(Object.keys(empty.oshiMaster.cards)).toEqual([])
+
+    const expandedEvent: TournamentEvent = {
+      ...event,
+      id: 'evt-two',
+      results: [
+        { ...event.results[0]!, id: 'res-two', oshiCardNumber: 'OSHI-2' },
+      ],
+    }
+    const expanded = createTournamentPublishedData(
+      [event, expandedEvent],
+      [...cards, secondCard],
+      'cards-v2',
+    )
+    expect(Object.keys(expanded.oshiMaster.cards).sort()).toEqual([
+      'OSHI',
+      'OSHI-2',
+    ])
+    expect(expanded.oshiMaster.cards).toMatchObject({
+      OSHI: { representativeImageUrl: 'https://example.com/oshi.png' },
+      'OSHI-2': {
+        representativeImageUrl: 'https://example.com/oshi-2.png',
+      },
+    })
+  })
+
   it('accepts the official Production publication without synthetic data', async () => {
     const [cardsText, indexText, oshiMasterText] = await Promise.all([
       readFile(join('public', 'cards.json'), 'utf8'),
@@ -107,9 +144,6 @@ describe('atomic Tournament publication', () => {
     expect(oshiMaster).toMatchObject({
       cardsDataVersion: cards.dataVersion,
     })
-    expect(
-      Object.keys((oshiMaster as { cards: Record<string, unknown> }).cards),
-    ).toHaveLength(23)
     const eventTexts = await Promise.all(
       summaries.map(({ id }) =>
         readFile(join('public', 'tournaments', 'events', `${id}.json`), 'utf8'),
@@ -132,9 +166,32 @@ describe('atomic Tournament publication', () => {
       new Set(events.map(({ event }) => event.source.sourceEventId)).size,
     ).toBe(summaries.length)
     const cardNumbers = new Set(cards.cards.map((card) => card.cardNumber))
+    const expectedOshiNumbers = [
+      ...new Set(
+        events.flatMap(({ event }) =>
+          event.results.map((result) => result.oshiCardNumber),
+        ),
+      ),
+    ].sort()
+    const masterCards = (
+      oshiMaster as {
+        cards: Record<string, { name: string; representativeImageUrl?: string }>
+      }
+    ).cards
+    const actualOshiNumbers = Object.keys(masterCards).sort()
+    expect(actualOshiNumbers).toEqual(expectedOshiNumbers)
+    expect(new Set(actualOshiNumbers).size).toBe(actualOshiNumbers.length)
+    for (const cardNumber of actualOshiNumbers) {
+      expect(cardNumbers.has(cardNumber)).toBe(true)
+      expect(masterCards[cardNumber]?.name.trim()).not.toBe('')
+      expect(masterCards[cardNumber]?.representativeImageUrl).toMatch(
+        /^https:\/\//,
+      )
+    }
     for (const { event } of events) {
       for (const result of event.results) {
         expect(cardNumbers.has(result.oshiCardNumber)).toBe(true)
+        expect(masterCards[result.oshiCardNumber]).toBeDefined()
         for (const zone of ['oshi', 'main', 'cheer'] as const) {
           expect(
             result.deck[zone].every(({ cardNumber }) =>
