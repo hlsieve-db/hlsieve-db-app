@@ -611,9 +611,11 @@ export async function readReadyResultDeckCode(
     exact: true,
   })
   await deckLogButton.waitFor({ state: 'visible' })
+  const expectedIdentity = expectedPlayerName
+    .normalize('NFKC')
+    .replace(/\s+/g, ' ')
+    .trim()
   await page.waitForFunction((expectedName: string) => {
-    const normalizeIdentity = (value: string) =>
-      value.normalize('NFKC').replace(/\s+/g, ' ').trim()
     const modal = document.querySelector('#eventResultDeckModal')
     if (!modal) return false
     const playerName = modal.querySelector('.playerName')?.textContent?.trim()
@@ -621,12 +623,13 @@ export async function readReadyResultDeckCode(
       .querySelector('img[src*="decklog.bushiroad.com/deckimages/"]')
       ?.getAttribute('src')
     return (
-      normalizeIdentity(playerName ?? '') === normalizeIdentity(expectedName) &&
+      playerName?.normalize('NFKC').replace(/\s+/g, ' ').trim() ===
+        expectedName &&
       /^https:\/\/decklog\.bushiroad\.com\/deckimages\/[A-Za-z0-9]+\.png$/.test(
         imageSource ?? '',
       )
     )
-  }, expectedPlayerName)
+  }, expectedIdentity)
   const imageSource = await deckLogButton.evaluate((element) =>
     element.parentElement?.parentElement
       ?.querySelector('img[src*="decklog.bushiroad.com/deckimages/"]')
