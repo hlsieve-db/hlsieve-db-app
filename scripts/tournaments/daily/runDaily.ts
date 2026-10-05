@@ -16,6 +16,7 @@ import {
   type DailyCheckpoint,
 } from './checkpoint'
 import {
+  assertDailyRecoveryCommit,
   assertDailyGitStart,
   commitDailyPublication,
   fetchAndAssertNotBehind,
@@ -41,10 +42,19 @@ const hasWrittenPublication =
   previous?.expectedDatasetVersion !== undefined &&
   previous.publicationEventIds.length > 0 &&
   (previous.phase === 'written' || previous.phase === 'failed')
-const gitStart = await assertDailyGitStart(
+const checkedGitStart = await assertDailyGitStart(
   options.targetDate,
   hasWrittenPublication,
 )
+const recoveryCommit =
+  checkedGitStart === 'synced' &&
+  previous?.phase === 'failed' &&
+  previous.productionStatus === 'failed' &&
+  previous.gitCommitSha !== undefined
+    ? previous.gitCommitSha
+    : undefined
+if (recoveryCommit) await assertDailyRecoveryCommit(recoveryCommit)
+const gitStart = recoveryCommit ? 'production-pending' : checkedGitStart
 const release = await acquireDailyLock(options.targetDate)
 const repository = new LocalTournamentQueueRepository()
 const artifacts = new TournamentReadyArtifactRepository()

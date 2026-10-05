@@ -256,4 +256,26 @@ describe('Tournament Daily workflow', () => {
     expect(deps.commit).toHaveBeenCalledTimes(1)
     expect(deps.push).toHaveBeenCalledTimes(1)
   })
+  it('resumes Production verification without recollection, regeneration, commit, or push', async () => {
+    const deps = dependencies(queue([['1', 'ready']]))
+    vi.mocked(deps.assertGitStart).mockResolvedValue('production-pending')
+    const result = await runDailyWorkflow(
+      { targetDate: '2026-10-04', dryRun: false },
+      deps,
+    )
+    expect(result).toMatchObject({
+      processed: [],
+      published: ['1'],
+      production: 'ok',
+    })
+    expect(deps.processDue).not.toHaveBeenCalled()
+    expect(deps.publish).not.toHaveBeenCalled()
+    expect(deps.recoverWritten).toHaveBeenCalledWith(['1'])
+    expect(deps.fetchAndAssertSync).not.toHaveBeenCalled()
+    expect(deps.publicationDiff).not.toHaveBeenCalled()
+    expect(deps.commit).not.toHaveBeenCalled()
+    expect(deps.push).not.toHaveBeenCalled()
+    expect(deps.production).toHaveBeenCalledTimes(1)
+    expect(deps.transitionPublished).toHaveBeenCalledWith('1', 'evt_1')
+  })
 })

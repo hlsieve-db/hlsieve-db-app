@@ -6,6 +6,71 @@ import type {
   TournamentOshiMasterFile,
 } from '../../../src/domain/tournaments/types'
 
+export type ResultSmokeObservation = {
+  url: string
+  warning: boolean
+  sections: { oshi: boolean; main: boolean; cheer: boolean }
+  actions: {
+    deckCode: boolean
+    copyCode: boolean
+    deckLog: boolean
+    hlsieve: boolean
+  }
+  images: Array<{
+    src: string
+    complete: boolean
+    naturalWidth: number
+    state?: string
+  }>
+}
+
+export type RepresentativeImageWaiter = {
+  scrollIntoView: () => Promise<void>
+  waitForAttached: () => Promise<void>
+  waitForLoaded: () => Promise<void>
+}
+
+export async function waitForRepresentativeCardImage(
+  waiter: RepresentativeImageWaiter,
+): Promise<void> {
+  await waiter.scrollIntoView()
+  await waiter.waitForAttached()
+  await waiter.waitForLoaded()
+}
+
+export function assertResultSmoke(observation: ResultSmokeObservation): void {
+  const failures: string[] = []
+  if (observation.warning) failures.push('card lookup warning is present')
+  for (const [name, present] of Object.entries(observation.sections))
+    if (!present) failures.push(`missing ${name} section`)
+  for (const [name, present] of Object.entries(observation.actions))
+    if (!present) failures.push(`missing ${name} action`)
+  if (observation.images.length === 0)
+    failures.push('representative image is missing')
+  for (const image of observation.images) {
+    if (!image.complete || image.naturalWidth <= 0)
+      failures.push(
+        `representative image failed: ${image.src || '(no src)'} ` +
+          `(complete=${image.complete}, naturalWidth=${image.naturalWidth}, state=${image.state ?? 'unknown'})`,
+      )
+  }
+  if (failures.length > 0)
+    throw new Error(
+      [
+        `Production Result card smoke failed: ${observation.url}`,
+        `Failed conditions: ${failures.join('; ')}`,
+        `Image count: ${observation.images.length}`,
+        `Warning present: ${observation.warning}`,
+        `Missing actions: ${
+          Object.entries(observation.actions)
+            .filter(([, present]) => !present)
+            .map(([name]) => name)
+            .join(', ') || '-'
+        }`,
+      ].join('\n'),
+    )
+}
+
 async function json<T>(path: string): Promise<T> {
   const response = await fetch(new URL(path, SITE_ORIGIN))
   if (
@@ -83,28 +148,61 @@ export async function smokeProductionUi(
       if (!response?.ok())
         throw new Error(`Production UI smoke failed: ${path}`)
       const body = await page.locator('body').innerText()
-      if (/カード情報を一部表示できません|Application error/i.test(body))
+      if (/Application error/i.test(body))
         throw new Error(`Production Result smoke failed: ${path}`)
       if (path.includes('/results/')) {
-        const height = await page.evaluate(
-          () => document.documentElement.scrollHeight,
-        )
-        for (let top = 0; top <= height; top += 500) {
-          await page.evaluate((value) => window.scrollTo(0, value), top)
-          await page.waitForTimeout(50)
+        const mainSection = page
+          .locator('.tournament-deck-zone')
+          .filter({ has: page.getByRole('heading', { name: 'メインデッキ' }) })
+        const imageRoot = mainSection.locator('[data-image-state]').first()
+        const representative = imageRoot.locator('img')
+        try {
+          await waitForRepresentativeCardImage({
+            scrollIntoView: () => imageRoot.scrollIntoViewIfNeeded(),
+            waitForAttached: () =>
+              representative.waitFor({ state: 'attached', timeout: 10_000 }),
+            waitForLoaded: async () => {
+              await page.waitForFunction(
+                (image) =>
+                  image instanceof HTMLImageElement &&
+                  image.complete &&
+                  image.naturalWidth > 0,
+                await representative.elementHandle(),
+                { timeout: 15_000 },
+              )
+            },
+          })
+        } catch {
+          // The structured assertion below reports the exact image state.
         }
-        const images = await page.locator('main img').evaluateAll((elements) =>
+        const images = await representative.evaluateAll((elements) =>
           elements.map((element) => {
             const image = element as HTMLImageElement
-            return image.complete && image.naturalWidth > 0
+            return {
+              src: image.currentSrc || image.src,
+              complete: image.complete,
+              naturalWidth: image.naturalWidth,
+              state: image.parentElement?.dataset.imageState,
+            }
           }),
         )
-        if (
-          images.length < 2 ||
-          images.some((loaded) => !loaded) ||
-          !/Deck Code|HLSieveにコピー|DECK LOGで見る/.test(body)
-        )
-          throw new Error(`Production Result card smoke failed: ${path}`)
+        const headings = await page.getByRole('heading').allTextContents()
+        assertResultSmoke({
+          url: path,
+          warning: body.includes('カード情報を一部表示できません'),
+          sections: {
+            oshi: headings.includes('推しホロメン構成'),
+            main: headings.includes('メインデッキ'),
+            cheer: headings.includes('エールデッキ'),
+          },
+          actions: {
+            deckCode: body.includes('Deck Code'),
+            copyCode: body.includes('コードをコピー'),
+            deckLog: body.includes('DECK LOGで見る'),
+            hlsieve: body.includes('HLSieveにコピー'),
+          },
+          images,
+        })
       }
       const width = await page.evaluate(() => [
         document.documentElement.clientWidth,

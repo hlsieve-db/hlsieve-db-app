@@ -8,7 +8,10 @@ const PUBLICATION_TEMP_PATH =
   /^public\/\.tournaments\.[0-9a-f-]+\.(candidate|backup)(?:\/.*)?$/
 
 export type DailyGitStart =
-  'synced' | 'publication-pending-commit' | 'commit-pending-push'
+  | 'synced'
+  | 'publication-pending-commit'
+  | 'commit-pending-push'
+  | 'production-pending'
 
 export type PublicationInventory = {
   allowed: string[]
@@ -161,6 +164,14 @@ export async function assertDailyGitStart(
   return status.length > 0 && allowPublicationDiff && state === 'synced'
     ? 'publication-pending-commit'
     : state
+}
+
+export async function assertDailyRecoveryCommit(
+  expectedCommit: string,
+): Promise<void> {
+  const head = await git(['rev-parse', 'HEAD'])
+  if (head !== expectedCommit)
+    throw new Error('Daily recovery checkpoint commit does not match HEAD.')
 }
 
 export async function fetchAndAssertNotBehind(

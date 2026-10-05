@@ -82,7 +82,9 @@ export async function runDailyWorkflow(
       exitCode: review.length ? 2 : 0,
     }
   }
-  const recoveringWritten = resume === 'publication-pending-commit'
+  const productionPending = resume === 'production-pending'
+  const recoveringWritten =
+    resume === 'publication-pending-commit' || productionPending
   const dry = recoveringWritten
     ? await deps.recoverWritten(ready)
     : await deps.publish(ready, false)
@@ -101,10 +103,13 @@ export async function runDailyWorkflow(
     }
   }
   const written = recoveringWritten ? dry : await deps.publish(ready, true)
-  await deps.fetchAndAssertSync()
-  const paths = await deps.publicationDiff()
-  const commit = await deps.commit(paths)
-  if (commit || resume === 'commit-pending-push') await deps.push()
+  let commit: string | undefined
+  if (!productionPending) {
+    await deps.fetchAndAssertSync()
+    const paths = await deps.publicationDiff()
+    commit = await deps.commit(paths)
+    if (commit || resume === 'commit-pending-push') await deps.push()
+  }
   const eventIds = Object.values(written.publishedEventIds)
   const representatives = [
     ...new Set(targets.map(({ event }) => event.resultCoverage.maxRank)),
