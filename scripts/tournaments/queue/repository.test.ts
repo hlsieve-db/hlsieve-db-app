@@ -151,6 +151,47 @@ describe('LocalTournamentQueueRepository', () => {
       code: 'ENOENT',
     })
   })
+
+  it('previews without writing and atomically writes only valid batch entries', async () => {
+    const path = await queuePath()
+    const repository = new LocalTournamentQueueRepository({ path })
+    const text = '1764903\ninvalid\n0001764904\n1764903'
+    const preview = await repository.intake(text, NOW, false)
+    expect(preview.written).toBe(false)
+    expect(preview.preview.summary).toMatchObject({ new: 2, invalid: 1 })
+    await expect(readFile(path, 'utf8')).rejects.toMatchObject({
+      code: 'ENOENT',
+    })
+
+    const written = await repository.intake(text, NOW, true)
+    expect(written.written).toBe(true)
+    expect(
+      (await repository.load()).records.map((record) => record.sourceEventId),
+    ).toEqual(['1764903', '1764904'])
+  })
+
+  it('preserves the entire queue when batch replacement fails or a lock is held', async () => {
+    const path = await queuePath()
+    const repository = new LocalTournamentQueueRepository({ path })
+    await repository.enqueue('1', NOW)
+    const before = await readFile(path, 'utf8')
+    const failing = new LocalTournamentQueueRepository({
+      path,
+      replaceFile: vi.fn(async () => {
+        throw new Error('replacement failed')
+      }),
+    })
+    await expect(failing.intake('2\n3', NOW, true)).rejects.toThrow(
+      'replacement failed',
+    )
+    expect(await readFile(path, 'utf8')).toBe(before)
+
+    await writeFile(`${path}.lock`, 'held', { flag: 'wx' })
+    await expect(repository.intake('2', NOW, true)).rejects.toBeInstanceOf(
+      TournamentQueueLeaseConflictError,
+    )
+    expect(await readFile(path, 'utf8')).toBe(before)
+  })
 })
 
 describe('parseTournamentQueueFile', () => {

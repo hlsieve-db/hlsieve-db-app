@@ -14,6 +14,7 @@ import {
   transitionTournamentQueueRecord,
   updateTournamentQueueRecord,
 } from './queue'
+import { applyTournamentIntake, previewTournamentIntake } from './intake'
 import { parseTournamentSourceEventId } from './submission'
 
 const DEFAULT_QUEUE_PATH = resolve('.cache/tournaments/queue/queue.json')
@@ -342,6 +343,29 @@ export class LocalTournamentQueueRepository {
         (record) =>
           record.sourceEventId === parseTournamentSourceEventId(input),
       )!
+    })
+  }
+
+  async intake(
+    text: string,
+    now: string,
+    write: boolean,
+  ): Promise<{
+    preview: ReturnType<typeof previewTournamentIntake>
+    written: boolean
+  }> {
+    if (!write) {
+      return {
+        preview: previewTournamentIntake(text, await this.load()),
+        written: false,
+      }
+    }
+    return this.withMutationLock(async () => {
+      const queue = await this.load()
+      const preview = previewTournamentIntake(text, queue)
+      const next = applyTournamentIntake(queue, preview, now)
+      if (next !== queue) await this.saveUnlocked(next)
+      return { preview, written: true }
     })
   }
 
