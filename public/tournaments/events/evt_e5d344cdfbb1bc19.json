@@ -3,259 +3,121 @@
   "formatVersion": 1,
   "dataVersion": "9384d43fe7c4f5d3",
   "event": {
-    "id": "evt_366003a5e7d27d89",
+    "id": "evt_e5d344cdfbb1bc19",
     "tournament": {
       "type": "bloomcup",
       "seriesName": "【ホロカ】ブルームカップ「響咲リオナ」 （2026年9月開催）"
     },
-    "date": "2026-09-27",
+    "date": "2026-09-21",
     "venue": {
-      "slug": "venue-325d8a7a1b00f469",
-      "name": "スポーツカード&カードゲームショップ MINT三宮店"
+      "slug": "venue-a9932525b9a22052",
+      "name": "ホビーステーション神戸三宮店"
     },
-    "participantCount": 29,
+    "participantCount": 15,
     "resultCoverage": {
       "kind": "exact",
       "maxRank": 8
     },
     "results": [
       {
-        "id": "res_92f7ea956bf79361",
+        "id": "res_9dd06e067fb0a1da",
         "rank": 1,
-        "oshiCardNumber": "hBP01-001",
-        "deckLogCode": "1UP1HE",
+        "oshiCardNumber": "hBP07-001",
+        "deckLogCode": "1SB13W",
         "deck": {
           "oshi": [
             {
-              "cardNumber": "hBP01-001",
+              "cardNumber": "hBP07-001",
               "quantity": 1
             }
           ],
           "main": [
             {
-              "cardNumber": "hBP01-009",
-              "quantity": 2
-            },
-            {
-              "cardNumber": "hBP01-013",
-              "quantity": 4
-            },
-            {
-              "cardNumber": "hBP01-014",
-              "quantity": 2
-            },
-            {
               "cardNumber": "hBP01-104",
               "quantity": 4
             },
             {
-              "cardNumber": "hBP02-077",
+              "cardNumber": "hBP01-108",
               "quantity": 1
             },
             {
               "cardNumber": "hBP02-084",
-              "quantity": 2
+              "quantity": 3
             },
             {
-              "cardNumber": "hBP05-074",
+              "cardNumber": "hBP03-067",
               "quantity": 1
             },
             {
               "cardNumber": "hBP05-080",
+              "quantity": 2
+            },
+            {
+              "cardNumber": "hBP06-083",
               "quantity": 3
             },
             {
               "cardNumber": "hBP06-090",
+              "quantity": 1
+            },
+            {
+              "cardNumber": "hBP07-008",
+              "quantity": 4
+            },
+            {
+              "cardNumber": "hBP07-009",
+              "quantity": 4
+            },
+            {
+              "cardNumber": "hBP07-010",
               "quantity": 2
             },
             {
-              "cardNumber": "hBP09-015",
-              "quantity": 4
-            },
-            {
-              "cardNumber": "hBP09-016",
-              "quantity": 4
-            },
-            {
-              "cardNumber": "hBP09-018",
-              "quantity": 4
-            },
-            {
-              "cardNumber": "hBP09-019",
-              "quantity": 4
-            },
-            {
-              "cardNumber": "hBP09-021",
-              "quantity": 4
-            },
-            {
-              "cardNumber": "hBP09-096",
-              "quantity": 2
-            },
-            {
-              "cardNumber": "hSD01-016",
+              "cardNumber": "hBP07-011",
               "quantity": 3
             },
             {
-              "cardNumber": "hSD05-002",
-              "quantity": 2
-            },
-            {
-              "cardNumber": "hSD05-007",
-              "quantity": 2
-            }
-          ],
-          "cheer": [
-            {
-              "cardNumber": "hY01-007",
-              "quantity": 20
-            }
-          ]
-        }
-      },
-      {
-        "id": "res_6f080423a4776fef",
-        "rank": 2,
-        "oshiCardNumber": "hBP09-001",
-        "deckLogCode": "1F8PZW",
-        "deck": {
-          "oshi": [
-            {
-              "cardNumber": "hBP09-001",
-              "quantity": 1
-            }
-          ],
-          "main": [
-            {
-              "cardNumber": "hBP01-072",
-              "quantity": 1
-            },
-            {
-              "cardNumber": "hBP01-104",
-              "quantity": 4
-            },
-            {
-              "cardNumber": "hBP01-114",
-              "quantity": 1
-            },
-            {
-              "cardNumber": "hBP02-079",
-              "quantity": 1
-            },
-            {
-              "cardNumber": "hBP04-067",
-              "quantity": 1
-            },
-            {
-              "cardNumber": "hBP05-074",
-              "quantity": 1
-            },
-            {
-              "cardNumber": "hBP06-080",
-              "quantity": 1
-            },
-            {
-              "cardNumber": "hBP06-104",
-              "quantity": 2
-            },
-            {
-              "cardNumber": "hBP07-091",
-              "quantity": 1
-            },
-            {
-              "cardNumber": "hBP07-099",
-              "quantity": 1
-            },
-            {
-              "cardNumber": "hBP08-099",
-              "quantity": 2
-            },
-            {
-              "cardNumber": "hBP09-008",
-              "quantity": 4
-            },
-            {
-              "cardNumber": "hBP09-009",
-              "quantity": 4
-            },
-            {
-              "cardNumber": "hBP09-010",
-              "quantity": 1
-            },
-            {
-              "cardNumber": "hBP09-011",
+              "cardNumber": "hBP07-012",
               "quantity": 3
             },
             {
-              "cardNumber": "hBP09-012",
-              "quantity": 3
-            },
-            {
-              "cardNumber": "hBP09-014",
+              "cardNumber": "hBP07-014",
               "quantity": 4
             },
             {
-              "cardNumber": "hBP09-047",
-              "quantity": 1
+              "cardNumber": "hBP07-094",
+              "quantity": 2
             },
             {
-              "cardNumber": "hBP09-048",
+              "cardNumber": "hBP07-102",
+              "quantity": 4
+            },
+            {
+              "cardNumber": "hBP09-022",
               "quantity": 3
             },
             {
-              "cardNumber": "hBP09-050",
+              "cardNumber": "hSD01-018",
               "quantity": 2
             },
             {
-              "cardNumber": "hBP09-098",
-              "quantity": 2
-            },
-            {
-              "cardNumber": "hBP09-099",
-              "quantity": 1
-            },
-            {
-              "cardNumber": "hSD01-016",
-              "quantity": 2
-            },
-            {
-              "cardNumber": "hSD14-010",
+              "cardNumber": "hSD08-007",
               "quantity": 4
             }
           ],
           "cheer": [
             {
               "cardNumber": "hY01-001",
-              "quantity": 15
-            },
-            {
-              "cardNumber": "hY01-004",
-              "quantity": 1
-            },
-            {
-              "cardNumber": "hY01-007",
-              "quantity": 1
-            },
-            {
-              "cardNumber": "hY01-009",
-              "quantity": 1
-            },
-            {
-              "cardNumber": "hY01-010",
-              "quantity": 1
-            },
-            {
-              "cardNumber": "hY01-014",
-              "quantity": 1
+              "quantity": 20
             }
           ]
         }
       },
       {
-        "id": "res_ee9431eac18e5f26",
-        "rank": 3,
+        "id": "res_00da12d2b3db9d5e",
+        "rank": 2,
         "oshiCardNumber": "hBP09-003",
-        "deckLogCode": "1LKT96",
+        "deckLogCode": "RK5CL",
         "deck": {
           "oshi": [
             {
@@ -266,7 +128,7 @@
           "main": [
             {
               "cardNumber": "hBP01-104",
-              "quantity": 2
+              "quantity": 3
             },
             {
               "cardNumber": "hBP02-014",
@@ -302,10 +164,6 @@
             },
             {
               "cardNumber": "hBP07-094",
-              "quantity": 1
-            },
-            {
-              "cardNumber": "hBP08-094",
               "quantity": 1
             },
             {
@@ -358,10 +216,116 @@
         }
       },
       {
-        "id": "res_2cfde281654fa47d",
+        "id": "res_5a9d8ab507a31bc9",
+        "rank": 3,
+        "oshiCardNumber": "hBP07-006",
+        "deckLogCode": "AR66Q",
+        "deck": {
+          "oshi": [
+            {
+              "cardNumber": "hBP07-006",
+              "quantity": 1
+            }
+          ],
+          "main": [
+            {
+              "cardNumber": "hBP01-044",
+              "quantity": 2
+            },
+            {
+              "cardNumber": "hBP01-045",
+              "quantity": 1
+            },
+            {
+              "cardNumber": "hBP01-104",
+              "quantity": 4
+            },
+            {
+              "cardNumber": "hBP01-108",
+              "quantity": 2
+            },
+            {
+              "cardNumber": "hBP01-114",
+              "quantity": 2
+            },
+            {
+              "cardNumber": "hBP01-124",
+              "quantity": 1
+            },
+            {
+              "cardNumber": "hBP06-090",
+              "quantity": 2
+            },
+            {
+              "cardNumber": "hBP07-063",
+              "quantity": 4
+            },
+            {
+              "cardNumber": "hBP07-064",
+              "quantity": 4
+            },
+            {
+              "cardNumber": "hBP07-065",
+              "quantity": 2
+            },
+            {
+              "cardNumber": "hBP07-066",
+              "quantity": 4
+            },
+            {
+              "cardNumber": "hBP07-067",
+              "quantity": 4
+            },
+            {
+              "cardNumber": "hBP07-068",
+              "quantity": 1
+            },
+            {
+              "cardNumber": "hBP07-069",
+              "quantity": 4
+            },
+            {
+              "cardNumber": "hBP07-094",
+              "quantity": 1
+            },
+            {
+              "cardNumber": "hBP07-100",
+              "quantity": 4
+            },
+            {
+              "cardNumber": "hBP09-097",
+              "quantity": 1
+            },
+            {
+              "cardNumber": "hBP09-098",
+              "quantity": 1
+            },
+            {
+              "cardNumber": "hSD01-009",
+              "quantity": 1
+            },
+            {
+              "cardNumber": "hSD01-016",
+              "quantity": 2
+            },
+            {
+              "cardNumber": "hSD14-010",
+              "quantity": 3
+            }
+          ],
+          "cheer": [
+            {
+              "cardNumber": "hY05-001",
+              "quantity": 20
+            }
+          ]
+        }
+      },
+      {
+        "id": "res_af05bfd2dde73b06",
         "rank": 4,
         "oshiCardNumber": "hBP06-006",
-        "deckLogCode": "A6A28",
+        "deckLogCode": "FBU1A",
         "deck": {
           "oshi": [
             {
@@ -383,20 +347,102 @@
               "quantity": 4
             },
             {
-              "cardNumber": "hBP02-079",
+              "cardNumber": "hBP01-108",
               "quantity": 1
-            },
-            {
-              "cardNumber": "hBP02-084",
-              "quantity": 2
             },
             {
               "cardNumber": "hBP05-074",
-              "quantity": 1
+              "quantity": 2
+            },
+            {
+              "cardNumber": "hBP05-080",
+              "quantity": 3
             },
             {
               "cardNumber": "hBP06-049",
+              "quantity": 4
+            },
+            {
+              "cardNumber": "hBP06-053",
+              "quantity": 1
+            },
+            {
+              "cardNumber": "hBP06-090",
+              "quantity": 1
+            },
+            {
+              "cardNumber": "hBP06-095",
+              "quantity": 4
+            },
+            {
+              "cardNumber": "hBP08-054",
+              "quantity": 4
+            },
+            {
+              "cardNumber": "hBP09-059",
+              "quantity": 4
+            },
+            {
+              "cardNumber": "hBP09-060",
+              "quantity": 4
+            },
+            {
+              "cardNumber": "hBP09-061",
+              "quantity": 4
+            },
+            {
+              "cardNumber": "hBP09-062",
               "quantity": 3
+            },
+            {
+              "cardNumber": "hSD01-018",
+              "quantity": 3
+            }
+          ],
+          "cheer": [
+            {
+              "cardNumber": "hY04-014",
+              "quantity": 20
+            }
+          ]
+        }
+      },
+      {
+        "id": "res_442d8e85b5da7169",
+        "rank": 5,
+        "oshiCardNumber": "hBP06-006",
+        "deckLogCode": "MTSZJ",
+        "deck": {
+          "oshi": [
+            {
+              "cardNumber": "hBP06-006",
+              "quantity": 1
+            }
+          ],
+          "main": [
+            {
+              "cardNumber": "hBP01-088",
+              "quantity": 4
+            },
+            {
+              "cardNumber": "hBP01-090",
+              "quantity": 3
+            },
+            {
+              "cardNumber": "hBP01-104",
+              "quantity": 3
+            },
+            {
+              "cardNumber": "hBP01-108",
+              "quantity": 1
+            },
+            {
+              "cardNumber": "hBP05-074",
+              "quantity": 2
+            },
+            {
+              "cardNumber": "hBP06-049",
+              "quantity": 4
             },
             {
               "cardNumber": "hBP06-052",
@@ -428,11 +474,15 @@
             },
             {
               "cardNumber": "hBP09-061",
-              "quantity": 3
+              "quantity": 4
             },
             {
               "cardNumber": "hBP09-062",
               "quantity": 3
+            },
+            {
+              "cardNumber": "hSD01-016",
+              "quantity": 2
             },
             {
               "cardNumber": "hSD01-018",
@@ -440,22 +490,22 @@
             },
             {
               "cardNumber": "hSD14-010",
-              "quantity": 3
+              "quantity": 2
             }
           ],
           "cheer": [
             {
-              "cardNumber": "hY04-013",
+              "cardNumber": "hY04-010",
               "quantity": 20
             }
           ]
         }
       },
       {
-        "id": "res_47fe66b1739577e5",
-        "rank": 5,
+        "id": "res_28c14b95631dd769",
+        "rank": 6,
         "oshiCardNumber": "hBP06-006",
-        "deckLogCode": "2J5BLG",
+        "deckLogCode": "1UNB7W",
         "deck": {
           "oshi": [
             {
@@ -474,7 +524,7 @@
             },
             {
               "cardNumber": "hBP01-104",
-              "quantity": 3
+              "quantity": 4
             },
             {
               "cardNumber": "hBP02-084",
@@ -493,6 +543,10 @@
               "quantity": 4
             },
             {
+              "cardNumber": "hBP06-051",
+              "quantity": 1
+            },
+            {
               "cardNumber": "hBP06-053",
               "quantity": 1
             },
@@ -518,195 +572,11 @@
             },
             {
               "cardNumber": "hBP09-061",
-              "quantity": 4
-            },
-            {
-              "cardNumber": "hBP09-062",
-              "quantity": 4
-            },
-            {
-              "cardNumber": "hSD01-018",
-              "quantity": 2
-            }
-          ],
-          "cheer": [
-            {
-              "cardNumber": "hY04-001",
-              "quantity": 18
-            },
-            {
-              "cardNumber": "hY04-010",
-              "quantity": 2
-            }
-          ]
-        }
-      },
-      {
-        "id": "res_5cba5b87c97e957b",
-        "rank": 6,
-        "oshiCardNumber": "hEB01-002",
-        "deckLogCode": "1J5ZL8",
-        "deck": {
-          "oshi": [
-            {
-              "cardNumber": "hEB01-002",
-              "quantity": 1
-            }
-          ],
-          "main": [
-            {
-              "cardNumber": "hBP02-032",
-              "quantity": 4
-            },
-            {
-              "cardNumber": "hBP02-033",
-              "quantity": 4
-            },
-            {
-              "cardNumber": "hBP02-095",
               "quantity": 3
-            },
-            {
-              "cardNumber": "hBP04-038",
-              "quantity": 1
-            },
-            {
-              "cardNumber": "hBP06-089",
-              "quantity": 4
-            },
-            {
-              "cardNumber": "hEB01-011",
-              "quantity": 4
-            },
-            {
-              "cardNumber": "hEB01-012",
-              "quantity": 4
-            },
-            {
-              "cardNumber": "hEB01-013",
-              "quantity": 4
-            },
-            {
-              "cardNumber": "hEB01-014",
-              "quantity": 1
-            },
-            {
-              "cardNumber": "hEB01-017",
-              "quantity": 3
-            },
-            {
-              "cardNumber": "hEB01-025",
-              "quantity": 4
-            },
-            {
-              "cardNumber": "hEB01-026",
-              "quantity": 4
-            },
-            {
-              "cardNumber": "hEB01-031",
-              "quantity": 2
-            },
-            {
-              "cardNumber": "hSD09-002",
-              "quantity": 4
-            },
-            {
-              "cardNumber": "hSD14-010",
-              "quantity": 4
-            }
-          ],
-          "cheer": [
-            {
-              "cardNumber": "hY03-001",
-              "quantity": 4
-            },
-            {
-              "cardNumber": "hY04-001",
-              "quantity": 16
-            }
-          ]
-        }
-      },
-      {
-        "id": "res_1e21840a0de8a4d6",
-        "rank": 7,
-        "oshiCardNumber": "hBP06-006",
-        "deckLogCode": "1SK4XN",
-        "deck": {
-          "oshi": [
-            {
-              "cardNumber": "hBP06-006",
-              "quantity": 1
-            }
-          ],
-          "main": [
-            {
-              "cardNumber": "hBP01-088",
-              "quantity": 4
-            },
-            {
-              "cardNumber": "hBP01-090",
-              "quantity": 4
-            },
-            {
-              "cardNumber": "hBP01-104",
-              "quantity": 4
-            },
-            {
-              "cardNumber": "hBP01-108",
-              "quantity": 1
-            },
-            {
-              "cardNumber": "hBP05-074",
-              "quantity": 2
-            },
-            {
-              "cardNumber": "hBP06-049",
-              "quantity": 4
-            },
-            {
-              "cardNumber": "hBP06-052",
-              "quantity": 1
-            },
-            {
-              "cardNumber": "hBP06-053",
-              "quantity": 1
-            },
-            {
-              "cardNumber": "hBP06-090",
-              "quantity": 2
-            },
-            {
-              "cardNumber": "hBP06-095",
-              "quantity": 4
-            },
-            {
-              "cardNumber": "hBP08-054",
-              "quantity": 4
-            },
-            {
-              "cardNumber": "hBP09-059",
-              "quantity": 4
-            },
-            {
-              "cardNumber": "hBP09-060",
-              "quantity": 4
-            },
-            {
-              "cardNumber": "hBP09-061",
-              "quantity": 2
             },
             {
               "cardNumber": "hBP09-062",
               "quantity": 3
-            },
-            {
-              "cardNumber": "hSD01-016",
-              "quantity": 2
-            },
-            {
-              "cardNumber": "hSD01-017",
-              "quantity": 2
             },
             {
               "cardNumber": "hSD01-018",
@@ -722,26 +592,18 @@
         }
       },
       {
-        "id": "res_0eccdf3ae1a57056",
-        "rank": 8,
-        "oshiCardNumber": "hBP06-006",
-        "deckLogCode": "VPBMN",
+        "id": "res_b97535f6a3ca991a",
+        "rank": 7,
+        "oshiCardNumber": "hBP06-008",
+        "deckLogCode": "V31PE",
         "deck": {
           "oshi": [
             {
-              "cardNumber": "hBP06-006",
+              "cardNumber": "hBP06-008",
               "quantity": 1
             }
           ],
           "main": [
-            {
-              "cardNumber": "hBP01-088",
-              "quantity": 4
-            },
-            {
-              "cardNumber": "hBP01-090",
-              "quantity": 4
-            },
             {
               "cardNumber": "hBP01-104",
               "quantity": 4
@@ -751,52 +613,68 @@
               "quantity": 1
             },
             {
-              "cardNumber": "hBP05-074",
-              "quantity": 3
-            },
-            {
-              "cardNumber": "hBP06-049",
-              "quantity": 3
-            },
-            {
-              "cardNumber": "hBP06-053",
-              "quantity": 2
-            },
-            {
-              "cardNumber": "hBP06-090",
+              "cardNumber": "hBP02-077",
               "quantity": 1
             },
             {
-              "cardNumber": "hBP06-095",
-              "quantity": 4
+              "cardNumber": "hBP03-088",
+              "quantity": 1
             },
             {
-              "cardNumber": "hBP08-054",
+              "cardNumber": "hBP04-079",
               "quantity": 3
             },
             {
-              "cardNumber": "hBP09-059",
-              "quantity": 4
-            },
-            {
-              "cardNumber": "hBP09-060",
-              "quantity": 4
-            },
-            {
-              "cardNumber": "hBP09-061",
+              "cardNumber": "hBP04-081",
               "quantity": 3
             },
             {
-              "cardNumber": "hBP09-062",
+              "cardNumber": "hBP05-074",
+              "quantity": 1
+            },
+            {
+              "cardNumber": "hBP05-080",
               "quantity": 3
             },
             {
-              "cardNumber": "hSD01-017",
+              "cardNumber": "hBP06-073",
               "quantity": 2
             },
             {
-              "cardNumber": "hSD01-018",
+              "cardNumber": "hBP06-077",
+              "quantity": 4
+            },
+            {
+              "cardNumber": "hBP06-090",
+              "quantity": 3
+            },
+            {
+              "cardNumber": "hBP07-084",
+              "quantity": 1
+            },
+            {
+              "cardNumber": "hBP07-094",
               "quantity": 2
+            },
+            {
+              "cardNumber": "hBP08-084",
+              "quantity": 3
+            },
+            {
+              "cardNumber": "hBP09-084",
+              "quantity": 4
+            },
+            {
+              "cardNumber": "hBP09-085",
+              "quantity": 3
+            },
+            {
+              "cardNumber": "hBP09-086",
+              "quantity": 4
+            },
+            {
+              "cardNumber": "hBP09-087",
+              "quantity": 4
             },
             {
               "cardNumber": "hSD14-010",
@@ -805,7 +683,113 @@
           ],
           "cheer": [
             {
-              "cardNumber": "hY04-001",
+              "cardNumber": "hY06-005",
+              "quantity": 1
+            },
+            {
+              "cardNumber": "hY06-007",
+              "quantity": 19
+            }
+          ]
+        }
+      },
+      {
+        "id": "res_70ad7a34fe3ac4e8",
+        "rank": 8,
+        "oshiCardNumber": "hBP06-004",
+        "deckLogCode": "1FU544",
+        "deck": {
+          "oshi": [
+            {
+              "cardNumber": "hBP06-004",
+              "quantity": 1
+            }
+          ],
+          "main": [
+            {
+              "cardNumber": "hBP01-104",
+              "quantity": 4
+            },
+            {
+              "cardNumber": "hBP01-107",
+              "quantity": 2
+            },
+            {
+              "cardNumber": "hBP01-108",
+              "quantity": 1
+            },
+            {
+              "cardNumber": "hBP05-079",
+              "quantity": 1
+            },
+            {
+              "cardNumber": "hBP05-080",
+              "quantity": 1
+            },
+            {
+              "cardNumber": "hBP06-034",
+              "quantity": 4
+            },
+            {
+              "cardNumber": "hBP06-035",
+              "quantity": 4
+            },
+            {
+              "cardNumber": "hBP06-037",
+              "quantity": 1
+            },
+            {
+              "cardNumber": "hBP06-038",
+              "quantity": 4
+            },
+            {
+              "cardNumber": "hBP06-039",
+              "quantity": 4
+            },
+            {
+              "cardNumber": "hBP06-090",
+              "quantity": 3
+            },
+            {
+              "cardNumber": "hBP06-098",
+              "quantity": 2
+            },
+            {
+              "cardNumber": "hBP08-040",
+              "quantity": 2
+            },
+            {
+              "cardNumber": "hBP09-046",
+              "quantity": 2
+            },
+            {
+              "cardNumber": "hSD02-002",
+              "quantity": 1
+            },
+            {
+              "cardNumber": "hSD02-004",
+              "quantity": 1
+            },
+            {
+              "cardNumber": "hSD02-006",
+              "quantity": 3
+            },
+            {
+              "cardNumber": "hSD02-007",
+              "quantity": 4
+            },
+            {
+              "cardNumber": "hSD02-014",
+              "quantity": 3
+            },
+            {
+              "cardNumber": "hSD14-010",
+              "quantity": 3
+            }
+          ],
+          "cheer": [
+            {
+              "cardNumber": "hY03-009",
               "quantity": 20
             }
           ]
@@ -814,8 +798,8 @@
     ],
     "source": {
       "sourceType": "bushi-navi-public-browser-dom",
-      "sourceEventId": "1750826",
-      "sourceUrl": "https://www.bushi-navi.com/event/result/1750826"
+      "sourceEventId": "1748917",
+      "sourceUrl": "https://www.bushi-navi.com/event/result/1748917"
     }
   }
 }
