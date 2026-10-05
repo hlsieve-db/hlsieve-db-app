@@ -20,6 +20,16 @@ async function git(args: string[]): Promise<string> {
   return (await exec('git', args, { encoding: 'utf8' })).stdout.trim()
 }
 
+export function normalizeGitPorcelainOutput(output: string): string {
+  return output.replace(/\r?\n$/, '')
+}
+
+async function gitStatus(): Promise<string> {
+  return normalizeGitPorcelainOutput(
+    (await exec('git', ['status', '--porcelain'], { encoding: 'utf8' })).stdout,
+  )
+}
+
 export function validateDailyGitState(input: {
   branch: string
   status: string
@@ -126,7 +136,7 @@ export async function assertDailyGitStart(
   allowPublicationDiff = false,
 ): Promise<DailyGitStart> {
   const branch = await git(['branch', '--show-current'])
-  const status = await git(['status', '--porcelain'])
+  const status = await gitStatus()
   if (status.length > 0) {
     if (!allowPublicationDiff)
       throw new Error('Daily requires a clean working tree.')
@@ -168,7 +178,7 @@ export async function fetchAndAssertNotBehind(
 
 export async function publicationDiff(): Promise<string[]> {
   return waitForStablePublicationDiff({
-    scan: () => git(['status', '--porcelain']),
+    scan: gitStatus,
   })
 }
 

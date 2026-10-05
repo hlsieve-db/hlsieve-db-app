@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   classifyPublicationStatus,
+  normalizeGitPorcelainOutput,
   validateDailyGitState,
   validatePublicationPaths,
   waitForStablePublicationDiff,
@@ -28,6 +29,20 @@ describe('Tournament Daily Git guards', () => {
     expect(() => validateDailyGitState({ ...base, ahead: 2 })).toThrow(
       'synchronized',
     )
+  })
+  it('preserves the leading tracked-worktree status column', () => {
+    expect(
+      normalizeGitPorcelainOutput(
+        ' M public/tournaments/events/evt_1.json\r\n',
+      ),
+    ).toBe(' M public/tournaments/events/evt_1.json')
+    expect(
+      classifyPublicationStatus(
+        normalizeGitPorcelainOutput(
+          ' M public/tournaments/events/evt_1.json\r\n',
+        ),
+      ).allowed,
+    ).toEqual(['public/tournaments/events/evt_1.json'])
   })
   it('allows only the exact same-day recovery commit', () => {
     expect(
