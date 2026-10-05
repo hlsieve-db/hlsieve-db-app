@@ -1,7 +1,7 @@
 {
   "format": "hlsieve-tournament-index",
   "formatVersion": 1,
-  "dataVersion": "9b5353433b2dcb97",
+  "dataVersion": "714336ed801dda29",
   "startDate": "2026-09-19",
   "events": [
     {
@@ -5904,6 +5904,66 @@
           "id": "res_5dcc78278ee272e3",
           "rank": 8,
           "oshiCardNumber": "hBP07-003"
+        }
+      ]
+    },
+    {
+      "id": "evt_e2e24a9e6218c272",
+      "tournament": {
+        "type": "bloomcup",
+        "seriesName": "【ホロカ】ブルームカップ「響咲リオナ」 （2026年9月開催）"
+      },
+      "date": "2026-09-19",
+      "venue": {
+        "slug": "venue-ce8243611363405b",
+        "name": "フルコンプ仙台駅前店"
+      },
+      "participantCount": 14,
+      "resultCoverage": {
+        "kind": "exact",
+        "maxRank": 8
+      },
+      "resultCount": 8,
+      "results": [
+        {
+          "id": "res_12252845a2e46581",
+          "rank": 1,
+          "oshiCardNumber": "hBP06-006"
+        },
+        {
+          "id": "res_401bff2d062f4561",
+          "rank": 2,
+          "oshiCardNumber": "hBP09-005"
+        },
+        {
+          "id": "res_7f4f9235e6eb6ac9",
+          "rank": 3,
+          "oshiCardNumber": "hEB01-003"
+        },
+        {
+          "id": "res_89af77816a3b590d",
+          "rank": 4,
+          "oshiCardNumber": "hBP07-003"
+        },
+        {
+          "id": "res_316484f1740c81b5",
+          "rank": 5,
+          "oshiCardNumber": "hBP07-005"
+        },
+        {
+          "id": "res_f73e40b2ce5fcba6",
+          "rank": 6,
+          "oshiCardNumber": "hBP08-003"
+        },
+        {
+          "id": "res_9a2d2c578c3c363b",
+          "rank": 7,
+          "oshiCardNumber": "hBP07-007"
+        },
+        {
+          "id": "res_ed32089d43a7c951",
+          "rank": 8,
+          "oshiCardNumber": "hBP09-004"
         }
       ]
     }
