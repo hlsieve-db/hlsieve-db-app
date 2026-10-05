@@ -169,9 +169,30 @@ export async function assertDailyGitStart(
 export async function assertDailyRecoveryCommit(
   expectedCommit: string,
 ): Promise<void> {
-  const head = await git(['rev-parse', 'HEAD'])
-  if (head !== expectedCommit)
-    throw new Error('Daily recovery checkpoint commit does not match HEAD.')
+  try {
+    await exec('git', ['merge-base', '--is-ancestor', expectedCommit, 'HEAD'])
+  } catch {
+    throw new Error(
+      'Daily recovery checkpoint commit is not an ancestor of HEAD.',
+    )
+  }
+  const publicationChanges = await git([
+    'diff',
+    '--name-only',
+    `${expectedCommit}..HEAD`,
+    '--',
+    'public/tournaments',
+  ])
+  validateDailyRecoveryPublicationChanges(
+    publicationChanges.split(/\r?\n/).filter(Boolean),
+  )
+}
+
+export function validateDailyRecoveryPublicationChanges(paths: string[]): void {
+  if (paths.length > 0)
+    throw new Error(
+      'Daily recovery found Tournament publication changes after the checkpoint commit.',
+    )
 }
 
 export async function fetchAndAssertNotBehind(

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   classifyPublicationStatus,
   normalizeGitPorcelainOutput,
+  validateDailyRecoveryPublicationChanges,
   validateDailyGitState,
   validatePublicationPaths,
   waitForStablePublicationDiff,
@@ -55,6 +56,14 @@ describe('Tournament Daily Git guards', () => {
     expect(() =>
       validateDailyGitState({ ...base, ahead: 1, subject: 'feat: unrelated' }),
     ).toThrow('unrelated')
+  })
+  it('allows a recovery hotfix only while the checkpoint publication stays unchanged', () => {
+    expect(() => validateDailyRecoveryPublicationChanges([])).not.toThrow()
+    expect(() =>
+      validateDailyRecoveryPublicationChanges([
+        'public/tournaments/index.json',
+      ]),
+    ).toThrow('publication changes')
   })
   it('allows only Tournament publication paths in an automatic data commit', () => {
     expect(
