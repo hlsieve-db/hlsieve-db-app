@@ -243,6 +243,32 @@ describe('Tournament queue processor', () => {
     ).toBe(false)
   })
 
+  it('processes only an explicitly targeted Event', async () => {
+    const repo = await repository()
+    await repo.enqueue('1729427', '2026-10-04T00:00:01.000Z')
+    const seen: string[] = []
+    await processOneTournamentQueueItem({
+      repository: repo,
+      cardsData,
+      sourceEventId: '1729427',
+      collect: async (sourceEventId) => {
+        seen.push(sourceEventId)
+        const collected = event()
+        collected.identity.sourceEventId = sourceEventId
+        collected.source.sourceEventId = sourceEventId
+        return collected
+      },
+      now: NOW,
+      leaseDurationMs: 60_000,
+    })
+    expect(seen).toEqual(['1729427'])
+    expect((await repo.load()).records[0]).toMatchObject({
+      sourceEventId: '1764903',
+      status: 'queued',
+      attemptCount: 0,
+    })
+  })
+
   it('persists and reads back the artifact before transitioning to ready', async () => {
     const repo = await repository()
     const root = await mkdtemp(resolve(tmpdir(), 'hlsieve-artifact-order-'))

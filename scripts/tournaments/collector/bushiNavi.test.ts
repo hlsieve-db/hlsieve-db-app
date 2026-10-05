@@ -10,6 +10,7 @@ import {
   determineCoverage,
   parseDeckCodeFromModalImage,
   parseKnownEventMetadata,
+  probeKnownTournamentEventMetadata,
   parseParticipantCount,
   parseRankText,
   parseSourceEventId,
@@ -24,6 +25,11 @@ import {
 } from './bushiNavi'
 
 describe('Bushi Navi Collector rules', () => {
+  it('keeps the metadata probe free of Deck collection', () => {
+    const source = probeKnownTournamentEventMetadata.toString()
+    expect(source).toContain('waitForTournamentResultReady')
+    expect(source).not.toMatch(/readDeck|resolveDeck|deckLog/i)
+  })
   it('supports collecting through rank 16', () => {
     expect(BUSHI_NAVI_TEST_CONSTANTS.maxImportedRank).toBe(16)
   })

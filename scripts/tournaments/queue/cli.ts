@@ -1,7 +1,7 @@
 export type TournamentQueueCliOptions =
   | { command: 'add'; input: string }
   | { command: 'list' }
-  | { command: 'process'; maxItems: number }
+  | { command: 'process'; maxItems: number; sourceEventId?: string }
   | { command: 'refresh-ready'; sourceEventId: string }
   | { command: 'publish'; sourceEventId: string; write: boolean }
   | { command: 'unlock'; force: boolean }
@@ -35,6 +35,20 @@ export function parseTournamentQueueCli(
   }
   if (command === 'process') {
     const maxIndex = args.indexOf('--max')
+    const eventIndex = args.indexOf('--event-id')
+    if (maxIndex >= 0 && eventIndex >= 0) {
+      throw new Error('process accepts either --max or --event-id, not both.')
+    }
+    if (eventIndex >= 0) {
+      if (args.length !== 3 || !args[eventIndex + 1]) {
+        throw new Error('Usage: tournaments:queue -- process --event-id <ID>')
+      }
+      const sourceEventId = args[eventIndex + 1]!
+      if (!/^\d+$/.test(sourceEventId)) {
+        throw new Error('process --event-id requires a numeric Event ID.')
+      }
+      return { command, maxItems: 1, sourceEventId }
+    }
     const maxItems = maxIndex < 0 ? 1 : Number(args[maxIndex + 1])
     if (
       (maxIndex >= 0 && args.length !== 3) ||

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   claimDueTournament,
+  claimDueTournamentById,
   emptyTournamentQueue,
   enqueueTournament,
   transitionTournamentQueueRecord,
@@ -127,6 +128,52 @@ describe('Tournament queue domain', () => {
       claimDueTournament(first.queue, '2026-10-04T00:01:00.000Z', 60_000)
         .record,
     ).toMatchObject({ attemptCount: 2, status: 'collecting' })
+  })
+
+  it('claims only the requested due Event and leaves all others untouched', () => {
+    let queue = enqueueTournament(emptyTournamentQueue(), '1', DAY_0)
+    queue = enqueueTournament(queue, '2', DAY_0)
+    const before = queue.records[0]
+    const result = claimDueTournamentById(queue, '2', DAY_0, 60_000)
+    expect(result.record).toMatchObject({
+      sourceEventId: '2',
+      status: 'collecting',
+      attemptCount: 1,
+    })
+    expect(result.queue.records[0]).toEqual(before)
+    expect(
+      claimDueTournamentById(result.queue, '999', DAY_0, 60_000).record,
+    ).toBeUndefined()
+  })
+
+  it('does not target ineligible or not-yet-due records', () => {
+    const base = enqueueTournament(emptyTournamentQueue(), '1', DAY_0)
+      .records[0]!
+    const collecting = transitionTournamentQueueRecord(base, 'collecting')
+    const waiting = transitionTournamentQueueRecord(
+      { ...collecting, attemptCount: 1 },
+      'waiting-result',
+    )
+    for (const record of [
+      { ...collecting, leaseUntil: '2026-10-04T00:01:00.000Z' },
+      waiting,
+      transitionTournamentQueueRecord(collecting, 'needs-review', {
+        errorCode: 'review',
+      }),
+    ]) {
+      expect(
+        claimDueTournamentById(
+          {
+            format: 'hlsieve-tournament-queue',
+            formatVersion: 1,
+            records: [record],
+          },
+          '1',
+          DAY_0,
+          60_000,
+        ).record,
+      ).toBeUndefined()
+    }
   })
 
   it('allows only the explicit status transitions', () => {

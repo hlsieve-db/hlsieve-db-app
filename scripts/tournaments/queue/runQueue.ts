@@ -26,6 +26,7 @@ import { parseTournamentSourceEventId } from './submission'
 async function processQueue(
   repository: LocalTournamentQueueRepository,
   maxItems: number,
+  sourceEventId?: string,
 ): Promise<void> {
   const cardsData = JSON.parse(
     await readFile(resolve('public/cards.json'), 'utf8'),
@@ -44,6 +45,7 @@ async function processQueue(
         now,
         leaseDurationMs: 15 * 60 * 1_000,
         readyArtifacts,
+        sourceEventId,
         collect: async (sourceEventId) => {
           const event = await collectKnownTournamentEvent({
             page,
@@ -202,7 +204,7 @@ async function main(): Promise<void> {
     )
     return
   }
-  await processQueue(repository, options.maxItems)
+  await processQueue(repository, options.maxItems, options.sourceEventId)
 }
 
 main().catch((error: unknown) => {

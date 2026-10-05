@@ -1,6 +1,8 @@
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 
+import { chromium, type Browser, type Page } from 'playwright'
+
 import type { CardsDataFile } from '../../../src/domain/cards/types'
 import { acquireDailyLock } from './lock'
 import { parseTournamentDailyCli } from './cli'
@@ -19,6 +21,11 @@ import {
 import { waitForProductionPublication, smokeProductionUi } from './production'
 import { runDailyWorkflow } from './workflow'
 import { runNpmScript } from './childProcess'
+import {
+  processSelectedTournamentEvents,
+  selectDueTournamentEventsForDate,
+} from './dateSelection'
+import { probeKnownTournamentEventMetadata } from '../collector/bushiNavi'
 import { LocalTournamentQueueRepository } from '../queue/repository'
 import { TournamentReadyArtifactRepository } from '../queue/readyArtifact'
 import { publishReadyTournamentEvents } from '../queue/publishReady'
@@ -47,30 +54,12 @@ let checkpoint: DailyCheckpoint = previous ?? {
   publicationEventIds: [],
 }
 
-async function runQueueBatch(max: number): Promise<void> {
+async function runQueueEvent(sourceEventId: string): Promise<void> {
   await runNpmScript({
     script: 'tournaments:queue',
-    args: ['process', '--max', String(max)],
+    args: ['process', '--event-id', sourceEventId],
     cwd: process.cwd(),
   })
-}
-
-function dueCount(
-  now: string,
-  records: Awaited<
-    ReturnType<LocalTournamentQueueRepository['load']>
-  >['records'],
-): number {
-  return records.filter(
-    (record) =>
-      record.status === 'queued' ||
-      (record.status === 'waiting-result' &&
-        record.nextAttemptAt !== undefined &&
-        record.nextAttemptAt <= now) ||
-      (record.status === 'collecting' &&
-        record.leaseUntil !== undefined &&
-        record.leaseUntil <= now),
-  ).length
 }
 
 try {
@@ -84,11 +73,30 @@ try {
           record.attemptCount,
         ]),
       )
-      while (true) {
-        const now = new Date().toISOString()
-        const count = dueCount(now, (await repository.load()).records)
-        if (count === 0) break
-        await runQueueBatch(Math.min(10, count))
+      let browser: Browser | undefined
+      let page: Page | undefined
+      try {
+        const selection = await selectDueTournamentEventsForDate({
+          records: before.records,
+          targetDate: options.targetDate,
+          now: new Date().toISOString(),
+          probe: async (sourceEventId) => {
+            browser ??= await chromium.launch({ headless: false })
+            page ??= await (await browser.newContext()).newPage()
+            const metadata = await probeKnownTournamentEventMetadata({
+              page,
+              sourceEventId,
+            })
+            return { sourceEventId, eventDate: metadata.date }
+          },
+          persist: async (sourceEventId, eventDate) => {
+            await repository.setOfficialEventDate(sourceEventId, eventDate)
+          },
+        })
+        console.log(JSON.stringify({ dateSelection: selection }))
+        await processSelectedTournamentEvents(selection.selected, runQueueEvent)
+      } finally {
+        await browser?.close()
       }
       const after = await repository.load()
       const processed = after.records
@@ -98,6 +106,21 @@ try {
             (beforeAttempts.get(record.sourceEventId) ?? -1),
         )
         .map((record) => record.sourceEventId)
+      for (const record of after.records.filter(
+        (candidate) =>
+          processed.includes(candidate.sourceEventId) &&
+          candidate.status === 'ready',
+      )) {
+        const artifact = await artifacts.load(record.sourceEventId, cardsData)
+        if (artifact.event.date !== options.targetDate) {
+          await repository.transition(record.sourceEventId, 'needs-review', {
+            errorCode: 'event-date-mismatch',
+          })
+          throw new Error(
+            `Tournament Event date changed after selection: ${record.sourceEventId}.`,
+          )
+        }
+      }
       checkpoint = {
         ...checkpoint,
         phase: 'collected',

@@ -19,11 +19,15 @@ export async function processOneTournamentQueueItem(options: {
   now: string
   leaseDurationMs: number
   readyArtifacts?: TournamentReadyArtifactRepository
+  sourceEventId?: string
 }): Promise<TournamentQueueProcessorResult> {
-  const claimed = await options.repository.claimDue(
-    options.now,
-    options.leaseDurationMs,
-  )
+  const claimed = options.sourceEventId
+    ? await options.repository.claimDueById(
+        options.sourceEventId,
+        options.now,
+        options.leaseDurationMs,
+      )
+    : await options.repository.claimDue(options.now, options.leaseDurationMs)
   if (!claimed) return { status: 'idle' }
   let event: TournamentImportEvent
   try {

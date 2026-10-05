@@ -117,6 +117,29 @@ describe('LocalTournamentQueueRepository', () => {
     })
   })
 
+  it('persists only official probed dates and supports targeted claims', async () => {
+    const path = await queuePath()
+    const repository = new LocalTournamentQueueRepository({ path })
+    await repository.enqueue('1764903', NOW)
+    await repository.enqueue('1764904', NOW)
+    await repository.setOfficialEventDate('1764903', '2026-10-02')
+    expect((await repository.load()).records[0]).toMatchObject({
+      eventDate: '2026-10-02',
+      eventDateSource: 'bushi-navi-public-browser-dom',
+      attemptCount: 0,
+      status: 'queued',
+    })
+    await expect(
+      repository.setOfficialEventDate('1764903', '2026-02-30'),
+    ).rejects.toThrow(/YYYY-MM-DD/)
+    await repository.claimDueById('1764904', NOW, 60_000)
+    expect((await repository.load()).records[0]).toMatchObject({
+      sourceEventId: '1764903',
+      attemptCount: 0,
+      status: 'queued',
+    })
+  })
+
   it('fails safely when another processor holds the mutation lock', async () => {
     const path = await queuePath()
     await writeFile(`${path}.lock`, 'held', { flag: 'wx' })

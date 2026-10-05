@@ -10,6 +10,8 @@ export type TournamentQueueStatus =
 
 export type TournamentQueueRecord = {
   sourceEventId: string
+  eventDate?: string
+  eventDateSource?: 'bushi-navi-public-browser-dom'
   status: TournamentQueueStatus
   firstSubmittedAt: string
   lastSubmittedAt: string
@@ -152,7 +154,10 @@ export function transitionTournamentQueueRecord(
   return next
 }
 
-function isDue(record: TournamentQueueRecord, now: string): boolean {
+export function isTournamentQueueRecordDue(
+  record: TournamentQueueRecord,
+  now: string,
+): boolean {
   if (record.status === 'queued') return true
   if (record.status === 'waiting-result') {
     return record.nextAttemptAt !== undefined && record.nextAttemptAt <= now
@@ -174,7 +179,7 @@ export function claimDueTournament(
     throw new Error('leaseDurationMs must be a positive integer.')
   }
   const candidate = [...queue.records]
-    .filter((record) => isDue(record, now))
+    .filter((record) => isTournamentQueueRecordDue(record, now))
     .sort(
       (left, right) =>
         left.firstSubmittedAt.localeCompare(right.firstSubmittedAt) ||
@@ -194,6 +199,42 @@ export function claimDueTournament(
       ...queue,
       records: queue.records.map((record) =>
         record.sourceEventId === claimed.sourceEventId ? claimed : record,
+      ),
+    },
+    record: claimed,
+  }
+}
+
+export function claimDueTournamentById(
+  queue: TournamentQueueFile,
+  sourceEventId: string,
+  now: string,
+  leaseDurationMs: number,
+): { queue: TournamentQueueFile; record?: TournamentQueueRecord } {
+  const parsedId = parseTournamentSourceEventId(sourceEventId)
+  iso(now, 'now')
+  if (!Number.isSafeInteger(leaseDurationMs) || leaseDurationMs <= 0) {
+    throw new Error('leaseDurationMs must be a positive integer.')
+  }
+  const candidate = queue.records.find(
+    (record) =>
+      record.sourceEventId === parsedId &&
+      isTournamentQueueRecordDue(record, now),
+  )
+  if (!candidate) return { queue }
+  const claimed: TournamentQueueRecord = {
+    ...candidate,
+    status: 'collecting',
+    attemptCount: candidate.attemptCount + 1,
+    leaseUntil: new Date(Date.parse(now) + leaseDurationMs).toISOString(),
+  }
+  delete claimed.nextAttemptAt
+  delete claimed.lastErrorCode
+  return {
+    queue: {
+      ...queue,
+      records: queue.records.map((record) =>
+        record.sourceEventId === parsedId ? claimed : record,
       ),
     },
     record: claimed,

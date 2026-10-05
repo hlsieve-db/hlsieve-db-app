@@ -775,20 +775,22 @@ export type KnownTournamentCollectorOptions = {
   delayMs?: number
 }
 
-export async function collectKnownTournamentEvent(
-  options: KnownTournamentCollectorOptions,
-): Promise<TournamentImportEvent> {
+export type KnownTournamentMetadataProbe = ReturnType<
+  typeof parseKnownEventMetadata
+> & {
+  sourceEventId: string
+}
+
+export async function probeKnownTournamentEventMetadata(options: {
+  page: Page
+  sourceEventId: string
+  delayMs?: number
+}): Promise<KnownTournamentMetadataProbe> {
   const sourceUrl = buildOfficialTournamentResultUrl(options.sourceEventId)
   await navigate(options.page, sourceUrl, options.delayMs)
   await waitForTournamentResultReady(options.page)
   const main = options.page.locator('main')
   const pageText = await main.innerText()
-  if (/サーバーからの応答がありません|undefined/i.test(pageText)) {
-    throw new KnownEventCollectionError(
-      'generic-source-error',
-      `Bushi Navi returned a generic source error for ${options.sourceEventId}.`,
-    )
-  }
   let title: string
   let dateTimeText: string
   let venueName: string
@@ -806,12 +808,17 @@ export async function collectKnownTournamentEvent(
       `Bushi Navi required metadata is missing for ${options.sourceEventId}.`,
     )
   }
-  const metadata = parseKnownEventMetadata({
-    title,
-    dateTimeText,
-    venueName,
-    pageText,
-  })
+  return {
+    sourceEventId: options.sourceEventId,
+    ...parseKnownEventMetadata({ title, dateTimeText, venueName, pageText }),
+  }
+}
+
+export async function collectKnownTournamentEvent(
+  options: KnownTournamentCollectorOptions,
+): Promise<TournamentImportEvent> {
+  const sourceUrl = buildOfficialTournamentResultUrl(options.sourceEventId)
+  const metadata = await probeKnownTournamentEventMetadata(options)
   const resultButtons = options.page.getByRole('button', {
     name: 'デッキを見る',
     exact: true,

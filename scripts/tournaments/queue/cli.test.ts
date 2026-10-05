@@ -17,6 +17,13 @@ describe('Tournament queue CLI', () => {
       command: 'process',
       maxItems: 3,
     })
+    expect(
+      parseTournamentQueueCli(['process', '--event-id', '1764903']),
+    ).toEqual({
+      command: 'process',
+      maxItems: 1,
+      sourceEventId: '1764903',
+    })
     expect(parseTournamentQueueCli(['unlock', '--force'])).toEqual({
       command: 'unlock',
       force: true,
@@ -43,6 +50,18 @@ describe('Tournament queue CLI', () => {
       /1 through 10/,
     )
     expect(() => parseTournamentQueueCli(['unknown'])).toThrow(/must be/)
+    expect(() =>
+      parseTournamentQueueCli([
+        'process',
+        '--event-id',
+        '1764903',
+        '--max',
+        '1',
+      ]),
+    ).toThrow(/either/)
+    expect(() =>
+      parseTournamentQueueCli(['process', '--event-id', '../unsafe']),
+    ).toThrow(/numeric/)
   })
 
   it('describes the actual add or requeue result', () => {

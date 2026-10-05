@@ -5,6 +5,7 @@ import { hostname as systemHostname } from 'node:os'
 
 import {
   claimDueTournament,
+  claimDueTournamentById,
   emptyTournamentQueue,
   enqueueTournament,
   type TournamentQueueFile,
@@ -27,6 +28,8 @@ const QUEUE_STATUSES: readonly TournamentQueueStatus[] = [
 ]
 const RECORD_KEYS = new Set([
   'sourceEventId',
+  'eventDate',
+  'eventDateSource',
   'status',
   'firstSubmittedAt',
   'lastSubmittedAt',
@@ -183,6 +186,17 @@ function optionalString(value: unknown): value is string | undefined {
   return value === undefined || (typeof value === 'string' && value.length > 0)
 }
 
+function isDate(value: unknown): value is string {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false
+  }
+  const parsed = new Date(`${value}T00:00:00.000Z`)
+  return (
+    !Number.isNaN(parsed.valueOf()) &&
+    parsed.toISOString().slice(0, 10) === value
+  )
+}
+
 function parseRecord(value: unknown): TournamentQueueRecord {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new TournamentQueueCorruptError('Tournament queue record is invalid.')
@@ -212,6 +226,11 @@ function parseRecord(value: unknown): TournamentQueueRecord {
     (input.attemptCount as number) < 0 ||
     !(input.nextAttemptAt === undefined || isIso(input.nextAttemptAt)) ||
     !(input.leaseUntil === undefined || isIso(input.leaseUntil)) ||
+    !(
+      (input.eventDate === undefined && input.eventDateSource === undefined) ||
+      (isDate(input.eventDate) &&
+        input.eventDateSource === 'bushi-navi-public-browser-dom')
+    ) ||
     !optionalString(input.lastErrorCode) ||
     !optionalString(input.publishedEventId)
   ) {
@@ -335,6 +354,50 @@ export class LocalTournamentQueueRepository {
       if (!result.record) return undefined
       await this.saveUnlocked(result.queue)
       return result.record
+    })
+  }
+
+  async claimDueById(
+    sourceEventId: string,
+    now: string,
+    leaseDurationMs: number,
+  ): Promise<TournamentQueueRecord | undefined> {
+    return this.withMutationLock(async () => {
+      const result = claimDueTournamentById(
+        await this.load(),
+        sourceEventId,
+        now,
+        leaseDurationMs,
+      )
+      if (!result.record) return undefined
+      await this.saveUnlocked(result.queue)
+      return result.record
+    })
+  }
+
+  async setOfficialEventDate(
+    sourceEventId: string,
+    eventDate: string,
+  ): Promise<TournamentQueueRecord> {
+    if (!isDate(eventDate)) {
+      throw new Error('Tournament Event date must be YYYY-MM-DD.')
+    }
+    return this.withMutationLock(async () => {
+      let updated: TournamentQueueRecord | undefined
+      const queue = updateTournamentQueueRecord(
+        await this.load(),
+        sourceEventId,
+        (record) => {
+          updated = {
+            ...record,
+            eventDate,
+            eventDateSource: 'bushi-navi-public-browser-dom',
+          }
+          return updated
+        },
+      )
+      await this.saveUnlocked(queue)
+      return updated!
     })
   }
 
