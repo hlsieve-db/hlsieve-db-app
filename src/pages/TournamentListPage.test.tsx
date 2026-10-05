@@ -62,16 +62,17 @@ function renderPage({
 }
 
 describe('TournamentListPage', () => {
-  it('renders Event-first summaries with optional metadata and safe type labels', async () => {
+  it('renders one semantic table row per Event with official metadata', async () => {
     renderPage()
     expect(screen.getByText('大会データを読み込んでいます…')).toHaveTextContent(
       '大会データを読み込んでいます',
     )
     expect(
-      await screen.findByRole('heading', {
-        name: 'Synthetic Selection Cup／Synthetic North Hall',
-      }),
-    ).toBeVisible()
+      await screen.findByRole('link', { name: 'Synthetic Selection Cup' }),
+    ).toHaveAttribute('href', '/tournaments/synthetic-event-a')
+    expect(screen.getByRole('table', { name: '大会一覧' })).toBeVisible()
+    expect(screen.getAllByRole('row')).toHaveLength(4)
+    expect(screen.getByText('テスト県／Synthetic North Hall')).toBeVisible()
     expect(screen.getByText('64人')).toBeVisible()
     expect(screen.getAllByText('セレクションカップ')).toHaveLength(2)
     expect(screen.getAllByText('その他')).toHaveLength(2)
@@ -91,7 +92,7 @@ describe('TournamentListPage', () => {
     expect(await screen.findByText('60人')).toBeVisible()
   })
 
-  it('uses the actual rank 1 Result and representative image for the winner thumbnail', async () => {
+  it('uses the single actual rank 1 Result as winner text without rendering images', async () => {
     const first = SYNTHETIC_TOURNAMENT_INDEX.events[0]!
     renderPage({
       index: {
@@ -107,13 +108,46 @@ describe('TournamentListPage', () => {
     })
     expect(await screen.findByText('優勝推し')).toBeVisible()
     expect(screen.getByText('Synthetic Oshi')).toBeVisible()
+    expect(screen.queryByRole('img')).toBeNull()
+  })
+
+  it('does not choose an arbitrary winner when invalid data has duplicate rank 1', async () => {
+    const first = SYNTHETIC_TOURNAMENT_INDEX.events[0]!
+    renderPage({
+      index: {
+        ...SYNTHETIC_TOURNAMENT_INDEX,
+        events: [
+          {
+            ...first,
+            results: [first.results[0]!, { ...first.results[1]!, rank: 1 }],
+            resultCount: 2,
+          },
+        ],
+      },
+    })
+
+    const row = (
+      await screen.findByRole('link', {
+        name: 'Synthetic Selection Cup',
+      })
+    ).closest('tr')
+    expect(row).not.toBeNull()
+    expect(within(row!).getAllByText('—')).not.toHaveLength(0)
+    expect(within(row!).queryByText('Synthetic Oshi')).toBeNull()
+  })
+
+  it('keeps filters and result count outside the table scroll region', async () => {
+    renderPage()
+    const region = await screen.findByRole('region', { name: '大会一覧表' })
+
     expect(
-      document.querySelector('.tournament-event-card__winner img'),
-    ).toHaveAttribute(
-      'src',
-      SYNTHETIC_TOURNAMENT_OSHI_MASTER.cards['SYNTH-OSHI-001']
-        .representativeImageUrl,
-    )
+      within(region).getByRole('link', { name: 'Synthetic Selection Cup' }),
+    ).toBeVisible()
+    expect(
+      within(region).queryByRole('searchbox', { name: '店舗名・都道府県' }),
+    ).toBeNull()
+    expect(within(region).queryByText('3件')).toBeNull()
+    expect(screen.getByText('3件')).toBeVisible()
   })
 
   it.each([
@@ -162,15 +196,15 @@ describe('TournamentListPage', () => {
     'keeps Event information usable when $label',
     async ({ index, master }) => {
       renderPage({ index, loadOshiMaster: vi.fn(async () => master) })
-      expect(await screen.findByRole('heading', { level: 3 })).toBeVisible()
-      expect(screen.queryByText('優勝推し')).toBeNull()
+      expect(await screen.findByRole('link')).toBeVisible()
+      expect(screen.getByText('優勝推し')).toBeVisible()
       expect(screen.queryByRole('img')).toBeNull()
     },
   )
 
   it('does not render coverage labels in the list', async () => {
     renderPage()
-    await screen.findByRole('heading', { name: /Synthetic Selection Cup/ })
+    await screen.findByRole('link', { name: /Synthetic Selection Cup/ })
     expect(screen.queryByText('収録範囲')).toBeNull()
     expect(screen.queryByText('1〜8位の結果を収録')).toBeNull()
     expect(screen.getByText('8件')).toBeVisible()
@@ -202,13 +236,13 @@ describe('TournamentListPage', () => {
       'oshi=SYNTH-OSHI-002',
     )
     expect(
-      screen.getByRole('heading', { name: /Synthetic Selection Cup/ }),
+      screen.getByRole('link', { name: /Synthetic Selection Cup/ }),
     ).toBeVisible()
     expect(
-      screen.getByRole('heading', { name: /Synthetic Future Event/ }),
+      screen.getByRole('link', { name: /Synthetic Future Event/ }),
     ).toBeVisible()
     expect(
-      screen.queryByRole('heading', { name: /Synthetic Bloom Cup/ }),
+      screen.queryByRole('link', { name: /Synthetic Bloom Cup/ }),
     ).toBeNull()
   })
 
@@ -226,7 +260,7 @@ describe('TournamentListPage', () => {
       ],
     }
     renderPage({ path: '/tournaments?page=2', index })
-    await screen.findAllByRole('heading', { name: /Synthetic Selection Cup/ })
+    await screen.findAllByRole('link', { name: /Synthetic Selection Cup/ })
     fireEvent.change(screen.getByRole('combobox', { name: '大会種別' }), {
       target: { value: 'bloomcup' },
     })
@@ -246,13 +280,13 @@ describe('TournamentListPage', () => {
       target: { value: '2026-09-20' },
     })
     expect(
-      screen.getByRole('heading', { name: /Synthetic Bloom Cup/ }),
+      screen.getByRole('link', { name: /Synthetic Bloom Cup/ }),
     ).toBeVisible()
   })
 
   it('keeps IME composition local and commits the final venue once', async () => {
     renderPage()
-    await screen.findByRole('heading', { name: /Synthetic Selection Cup/ })
+    await screen.findByRole('link', { name: /Synthetic Selection Cup/ })
     const input = screen.getByRole('searchbox', {
       name: '店舗名・都道府県',
     })
@@ -275,7 +309,7 @@ describe('TournamentListPage', () => {
 
   it('keeps ordinary venue input immediate and synchronized with the URL', async () => {
     renderPage()
-    await screen.findByRole('heading', { name: /Synthetic Selection Cup/ })
+    await screen.findByRole('link', { name: /Synthetic Selection Cup/ })
     const input = screen.getByRole('searchbox', {
       name: '店舗名・都道府県',
     })
@@ -290,7 +324,7 @@ describe('TournamentListPage', () => {
 
   it('does not overwrite the composition draft during an external URL update', async () => {
     renderPage()
-    await screen.findByRole('heading', { name: /Synthetic Selection Cup/ })
+    await screen.findByRole('link', { name: /Synthetic Selection Cup/ })
     const input = screen.getByRole('searchbox', {
       name: '店舗名・都道府県',
     })
@@ -325,7 +359,7 @@ describe('TournamentListPage', () => {
       })),
     }
     renderPage({ path: '/tournaments?page=2', index })
-    await screen.findAllByRole('heading', { name: /Synthetic Selection Cup/ })
+    await screen.findAllByRole('link', { name: /Synthetic Selection Cup/ })
     fireEvent.change(screen.getByRole('combobox', { name: '大会種別' }), {
       target: { value: 'selectioncup' },
     })
@@ -337,7 +371,7 @@ describe('TournamentListPage', () => {
       loadOshiMaster: vi.fn(async () => Promise.reject(new Error('missing'))),
     })
     expect(
-      await screen.findByRole('heading', { name: /Synthetic Selection Cup/ }),
+      await screen.findByRole('link', { name: /Synthetic Selection Cup/ }),
     ).toBeVisible()
     expect(
       screen.getByRole('combobox', { name: '推しホロメン' }),
@@ -355,7 +389,7 @@ describe('TournamentListPage', () => {
     renderPage({ loadIndex })
     fireEvent.click(await screen.findByRole('button', { name: '再試行' }))
     expect(
-      await screen.findByRole('heading', { name: /Synthetic Selection Cup/ }),
+      await screen.findByRole('link', { name: /Synthetic Selection Cup/ }),
     ).toBeVisible()
     expect(loadIndex).toHaveBeenCalledTimes(2)
   })
@@ -377,9 +411,9 @@ describe('TournamentListPage', () => {
     await waitFor(() =>
       expect(screen.getByTestId('location')).toHaveTextContent('page=2'),
     )
-    expect(screen.getAllByRole('listitem')).toHaveLength(1)
+    expect(screen.getAllByRole('row')).toHaveLength(2)
     expect(screen.getByText('2 / 2')).toHaveAttribute('aria-current', 'page')
     fireEvent.click(screen.getByRole('button', { name: '前へ' }))
-    expect(screen.getAllByRole('listitem')).toHaveLength(20)
+    expect(screen.getAllByRole('row')).toHaveLength(21)
   })
 })

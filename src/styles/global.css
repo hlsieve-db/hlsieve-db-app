@@ -6155,73 +6155,48 @@ main {
   gap: 0.5rem 1rem;
 }
 
-.tournament-event-list {
-  display: grid;
-  gap: 1rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.tournament-event-card {
-  min-width: 0;
-  padding: 1rem;
-  overflow-wrap: anywhere;
+.tournament-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
   border: 1px solid var(--color-border);
   border-radius: 0.75rem;
   background: var(--color-surface);
+  -webkit-overflow-scrolling: touch;
 }
 
-.tournament-event-card article {
-  display: grid;
-  grid-template-columns: minmax(5rem, 7rem) minmax(0, 1fr);
-  gap: 1rem;
-}
-
-.tournament-event-card__winner-image img {
-  display: block;
+.tournament-table {
   width: 100%;
-  height: auto;
-  border-radius: 0.5rem;
+  min-width: 68rem;
+  border-collapse: collapse;
+  table-layout: fixed;
+  white-space: nowrap;
 }
 
-.tournament-event-card__winner-image {
-  min-height: 0;
+.tournament-table th,
+.tournament-table td {
+  overflow: hidden;
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+  text-overflow: ellipsis;
+  text-align: left;
+  vertical-align: middle;
 }
 
-.tournament-event-card__winner p {
-  display: grid;
-  gap: 0.15rem;
-  margin-block: 0.5rem 0;
-  font-size: 0.8rem;
-}
-
-.tournament-event-card__content {
-  min-width: 0;
-}
-
-.tournament-event-card h3 {
-  margin-block: 0.25rem 0.75rem;
-}
-
-.tournament-event-card dl {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 1.5rem;
-  margin: 0;
-}
-
-.tournament-event-card dl div {
-  min-width: 0;
-}
-
-.tournament-event-card dt {
+.tournament-table thead th {
   color: var(--color-text-muted);
   font-size: 0.875rem;
 }
 
-.tournament-event-card dd {
-  margin: 0;
+.tournament-table tbody tr:last-child > * {
+  border-bottom: 0;
+}
+
+.tournament-table__event,
+.tournament-table__venue {
+  width: 15rem;
+  max-width: 15rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .tournament-pagination {
@@ -6318,14 +6293,6 @@ main {
 }
 
 @media (max-width: 30rem) {
-  .tournament-event-card article {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .tournament-event-card__winner {
-    width: 6rem;
-  }
-
   .tournament-oshi-summary,
   .tournament-deck-entry {
     grid-template-columns: 1fr;
@@ -6346,11 +6313,6 @@ main {
   }
 
   .tournament-filters__grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .tournament-event-card dl {
-    display: grid;
     grid-template-columns: minmax(0, 1fr);
   }
 
