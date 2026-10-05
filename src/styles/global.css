@@ -5807,7 +5807,7 @@ main {
 }
 
 .tournament-tier > h3,
-.tournament-tier__group > h4,
+.tournament-tier__group > h5,
 .tournament-tier__limited p {
   margin-top: 0;
 }
@@ -5827,7 +5827,30 @@ main {
   gap: 1rem;
 }
 
-.tournament-tier__group > h4 {
+.tournament-tier__ranking {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tournament-tier__ranking li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  gap: 0.5rem 0.75rem;
+  align-items: center;
+  min-width: 0;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+}
+
+.tournament-tier__supplement {
+  margin-top: 1rem;
+}
+
+.tournament-tier__group > h5 {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -6336,6 +6359,10 @@ main {
   }
 
   .tournament-analysis-ranking li {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .tournament-tier__ranking li {
     grid-template-columns: auto minmax(0, 1fr);
   }
 

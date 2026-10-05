@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import type { TournamentEnvironmentAggregation } from './aggregation'
-import { evaluateTournamentTier, evaluateTournamentTiers } from './tier'
+import {
+  evaluateTournamentTier,
+  evaluateTournamentTiers,
+  shouldShowTournamentTiers,
+} from './tier'
 
 type EntryInput = readonly [oshiCardNumber: string, count: number]
 
@@ -365,5 +369,72 @@ describe('evaluateTournamentTier', () => {
     ])
     expect(results[0]?.entries[0]?.oshiCardNumber).toBe('A')
     expect(results[1]?.entries[0]?.oshiCardNumber).toBe('B')
+  })
+})
+
+describe('shouldShowTournamentTiers', () => {
+  const resultFor = (entries: readonly EntryInput[]) =>
+    evaluateTournamentTier(
+      group(
+        entries,
+        entries.map(([cardNumber, count]) => [cardNumber, count * 4]),
+      ),
+    )
+
+  it.each([
+    [
+      'S/A/B/C',
+      [
+        ['S', 100],
+        ['A', 70],
+        ['B', 45],
+        ['C', 20],
+      ],
+      true,
+    ],
+    [
+      'S/A/B',
+      [
+        ['S', 100],
+        ['A', 70],
+        ['B', 45],
+      ],
+      true,
+    ],
+    [
+      'S/A',
+      [
+        ['S', 100],
+        ['A', 70],
+      ],
+      true,
+    ],
+    ['S only', [['S', 100]], false],
+    [
+      'S/B/C',
+      [
+        ['S', 100],
+        ['B', 50],
+        ['C', 20],
+      ],
+      false,
+    ],
+    [
+      'S/C',
+      [
+        ['S', 100],
+        ['C', 20],
+      ],
+      false,
+    ],
+  ] as const)('%s visibility is %s', (_label, entries, expected) => {
+    expect(shouldShowTournamentTiers(resultFor(entries))).toBe(expected)
+  })
+
+  it('hides tiers for a limited sample while retaining ranked evidence entries', () => {
+    const result = evaluateTournamentTier(group([['A', 1]], [['A', 8]]))
+    expect(result.sample.status).toBe('limited')
+    expect(result.entries).toHaveLength(1)
+    expect(shouldShowTournamentTiers(result)).toBe(false)
   })
 })

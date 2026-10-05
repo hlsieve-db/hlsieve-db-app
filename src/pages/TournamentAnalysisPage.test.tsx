@@ -200,10 +200,10 @@ describe('TournamentAnalysisPage', () => {
       name: 'セレクションカップ／9弾',
     })
     const environment = environmentHeading.closest('section')!
-    const tierHeading = within(environment).getByRole('heading', {
-      name: '収録大会実績Tier',
+    const rankingHeading = within(environment).getByRole('heading', {
+      name: '大会実績ランキング',
     })
-    const tierSection = tierHeading.closest('section')!
+    const tierSection = rankingHeading.closest('section')!
 
     expect(evaluator).toHaveBeenCalledOnce()
     expect(evaluator.mock.calls[0]?.[0].environment).toEqual({
@@ -212,23 +212,30 @@ describe('TournamentAnalysisPage', () => {
     })
     expect(
       within(tierSection)
-        .getAllByRole('heading', { level: 4 })
+        .getAllByRole('heading', { level: 5 })
         .map((heading) => heading.textContent?.trim()),
     ).toEqual(['STier S', 'ATier A', 'BTier B', 'CTier C'])
-    expect(within(tierSection).getByText('Tier S Oshi')).toBeVisible()
-    expect(within(tierSection).getByText('Tier A Oshi')).toBeVisible()
-    expect(within(tierSection).getByText('Tier B Oshi')).toBeVisible()
-    expect(within(tierSection).getByText('名称不明')).toBeVisible()
+    expect(within(tierSection).getAllByText('Tier S Oshi')).toHaveLength(2)
+    expect(within(tierSection).getAllByText('Tier A Oshi')).toHaveLength(2)
+    expect(within(tierSection).getAllByText('Tier B Oshi')).toHaveLength(2)
+    expect(within(tierSection).getAllByText('名称不明')).toHaveLength(2)
     expect(
-      within(tierSection).getByText(
+      within(tierSection).getAllByText(
         'TIER-C-UNKNOWN-WITH-A-DELIBERATELY-LONG-CARD-NUMBER',
       ),
-    ).toBeVisible()
-    expect(within(tierSection).getByText('優勝 10件 / 47.6%')).toBeVisible()
-    expect(within(tierSection).getByText('入賞 80件 / 47.6%')).toBeVisible()
+    ).toHaveLength(2)
+    expect(within(tierSection).getAllByText('優勝 10件 / 47.6%')).toHaveLength(
+      2,
+    )
+    expect(within(tierSection).getAllByText('入賞 80件 / 47.6%')).toHaveLength(
+      2,
+    )
     expect(within(tierSection).queryByText(/^勝率/)).not.toBeInTheDocument()
     expect(within(tierSection).queryByText(/^使用率/)).not.toBeInTheDocument()
-    expect(within(tierSection).getAllByRole('list')).toHaveLength(4)
+    expect(within(tierSection).getAllByRole('list')).toHaveLength(5)
+    expect(
+      tierSection.querySelectorAll('.tournament-tier__ranking > li'),
+    ).toHaveLength(4)
     expect(
       within(environment).getAllByTestId('tournament-distribution-donut'),
     ).toHaveLength(2)
@@ -242,10 +249,10 @@ describe('TournamentAnalysisPage', () => {
     renderPage({
       path: '/tournaments/analysis?type=selectioncup&environment=bp09',
     })
-    const tierHeading = await screen.findByRole('heading', {
-      name: '収録大会実績Tier',
+    const rankingHeading = await screen.findByRole('heading', {
+      name: '大会実績ランキング',
     })
-    const tierSection = tierHeading.closest('section')!
+    const tierSection = rankingHeading.closest('section')!
     expect(
       within(tierSection).getByText(
         '収録結果が少ないため、実績Tierはまだ判定していません。',
@@ -270,11 +277,19 @@ describe('TournamentAnalysisPage', () => {
       within(tierSection).getByText('入賞データ').parentElement,
     ).toHaveTextContent('8件')
     expect(
-      within(tierSection).queryByRole('heading', { name: /^Tier [SABC]$/ }),
+      within(tierSection).queryByRole('heading', {
+        name: '収録大会実績Tier',
+      }),
     ).not.toBeInTheDocument()
+    const rankingRows = tierSection.querySelectorAll(
+      '.tournament-tier__ranking > li',
+    )
+    expect(rankingRows).toHaveLength(2)
+    expect(rankingRows[0]).toHaveTextContent('優勝 1件 / 100.0%')
+    expect(rankingRows[0]).toHaveTextContent('入賞 4件 / 50.0%')
   })
 
-  it('omits empty Tier groups', async () => {
+  it('shows ranking only when the sample produces a solitary S tier', async () => {
     const index = sufficientTierIndex()
     const onlyLeader: TournamentIndexFile = {
       ...index,
@@ -290,14 +305,51 @@ describe('TournamentAnalysisPage', () => {
       index: onlyLeader,
       loadOshiMaster: vi.fn(async () => TIER_OSHI_MASTER),
     })
-    const tier = (
+    const ranking = (
       await screen.findByRole('heading', {
-        name: '収録大会実績Tier',
+        name: '大会実績ランキング',
       })
     ).closest('section')!
-    expect(within(tier).getByRole('heading', { name: 'Tier S' })).toBeVisible()
     expect(
-      within(tier).queryByRole('heading', { name: /^Tier [ABC]$/ }),
+      within(ranking).queryByRole('heading', {
+        name: '収録大会実績Tier',
+      }),
+    ).not.toBeInTheDocument()
+    expect(within(ranking).getByText('Tier S Oshi')).toBeVisible()
+  })
+
+  it('hides the entire Tier supplement when calculated tiers have a gap', async () => {
+    const index = sufficientTierIndex()
+    const missingA: TournamentIndexFile = {
+      ...index,
+      events: index.events.map((event) => ({
+        ...event,
+        results: event.results.map((result) => ({
+          ...result,
+          oshiCardNumber:
+            result.oshiCardNumber === 'TIER-A'
+              ? 'TIER-B'
+              : result.oshiCardNumber,
+        })),
+      })),
+    }
+    renderPage({
+      index: missingA,
+      loadOshiMaster: vi.fn(async () => TIER_OSHI_MASTER),
+    })
+
+    const ranking = (
+      await screen.findByRole('heading', { name: '大会実績ランキング' })
+    ).closest('section')!
+    expect(within(ranking).getByText('Tier S Oshi')).toBeVisible()
+    expect(within(ranking).getByText('Tier B Oshi')).toBeVisible()
+    expect(
+      within(ranking).queryByRole('heading', {
+        name: '収録大会実績Tier',
+      }),
+    ).not.toBeInTheDocument()
+    expect(
+      within(ranking).queryByRole('heading', { name: /^Tier [SABC]$/ }),
     ).not.toBeInTheDocument()
   })
 
@@ -305,19 +357,16 @@ describe('TournamentAnalysisPage', () => {
     renderPage({
       path: '/tournaments/analysis?type=selectioncup&environment=bp09',
     })
-    const tier = (
+    const ranking = (
       await screen.findByRole('heading', {
-        name: '収録大会実績Tier',
+        name: '大会実績ランキング',
       })
     ).closest('section')!
-    expect(within(tier).getByText(/収録された大会結果/)).toHaveTextContent(
-      '相対評価',
+    expect(within(ranking).getByText(/収録された大会結果/)).toHaveTextContent(
+      '優勝・入賞実績を相対比較',
     )
-    expect(within(tier).getByText(/収録された大会結果/)).toHaveTextContent(
-      '絶対的な強さや勝率を示すものではなく',
-    )
-    expect(within(tier).getByText(/50:50/)).toHaveTextContent(
-      '同じ大会環境内の首位実績に対する相対値',
+    expect(within(ranking).getByText(/収録された大会結果/)).toHaveTextContent(
+      '絶対的なデッキ強度や勝率を示すものではありません',
     )
   })
 

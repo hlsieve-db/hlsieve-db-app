@@ -17,6 +17,7 @@ import {
 } from '../domain/tournaments/aggregation'
 import {
   evaluateTournamentTier,
+  shouldShowTournamentTiers,
   type TournamentTier,
   type TournamentTierResult,
   type TournamentTierUnavailableReason,
@@ -105,32 +106,55 @@ const TIER_REASON_LABELS: Record<TournamentTierUnavailableReason, string> = {
   'too-few-placement-results': '入賞データがまだ少ないです',
 }
 
-function TierPanel({
+function PerformanceRanking({
   result,
   master,
 }: {
   result: TournamentTierResult
   master?: TournamentOshiMasterFile
 }) {
+  const showTiers = shouldShowTournamentTiers(result)
   return (
     <section
       className="tournament-tier"
-      aria-labelledby={`tier-${encodeURIComponent(result.environment.tournamentType)}-${encodeURIComponent(result.environment.environment ?? 'none')}`}
+      aria-labelledby={`performance-${encodeURIComponent(result.environment.tournamentType)}-${encodeURIComponent(result.environment.environment ?? 'none')}`}
     >
       <h3
-        id={`tier-${encodeURIComponent(result.environment.tournamentType)}-${encodeURIComponent(result.environment.environment ?? 'none')}`}
+        id={`performance-${encodeURIComponent(result.environment.tournamentType)}-${encodeURIComponent(result.environment.environment ?? 'none')}`}
       >
-        収録大会実績Tier
+        大会実績ランキング
       </h3>
       <p className="tournament-tier__description">
-        HLSieveに収録された大会結果における、優勝・上位入賞実績の相対評価です。デッキの絶対的な強さや勝率を示すものではなく、収録範囲内の参考情報です。
-      </p>
-      <p className="tournament-tier__method">
-        優勝構成比と入賞構成比を50:50で評価し、同じ大会環境内の首位実績に対する相対値からTierを決定します。
+        HLSieveに収録された大会結果をもとに、優勝・入賞実績を相対比較したランキングです。絶対的なデッキ強度や勝率を示すものではありません。
       </p>
       {result.entries.length === 0 ? (
         <p className="status-message">対象データがありません。</p>
-      ) : result.sample.status === 'limited' ? (
+      ) : (
+        <ol className="tournament-tier__ranking">
+          {result.entries.map((entry, index) => (
+            <li key={entry.oshiCardNumber}>
+              <span className="tournament-analysis-ranking__position">
+                {index + 1}位
+              </span>
+              <span className="tournament-tier__identity">
+                <strong>
+                  {master?.cards[entry.oshiCardNumber]?.name ?? '名称不明'}
+                </strong>
+                <code>{entry.oshiCardNumber}</code>
+              </span>
+              <span>
+                優勝 {entry.winnerCount}件 /{' '}
+                {(entry.winnerShare * 100).toFixed(1)}%
+              </span>
+              <span>
+                入賞 {entry.placementCount}件 /{' '}
+                {(entry.placementShare * 100).toFixed(1)}%
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+      {result.sample.status === 'limited' && result.entries.length > 0 && (
         <div className="tournament-tier__limited" role="status">
           <p>収録結果が少ないため、実績Tierはまだ判定していません。</p>
           <dl className="tournament-tier__sample">
@@ -153,49 +177,56 @@ function TierPanel({
             ))}
           </ul>
         </div>
-      ) : (
-        <div className="tournament-tier__groups">
-          {TIER_LABELS.map((tier) => {
-            const entries = result.entries.filter(
-              (entry) => entry.tier === tier,
-            )
-            if (entries.length === 0) return null
-            return (
-              <section className="tournament-tier__group" key={tier}>
-                <h4>
-                  <span className="tournament-tier__badge" aria-hidden="true">
-                    {tier}
-                  </span>
-                  <span>Tier {tier}</span>
-                </h4>
-                <ul>
-                  {entries.map((entry) => (
-                    <li key={entry.oshiCardNumber}>
-                      <span className="tournament-tier__entry-tier">
-                        Tier {tier}
-                      </span>
-                      <span className="tournament-tier__identity">
-                        <strong>
-                          {master?.cards[entry.oshiCardNumber]?.name ??
-                            '名称不明'}
-                        </strong>
-                        <code>{entry.oshiCardNumber}</code>
-                      </span>
-                      <span>
-                        優勝 {entry.winnerCount}件 /{' '}
-                        {(entry.winnerShare * 100).toFixed(1)}%
-                      </span>
-                      <span>
-                        入賞 {entry.placementCount}件 /{' '}
-                        {(entry.placementShare * 100).toFixed(1)}%
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )
-          })}
-        </div>
+      )}
+      {showTiers && (
+        <section className="tournament-tier__supplement">
+          <h4>収録大会実績Tier</h4>
+          <p className="tournament-tier__method">
+            優勝構成比と入賞構成比を50:50で評価し、同じ大会環境内の首位実績に対する相対値からTierを決定します。
+          </p>
+          <div className="tournament-tier__groups">
+            {TIER_LABELS.map((tier) => {
+              const entries = result.entries.filter(
+                (entry) => entry.tier === tier,
+              )
+              if (entries.length === 0) return null
+              return (
+                <section className="tournament-tier__group" key={tier}>
+                  <h5>
+                    <span className="tournament-tier__badge" aria-hidden="true">
+                      {tier}
+                    </span>
+                    <span>Tier {tier}</span>
+                  </h5>
+                  <ul>
+                    {entries.map((entry) => (
+                      <li key={entry.oshiCardNumber}>
+                        <span className="tournament-tier__entry-tier">
+                          Tier {tier}
+                        </span>
+                        <span className="tournament-tier__identity">
+                          <strong>
+                            {master?.cards[entry.oshiCardNumber]?.name ??
+                              '名称不明'}
+                          </strong>
+                          <code>{entry.oshiCardNumber}</code>
+                        </span>
+                        <span>
+                          優勝 {entry.winnerCount}件 /{' '}
+                          {(entry.winnerShare * 100).toFixed(1)}%
+                        </span>
+                        <span>
+                          入賞 {entry.placementCount}件 /{' '}
+                          {(entry.placementShare * 100).toFixed(1)}%
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )
+            })}
+          </div>
+        </section>
       )}
     </section>
   )
@@ -236,7 +267,7 @@ function EnvironmentSection({
           <dd>{group.summary.placementResultCount}件</dd>
         </div>
       </dl>
-      <TierPanel result={tierResult} master={master} />
+      <PerformanceRanking result={tierResult} master={master} />
       <div className="tournament-analysis-distributions">
         <section>
           <h3>優勝分布</h3>

@@ -63,6 +63,8 @@ const TIER_ORDER: Record<TournamentTier, number> = {
   C: 3,
 }
 
+const CONTIGUOUS_TIER_ORDER: readonly TournamentTier[] = ['S', 'A', 'B', 'C']
+
 function sampleFor(
   group: TournamentEnvironmentAggregation,
 ): TournamentTierSample {
@@ -195,4 +197,17 @@ export function evaluateTournamentTiers(
   groups: readonly TournamentEnvironmentAggregation[],
 ): TournamentTierResult[] {
   return groups.map(evaluateTournamentTier)
+}
+
+export function shouldShowTournamentTiers(
+  result: TournamentTierResult,
+): boolean {
+  if (result.sample.status !== 'sufficient') return false
+
+  const usedTiers = CONTIGUOUS_TIER_ORDER.filter((tier) =>
+    result.entries.some((entry) => entry.tier === tier),
+  )
+  if (usedTiers.length < 2) return false
+
+  return usedTiers.every((tier, index) => tier === CONTIGUOUS_TIER_ORDER[index])
 }

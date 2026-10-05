@@ -16,6 +16,10 @@ describe('Tournament Daily date', () => {
     )
   })
   it('parses both CLI modes and the integration dry-run flag', () => {
+    expect(parseTournamentDailyCli(['--date', '2026-10-01'])).toEqual({
+      targetDate: '2026-10-01',
+      dryRun: false,
+    })
     expect(parseTournamentDailyCli(['--date', '2026-10-04'])).toEqual({
       targetDate: '2026-10-04',
       dryRun: false,
