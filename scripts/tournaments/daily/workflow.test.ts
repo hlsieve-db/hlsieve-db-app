@@ -173,6 +173,19 @@ describe('Tournament Daily workflow', () => {
     expect(deps.commit).not.toHaveBeenCalled()
     expect(deps.transitionPublished).not.toHaveBeenCalled()
   })
+  it('stops before publication when the queue processor fails', async () => {
+    const deps = dependencies(queue([['1', 'ready']]))
+    vi.mocked(deps.processDue).mockRejectedValue(new Error('spawn EINVAL'))
+    await expect(
+      runDailyWorkflow({ targetDate: '2026-10-04', dryRun: false }, deps),
+    ).rejects.toThrow('spawn EINVAL')
+    expect(deps.loadQueue).not.toHaveBeenCalled()
+    expect(deps.publish).not.toHaveBeenCalled()
+    expect(deps.commit).not.toHaveBeenCalled()
+    expect(deps.push).not.toHaveBeenCalled()
+    expect(deps.production).not.toHaveBeenCalled()
+    expect(deps.transitionPublished).not.toHaveBeenCalled()
+  })
   it('is a no-op when the target date has no ready Event', async () => {
     const deps = dependencies(
       queue([

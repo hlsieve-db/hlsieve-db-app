@@ -15,6 +15,7 @@ describe('Tournament Daily runtime contract', () => {
     expect(queue).not.toContain('headless: true')
     expect(daily).toContain("'tournaments:queue'")
     expect(daily).not.toContain('headless: true')
+    expect(daily).toMatch(/finally\s*{\s*await release\(\)/)
   })
   it('provides a Task Scheduler wrapper that propagates the exit code without credentials', async () => {
     const wrapper = await readFile('scripts/tournaments/run-daily.ps1', 'utf8')

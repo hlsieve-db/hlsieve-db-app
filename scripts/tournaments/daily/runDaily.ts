@@ -1,4 +1,3 @@
-import { spawn } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 
@@ -19,6 +18,7 @@ import {
 } from './git'
 import { waitForProductionPublication, smokeProductionUi } from './production'
 import { runDailyWorkflow } from './workflow'
+import { runNpmScript } from './childProcess'
 import { LocalTournamentQueueRepository } from '../queue/repository'
 import { TournamentReadyArtifactRepository } from '../queue/readyArtifact'
 import { publishReadyTournamentEvents } from '../queue/publishReady'
@@ -48,18 +48,10 @@ let checkpoint: DailyCheckpoint = previous ?? {
 }
 
 async function runQueueBatch(max: number): Promise<void> {
-  await new Promise<void>((resolvePromise, reject) => {
-    const child = spawn(
-      process.platform === 'win32' ? 'npm.cmd' : 'npm',
-      ['run', 'tournaments:queue', '--', 'process', '--max', String(max)],
-      { stdio: 'inherit', shell: false },
-    )
-    child.once('error', reject)
-    child.once('exit', (code) =>
-      code === 0
-        ? resolvePromise()
-        : reject(new Error(`Queue processor exited ${code}.`)),
-    )
+  await runNpmScript({
+    script: 'tournaments:queue',
+    args: ['process', '--max', String(max)],
+    cwd: process.cwd(),
   })
 }
 
