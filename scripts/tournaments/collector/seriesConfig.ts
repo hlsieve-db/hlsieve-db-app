@@ -14,6 +14,13 @@ export const TOURNAMENT_SERIES_CONFIGS: readonly TournamentSeriesConfig[] = [
     year: 2026,
   },
   {
+    seriesId: '3463',
+    type: 'selectioncup',
+    environment: 'bp09',
+    seriesName: '【ホロカ】セレクションカップ（2026年10月）',
+    year: 2026,
+  },
+  {
     seriesId: '3396',
     type: 'bloomcup',
     seriesName: '【ホロカ】ブルームカップ「響咲リオナ」 （2026年9月開催）',

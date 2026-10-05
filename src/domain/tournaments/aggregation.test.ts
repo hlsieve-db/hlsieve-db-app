@@ -22,6 +22,7 @@ function event(
     date?: string
     type?: string
     environment?: string
+    seriesName?: string
     participantCount?: number
   } = {},
 ): IndexEvent {
@@ -32,7 +33,7 @@ function event(
       ...(options.environment === undefined
         ? {}
         : { environment: options.environment }),
-      seriesName: 'Tournament',
+      seriesName: options.seriesName ?? 'Tournament',
     },
     date: options.date ?? '2026-09-20',
     venue: { slug: `venue-${id}`, name: `Venue ${id}` },
@@ -168,6 +169,30 @@ describe('aggregateTournamentIndex', () => {
       aggregateTournamentIndex(index(aggregated.groups.flatMap(() => [])))
         .groups,
     ).toEqual([])
+  })
+
+  it('groups September and October Selection Cup events in the same bp09 environment', () => {
+    const aggregated = aggregateTournamentIndex(
+      index([
+        event('series-3440', [result(1, 'OSHI-A', '3440-1')], {
+          date: '2026-09-23',
+          environment: 'bp09',
+          seriesName: '【ホロカ】先行開催！セレクションカップ（2026年9月）',
+        }),
+        event('series-3463', [result(1, 'OSHI-B', '3463-1')], {
+          date: '2026-10-02',
+          environment: 'bp09',
+          seriesName: '【ホロカ】セレクションカップ（2026年10月）',
+        }),
+      ]),
+    )
+
+    expect(aggregated.groups).toHaveLength(1)
+    expect(aggregated.groups[0]?.environment).toEqual({
+      tournamentType: 'selectioncup',
+      environment: 'bp09',
+    })
+    expect(aggregated.groups[0]?.summary.totalEvents).toBe(2)
   })
 
   it('applies inclusive date, type, environment, and no-environment filters', () => {

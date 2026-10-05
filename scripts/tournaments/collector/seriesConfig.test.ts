@@ -13,6 +13,12 @@ describe('Tournament Collector series config', () => {
       year: 2026,
     })
     expect(getTournamentSeriesConfig('3440')).not.toHaveProperty('round')
+    expect(getTournamentSeriesConfig('3463')).toMatchObject({
+      type: 'selectioncup',
+      environment: 'bp09',
+      year: 2026,
+    })
+    expect(getTournamentSeriesConfig('3463')).not.toHaveProperty('round')
     const bloom = getTournamentSeriesConfig('3396')
     expect(bloom).toMatchObject({
       type: 'bloomcup',
@@ -31,6 +37,16 @@ describe('public series name mapping', () => {
     ).toBe('3440')
     expect(
       findTournamentSeriesByPublicName('セレクションカップ'),
+    ).toBeUndefined()
+    expect(
+      findTournamentSeriesByPublicName(
+        '  【ホロカ】セレクションカップ（2026年10月）  ',
+      )?.seriesId,
+    ).toBe('3463')
+    expect(
+      findTournamentSeriesByPublicName(
+        '【ホロカ】セレクションカップ（2026年10月・追加開催）',
+      ),
     ).toBeUndefined()
   })
 })
