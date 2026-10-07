@@ -142,6 +142,76 @@ describe('Tournament Discovery core', () => {
     expect(result.queries[3]?.errorCode).toBe('source-challenge')
   })
 
+  it('retries only transient result-count changes up to the configured bound', async () => {
+    let attempts = 0
+    const source: TournamentDiscoverySource = {
+      query: async () => {
+        attempts += 1
+        if (attempts < 3) {
+          throw new Error('Bushi Navi result count changed during discovery.')
+        }
+        return ['1771029']
+      },
+    }
+    const result = await runTournamentDiscovery({
+      source,
+      seriesIds: ['3463'],
+      dates: ['2026-10-06'],
+      resultCountChangedRetries: 2,
+      now: clock(),
+      createRunId: () => 'run-retry',
+    })
+    expect(attempts).toBe(3)
+    expect(result.queries[0]).toMatchObject({
+      outcome: 'observed',
+      candidateIds: ['1771029'],
+    })
+  })
+
+  it('records a failed query after bounded result-count retries are exhausted', async () => {
+    let attempts = 0
+    const result = await runTournamentDiscovery({
+      source: {
+        query: async () => {
+          attempts += 1
+          throw new Error('Bushi Navi result count changed during discovery.')
+        },
+      },
+      seriesIds: ['3463'],
+      dates: ['2026-10-06'],
+      resultCountChangedRetries: 2,
+      now: clock(),
+      createRunId: () => 'run-retry-failed',
+    })
+    expect(attempts).toBe(3)
+    expect(result.queries[0]).toMatchObject({
+      outcome: 'failed',
+      errorCode: 'source-error',
+    })
+  })
+
+  it('does not retry challenges or unrelated source failures', async () => {
+    for (const error of [
+      new Error('CloudFront 403 challenge'),
+      new Error('other source error'),
+    ]) {
+      let attempts = 0
+      await runTournamentDiscovery({
+        source: {
+          query: async () => {
+            attempts += 1
+            throw error
+          },
+        },
+        seriesIds: ['3463'],
+        dates: ['2026-10-06'],
+        resultCountChangedRetries: 2,
+        now: clock(),
+      })
+      expect(attempts).toBe(1)
+    }
+  })
+
   it('builds a configurable inclusive overlap window', () => {
     expect(createOverlapDates('2026-10-06')).toEqual([
       '2026-10-03',

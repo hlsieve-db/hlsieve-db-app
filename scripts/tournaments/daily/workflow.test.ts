@@ -70,7 +70,21 @@ function artifact(
 function dependencies(q: TournamentQueueFile): DailyDependencies {
   return {
     assertGitStart: vi.fn(async () => 'synced'),
-    processDue: vi.fn(async () => ['1']),
+    processDue: vi.fn(async () => ({
+      selected: ['1'],
+      processed: ['1'],
+      discovery: {
+        status: 'ok',
+        attempted: 1,
+        observed: 1,
+        zero: 0,
+        saturated: 0,
+        failed: 0,
+        challenge: 0,
+        added: 1,
+        existing: 0,
+      },
+    })),
     loadQueue: vi.fn(async () => q),
     loadArtifact: vi.fn(async (id) =>
       artifact(id, id === '1' ? '2026-10-04' : '2026-10-03'),
@@ -130,7 +144,12 @@ describe('Tournament Daily workflow', () => {
       waiting: ['3'],
       review: ['4'],
       published: ['1'],
-      exitCode: 2,
+      exitCode: 0,
+      runStatus: 'success',
+      queue: {
+        existingNeedsReview: ['4'],
+        newNeedsReviewThisRun: [],
+      },
       production: 'ok',
     })
     expect(deps.publish).toHaveBeenNthCalledWith(1, ['1'], false)
@@ -203,7 +222,7 @@ describe('Tournament Daily workflow', () => {
     await expect(
       runDailyWorkflow({ targetDate: '2026-10-04', dryRun: false }, deps),
     ).rejects.toThrow('spawn EINVAL')
-    expect(deps.loadQueue).not.toHaveBeenCalled()
+    expect(deps.loadQueue).toHaveBeenCalledTimes(1)
     expect(deps.publish).not.toHaveBeenCalled()
     expect(deps.commit).not.toHaveBeenCalled()
     expect(deps.push).not.toHaveBeenCalled()
@@ -224,6 +243,95 @@ describe('Tournament Daily workflow', () => {
     expect(result.published).toEqual([])
     expect(deps.publish).not.toHaveBeenCalled()
     expect(deps.push).not.toHaveBeenCalled()
+  })
+  it('returns degraded exit 0 for a no-op run with only existing review records', async () => {
+    const q = queue([
+      ['4', 'needs-review'],
+      ['5', 'published'],
+    ])
+    const deps = dependencies(q)
+    vi.mocked(deps.processDue).mockResolvedValue({
+      selected: [],
+      processed: [],
+      discovery: {
+        status: 'degraded',
+        attempted: 12,
+        observed: 9,
+        zero: 6,
+        saturated: 1,
+        failed: 2,
+        challenge: 0,
+        added: 0,
+        existing: 19,
+      },
+    })
+    const result = await runDailyWorkflow(
+      { targetDate: '2026-10-04', dryRun: false },
+      deps,
+    )
+    expect(result).toMatchObject({
+      runStatus: 'degraded',
+      exitReason: 'discovery-incomplete',
+      exitCode: 0,
+      queue: {
+        existingNeedsReview: ['4'],
+        newNeedsReviewThisRun: [],
+      },
+      publication: { attempted: false, skipped: true },
+    })
+  })
+  it('publishes a valid ready Event while Discovery is degraded', async () => {
+    const deps = dependencies(queue([['1', 'ready']]))
+    vi.mocked(deps.processDue).mockResolvedValue({
+      selected: ['1'],
+      processed: ['1'],
+      discovery: {
+        status: 'degraded',
+        attempted: 2,
+        observed: 1,
+        zero: 0,
+        saturated: 0,
+        failed: 1,
+        challenge: 0,
+        added: 1,
+        existing: 0,
+      },
+    })
+    const result = await runDailyWorkflow(
+      { targetDate: '2026-10-04', dryRun: false },
+      deps,
+    )
+    expect(result).toMatchObject({
+      runStatus: 'degraded',
+      exitCode: 0,
+      published: ['1'],
+      production: 'ok',
+    })
+    expect(deps.transitionPublished).toHaveBeenCalledWith('1', 'evt_1')
+  })
+  it('reports only a newly created review record as action-required', async () => {
+    const before = queue([['4', 'needs-review']])
+    const after = queue([
+      ['4', 'needs-review'],
+      ['6', 'needs-review'],
+    ])
+    const deps = dependencies(before)
+    vi.mocked(deps.loadQueue)
+      .mockResolvedValueOnce(before)
+      .mockResolvedValue(after)
+    const result = await runDailyWorkflow(
+      { targetDate: '2026-10-04', dryRun: false },
+      deps,
+    )
+    expect(result).toMatchObject({
+      runStatus: 'action-required',
+      exitReason: 'new-needs-review',
+      exitCode: 2,
+      queue: {
+        existingNeedsReview: ['4'],
+        newNeedsReviewThisRun: ['6'],
+      },
+    })
   })
   it('never recollects or republishes an already published Event', async () => {
     const deps = dependencies(queue([['5', 'published']]))

@@ -8,7 +8,12 @@ type PublishedSummary = ReadyPublicationSummary & {
   datasetVersion: string
 }
 
+export type DailyRunStatus =
+  'success' | 'degraded' | 'action-required' | 'fatal'
+
 export type DailySummary = {
+  runStatus: Exclude<DailyRunStatus, 'fatal'>
+  exitReason: string
   targetDate: string
   processed: string[]
   ready: string[]
@@ -20,11 +25,47 @@ export type DailySummary = {
   commit?: string
   production: 'skipped' | 'ok'
   exitCode: 0 | 1 | 2
+  discovery: DailyDiscoverySummary
+  processing: {
+    selected: string[]
+    processed: string[]
+    ready: string[]
+    waitingResult: string[]
+    newNeedsReviewThisRun: string[]
+  }
+  queue: {
+    existingNeedsReview: string[]
+    newNeedsReviewThisRun: string[]
+  }
+  publication: {
+    attempted: boolean
+    published: string[]
+    skipped: boolean
+    failure: string | null
+  }
+}
+
+export type DailyDiscoverySummary = {
+  status: 'ok' | 'degraded'
+  attempted: number
+  observed: number
+  zero: number
+  saturated: number
+  failed: number
+  challenge: number
+  added: number
+  existing: number
+}
+
+export type DailyProcessResult = {
+  selected: string[]
+  processed: string[]
+  discovery: DailyDiscoverySummary
 }
 
 export type DailyDependencies = {
   assertGitStart: () => Promise<DailyGitStart>
-  processDue: () => Promise<string[]>
+  processDue: () => Promise<DailyProcessResult>
   loadQueue: () => Promise<TournamentQueueFile>
   loadArtifact: (sourceEventId: string) => Promise<TournamentReadyArtifact>
   publish: (ids: string[], write: boolean) => Promise<PublishedSummary>
@@ -58,7 +99,27 @@ export async function runDailyWorkflow(
   deps: DailyDependencies,
 ): Promise<DailySummary> {
   const resume = await deps.assertGitStart()
-  const processed = resume === 'synced' ? await deps.processDue() : []
+  const queueBefore = await deps.loadQueue()
+  const existingNeedsReview = byStatus(queueBefore, 'needs-review')
+  const processResult =
+    resume === 'synced'
+      ? await deps.processDue()
+      : {
+          selected: [],
+          processed: [],
+          discovery: {
+            status: 'ok' as const,
+            attempted: 0,
+            observed: 0,
+            zero: 0,
+            saturated: 0,
+            failed: 0,
+            challenge: 0,
+            added: 0,
+            existing: 0,
+          },
+        }
+  const { processed } = processResult
   const queue = await deps.loadQueue()
   const readyArtifacts = await Promise.all(
     byStatus(queue, 'ready').map((id) => deps.loadArtifact(id)),
@@ -69,8 +130,35 @@ export async function runDailyWorkflow(
   const ready = targets.map(({ sourceEventId }) => sourceEventId)
   const waiting = byStatus(queue, 'waiting-result')
   const review = byStatus(queue, 'needs-review')
+  const previousReview = new Set(existingNeedsReview)
+  const newNeedsReviewThisRun = review.filter((id) => !previousReview.has(id))
+  const runStatus = newNeedsReviewThisRun.length
+    ? 'action-required'
+    : processResult.discovery.status === 'degraded'
+      ? 'degraded'
+      : 'success'
+  const exitCode = runStatus === 'action-required' ? 2 : 0
+  const base = {
+    runStatus,
+    exitReason:
+      runStatus === 'action-required'
+        ? 'new-needs-review'
+        : runStatus === 'degraded'
+          ? 'discovery-incomplete'
+          : 'completed',
+    discovery: processResult.discovery,
+    processing: {
+      selected: processResult.selected,
+      processed,
+      ready,
+      waitingResult: waiting,
+      newNeedsReviewThisRun,
+    },
+    queue: { existingNeedsReview, newNeedsReviewThisRun },
+  }
   if (ready.length === 0) {
     return {
+      ...base,
       targetDate: options.targetDate,
       processed,
       ready,
@@ -79,7 +167,13 @@ export async function runDailyWorkflow(
       published: [],
       results: 0,
       production: 'skipped',
-      exitCode: review.length ? 2 : 0,
+      exitCode,
+      publication: {
+        attempted: false,
+        published: [],
+        skipped: true,
+        failure: null,
+      },
     }
   }
   const productionPending = resume === 'production-pending'
@@ -90,6 +184,7 @@ export async function runDailyWorkflow(
     : await deps.publish(ready, false)
   if (options.dryRun) {
     return {
+      ...base,
       targetDate: options.targetDate,
       processed,
       ready,
@@ -99,7 +194,13 @@ export async function runDailyWorkflow(
       results: dry.resultAdded,
       datasetVersion: dry.datasetVersion,
       production: 'skipped',
-      exitCode: review.length ? 2 : 0,
+      exitCode,
+      publication: {
+        attempted: true,
+        published: [],
+        skipped: true,
+        failure: null,
+      },
     }
   }
   const written = recoveringWritten ? dry : await deps.publish(ready, true)
@@ -134,6 +235,7 @@ export async function runDailyWorkflow(
       written.publishedEventIds[sourceEventId]!,
     )
   return {
+    ...base,
     targetDate: options.targetDate,
     processed,
     ready,
@@ -144,6 +246,12 @@ export async function runDailyWorkflow(
     datasetVersion: written.datasetVersion,
     commit,
     production: 'ok',
-    exitCode: review.length ? 2 : 0,
+    exitCode,
+    publication: {
+      attempted: true,
+      published: ready,
+      skipped: false,
+      failure: null,
+    },
   }
 }

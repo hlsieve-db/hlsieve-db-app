@@ -20,6 +20,30 @@ export type RunTournamentDiscoveryOptions = {
   mode?: TournamentDiscoveryRunResult['mode']
   now?: () => string
   createRunId?: () => string
+  resultCountChangedRetries?: number
+}
+
+const RESULT_COUNT_CHANGED_PATTERN =
+  /Bushi Navi result count changed during discovery/i
+
+async function queryWithBoundedRetry(
+  source: TournamentDiscoverySource,
+  seriesId: string,
+  date: string,
+  retries: number,
+): Promise<readonly string[]> {
+  let attempt = 0
+  while (true) {
+    try {
+      return await source.query(seriesId, date)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      if (!RESULT_COUNT_CHANGED_PATTERN.test(message) || attempt >= retries) {
+        throw error
+      }
+      attempt += 1
+    }
+  }
 }
 
 function classifyError(error: unknown): {
@@ -90,6 +114,14 @@ export async function runTournamentDiscovery(
     throw new Error('Discovery requires at least one date.')
   }
   const now = options.now ?? (() => new Date().toISOString())
+  const resultCountChangedRetries = options.resultCountChangedRetries ?? 0
+  if (
+    !Number.isSafeInteger(resultCountChangedRetries) ||
+    resultCountChangedRetries < 0 ||
+    resultCountChangedRetries > 2
+  ) {
+    throw new Error('Discovery retry count must be an integer from 0 to 2.')
+  }
   const startedAt = now()
   const queries: TournamentDiscoveryQueryResult[] = []
   const candidatesById = new Map<
@@ -101,7 +133,12 @@ export async function runTournamentDiscovery(
     for (const date of options.dates) {
       const attemptedAt = now()
       try {
-        const observedIds = await options.source.query(seriesId, date)
+        const observedIds = await queryWithBoundedRetry(
+          options.source,
+          seriesId,
+          date,
+          resultCountChangedRetries,
+        )
         const candidateIds = uniqueEventIds(observedIds)
         const saturated =
           observedIds.length >= TOURNAMENT_DISCOVERY_SATURATION_COUNT

@@ -50,7 +50,7 @@ describe('Tournament Daily Discovery phase', () => {
     expect(intake).not.toHaveBeenCalled()
   })
 
-  it.each(['failedQueries', 'challengeQueries'] as const)(
+  it.each(['saturatedQueries', 'failedQueries', 'challengeQueries'] as const)(
     'continues Intake and reports degraded when %s is nonzero',
     async (field) => {
       const discovery = run({ [field]: 1 })

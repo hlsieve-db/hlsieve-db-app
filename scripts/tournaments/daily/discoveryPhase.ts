@@ -29,6 +29,7 @@ export async function runTournamentDailyDiscoveryPhase(options: {
   }
   const intake = await options.intake(discovery.candidates)
   const degraded =
+    discovery.summary.saturatedQueries > 0 ||
     discovery.summary.failedQueries > 0 ||
     discovery.summary.challengeQueries > 0
   return { status: degraded ? 'degraded' : 'ok', discovery, intake }

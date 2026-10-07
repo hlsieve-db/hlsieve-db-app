@@ -103,6 +103,7 @@ try {
               ),
               dates: createOverlapDates(options.targetDate),
               mode: 'daily',
+              resultCountChangedRetries: 2,
             })
             await new TournamentDiscoveryObservationRepository().saveRun(
               discovery,
@@ -177,7 +178,31 @@ try {
         processedIds: processed,
       }
       await writeDailyCheckpoint(checkpoint)
-      return processed
+      const summary =
+        'discovery' in discoveryPhase
+          ? discoveryPhase.discovery.summary
+          : undefined
+      const intake =
+        'intake' in discoveryPhase ? discoveryPhase.intake : undefined
+      return {
+        selected: selection.selected,
+        processed,
+        discovery: {
+          status: discoveryPhase.status,
+          attempted: summary?.attemptedQueries ?? 0,
+          observed:
+            (summary?.successfulQueries ?? 0) -
+            (summary?.saturatedQueries ?? 0),
+          zero: summary?.zeroResultQueries ?? 0,
+          saturated: summary?.saturatedQueries ?? 0,
+          failed:
+            summary?.failedQueries ??
+            (discoveryPhase.status === 'degraded' ? 1 : 0),
+          challenge: summary?.challengeQueries ?? 0,
+          added: intake?.added.length ?? 0,
+          existing: intake?.existing.length ?? 0,
+        },
+      }
     },
     loadQueue: () => repository.load(),
     loadArtifact: (id) => artifacts.load(id, cardsData),
@@ -268,11 +293,20 @@ try {
   console.log(
     `Tournament Daily ${summary.targetDate}\nProcessed: ${summary.processed.length}\nPublished: ${summary.published.length} Events / ${summary.results} Results\nWaiting: ${summary.waiting.length}\nNeeds review: ${summary.review.length}\nProduction: ${summary.production}\nDataset: ${summary.datasetVersion ?? '-'}\nCommit: ${summary.commit ?? '-'}`,
   )
+  console.log(JSON.stringify({ dailySummary: summary }))
   process.exitCode = summary.exitCode
 } catch (error) {
   checkpoint = { ...checkpoint, phase: 'failed', productionStatus: 'failed' }
   await writeDailyCheckpoint(checkpoint)
   console.error(error instanceof Error ? error.message : String(error))
+  console.error(
+    JSON.stringify({
+      dailySummary: {
+        runStatus: 'fatal',
+        exitReason: error instanceof Error ? error.message : String(error),
+      },
+    }),
+  )
   process.exitCode = 1
 } finally {
   await release()
