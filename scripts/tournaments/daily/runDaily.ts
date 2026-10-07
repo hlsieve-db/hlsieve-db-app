@@ -126,6 +126,7 @@ try {
       )
       let browser: Browser | undefined
       let page: Page | undefined
+      let selectedEventIds: string[]
       try {
         const selection = await selectDueTournamentEventsForDate({
           records: before.records,
@@ -144,8 +145,9 @@ try {
             await repository.setOfficialEventDate(sourceEventId, eventDate)
           },
         })
+        selectedEventIds = selection.selected
         console.log(JSON.stringify({ dateSelection: selection }))
-        await processSelectedTournamentEvents(selection.selected, runQueueEvent)
+        await processSelectedTournamentEvents(selectedEventIds, runQueueEvent)
       } finally {
         await browser?.close()
       }
@@ -185,7 +187,7 @@ try {
       const intake =
         'intake' in discoveryPhase ? discoveryPhase.intake : undefined
       return {
-        selected: selection.selected,
+        selected: selectedEventIds,
         processed,
         discovery: {
           status: discoveryPhase.status,

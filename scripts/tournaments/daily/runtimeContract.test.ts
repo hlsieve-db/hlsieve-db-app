@@ -18,6 +18,9 @@ describe('Tournament Daily runtime contract', () => {
     expect(daily).toContain('createOverlapDates(options.targetDate)')
     expect(daily).toContain('chromium.launch({ headless: false })')
     expect(daily).not.toContain('headless: true')
+    expect(daily).toContain('let selectedEventIds: string[]')
+    expect(daily).toContain('selected: selectedEventIds')
+    expect(daily).not.toContain('selected: selection.selected')
     expect(daily).toMatch(/finally\s*{\s*await release\(\)/)
   })
   it('provides a Task Scheduler wrapper that propagates the exit code without credentials', async () => {

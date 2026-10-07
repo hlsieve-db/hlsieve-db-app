@@ -165,6 +165,8 @@ describe('Tournament Discovery core', () => {
     expect(result.queries[0]).toMatchObject({
       outcome: 'observed',
       candidateIds: ['1771029'],
+      attemptCount: 3,
+      retryReasons: ['result-count-changed', 'result-count-changed'],
     })
   })
 
@@ -187,6 +189,8 @@ describe('Tournament Discovery core', () => {
     expect(result.queries[0]).toMatchObject({
       outcome: 'failed',
       errorCode: 'source-error',
+      attemptCount: 3,
+      retryReasons: ['result-count-changed', 'result-count-changed'],
     })
   })
 
@@ -196,7 +200,7 @@ describe('Tournament Discovery core', () => {
       new Error('other source error'),
     ]) {
       let attempts = 0
-      await runTournamentDiscovery({
+      const result = await runTournamentDiscovery({
         source: {
           query: async () => {
             attempts += 1
@@ -209,6 +213,10 @@ describe('Tournament Discovery core', () => {
         now: clock(),
       })
       expect(attempts).toBe(1)
+      expect(result.queries[0]).toMatchObject({
+        attemptCount: 1,
+        retryReasons: [],
+      })
     }
   })
 

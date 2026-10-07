@@ -19,6 +19,8 @@ export type TournamentDiscoveryQueryResult = {
   saturated: boolean
   zeroResultObserved: boolean
   errorCode?: string
+  attemptCount?: number
+  retryReasons?: string[]
 }
 
 export type TournamentDiscoveryRunResult = {

@@ -31,16 +31,32 @@ async function queryWithBoundedRetry(
   seriesId: string,
   date: string,
   retries: number,
-): Promise<readonly string[]> {
+): Promise<{
+  observedIds: readonly string[]
+  attemptCount: number
+  retryReasons: string[]
+}> {
   let attempt = 0
+  const retryReasons: string[] = []
   while (true) {
     try {
-      return await source.query(seriesId, date)
+      return {
+        observedIds: await source.query(seriesId, date),
+        attemptCount: attempt + 1,
+        retryReasons,
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       if (!RESULT_COUNT_CHANGED_PATTERN.test(message) || attempt >= retries) {
-        throw error
+        throw Object.assign(
+          error instanceof Error ? error : new Error(message),
+          {
+            discoveryAttemptCount: attempt + 1,
+            discoveryRetryReasons: retryReasons,
+          },
+        )
       }
+      retryReasons.push('result-count-changed')
       attempt += 1
     }
   }
@@ -133,12 +149,13 @@ export async function runTournamentDiscovery(
     for (const date of options.dates) {
       const attemptedAt = now()
       try {
-        const observedIds = await queryWithBoundedRetry(
-          options.source,
-          seriesId,
-          date,
-          resultCountChangedRetries,
-        )
+        const { observedIds, attemptCount, retryReasons } =
+          await queryWithBoundedRetry(
+            options.source,
+            seriesId,
+            date,
+            resultCountChangedRetries,
+          )
         const candidateIds = uniqueEventIds(observedIds)
         const saturated =
           observedIds.length >= TOURNAMENT_DISCOVERY_SATURATION_COUNT
@@ -151,6 +168,8 @@ export async function runTournamentDiscovery(
           candidateIds,
           saturated,
           zeroResultObserved: observedIds.length === 0,
+          attemptCount,
+          retryReasons,
         })
         for (const sourceEventId of candidateIds) {
           const existing = candidatesById.get(sourceEventId)
@@ -168,6 +187,10 @@ export async function runTournamentDiscovery(
         }
       } catch (error) {
         const failure = classifyError(error)
+        const retryMetadata = error as Error & {
+          discoveryAttemptCount?: number
+          discoveryRetryReasons?: string[]
+        }
         queries.push({
           seriesId,
           date,
@@ -177,6 +200,8 @@ export async function runTournamentDiscovery(
           saturated: false,
           zeroResultObserved: false,
           errorCode: failure.errorCode,
+          attemptCount: retryMetadata.discoveryAttemptCount ?? 1,
+          retryReasons: retryMetadata.discoveryRetryReasons ?? [],
         })
       }
     }
