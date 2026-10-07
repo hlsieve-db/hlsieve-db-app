@@ -1,9 +1,131 @@
 {
   "format": "hlsieve-tournament-index",
   "formatVersion": 1,
-  "dataVersion": "714336ed801dda29",
+  "dataVersion": "12871b45be23c861",
   "startDate": "2026-09-19",
   "events": [
+    {
+      "id": "evt_ca4c60db4d068a3f",
+      "tournament": {
+        "type": "selectioncup",
+        "environment": "bp09",
+        "seriesName": "【ホロカ】セレクションカップ（2026年10月）"
+      },
+      "date": "2026-10-06",
+      "venue": {
+        "slug": "venue-6c410d407778fa0e",
+        "name": "ホビーステーション仙台駅前店"
+      },
+      "participantCount": 19,
+      "resultCoverage": {
+        "kind": "exact",
+        "maxRank": 8
+      },
+      "resultCount": 8,
+      "results": [
+        {
+          "id": "res_d7fb22b192de2b4d",
+          "rank": 1,
+          "oshiCardNumber": "hBP09-002"
+        },
+        {
+          "id": "res_d1524e7d5ab2ea11",
+          "rank": 2,
+          "oshiCardNumber": "hBP09-004"
+        },
+        {
+          "id": "res_e857f7bea30625a2",
+          "rank": 3,
+          "oshiCardNumber": "hBP09-003"
+        },
+        {
+          "id": "res_7280c41f9f9871e3",
+          "rank": 4,
+          "oshiCardNumber": "hBP09-007"
+        },
+        {
+          "id": "res_136a86cdcc5cb2a1",
+          "rank": 5,
+          "oshiCardNumber": "hBP09-004"
+        },
+        {
+          "id": "res_80c59c05397e6059",
+          "rank": 6,
+          "oshiCardNumber": "hBP09-001"
+        },
+        {
+          "id": "res_e5edb8739a32503f",
+          "rank": 7,
+          "oshiCardNumber": "hBP08-001"
+        },
+        {
+          "id": "res_cc3f9f2ca8288418",
+          "rank": 8,
+          "oshiCardNumber": "hBP09-004"
+        }
+      ]
+    },
+    {
+      "id": "evt_92c2fdfa9b45f876",
+      "tournament": {
+        "type": "selectioncup",
+        "environment": "bp09",
+        "seriesName": "【ホロカ】セレクションカップ（2026年10月）"
+      },
+      "date": "2026-10-05",
+      "venue": {
+        "slug": "venue-e0b776a08c14b93d",
+        "name": "カードショップ@ほ~む。宮崎店"
+      },
+      "participantCount": 22,
+      "resultCoverage": {
+        "kind": "exact",
+        "maxRank": 8
+      },
+      "resultCount": 8,
+      "results": [
+        {
+          "id": "res_ce29e34d88ac3249",
+          "rank": 1,
+          "oshiCardNumber": "hBP09-004"
+        },
+        {
+          "id": "res_90a7e1cca4332378",
+          "rank": 2,
+          "oshiCardNumber": "hBP09-007"
+        },
+        {
+          "id": "res_6cf20922848c0216",
+          "rank": 3,
+          "oshiCardNumber": "hBP09-007"
+        },
+        {
+          "id": "res_2e34cae3637ab8f7",
+          "rank": 4,
+          "oshiCardNumber": "hBP09-005"
+        },
+        {
+          "id": "res_7e8f18c0d86470cc",
+          "rank": 5,
+          "oshiCardNumber": "hBP08-004"
+        },
+        {
+          "id": "res_baa147858b1aa3f1",
+          "rank": 6,
+          "oshiCardNumber": "hBP09-002"
+        },
+        {
+          "id": "res_1a9d3505010aa239",
+          "rank": 7,
+          "oshiCardNumber": "hBP09-003"
+        },
+        {
+          "id": "res_b50a0710d0149624",
+          "rank": 8,
+          "oshiCardNumber": "hBP09-002"
+        }
+      ]
+    },
     {
       "id": "evt_1c8470f94228747d",
       "tournament": {
@@ -245,6 +367,67 @@
           "id": "res_a8049fd3a00c142f",
           "rank": 8,
           "oshiCardNumber": "hBP09-004"
+        }
+      ]
+    },
+    {
+      "id": "evt_b3a5ef8b31892d77",
+      "tournament": {
+        "type": "selectioncup",
+        "environment": "bp09",
+        "seriesName": "【ホロカ】セレクションカップ（2026年10月）"
+      },
+      "date": "2026-10-04",
+      "venue": {
+        "slug": "venue-60d23604a65e3f61",
+        "name": "カードラボ名古屋駅前店"
+      },
+      "participantCount": 32,
+      "resultCoverage": {
+        "kind": "exact",
+        "maxRank": 8
+      },
+      "resultCount": 8,
+      "results": [
+        {
+          "id": "res_791dbbb85633a554",
+          "rank": 1,
+          "oshiCardNumber": "hBP09-003"
+        },
+        {
+          "id": "res_ffe4c8881a70c57c",
+          "rank": 2,
+          "oshiCardNumber": "hBP09-002"
+        },
+        {
+          "id": "res_a1a3bb0f8de687f3",
+          "rank": 3,
+          "oshiCardNumber": "hBP09-005"
+        },
+        {
+          "id": "res_3816434c3c6b2d08",
+          "rank": 4,
+          "oshiCardNumber": "hBP09-002"
+        },
+        {
+          "id": "res_aac2f014200cd198",
+          "rank": 5,
+          "oshiCardNumber": "hBP09-002"
+        },
+        {
+          "id": "res_149313ef149068f3",
+          "rank": 6,
+          "oshiCardNumber": "hBP09-007"
+        },
+        {
+          "id": "res_7617524b8f10b8c7",
+          "rank": 7,
+          "oshiCardNumber": "hBP09-001"
+        },
+        {
+          "id": "res_2c2f14b3ee3dc5ef",
+          "rank": 8,
+          "oshiCardNumber": "hBP09-002"
         }
       ]
     },
