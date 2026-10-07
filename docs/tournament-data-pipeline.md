@@ -86,6 +86,25 @@ existing scheduled Queue collection path; no headless fallback, User-Agent
 override, or challenge bypass is provided. Historical reconciliation writes
 remain outside Discovery-2.
 
+Historical reconciliation preview reuses the same Discovery Core through
+`tournaments:discover -- --from YYYY-MM-DD --to YYYY-MM-DD`. The range is
+inclusive and processed sequentially in seven-day chunks by default. Each
+chunk is independently recorded in the existing observation repository, but
+previous observations never cause a query to be skipped. The preview compares
+unique candidates with the current Queue using the Automated Intake validation
+policy without acquiring the Queue mutation lock or writing the Queue.
+
+The reconciliation report is explicitly best-effort and states that
+completeness is not guaranteed. It separates existing, new, and rejected
+candidates; successful zero-result observations; saturated queries; and failed
+or challenged queries. Reconciliation Queue writes, Event collection, and
+publication remain separate, unimplemented operations.
+
+If the public list exposes the same Event ID under more than one query context,
+candidate deduplication prefers a non-saturated observation over a saturated
+one. Every raw query context remains available in the append-only run log; this
+preference only selects the representative series/date shown in the preview.
+
 ## Collection boundaries
 
 Without a new explicit approval, do not use undocumented or internal APIs,

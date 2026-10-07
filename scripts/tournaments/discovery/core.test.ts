@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  createInclusiveDateRange,
   createOverlapDates,
   runTournamentDiscovery,
   type TournamentDiscoverySource,
@@ -75,6 +76,32 @@ describe('Tournament Discovery core', () => {
     expect(result.summary.uniqueCandidates).toBe(3)
   })
 
+  it('prefers a non-saturated observation when an Event appears in conflicting queries', async () => {
+    const source: TournamentDiscoverySource = {
+      query: async (_seriesId, date) =>
+        date === '2026-09-22'
+          ? [
+              '1771029',
+              ...Array.from({ length: 9 }, (_, index) => String(index + 1)),
+            ]
+          : ['1771029'],
+    }
+    const result = await runTournamentDiscovery({
+      source,
+      seriesIds: ['3463'],
+      dates: ['2026-09-22', '2026-10-06'],
+      now: clock(),
+      createRunId: () => 'run-1',
+    })
+
+    expect(
+      result.candidates.find(
+        (candidate) => candidate.sourceEventId === '1771029',
+      ),
+    ).toMatchObject({ observedForDate: '2026-10-06' })
+    expect(result.queries[0]?.saturated).toBe(true)
+  })
+
   it('distinguishes zero, saturation, failure, and challenge', async () => {
     const responses: Array<readonly string[] | Error> = [
       [],
@@ -126,5 +153,17 @@ describe('Tournament Discovery core', () => {
       '2026-02-28',
       '2026-03-01',
     ])
+  })
+
+  it('builds an inclusive range without gaps or duplicates', () => {
+    expect(createInclusiveDateRange('2026-09-19', '2026-09-22')).toEqual([
+      '2026-09-19',
+      '2026-09-20',
+      '2026-09-21',
+      '2026-09-22',
+    ])
+    expect(() => createInclusiveDateRange('2026-09-20', '2026-09-19')).toThrow(
+      'must not be after',
+    )
   })
 })

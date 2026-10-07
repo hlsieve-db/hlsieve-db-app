@@ -65,6 +65,21 @@ export function createOverlapDates(targetDate: string, days = 4): string[] {
   }).reverse()
 }
 
+export function createInclusiveDateRange(from: string, to: string): string[] {
+  const fromDate = createOverlapDates(from, 1)[0]!
+  const toDate = createOverlapDates(to, 1)[0]!
+  if (fromDate > toDate) {
+    throw new Error('Discovery range start must not be after its end.')
+  }
+  const dates: string[] = []
+  const cursor = new Date(`${fromDate}T00:00:00Z`)
+  while (cursor.toISOString().slice(0, 10) <= toDate) {
+    dates.push(cursor.toISOString().slice(0, 10))
+    cursor.setUTCDate(cursor.getUTCDate() + 1)
+  }
+  return dates
+}
+
 export async function runTournamentDiscovery(
   options: RunTournamentDiscoveryOptions,
 ): Promise<TournamentDiscoveryRunResult> {
@@ -77,7 +92,10 @@ export async function runTournamentDiscovery(
   const now = options.now ?? (() => new Date().toISOString())
   const startedAt = now()
   const queries: TournamentDiscoveryQueryResult[] = []
-  const candidatesById = new Map<string, TournamentDiscoveryCandidate>()
+  const candidatesById = new Map<
+    string,
+    { candidate: TournamentDiscoveryCandidate; saturated: boolean }
+  >()
 
   for (const seriesId of options.seriesIds) {
     for (const date of options.dates) {
@@ -98,13 +116,17 @@ export async function runTournamentDiscovery(
           zeroResultObserved: observedIds.length === 0,
         })
         for (const sourceEventId of candidateIds) {
-          if (candidatesById.has(sourceEventId)) continue
+          const existing = candidatesById.get(sourceEventId)
+          if (existing && (!existing.saturated || saturated)) continue
           candidatesById.set(sourceEventId, {
-            sourceEventId,
-            sourceUrl: `${BUSHI_NAVI_RESULT_ORIGIN}/${sourceEventId}`,
-            seriesId,
-            observedForDate: date,
-            discoveredAt: attemptedAt,
+            candidate: {
+              sourceEventId,
+              sourceUrl: `${BUSHI_NAVI_RESULT_ORIGIN}/${sourceEventId}`,
+              seriesId,
+              observedForDate: date,
+              discoveredAt: attemptedAt,
+            },
+            saturated,
           })
         }
       } catch (error) {
@@ -123,7 +145,9 @@ export async function runTournamentDiscovery(
     }
   }
 
-  const candidates = [...candidatesById.values()]
+  const candidates = [...candidatesById.values()].map(
+    ({ candidate }) => candidate,
+  )
   return {
     runId: options.createRunId?.() ?? randomUUID(),
     startedAt,
