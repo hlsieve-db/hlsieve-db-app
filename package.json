@@ -20,6 +20,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "tournaments:collect": "tsx scripts/tournaments/collector/runCollector.ts",
+    "tournaments:discover": "tsx scripts/tournaments/discovery/runDiscovery.ts",
     "tournaments:queue": "tsx scripts/tournaments/queue/runQueue.ts",
     "tournaments:intake": "tsx scripts/tournaments/queue/runIntake.ts",
     "tournaments:daily": "tsx scripts/tournaments/daily/runDaily.ts",

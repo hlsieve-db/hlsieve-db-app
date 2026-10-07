@@ -48,6 +48,28 @@ to 2026-09-19 through 2026-09-23: a public Result was also observed on
 Phase 9D and later product work may proceed against the published static JSON
 contract with synthetic test fixtures while source discovery remains on hold.
 
+## Best-effort Result discovery
+
+The standalone `tournaments:discover` command performs a read-only,
+headed-browser preview of Event IDs observed on the public Bushi Navi Result
+List. Discovery produces `TournamentDiscoveryCandidate` values and observation
+records only. It does not write to the Tournament queue, collect Deck Logs, or
+publish Tournament data.
+
+By default, the command revisits the target date and the preceding three dates.
+The overlap is intentional: a previous zero-result observation does not mark a
+date complete, and later runs may discover results published after the first
+attempt. Observation files accumulate every Event ID previously seen for a
+series/date, while the append-only run log records the IDs visible during each
+individual attempt. Both are stored below the Git-ignored
+`.cache/tournaments/discovery` directory.
+
+Ten visible rows are recorded as a saturated observation meaning "at least ten
+results". Zero rows mean only that the current attempt observed zero results.
+Neither state proves completeness. Challenges and source failures are reported
+separately. Automated Intake, queue writes, Daily integration, and historical
+reconciliation writes are intentionally outside Discovery-1.
+
 ## Collection boundaries
 
 Without a new explicit approval, do not use undocumented or internal APIs,

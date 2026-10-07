@@ -528,6 +528,30 @@ async function searchRange(
   return resultDetailButtons(page).count()
 }
 
+export async function discoverBushiNaviResultIds(
+  page: Page,
+  series: TournamentSeriesConfig,
+  date: string,
+  delayMs?: number,
+): Promise<string[]> {
+  const range = { from: date, to: date }
+  const count = await searchRange(page, series, range, delayMs)
+  const sourceEventIds: string[] = []
+  for (let index = 0; index < count; index += 1) {
+    await resultDetailButtons(page).nth(index).press('Enter')
+    await page.waitForURL(/\/event\/result\/\d+$/)
+    await assertPublicPage(page, null)
+    sourceEventIds.push(parseSourceEventId(page.url()))
+    await page.goBack({ waitUntil: 'domcontentloaded' })
+    await assertPublicPage(page, null)
+    const refreshedCount = await searchRange(page, series, range, delayMs)
+    if (refreshedCount !== count) {
+      throw new Error('Bushi Navi result count changed during discovery.')
+    }
+  }
+  return sourceEventIds
+}
+
 async function discoverCompleteRanges(
   page: Page,
   series: TournamentSeriesConfig,
