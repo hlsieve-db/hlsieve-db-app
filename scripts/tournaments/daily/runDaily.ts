@@ -32,9 +32,14 @@ import {
   selectDueTournamentEventsForDate,
 } from './dateSelection'
 import { probeKnownTournamentEventMetadata } from '../collector/bushiNavi'
+import { TOURNAMENT_SERIES_CONFIGS } from '../collector/seriesConfig'
+import { createBushiNaviDiscoverySource } from '../discovery/bushiNaviSource'
+import { createOverlapDates, runTournamentDiscovery } from '../discovery/core'
+import { TournamentDiscoveryObservationRepository } from '../discovery/observationRepository'
 import { LocalTournamentQueueRepository } from '../queue/repository'
 import { TournamentReadyArtifactRepository } from '../queue/readyArtifact'
 import { publishReadyTournamentEvents } from '../queue/publishReady'
+import { runTournamentDailyDiscoveryPhase } from './discoveryPhase'
 
 const options = parseTournamentDailyCli(process.argv.slice(2))
 const previous = await readDailyCheckpoint(options.targetDate)
@@ -85,6 +90,32 @@ try {
   const summary = await runDailyWorkflow(options, {
     assertGitStart: async () => gitStart,
     processDue: async () => {
+      const discoveredAt = new Date().toISOString()
+      const discoveryPhase = await runTournamentDailyDiscoveryPhase({
+        discover: async () => {
+          const browser = await chromium.launch({ headless: false })
+          try {
+            const page = await (await browser.newContext()).newPage()
+            const discovery = await runTournamentDiscovery({
+              source: createBushiNaviDiscoverySource(page),
+              seriesIds: TOURNAMENT_SERIES_CONFIGS.map(
+                (series) => series.seriesId,
+              ),
+              dates: createOverlapDates(options.targetDate),
+              mode: 'daily',
+            })
+            await new TournamentDiscoveryObservationRepository().saveRun(
+              discovery,
+            )
+            return discovery
+          } finally {
+            await browser.close()
+          }
+        },
+        intake: (candidates) =>
+          repository.automatedIntake(candidates, discoveredAt),
+      })
+      console.log(JSON.stringify({ discovery: discoveryPhase }))
       const before = await repository.load()
       const beforeAttempts = new Map(
         before.records.map((record) => [

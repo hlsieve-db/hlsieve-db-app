@@ -16,6 +16,11 @@ import {
 } from './queue'
 import { applyTournamentIntake, previewTournamentIntake } from './intake'
 import { parseTournamentSourceEventId } from './submission'
+import {
+  planAutomatedTournamentIntake,
+  type TournamentAutomatedIntakeResult,
+} from '../discovery/automatedIntake'
+import type { TournamentDiscoveryCandidate } from '../discovery/types'
 
 const DEFAULT_QUEUE_PATH = resolve('.cache/tournaments/queue/queue.json')
 export const TOURNAMENT_QUEUE_LOCK_TTL_MS = 30 * 60 * 1_000
@@ -366,6 +371,18 @@ export class LocalTournamentQueueRepository {
       const next = applyTournamentIntake(queue, preview, now)
       if (next !== queue) await this.saveUnlocked(next)
       return { preview, written: true }
+    })
+  }
+
+  async automatedIntake(
+    candidates: readonly TournamentDiscoveryCandidate[],
+    now: string,
+  ): Promise<TournamentAutomatedIntakeResult> {
+    return this.withMutationLock(async () => {
+      const current = await this.load()
+      const plan = planAutomatedTournamentIntake(current, candidates, now)
+      if (plan.queue !== current) await this.saveUnlocked(plan.queue)
+      return plan.result
     })
   }
 

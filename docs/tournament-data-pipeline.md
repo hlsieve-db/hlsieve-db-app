@@ -67,8 +67,24 @@ individual attempt. Both are stored below the Git-ignored
 Ten visible rows are recorded as a saturated observation meaning "at least ten
 results". Zero rows mean only that the current attempt observed zero results.
 Neither state proves completeness. Challenges and source failures are reported
-separately. Automated Intake, queue writes, Daily integration, and historical
-reconciliation writes are intentionally outside Discovery-1.
+separately.
+
+The scheduled Daily workflow runs the same four-day Discovery Core before its
+existing date selection. Discovered candidates pass through a separate
+Automated Intake policy that adds only Event IDs absent from the latest Queue
+state. Existing records in every status, including `published` and
+`needs-review`, remain byte-for-byte unchanged; explicit resubmission remains a
+Manual Intake responsibility. The Queue lock is acquired only after Discovery,
+and the repository reloads and atomically replaces the Queue while holding that
+lock.
+
+Public-source failures and challenges mark Discovery as degraded but do not
+stop processing Events already present in the Queue. Queue corruption, lock
+conflicts, and atomic-write failures do stop the Daily run because Queue safety
+cannot be guaranteed. Daily Discovery uses headed Chromium, matching the
+existing scheduled Queue collection path; no headless fallback, User-Agent
+override, or challenge bypass is provided. Historical reconciliation writes
+remain outside Discovery-2.
 
 ## Collection boundaries
 
