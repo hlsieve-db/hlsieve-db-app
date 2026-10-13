@@ -1,9 +1,70 @@
 {
   "format": "hlsieve-tournament-index",
   "formatVersion": 1,
-  "dataVersion": "cd3d0c3b3cf72a2f",
+  "dataVersion": "75d060a80bda1b34",
   "startDate": "2026-09-19",
   "events": [
+    {
+      "id": "evt_5ad12e7172bec65d",
+      "tournament": {
+        "type": "selectioncup",
+        "environment": "bp09",
+        "seriesName": "【ホロカ】セレクションカップ（2026年10月）"
+      },
+      "date": "2026-10-13",
+      "venue": {
+        "slug": "venue-a3898be7e8674479",
+        "name": "アドバンテージ大須2号店"
+      },
+      "participantCount": 24,
+      "resultCoverage": {
+        "kind": "exact",
+        "maxRank": 8
+      },
+      "resultCount": 8,
+      "results": [
+        {
+          "id": "res_6fb56a81a3ae47ad",
+          "rank": 1,
+          "oshiCardNumber": "hBP09-005"
+        },
+        {
+          "id": "res_9cade4d378f1698f",
+          "rank": 2,
+          "oshiCardNumber": "hBP09-005"
+        },
+        {
+          "id": "res_bb50359ba1aec7d7",
+          "rank": 3,
+          "oshiCardNumber": "hBP09-005"
+        },
+        {
+          "id": "res_fb0f7b7344b279cf",
+          "rank": 4,
+          "oshiCardNumber": "hBP09-003"
+        },
+        {
+          "id": "res_b853aa8da0d9d371",
+          "rank": 5,
+          "oshiCardNumber": "hBP09-002"
+        },
+        {
+          "id": "res_d7672fb91307090d",
+          "rank": 6,
+          "oshiCardNumber": "hBP09-004"
+        },
+        {
+          "id": "res_c6f8639acf786ade",
+          "rank": 7,
+          "oshiCardNumber": "hBP09-004"
+        },
+        {
+          "id": "res_1c144aa81500ce24",
+          "rank": 8,
+          "oshiCardNumber": "hBP09-001"
+        }
+      ]
+    },
     {
       "id": "evt_0952c18900a18e0d",
       "tournament": {
