@@ -1,9 +1,131 @@
 {
   "format": "hlsieve-tournament-index",
   "formatVersion": 1,
-  "dataVersion": "75d060a80bda1b34",
+  "dataVersion": "7f5497f4862c8718",
   "startDate": "2026-09-19",
   "events": [
+    {
+      "id": "evt_4ba64dc6da5d7942",
+      "tournament": {
+        "type": "selectioncup",
+        "environment": "bp09",
+        "seriesName": "【ホロカ】セレクションカップ（2026年10月）"
+      },
+      "date": "2026-10-14",
+      "venue": {
+        "slug": "venue-c2cd59684218c7f0",
+        "name": "パピー弥富店"
+      },
+      "participantCount": 16,
+      "resultCoverage": {
+        "kind": "exact",
+        "maxRank": 8
+      },
+      "resultCount": 8,
+      "results": [
+        {
+          "id": "res_debf8f110ecbdb1d",
+          "rank": 1,
+          "oshiCardNumber": "hBP09-004"
+        },
+        {
+          "id": "res_afbb0e472194ee03",
+          "rank": 2,
+          "oshiCardNumber": "hBP09-003"
+        },
+        {
+          "id": "res_f677737732d24993",
+          "rank": 3,
+          "oshiCardNumber": "hBP09-005"
+        },
+        {
+          "id": "res_111cb151db6ff385",
+          "rank": 4,
+          "oshiCardNumber": "hBP09-007"
+        },
+        {
+          "id": "res_f9862910c92cc7bc",
+          "rank": 5,
+          "oshiCardNumber": "hBP09-007"
+        },
+        {
+          "id": "res_89037be99a6a1b4d",
+          "rank": 6,
+          "oshiCardNumber": "hBP09-007"
+        },
+        {
+          "id": "res_fb0c216c7557c330",
+          "rank": 7,
+          "oshiCardNumber": "hBP09-005"
+        },
+        {
+          "id": "res_e0544965624c3841",
+          "rank": 8,
+          "oshiCardNumber": "hEB01-003"
+        }
+      ]
+    },
+    {
+      "id": "evt_fb9718b0919576dc",
+      "tournament": {
+        "type": "selectioncup",
+        "environment": "bp09",
+        "seriesName": "【ホロカ】セレクションカップ（2026年10月）"
+      },
+      "date": "2026-10-14",
+      "venue": {
+        "slug": "venue-d7c0a204719a0ed4",
+        "name": "ブックマーケット高岡店"
+      },
+      "participantCount": 32,
+      "resultCoverage": {
+        "kind": "exact",
+        "maxRank": 8
+      },
+      "resultCount": 8,
+      "results": [
+        {
+          "id": "res_f4b7510ef522f802",
+          "rank": 1,
+          "oshiCardNumber": "hBP09-004"
+        },
+        {
+          "id": "res_37dff050a1a640d4",
+          "rank": 2,
+          "oshiCardNumber": "hBP09-004"
+        },
+        {
+          "id": "res_05dd563f95b966a3",
+          "rank": 3,
+          "oshiCardNumber": "hBP09-001"
+        },
+        {
+          "id": "res_79b891d5220a7b19",
+          "rank": 4,
+          "oshiCardNumber": "hBP09-002"
+        },
+        {
+          "id": "res_82954c345efd7bb8",
+          "rank": 5,
+          "oshiCardNumber": "hBP09-005"
+        },
+        {
+          "id": "res_eca69fe1fd2f2c9d",
+          "rank": 6,
+          "oshiCardNumber": "hBP09-007"
+        },
+        {
+          "id": "res_70e043b9ccef774d",
+          "rank": 7,
+          "oshiCardNumber": "hBP09-005"
+        },
+        {
+          "id": "res_c59fa4d53d4ca001",
+          "rank": 8,
+          "oshiCardNumber": "hBP09-002"
+        }
+      ]
+    },
     {
       "id": "evt_5ad12e7172bec65d",
       "tournament": {
