@@ -11,6 +11,18 @@ not try to understand the entire repository before beginning.
 Search first, read second. Locate the relevant symbols and files, then open
 only what the task requires.
 
+Use this order at task start:
+
+1. `git status` / `git diff`
+2. filename search with `rg --files`
+3. relevant symbol search with `rg`
+4. open only the files identified by those searches
+
+Do not read an entire directory merely because it may be related. Use
+`npm run ai:context -- --area tournaments|cards|deck` for a compact starting
+snapshot when one of those presets matches the task. Add `--json` only when a
+machine-readable snapshot is useful.
+
 ## Repository exploration
 
 At the start of a task, the following checks are appropriate when relevant:
@@ -37,21 +49,26 @@ Unless the task directly requires them, do not read:
 
 - `public/cards.json`
 - `public/card-printings.json`
+- `public/tournaments/**/*.json`
 - `node_modules/`
 - `dist/`
 - `coverage/`
 - lockfiles
-- generated output
+- generated reports or output
+- large snapshots
 - large fixtures
 
 When card data or another large file must be checked, extract only the needed
-information with `rg`, `grep`, `jq`, or a small focused script. Do not load the
-whole file into context.
+key, count, version, or hash with `rg`, `grep`, `jq`, or a focused script. Do
+not load or print the whole file.
 
 ## Tests and validation
 
 During implementation, run targeted tests for the area being changed. Run the
 full project gate once after the implementation is complete.
+
+Find tests from the production symbol or filename first. Do not read every test
+in an area before choosing the focused tests.
 
 Do not rerun the full suite after every small edit. Additional full runs are
 appropriate only for major changes or when diagnosing a failure that targeted
@@ -140,12 +157,35 @@ Read only the relevant document. Likewise, read only the necessary section of
 
 Keep completion reports concise and focused on:
 
-- what was implemented
-- changed files
-- tests and validation
-- unresolved items
+- status
+- changed files and what changed
+- tests and gates
+- deviations and new issues
+- commit SHA
+- push and Production status
 
 Do not repeat known project specifications at length in every report.
+Compress successful evidence (for example, `213 files / 3,348 tests passed` or
+`mutations A-H killed`). Include detailed output only for failures. Do not paste
+complete diff, build, lint, or test logs into a normal completion report.
+
+## Standard task header and modes
+
+A short task header may reference these rules instead of repeating them:
+
+- read this document and inspect only scoped files
+- do not perform unrelated refactors
+- do not push unless approved
+
+Apply the matching mode:
+
+- **Read-only investigation:** targeted reads only; no writes.
+- **Implementation:** scoped edits; focused tests first; full gate once.
+- **Data publication:** change protected JSON only through its official workflow.
+
+Token saving never weakens validation, mutation tests, privacy or queue gates,
+Production smoke, Git safety, protected-data rules, or the OneDrive post-write
+diff verification.
 
 ## Agent handoff
 

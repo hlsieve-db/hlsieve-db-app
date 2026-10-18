@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "ai:context": "tsx scripts/ai/context.ts",
     "dev": "vite",
     "build": "tsc -b && vite build && tsx scripts/seo/runPrerender.ts",
     "cards:audit": "tsx scripts/cards/audit/runAudit.ts",
