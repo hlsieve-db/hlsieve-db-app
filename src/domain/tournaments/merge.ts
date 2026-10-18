@@ -3,11 +3,7 @@ import {
   createTournamentResultId,
   stableSerialize,
 } from './ids'
-import type {
-  TournamentEvent,
-  TournamentPendingRecord,
-  TournamentResult,
-} from './types'
+import type { TournamentEvent, TournamentPendingRecord } from './types'
 
 export type TournamentMergeResult = {
   events: TournamentEvent[]
@@ -23,22 +19,6 @@ function pendingEvent(
     scope: 'event',
     reasonCodes: [reason],
     normalizedPayload: { kind: 'event', event },
-  }
-}
-
-function pendingResult(
-  event: TournamentEvent,
-  result: TournamentResult,
-): TournamentPendingRecord {
-  return {
-    id: `pending_${createSemanticDataVersion({ event: event.id, result })}`,
-    scope: 'result',
-    reasonCodes: ['result-conflict'],
-    normalizedPayload: {
-      kind: 'result',
-      eventIdentity: { sourceEventId: event.source.sourceEventId },
-      result,
-    },
   }
 }
 
@@ -90,25 +70,9 @@ function withoutSourceAndResults(event: TournamentEvent): unknown {
 function mergeSameSourceEvent(
   existing: TournamentEvent,
   incoming: TournamentEvent,
-  pending: TournamentPendingRecord[],
 ): TournamentEvent {
   const results = new Map(existing.results.map((result) => [result.id, result]))
   for (const result of incoming.results) {
-    const sameId = results.get(result.id)
-    const rankCollision = [...results.values()].find(
-      (candidate) =>
-        candidate.rank === result.rank && candidate.id !== result.id,
-    )
-    const correctedRankCollision = sameId
-      ? [...results.values()].find(
-          (candidate) =>
-            candidate.rank === result.rank && candidate.id !== sameId.id,
-        )
-      : undefined
-    if (rankCollision || correctedRankCollision) {
-      pending.push(pendingResult(incoming, result))
-      continue
-    }
     results.set(result.id, result)
   }
   return {
@@ -150,10 +114,7 @@ export function mergeTournamentEvents(
     }
     if (sameSource(existing, incoming)) {
       const stableIncoming = preservePublishedIdentity(existing, incoming)
-      merged.set(
-        existing.id,
-        mergeSameSourceEvent(existing, stableIncoming, pending),
-      )
+      merged.set(existing.id, mergeSameSourceEvent(existing, stableIncoming))
       continue
     }
     if (!sameFixedIdentity(existing, incoming)) {

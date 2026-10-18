@@ -202,13 +202,8 @@ export function validateTournamentImportPayload(
         pending.push(resultPending(input.identity, result, validated.reasons))
       }
     }
-    const rankCounts = new Map<number, number>()
     const idCounts = new Map<string, number>()
     for (const candidate of candidates) {
-      rankCounts.set(
-        candidate.result.rank,
-        (rankCounts.get(candidate.result.rank) ?? 0) + 1,
-      )
       idCounts.set(
         candidate.result.id,
         (idCounts.get(candidate.result.id) ?? 0) + 1,
@@ -217,9 +212,6 @@ export function validateTournamentImportPayload(
     const validResults: TournamentResult[] = []
     for (const candidate of candidates) {
       const reasons: TournamentPendingReason[] = []
-      if ((rankCounts.get(candidate.result.rank) ?? 0) > 1) {
-        reasons.push('duplicate-rank')
-      }
       if ((idCounts.get(candidate.result.id) ?? 0) > 1) {
         reasons.push('duplicate-result')
       }

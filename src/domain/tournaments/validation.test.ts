@@ -173,7 +173,7 @@ describe('validateTournamentImportPayload', () => {
     ).toBe(true)
   })
 
-  it('isolates every result participating in a duplicate rank', () => {
+  it('accepts distinct Results that share an official rank', () => {
     const checked = validate(
       payload([
         event({
@@ -181,12 +181,11 @@ describe('validateTournamentImportPayload', () => {
         }),
       ]),
     )
-    expect(checked.events).toEqual([])
+    expect(checked.pending).toEqual([])
+    expect(checked.events[0]?.results.map((item) => item.rank)).toEqual([1, 1])
     expect(
-      checked.pending.filter((item) =>
-        item.reasonCodes.includes('duplicate-rank'),
-      ),
-    ).toHaveLength(2)
+      new Set(checked.events[0]?.results.map((item) => item.id)).size,
+    ).toBe(2)
   })
 
   it.each([

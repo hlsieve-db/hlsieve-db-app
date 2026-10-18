@@ -96,6 +96,19 @@ describe('mergeTournamentEvents', () => {
     })
   })
 
+  it('merges distinct Results that share an official rank', () => {
+    const incoming = event({
+      results: [result('res-two', 1, 'OSHI-B')],
+    })
+    const merged = mergeTournamentEvents([event()], [incoming])
+
+    expect(merged.pending).toEqual([])
+    expect(merged.events[0]?.results).toEqual([
+      result('res-one', 1),
+      result('res-two', 1, 'OSHI-B'),
+    ])
+  })
+
   it('adopts participantCount when the existing Event omits it', () => {
     const existing = event({ participantCount: undefined })
     const incoming = event({ participantCount: 60 })

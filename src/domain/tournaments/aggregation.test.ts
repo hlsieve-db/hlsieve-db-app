@@ -315,10 +315,6 @@ describe('aggregateTournamentIndex', () => {
       'Duplicate Tournament Result ID',
     ],
     [
-      index([event('event', [result(1, 'A', 'one'), result(1, 'B', 'two')])]),
-      'Duplicate Tournament Result rank',
-    ],
-    [
       index([event('event', [result(0, 'A')])]),
       'Invalid Tournament Result rank',
     ],
@@ -338,6 +334,28 @@ describe('aggregateTournamentIndex', () => {
     ],
   ])('rejects structurally ambiguous input %#', (source, message) => {
     expect(() => aggregateTournamentIndex(source)).toThrow(message)
+  })
+
+  it('counts every distinct tied winner while counting the Event once', () => {
+    const aggregated = aggregateTournamentIndex(
+      index([
+        event('tied-winners', [
+          result(1, 'OSHI-A', 'winner-a'),
+          result(1, 'OSHI-B', 'winner-b'),
+          result(3, 'OSHI-C', 'third'),
+        ]),
+      ]),
+    )
+
+    expect(aggregated.summary).toMatchObject({
+      eligibleWinnerEvents: 1,
+      winnerResultCount: 2,
+      placementResultCount: 3,
+    })
+    expect(aggregated.groups[0]?.winners.entries).toEqual([
+      { oshiCardNumber: 'OSHI-A', count: 1, percentage: 50 },
+      { oshiCardNumber: 'OSHI-B', count: 1, percentage: 50 },
+    ])
   })
 
   it('accepts rank above 8 and keeps top-level summaries equal to group sums', () => {

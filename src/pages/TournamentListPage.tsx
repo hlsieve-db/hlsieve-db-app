@@ -396,8 +396,14 @@ export function TournamentListPage({
                     (result) => result.rank === 1,
                   )
                   const winnerOshiName =
-                    winners.length === 1 && oshiState.status === 'loaded'
-                      ? oshiState.data.cards[winners[0]!.oshiCardNumber]?.name
+                    winners.length > 0 && oshiState.status === 'loaded'
+                      ? winners
+                          .map(
+                            (winner) =>
+                              oshiState.data.cards[winner.oshiCardNumber]
+                                ?.name ?? winner.oshiCardNumber,
+                          )
+                          .join('／')
                       : undefined
                   return (
                     <TournamentEventRow

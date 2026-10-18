@@ -155,7 +155,7 @@ describe('TournamentListPage', () => {
     expect(screen.queryByRole('img')).toBeNull()
   })
 
-  it('does not choose an arbitrary winner when invalid data has duplicate rank 1', async () => {
+  it('shows every official winner when distinct Results share rank 1', async () => {
     const first = SYNTHETIC_TOURNAMENT_INDEX.events[0]!
     renderPage({
       index: {
@@ -176,8 +176,9 @@ describe('TournamentListPage', () => {
       })
     ).closest('tr')
     expect(row).not.toBeNull()
-    expect(within(row!).getAllByText('—')).not.toHaveLength(0)
-    expect(within(row!).queryByText('Synthetic Oshi')).toBeNull()
+    expect(
+      within(row!).getByText('Synthetic Oshi／Synthetic Oshi'),
+    ).toBeVisible()
   })
 
   it('keeps filters and result count outside the table scroll region', async () => {

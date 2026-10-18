@@ -103,7 +103,6 @@ function validateIndex(index: TournamentIndexFile): void {
     eventIds.add(event.id)
 
     const resultIds = new Set<string>()
-    const ranks = new Set<number>()
     for (const result of event.results) {
       if (!Number.isSafeInteger(result.rank) || result.rank <= 0) {
         throw new Error(`Invalid Tournament Result rank: ${result.id}`)
@@ -111,14 +110,10 @@ function validateIndex(index: TournamentIndexFile): void {
       if (resultIds.has(result.id)) {
         throw new Error(`Duplicate Tournament Result ID: ${result.id}`)
       }
-      if (ranks.has(result.rank)) {
-        throw new Error(`Duplicate Tournament Result rank: ${result.rank}`)
-      }
       if (event.resultCoverage.kind === 'winner-only' && result.rank !== 1) {
         throw new Error('Winner-only Tournament contains a non-winner Result.')
       }
       resultIds.add(result.id)
-      ranks.add(result.rank)
     }
   }
 }
@@ -242,11 +237,13 @@ export function aggregateSelectedTournamentEvents(
     }
 
     group.summary.totalEvents += 1
-    const winner = event.results.find((result) => result.rank === 1)
-    if (winner) {
+    const winners = event.results.filter((result) => result.rank === 1)
+    if (winners.length > 0) {
       group.summary.eligibleWinnerEvents += 1
-      group.summary.winnerResultCount += 1
-      increment(group.winnerCounts, winner.oshiCardNumber)
+      group.summary.winnerResultCount += winners.length
+      for (const winner of winners) {
+        increment(group.winnerCounts, winner.oshiCardNumber)
+      }
     }
 
     if (event.resultCoverage.kind !== 'winner-only') {
