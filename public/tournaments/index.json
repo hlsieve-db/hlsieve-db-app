@@ -1,9 +1,70 @@
 {
   "format": "hlsieve-tournament-index",
   "formatVersion": 1,
-  "dataVersion": "7f5497f4862c8718",
+  "dataVersion": "896874277f6ffde3",
   "startDate": "2026-09-19",
   "events": [
+    {
+      "id": "evt_3ddbdfa23310fa86",
+      "tournament": {
+        "type": "selectioncup",
+        "environment": "bp09",
+        "seriesName": "【ホロカ】セレクションカップ（2026年10月）"
+      },
+      "date": "2026-10-15",
+      "venue": {
+        "slug": "venue-17da506fe55f849c",
+        "name": "ドラゴンスター秋葉原駅前店"
+      },
+      "participantCount": 27,
+      "resultCoverage": {
+        "kind": "exact",
+        "maxRank": 8
+      },
+      "resultCount": 8,
+      "results": [
+        {
+          "id": "res_f8e9a39140a21c45",
+          "rank": 1,
+          "oshiCardNumber": "hBP09-004"
+        },
+        {
+          "id": "res_483e522c86fc84d0",
+          "rank": 2,
+          "oshiCardNumber": "hBP09-007"
+        },
+        {
+          "id": "res_0a33d6bcae95df20",
+          "rank": 3,
+          "oshiCardNumber": "hBP09-007"
+        },
+        {
+          "id": "res_a17006b7f97b9063",
+          "rank": 4,
+          "oshiCardNumber": "hBP08-003"
+        },
+        {
+          "id": "res_d54f0a18806e817c",
+          "rank": 5,
+          "oshiCardNumber": "hBP09-003"
+        },
+        {
+          "id": "res_f23f5a29a2cbad2d",
+          "rank": 6,
+          "oshiCardNumber": "hBP09-004"
+        },
+        {
+          "id": "res_e0acad665fbad072",
+          "rank": 7,
+          "oshiCardNumber": "hBP09-005"
+        },
+        {
+          "id": "res_460976002331c034",
+          "rank": 8,
+          "oshiCardNumber": "hBP09-001"
+        }
+      ]
+    },
     {
       "id": "evt_4ba64dc6da5d7942",
       "tournament": {
