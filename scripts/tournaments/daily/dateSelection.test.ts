@@ -66,6 +66,29 @@ describe('Daily Tournament date selection', () => {
     expect(probe).not.toHaveBeenCalled()
   })
 
+  it('selects due Events from the configured overlap and leaves older Events queued', async () => {
+    const probe = vi.fn()
+    await expect(
+      selectDueTournamentEventsForDate({
+        records: [
+          queued('target', '2026-10-04'),
+          queued('overlap', '2026-10-02'),
+          queued('older', '2026-10-01'),
+        ],
+        targetDate: '2026-10-04',
+        eligibleDates: ['2026-10-02', '2026-10-03', '2026-10-04'],
+        now: NOW,
+        probe,
+        persist: vi.fn(),
+      }),
+    ).resolves.toEqual({
+      selected: ['target', 'overlap'],
+      unselected: ['older'],
+      probed: [],
+    })
+    expect(probe).not.toHaveBeenCalled()
+  })
+
   it('does not trust an unverified human-supplied date', async () => {
     const record = {
       ...queued('1'),

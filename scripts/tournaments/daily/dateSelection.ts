@@ -11,6 +11,7 @@ export type TournamentDateProbeResult = {
 export async function selectDueTournamentEventsForDate(options: {
   records: readonly TournamentQueueRecord[]
   targetDate: string
+  eligibleDates?: readonly string[]
   now: string
   probe: (sourceEventId: string) => Promise<TournamentDateProbeResult>
   persist: (sourceEventId: string, eventDate: string) => Promise<void>
@@ -18,6 +19,8 @@ export async function selectDueTournamentEventsForDate(options: {
   const selected: string[] = []
   const unselected: string[] = []
   const probed: string[] = []
+  const eligibleDates = new Set(options.eligibleDates ?? [options.targetDate])
+  eligibleDates.add(options.targetDate)
   for (const record of options.records) {
     if (!isTournamentQueueRecordDue(record, options.now)) continue
     let eventDate = record.eventDate
@@ -33,7 +36,7 @@ export async function selectDueTournamentEventsForDate(options: {
       await options.persist(record.sourceEventId, eventDate)
       probed.push(record.sourceEventId)
     }
-    const destination = eventDate === options.targetDate ? selected : unselected
+    const destination = eligibleDates.has(eventDate) ? selected : unselected
     destination.push(record.sourceEventId)
   }
   return { selected, unselected, probed }

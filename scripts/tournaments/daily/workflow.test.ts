@@ -157,6 +157,35 @@ describe('Tournament Daily workflow', () => {
     expect(deps.transitionPublished).toHaveBeenCalledWith('1', 'evt_1')
     expect(deps.production).toHaveBeenCalledTimes(1)
   })
+  it('publishes a past-date ready Event selected from the current overlap run', async () => {
+    const deps = dependencies(queue([['2', 'ready']]))
+    vi.mocked(deps.processDue).mockResolvedValue({
+      selected: ['2'],
+      processed: ['2'],
+      discovery: {
+        status: 'ok',
+        attempted: 12,
+        observed: 12,
+        zero: 11,
+        saturated: 0,
+        failed: 0,
+        challenge: 0,
+        added: 1,
+        existing: 0,
+      },
+    })
+
+    const result = await runDailyWorkflow(
+      { targetDate: '2026-10-04', dryRun: false },
+      deps,
+    )
+
+    expect(result.ready).toEqual(['2'])
+    expect(result.published).toEqual(['2'])
+    expect(deps.publish).toHaveBeenNthCalledWith(1, ['2'], false)
+    expect(deps.publish).toHaveBeenNthCalledWith(2, ['2'], true)
+    expect(deps.transitionPublished).toHaveBeenCalledWith('2', 'evt_2')
+  })
   it('never writes, commits, pushes, or transitions during a dry-run', async () => {
     const deps = dependencies(queue([['1', 'ready']]))
     await runDailyWorkflow({ targetDate: '2026-10-04', dryRun: true }, deps)

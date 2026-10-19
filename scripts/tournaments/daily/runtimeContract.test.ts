@@ -16,6 +16,7 @@ describe('Tournament Daily runtime contract', () => {
     expect(daily).toContain("'tournaments:queue'")
     expect(daily).toContain('runTournamentDailyDiscoveryPhase')
     expect(daily).toContain('createOverlapDates(options.targetDate)')
+    expect(daily).toContain('eligibleDates: overlapDates')
     expect(daily).toContain('chromium.launch({ headless: false })')
     expect(daily).not.toContain('headless: true')
     expect(daily).toContain('let selectedEventIds: string[]')

@@ -90,6 +90,7 @@ try {
   const summary = await runDailyWorkflow(options, {
     assertGitStart: async () => gitStart,
     processDue: async () => {
+      const overlapDates = createOverlapDates(options.targetDate)
       const discoveredAt = new Date().toISOString()
       const discoveryPhase = await runTournamentDailyDiscoveryPhase({
         discover: async () => {
@@ -101,7 +102,7 @@ try {
               seriesIds: TOURNAMENT_SERIES_CONFIGS.map(
                 (series) => series.seriesId,
               ),
-              dates: createOverlapDates(options.targetDate),
+              dates: overlapDates,
               mode: 'daily',
               resultCountChangedRetries: 2,
             })
@@ -131,6 +132,7 @@ try {
         const selection = await selectDueTournamentEventsForDate({
           records: before.records,
           targetDate: options.targetDate,
+          eligibleDates: overlapDates,
           now: new Date().toISOString(),
           probe: async (sourceEventId) => {
             browser ??= await chromium.launch({ headless: false })
@@ -165,7 +167,7 @@ try {
           candidate.status === 'ready',
       )) {
         const artifact = await artifacts.load(record.sourceEventId, cardsData)
-        if (artifact.event.date !== options.targetDate) {
+        if (artifact.event.date !== record.eventDate) {
           await repository.transition(record.sourceEventId, 'needs-review', {
             errorCode: 'event-date-mismatch',
           })

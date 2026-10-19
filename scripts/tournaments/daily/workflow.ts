@@ -124,8 +124,10 @@ export async function runDailyWorkflow(
   const readyArtifacts = await Promise.all(
     byStatus(queue, 'ready').map((id) => deps.loadArtifact(id)),
   )
+  const selected = new Set(processResult.selected)
   const targets = readyArtifacts.filter(
-    ({ event }) => event.date === options.targetDate,
+    ({ sourceEventId, event }) =>
+      event.date === options.targetDate || selected.has(sourceEventId),
   )
   const ready = targets.map(({ sourceEventId }) => sourceEventId)
   const waiting = byStatus(queue, 'waiting-result')
