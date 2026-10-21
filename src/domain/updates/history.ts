@@ -3,6 +3,24 @@ import type { CardDataUpdateEntry } from './types'
 // Add only reviewed, actually published updates. Do not infer historical entries.
 export const CARD_DATA_UPDATE_HISTORY: readonly CardDataUpdateEntry[] = [
   {
+    id: 'card-data-2026-10-21',
+    publishedAt: '2026-10-21',
+    cardsDataVersion:
+      'sha256:772677875c7f04652ff7e1a04e32866c25cddf2330e8d2722187b2bf12effeb7',
+    printingsDataVersion:
+      'sha256:30fcc4c9b04c011afcbba57cec4305e7601176f07aeed0d721088fa6a183f944',
+    summary: '公式カード情報を更新しました',
+    addedCards: 0,
+    changedCards: 694,
+    removedCards: 0,
+    addedPrintings: 21,
+    removedPrintings: 0,
+    notes: [
+      'エクストリーマーカップ25-26 Finalのパラレルカード21種を追加しました。',
+      '公式カードリストの商品分類更新を反映しました。',
+    ],
+  },
+  {
     id: 'card-data-2026-10-05',
     publishedAt: '2026-10-05',
     cardsDataVersion:

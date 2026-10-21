@@ -51,6 +51,16 @@ describe('getOriginalNonParallelImageUrl', () => {
     expect(
       PRODUCT_RELEASE_DATES['ブースターパック「ボリュームヴォルテックス」'],
     ).toBe('2026-09-19')
+    expect(
+      PRODUCT_RELEASE_DATES[
+        'エクストリーマーカップ25-26 Final オフィシャルホロカコレクションA'
+      ],
+    ).toBe('2026-10-30')
+    expect(
+      PRODUCT_RELEASE_DATES[
+        'エクストリーマーカップ25-26 Final オフィシャルホロカコレクションB'
+      ],
+    ).toBe('2026-10-30')
   })
 
   it('uses the only non-parallel printing', () => {

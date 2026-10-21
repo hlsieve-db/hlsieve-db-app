@@ -53,12 +53,12 @@ describe('the Selection Cup pool in the published data', () => {
   it('holds what each product contributes', () => {
     expect(cardsIn(BOUNCER)).toHaveLength(127)
     expect(cardsIn(SUMMER)).toHaveLength(114)
-    expect(cardsIn(VOLUME)).toHaveLength(129)
+    expect(cardsIn(VOLUME)).toHaveLength(131)
   })
 
   // The number the definition carries, checked against the data it describes.
   it('holds exactly the number of cards the definition expects', () => {
-    expect(pool?.expectedCardCount).toBe(370)
+    expect(pool?.expectedCardCount).toBe(372)
     expect(allowed?.size).toBe(pool?.expectedCardCount)
   })
 
@@ -77,7 +77,7 @@ describe('the Selection Cup pool in the published data', () => {
   it('holds the sections the official rules restrict', () => {
     const sections = cardsInPool().map((card) => getDeckZone(card))
     expect(sections.filter((section) => section === 'oshi')).toHaveLength(17)
-    expect(sections.filter((section) => section === 'main')).toHaveLength(329)
+    expect(sections.filter((section) => section === 'main')).toHaveLength(331)
     expect(sections.filter((section) => section === 'cheer')).toHaveLength(24)
   })
 
@@ -183,7 +183,7 @@ describe('the Selection Cup pool in the published data', () => {
       '【使用可能カード】hGS 2026 大阪 セレクションロード',
     )
     const osaka = cardsIn('【使用可能カード】hGS 2026 大阪 セレクションロード')
-    expect(osaka).toHaveLength(683)
+    expect(osaka).toHaveLength(0)
     expect(allowed?.size).not.toBe(osaka.length)
   })
 

@@ -55,6 +55,9 @@ const AUDITED_CARD_FIELDS = [
 
 const EFFECT_TAGS = Object.keys(EFFECT_TAG_LABELS) as EffectTag[]
 const EXPECTED_IMAGE_HOST = 'hololive-official-cardgame.com'
+const REVIEWED_RETIRED_PRODUCT_ASSOCIATIONS = new Set([
+  '【使用可能カード】hGS 2026 大阪 セレクションロード',
+])
 
 function sha256(text: string): string {
   return createHash('sha256').update(text, 'utf8').digest('hex')
@@ -96,6 +99,30 @@ function countProductAssociations(data: CardPrintingsDataFile): number {
   return Object.values(data.cards)
     .flatMap((group) => group.printings)
     .reduce((total, printing) => total + printing.products.length, 0)
+}
+
+function hasUnreviewedProductAssociationDecrease(
+  baseline: CardPrintingsDataFile,
+  candidate: CardPrintingsDataFile,
+): boolean {
+  const counts = (data: CardPrintingsDataFile) => {
+    const result = new Map<string, number>()
+    for (const group of Object.values(data.cards)) {
+      for (const printing of group.printings) {
+        for (const product of printing.products) {
+          result.set(product, (result.get(product) ?? 0) + 1)
+        }
+      }
+    }
+    return result
+  }
+  const oldCounts = counts(baseline)
+  const nextCounts = counts(candidate)
+  return [...oldCounts].some(
+    ([product, oldCount]) =>
+      (nextCounts.get(product) ?? 0) < oldCount &&
+      !REVIEWED_RETIRED_PRODUCT_ASSOCIATIONS.has(product),
+  )
 }
 
 function cardChanges(
@@ -630,7 +657,13 @@ export function auditProductionUpdate(
       `New chronology gaps: ${newlyMissingDates.length} product date(s), ${newlyAmbiguous.length} ambiguous Card(s).`,
     )
   }
-  if (preliminary.printings.productAssociations.delta < 0) {
+  if (
+    preliminary.printings.productAssociations.delta < 0 &&
+    hasUnreviewedProductAssociationDecrease(
+      baselinePrintings,
+      candidatePrintings,
+    )
+  ) {
     addMessage(
       warnings,
       'PRODUCT_ASSOCIATION_DECREASE',

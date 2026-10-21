@@ -194,11 +194,59 @@ describe('production Card update audit', () => {
     expect(report.summary.printings.delta).toBe(1)
   }, 15_000)
 
+  it('accepts removal of the reviewed retired product association only', () => {
+    const retired = '【使用可能カード】hGS 2026 大阪 セレクションロード'
+    const cards = buildCards(
+      baselineCards.cards.map((card) => ({
+        ...card,
+        products: card.products.filter((product) => product !== retired),
+      })),
+    )
+    const groups = structuredClone(baselinePrintings.cards)
+    for (const group of Object.values(groups)) {
+      for (const printing of group.printings) {
+        printing.products = printing.products.filter(
+          (product) => product !== retired,
+        )
+      }
+    }
+
+    const report = auditProductionUpdate(
+      input(cards, buildPrintings(cards, groups)),
+    )
+
+    expect(report.status).toBe('safe')
+    expect(report.warnings.map((item) => item.code)).not.toContain(
+      'PRODUCT_ASSOCIATION_DECREASE',
+    )
+  }, 15_000)
+
+  it('still requires review for another product association decrease', () => {
+    const retired = '【使用可能カード】hGS 2026 大阪 セレクションロード'
+    const groups = structuredClone(baselinePrintings.cards)
+    const printing = Object.values(groups)
+      .flatMap((group) => group.printings)
+      .find((value) => value.products.some((product) => product !== retired))!
+    const removed = printing.products.find((product) => product !== retired)!
+    printing.products = printing.products.filter(
+      (product) => product !== removed,
+    )
+
+    const report = auditProductionUpdate(
+      input(baselineCards, buildPrintings(baselineCards, groups)),
+    )
+
+    expect(report.status).toBe('review_required')
+    expect(report.warnings.map((item) => item.code)).toContain(
+      'PRODUCT_ASSOCIATION_DECREASE',
+    )
+  }, 15_000)
+
   it('reports PRカード as intentionally without a single date, not unknown', () => {
     const report = auditProductionUpdate(input())
 
     expect(report.chronology).toMatchObject({
-      products: 38,
+      products: 39,
       missingProductReleaseDates: [],
       intentionallyNoSingleReleaseDate: [
         '【使用可能カード】セレクションカップ',
