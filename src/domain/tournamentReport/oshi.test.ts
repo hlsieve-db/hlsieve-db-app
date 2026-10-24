@@ -205,9 +205,9 @@ const candidates = getOshiCandidates(productionCards)
 
 describe('production Oshi candidate ordering', () => {
   it('keeps every logical Oshi candidate without truncating or merging', () => {
-    expect(candidates).toHaveLength(162)
-    expect(new Set(candidates.map((card) => card.cardNumber)).size).toBe(162)
-    expect(new Set(candidates.map((card) => card.name)).size).toBe(69)
+    expect(candidates).toHaveLength(164)
+    expect(new Set(candidates.map((card) => card.cardNumber)).size).toBe(164)
+    expect(new Set(candidates.map((card) => card.name)).size).toBe(71)
   })
 
   it('returns the candidates in Japanese reading order', () => {

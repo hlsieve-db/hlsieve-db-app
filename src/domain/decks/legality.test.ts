@@ -342,8 +342,8 @@ describe('published deckLimit audit', () => {
       Object.hasOwn(candidate, 'deckLimit'),
     )
 
-    expect(data.cards).toHaveLength(1387)
-    expect(withDeckLimit).toHaveLength(68)
+    expect(data.cards).toHaveLength(1409)
+    expect(withDeckLimit).toHaveLength(71)
     expect(
       new Set(withDeckLimit.map((candidate) => candidate.deckLimit)),
     ).toEqual(new Set([null]))

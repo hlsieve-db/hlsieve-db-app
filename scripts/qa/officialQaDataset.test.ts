@@ -10,7 +10,7 @@ import { buildOfficialQaSearchIndex } from '../../src/domain/qa/officialQaSearch
 import { searchCards } from '../../src/domain/search/searchCards'
 
 describe('production official Q&A dataset', () => {
-  it('builds 655 conflict-free unique records from 911 card occurrences', async () => {
+  it('builds 661 conflict-free unique records from 919 card occurrences', async () => {
     const data = JSON.parse(
       await readFile(resolve('public', 'cards.json'), 'utf8'),
     ) as CardsDataFile
@@ -33,9 +33,9 @@ describe('production official Q&A dataset', () => {
     }
 
     const index = buildOfficialQaSearchIndex(data.cards)
-    expect(occurrences).toBe(911)
-    expect(index).toHaveLength(655)
-    expect(new Set(index.map(({ id }) => id))).toHaveProperty('size', 655)
+    expect(occurrences).toBe(919)
+    expect(index).toHaveLength(661)
+    expect(new Set(index.map(({ id }) => id))).toHaveProperty('size', 661)
   })
 
   it('finds hSD16-007 by its official Q&A only when Q&A search is enabled', async () => {

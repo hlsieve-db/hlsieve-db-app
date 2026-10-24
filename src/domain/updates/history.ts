@@ -3,6 +3,24 @@ import type { CardDataUpdateEntry } from './types'
 // Add only reviewed, actually published updates. Do not infer historical entries.
 export const CARD_DATA_UPDATE_HISTORY: readonly CardDataUpdateEntry[] = [
   {
+    id: 'card-data-2026-10-24',
+    publishedAt: '2026-10-24',
+    cardsDataVersion:
+      'sha256:8500a607759083a4a16220e619dae5590b674be939ec1256aad7fa14728dc599',
+    printingsDataVersion:
+      'sha256:e23422066c2a361c71986f165f0d76a8c5b80d0552ad03090f011668a8181a8e',
+    summary: '公式カード情報を更新しました',
+    addedCards: 22,
+    changedCards: 14,
+    removedCards: 0,
+    addedPrintings: 36,
+    removedPrintings: 0,
+    notes: [
+      '10月30日発売のスタートデッキ2商品のカード22枚を追加しました。',
+      '公式カードリストの商品分類・イラストレーター・Q&A情報を更新しました。',
+    ],
+  },
+  {
     id: 'card-data-2026-10-21',
     publishedAt: '2026-10-21',
     cardsDataVersion:

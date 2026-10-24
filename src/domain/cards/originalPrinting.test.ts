@@ -61,6 +61,14 @@ describe('getOriginalNonParallelImageUrl', () => {
         'エクストリーマーカップ25-26 Final オフィシャルホロカコレクションB'
       ],
     ).toBe('2026-10-30')
+    expect(
+      PRODUCT_RELEASE_DATES['スタートデッキ アソビ★まわり隊！推し 熱千めら'],
+    ).toBe('2026-10-30')
+    expect(
+      PRODUCT_RELEASE_DATES[
+        'スタートデッキ アソビ★まわり隊！推し 百灯キョーコ'
+      ],
+    ).toBe('2026-10-30')
   })
 
   it('uses the only non-parallel printing', () => {

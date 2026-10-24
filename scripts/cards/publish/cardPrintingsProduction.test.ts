@@ -67,7 +67,7 @@ describe('production card printing snapshot', () => {
     const secondTurnOneCards = cardsValidation.value.cards.filter((card) =>
       card.effectTags.includes('second_turn_one'),
     )
-    expect(secondTurnOneCards).toHaveLength(52)
+    expect(secondTurnOneCards).toHaveLength(54)
     expect(
       secondTurnOneCards.every((card) =>
         card.abilities.some(

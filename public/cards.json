@@ -1,8 +1,8 @@
 {
   "format": "holocard-cards",
   "formatVersion": 1,
-  "dataVersion": "sha256:772677875c7f04652ff7e1a04e32866c25cddf2330e8d2722187b2bf12effeb7",
-  "generatedAt": "2026-10-21T12:10:58.669Z",
+  "dataVersion": "sha256:8500a607759083a4a16220e619dae5590b674be939ec1256aad7fa14728dc599",
+  "generatedAt": "2026-10-24T01:28:21.353Z",
   "cards": [
     {
       "cardNumber": "hBD24-001",
@@ -40411,9 +40411,9 @@
         "ブースターパック「エンチャントレガリア」"
       ],
       "illustrators": [
+        "じっぽ",
         "Hyde",
         "risumi",
-        "じっぽ",
         "たうた",
         "六九導イツキ"
       ],
@@ -40422,7 +40422,7 @@
           "id": "Q470",
           "question": "hBP05-074〈フレンドリーパソコン〉は、自分の手札がこのカードのみの場合でも「このホロメンはデッキに何枚でも入れられる」を持つDebutホロメン２枚をステージに出すことはできますか？",
           "answer": "はい、できます。",
-          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3014#faq",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3017#faq",
           "publishedAt": "2025-09-12",
           "relatedCardNumbers": [
             "hBP05-074"
@@ -40431,7 +40431,7 @@
       ],
       "releaseDate": "2025-09-19",
       "searchText": "ふれんどりーぱそこん hbp05-074 自分のでっきから、えくすとら「このほろめんはでっきに何枚でも入れられる」を持つdebutほろめん1~2枚をすてーじに出す。そしてでっきをしゃっふるする。debutほろめんを2枚出したなら、さらに、自分の手札1枚をでっきの下に戻す。 hbp05-074〈ふれんどりーぱそこん〉は、自分の手札がこのかーどのみの場合でも「このほろめんはでっきに何枚でも入れられる」を持つdebutほろめん2枚をすてーじに出すことはできますか? はい、できます。",
-      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3014"
+      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3017"
     },
     {
       "cardNumber": "hBP05-075",
@@ -64971,15 +64971,18 @@
         "blue"
       ],
       "rarities": [
+        "P",
         "SR",
         "UR",
         "RR"
       ],
       "products": [
-        "ブースターパック「ボリュームヴォルテックス」",
-        "【使用可能カード】セレクションカップ"
+        "PRカード",
+        "【使用可能カード】セレクションカップ",
+        "ブースターパック「ボリュームヴォルテックス」"
       ],
       "illustrators": [
+        "はまなし",
         "EEJU"
       ],
       "qas": [
@@ -64987,7 +64990,7 @@
           "id": "Q750",
           "question": "自分のステージにhBP09-029〈白銀ノエル〉が2人いる時、hBP09-104〈ホロライブ体力王決定戦〉を使いました。\nその後、1人をhBP09-031〈白銀ノエル〉にBloomさせた場合、どちらもアーツ+30されたままですか？",
           "answer": "はい、使った後にHPの変動があった場合でも変化はありません。",
-          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2878#faq",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3015#faq",
           "publishedAt": "2026-09-11",
           "relatedCardNumbers": [
             "hBP09-029",
@@ -64998,7 +65001,7 @@
       ],
       "releaseDate": "2026-09-19",
       "searchText": "白銀のえる hbp09-031 しろがねのえる 究極の牛丼道 [たーんに1回]このほろめんが〈牛丼〉の能力で回復するhp+100。 牛丼は~飲み物! 自分の推しほろめんが〈白銀のえる〉で、このほろめんの残りhpが200以上なら、このあーつ+200。 自分のすてーじにhbp09-029〈白銀のえる〉が2人いる時、hbp09-104〈ほろらいぶ体力王決定戦〉を使いました。 その後、1人をhbp09-031〈白銀のえる〉にbloomさせた場合、どちらもあーつ+30されたままですか? はい、使った後にhpの変動があった場合でも変化はありません。",
-      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2878"
+      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3015"
     },
     {
       "cardNumber": "hBP09-032",
@@ -68948,20 +68951,23 @@
       ],
       "criticalColors": [],
       "rarities": [
+        "P",
         "SR",
         "R"
       ],
       "products": [
-        "ブースターパック「ボリュームヴォルテックス」",
-        "【使用可能カード】セレクションカップ"
+        "PRカード",
+        "【使用可能カード】セレクションカップ",
+        "ブースターパック「ボリュームヴォルテックス」"
       ],
       "illustrators": [
+        "小二病",
         "MyungYi"
       ],
       "qas": [],
       "releaseDate": "2026-09-19",
       "searchText": "夏色まつり hbp09-086 なついろまつり おまつり騒ぎ 自分の推しほろめんが〈夏色まつり〉なら、自分のでっきの上から5枚を見る。その中から、limitedのさぽーと1枚を公開し、手札に加える。そして残ったかーどを好きな順ででっきの下に戻す。 太鼓でわっしょーい!",
-      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2902"
+      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3016"
     },
     {
       "cardNumber": "hBP09-087",
@@ -71986,11 +71992,13 @@
       ],
       "criticalColors": [],
       "rarities": [
+        "P",
         "C"
       ],
       "products": [
-        "エクストラブースター サマー・ホログラム",
-        "【使用可能カード】セレクションカップ"
+        "PRカード",
+        "【使用可能カード】セレクションカップ",
+        "エクストラブースター サマー・ホログラム"
       ],
       "illustrators": [
         "ソンシル"
@@ -71998,7 +72006,7 @@
       "qas": [],
       "releaseDate": "2026-08-21",
       "searchText": "さまーぱそこん heb01-025 自分のらいふが2以上なら、自分のでっきから、#さまーを持つdebutほろめん1枚をすてーじに出す。そしてでっきをしゃっふるする。自分のらいふが1なら、自分のでっきから、#さまーを持つほろめん1枚を公開し、手札に加える。そしてでっきをしゃっふるする。",
-      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2500"
+      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3018"
     },
     {
       "cardNumber": "hEB01-026",
@@ -72025,11 +72033,13 @@
       ],
       "criticalColors": [],
       "rarities": [
+        "P",
         "U"
       ],
       "products": [
-        "エクストラブースター サマー・ホログラム",
-        "【使用可能カード】セレクションカップ"
+        "PRカード",
+        "【使用可能カード】セレクションカップ",
+        "エクストラブースター サマー・ホログラム"
       ],
       "illustrators": [
         "はたほまめ"
@@ -72039,7 +72049,7 @@
           "id": "Q700",
           "question": "hEB01-026〈クマリン〉の能力で、〈宝鐘マリン〉を公開した場合、デッキの下に戻さないことはできますか？",
           "answer": "いいえ、できません。\n公開した場合、必ずデッキの下に戻し、2枚引きます。",
-          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2501#faq",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3019#faq",
           "publishedAt": "2026-08-17",
           "relatedCardNumbers": [
             "hEB01-026"
@@ -72049,7 +72059,7 @@
           "id": "Q699",
           "question": "自分のデッキが0枚の時、hEB01-026〈クマリン〉の能力で、手札の〈宝鐘マリン〉を公開し、デッキの下に戻した後、デッキを1枚引くことはできますか？",
           "answer": "はい、できます。",
-          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2501#faq",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3019#faq",
           "publishedAt": "2026-08-17",
           "relatedCardNumbers": [
             "hEB01-026"
@@ -72058,7 +72068,7 @@
       ],
       "releaseDate": "2026-08-21",
       "searchText": "くまりん heb01-026 このかーどは、自分の推しほろめんが〈宝鐘まりん〉でなければ使えない。 自分のでっきを2枚引く。その後、自分の手札の〈宝鐘まりん〉1枚を公開し、でっきの下に戻せる。戻したなら、自分のでっきを2枚引く。 limited:たーんに1枚しか使えない。 heb01-026〈くまりん〉の能力で、〈宝鐘まりん〉を公開した場合、でっきの下に戻さないことはできますか? いいえ、できません。 公開した場合、必ずでっきの下に戻し、2枚引きます。 自分のでっきが0枚の時、heb01-026〈くまりん〉の能力で、手札の〈宝鐘まりん〉を公開し、でっきの下に戻した後、でっきを1枚引くことはできますか? はい、できます。",
-      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2501"
+      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3019"
     },
     {
       "cardNumber": "hEB01-027",
@@ -72087,11 +72097,13 @@
       ],
       "criticalColors": [],
       "rarities": [
+        "P",
         "C"
       ],
       "products": [
-        "エクストラブースター サマー・ホログラム",
-        "【使用可能カード】セレクションカップ"
+        "PRカード",
+        "【使用可能カード】セレクションカップ",
+        "エクストラブースター サマー・ホログラム"
       ],
       "illustrators": [
         "みゃーこ"
@@ -72101,7 +72113,7 @@
           "id": "Q701",
           "question": "hEB01-027〈サマーライブ〉の能力で、自分の#サマーを持たないホロメンに、アーカイブからエールを送ることはできますか？",
           "answer": "はい、できます。",
-          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2502#faq",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3020#faq",
           "publishedAt": "2026-08-17",
           "relatedCardNumbers": [
             "hEB01-027"
@@ -72110,7 +72122,7 @@
       ],
       "releaseDate": "2026-08-21",
       "searchText": "さまーらいぶ heb01-027 このたーんの間、自分のすてーじの#さまーを持つほろめん全員のあーつ+30。その後、自分のあーかいぶのえーる1枚を自分のほろめんに送る。 limited:たーんに1枚しか使えない。 heb01-027〈さまーらいぶ〉の能力で、自分の#さまーを持たないほろめんに、あーかいぶからえーるを送ることはできますか? はい、できます。",
-      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2502"
+      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3020"
     },
     {
       "cardNumber": "hEB01-028",
@@ -72138,11 +72150,13 @@
       ],
       "criticalColors": [],
       "rarities": [
+        "P",
         "C"
       ],
       "products": [
-        "エクストラブースター サマー・ホログラム",
-        "【使用可能カード】セレクションカップ"
+        "PRカード",
+        "【使用可能カード】セレクションカップ",
+        "エクストラブースター サマー・ホログラム"
       ],
       "illustrators": [
         "Haる"
@@ -72150,7 +72164,7 @@
       "qas": [],
       "releaseDate": "2026-08-21",
       "searchText": "すいか割り heb01-028 自分のすてーじの2ndほろめん1人を選ぶ。このたーんの間、選んだほろめんのあーつ+30し、そのほろめんがあーつだめーじでほろめんをだうんさせた時、自分のでっきを2枚引く。 limited:たーんに1枚しか使えない。",
-      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2503"
+      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3021"
     },
     {
       "cardNumber": "hEB01-029",
@@ -72177,11 +72191,13 @@
       ],
       "criticalColors": [],
       "rarities": [
+        "P",
         "C"
       ],
       "products": [
-        "エクストラブースター サマー・ホログラム",
-        "【使用可能カード】セレクションカップ"
+        "PRカード",
+        "【使用可能カード】セレクションカップ",
+        "エクストラブースター サマー・ホログラム"
       ],
       "illustrators": [
         "しわ"
@@ -72189,7 +72205,7 @@
       "qas": [],
       "releaseDate": "2026-08-21",
       "searchText": "すぷらっしゅしゅーと heb01-029 このかーどは、自分のせんたーほろめんとこらぼほろめんが#さまーを持つほろめんでなければ使えない。 相手のせんたーほろめんかこらぼほろめんに特殊だめーじ30を与える。 自分の〈すぷらっしゅしゅーと〉はたーんに1回しか使えない。",
-      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2504"
+      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3022"
     },
     {
       "cardNumber": "hEB01-030",
@@ -72217,11 +72233,13 @@
       ],
       "criticalColors": [],
       "rarities": [
+        "P",
         "U"
       ],
       "products": [
-        "エクストラブースター サマー・ホログラム",
-        "【使用可能カード】セレクションカップ"
+        "PRカード",
+        "【使用可能カード】セレクションカップ",
+        "エクストラブースター サマー・ホログラム"
       ],
       "illustrators": [
         "汐張神奈"
@@ -72229,7 +72247,7 @@
       "qas": [],
       "releaseDate": "2026-08-21",
       "searchText": "ほろらいぶ・さまー heb01-030 自分のでっきを2枚引く。その後、自分のすてーじに#さまーを持つほろめんが3人以上いるなら、自分のでっきの上から2枚を見る。その中から1枚を手札に加える。そして残ったかーどをあーかいぶする。 limited:たーんに1枚しか使えない。",
-      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2505"
+      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3023"
     },
     {
       "cardNumber": "hEB01-031",
@@ -72257,11 +72275,13 @@
       ],
       "criticalColors": [],
       "rarities": [
+        "P",
         "C"
       ],
       "products": [
-        "エクストラブースター サマー・ホログラム",
-        "【使用可能カード】セレクションカップ"
+        "PRカード",
+        "【使用可能カード】セレクションカップ",
+        "エクストラブースター サマー・ホログラム"
       ],
       "illustrators": [
         "いかり"
@@ -72269,7 +72289,7 @@
       "qas": [],
       "releaseDate": "2026-08-21",
       "searchText": "水遊び heb01-031 自分のあーかいぶのえーる1枚を自分の#さまーを持つほろめんに送る。",
-      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2506"
+      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3024"
     },
     {
       "cardNumber": "hEB01-032",
@@ -72296,11 +72316,13 @@
       ],
       "criticalColors": [],
       "rarities": [
+        "P",
         "U"
       ],
       "products": [
-        "エクストラブースター サマー・ホログラム",
-        "【使用可能カード】セレクションカップ"
+        "PRカード",
+        "【使用可能カード】セレクションカップ",
+        "エクストラブースター サマー・ホログラム"
       ],
       "illustrators": [
         "おるだん"
@@ -72308,7 +72330,7 @@
       "qas": [],
       "releaseDate": "2026-08-21",
       "searchText": "star star☆t heb01-032 このかーどは、自分の推しほろめんが〈ときのそら〉なら、自分が先攻で最初のたーんでも使える。 自分のでっきを3枚引き、手札1枚をでっきの下に戻す。 limited:たーんに1枚しか使えない。",
-      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2507"
+      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3025"
     },
     {
       "cardNumber": "hEB01-033",
@@ -72335,11 +72357,13 @@
       ],
       "criticalColors": [],
       "rarities": [
+        "P",
         "C"
       ],
       "products": [
-        "エクストラブースター サマー・ホログラム",
-        "【使用可能カード】セレクションカップ"
+        "PRカード",
+        "【使用可能カード】セレクションカップ",
+        "エクストラブースター サマー・ホログラム"
       ],
       "illustrators": [
         "汐張神奈"
@@ -72349,7 +72373,7 @@
           "id": "Q702",
           "question": "hEB01-033〈ビーチボール〉が付いているセンターのhEB01-010〈ときのそら〉がアーツ「振り返れば、いつもあなたが。」を使った時、自分のバックポジションのアクティブな2nd〈ときのそら〉1人をお休みさせました。\nこの場合、アーツダメージを与え、hEB01-033〈ビーチボール〉を自分の#サマーを持つコラボホロメンに付け替えた後に、同じアーツをもう1回使うことはできますか？",
           "answer": "はい、できます。",
-          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2508#faq",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3026#faq",
           "publishedAt": "2026-08-17",
           "relatedCardNumbers": [
             "hEB01-010",
@@ -72359,7 +72383,7 @@
       ],
       "releaseDate": "2026-08-21",
       "searchText": "びーちぼーる heb01-033 このつーるが付いている#さまーを持つほろめんのあーつ+10。 このつーるが付いているほろめんがあーつを使った時、このつーるを自分の#さまーを持つ[せんたーほろめんかこらぼほろめん]に付け替えられる。 つーるは、自分のほろめん1人につき1枚だけ付けられる。 heb01-033〈びーちぼーる〉が付いているせんたーのheb01-010〈ときのそら〉があーつ「振り返れば、いつもあなたが。」を使った時、自分のばっくぽじしょんのあくてぃぶな2nd〈ときのそら〉1人をお休みさせました。 この場合、あーつだめーじを与え、heb01-033〈びーちぼーる〉を自分の#さまーを持つこらぼほろめんに付け替えた後に、同じあーつをもう1回使うことはできますか? はい、できます。",
-      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2508"
+      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3026"
     },
     {
       "cardNumber": "hEB01-034",
@@ -72389,11 +72413,13 @@
       ],
       "criticalColors": [],
       "rarities": [
+        "P",
         "U"
       ],
       "products": [
-        "エクストラブースター サマー・ホログラム",
-        "【使用可能カード】セレクションカップ"
+        "PRカード",
+        "【使用可能カード】セレクションカップ",
+        "エクストラブースター サマー・ホログラム"
       ],
       "illustrators": [
         "BISAI"
@@ -72401,7 +72427,7 @@
       "qas": [],
       "releaseDate": "2026-08-21",
       "searchText": "なんでも爆解! heb01-034 このつーるが付いているほろめんのあーつ+10。 ◆2nd〈博衣こより〉に付いていたら能力追加 [せんたーぽじしょん・こらぼぽじしょん限定]自分のぱふぉーまんすすてっぷが終了する時、このほろめんに付いている〈なんでも爆解!〉1枚をあーかいぶできる:相手のせんたーほろめんに特殊だめーじ30を与える。 つーるは、自分のほろめん1人につき1枚だけ付けられる。",
-      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2509"
+      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3027"
     },
     {
       "cardNumber": "hPR-001",
@@ -84620,7 +84646,7 @@
     {
       "cardNumber": "hSD14-010",
       "name": "holoAN",
-      "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP08/hSD14-010_C_02.png",
+      "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD14-010_C_03.png",
       "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD14/hSD14-010_C.png",
       "cardType": "support",
       "colors": [],
@@ -84632,7 +84658,7 @@
       "abilities": [
         {
           "type": "normal",
-          "text": "自分のデッキを３枚引く。\nLIMITED：ターンに1枚しか使えない。"
+          "text": "自分のデッキを３枚引く。\nLIMITED:ターンに1枚しか使えない。"
         }
       ],
       "arts": [],
@@ -84642,10 +84668,12 @@
       ],
       "criticalColors": [],
       "rarities": [
-        "P",
-        "C"
+        "C",
+        "P"
       ],
       "products": [
+        "スタートデッキ アソビ★まわり隊！推し 百灯キョーコ",
+        "スタートデッキ アソビ★まわり隊！推し 熱千めら",
         "PRカード",
         "【使用可能カード】セレクションカップ",
         "ブースターパック バウンサーバウンド",
@@ -84657,6 +84685,7 @@
         "ライブスタートデッキ 大空スバル"
       ],
       "illustrators": [
+        "白襟",
         "강소",
         "絹谷ゆたか",
         "ミュシャ"
@@ -84664,7 +84693,7 @@
       "qas": [],
       "releaseDate": "2026-04-24",
       "searchText": "holoan hsd14-010 自分のでっきを3枚引く。 limited:たーんに1枚しか使えない。",
-      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2683"
+      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3042"
     },
     {
       "cardNumber": "hSD14-011",
@@ -87802,6 +87831,1344 @@
       "releaseDate": "2026-04-24",
       "searchText": "ごきげんかれー hsd19-010 自分のほろめんのhp30回復。 hpが減っているほろめんがいない時に、hsd19-010〈ごきげんかれー〉を使うことはできますか? いいえ、選べるほろめんがいないため使えません。",
       "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2128"
+    },
+    {
+      "cardNumber": "hSD20-001",
+      "name": "百灯キョーコ",
+      "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-001_OSR.png",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-001_OSR.png",
+      "cardType": "oshi",
+      "colors": [
+        "red"
+      ],
+      "isBuzz": false,
+      "life": 5,
+      "tags": [],
+      "isLimited": false,
+      "abilities": [
+        {
+          "type": "normal",
+          "text": "広がる情熱自分のホロメンがコラボした時、自分のセンターが〈百灯キョーコ〉なら、自分のエールデッキの上から1枚を自分のコラボホロメンに送る。"
+        },
+        {
+          "type": "normal",
+          "text": "[ホロパワー:-3]ヒーローポリス疾走！[ターンに1回]相手のDebut以外の[センターホロメンとコラボホロメン]に、自分のステージのエール1枚につき、特殊ダメージ10を与える。"
+        }
+      ],
+      "arts": [],
+      "batonPass": [],
+      "effectTags": [
+        "cheer_acceleration",
+        "special_damage"
+      ],
+      "criticalColors": [],
+      "rarities": [
+        "OSR"
+      ],
+      "products": [
+        "スタートデッキ アソビ★まわり隊！推し 百灯キョーコ"
+      ],
+      "illustrators": [
+        "耳ン"
+      ],
+      "qas": [
+        {
+          "id": "Q753",
+          "question": "自分の推しがhSD20-001〈百灯キョーコ〉の時、hSD20-006〈百灯キョーコ〉がコラボしました。\nこの場合、hSD20-001〈百灯キョーコ〉の推しステージスキル「広がる情熱」の能力とhSD20-006〈百灯キョーコ〉のコラボエフェクト「誰にだって手を伸ばす！」の能力はどちらから処理されますか?",
+          "answer": "どちらも「コラボした時」に使える能力であるため、好きな順番で処理ができます。",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3028#faq",
+          "publishedAt": "2026-10-23",
+          "relatedCardNumbers": [
+            "hSD20-001",
+            "hSD20-006"
+          ]
+        }
+      ],
+      "releaseDate": "2026-10-30",
+      "searchText": "百灯きょーこ hsd20-001 広がる情熱自分のほろめんがこらぼした時、自分のせんたーが〈百灯きょーこ〉なら、自分のえーるでっきの上から1枚を自分のこらぼほろめんに送る。 [ほろぱわー:-3]ひーろーぽりす疾走![たーんに1回]相手のdebut以外の[せんたーほろめんとこらぼほろめん]に、自分のすてーじのえーる1枚につき、特殊だめーじ10を与える。 自分の推しがhsd20-001〈百灯きょーこ〉の時、hsd20-006〈百灯きょーこ〉がこらぼしました。 この場合、hsd20-001〈百灯きょーこ〉の推しすてーじすきる「広がる情熱」の能力とhsd20-006〈百灯きょーこ〉のこらぼえふぇくと「誰にだって手を伸ばす!」の能力はどちらから処理されますか? どちらも「こらぼした時」に使える能力であるため、好きな順番で処理ができます。",
+      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3028"
+    },
+    {
+      "cardNumber": "hSD20-002",
+      "name": "百灯キョーコ",
+      "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-002_C.png",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-002_C.png",
+      "cardType": "holomem",
+      "colors": [
+        "red"
+      ],
+      "bloomLevel": "debut",
+      "isBuzz": false,
+      "debutType": "extra",
+      "hp": 130,
+      "tags": [
+        "#アソビ★まわり隊！"
+      ],
+      "isLimited": false,
+      "abilities": [],
+      "arts": [
+        {
+          "name": "笑顔にさせちゃっていいですか！？？",
+          "requiredCheers": [
+            {
+              "color": "red",
+              "count": 1
+            }
+          ],
+          "damage": 20,
+          "effectText": "[センターポジション限定]自分のステージにエールが2枚以上あるなら、このアーツ+20。"
+        }
+      ],
+      "batonPass": [
+        {
+          "color": "any",
+          "count": 1
+        }
+      ],
+      "extraText": "このホロメンはデッキに何枚でも入れられる",
+      "effectTags": [
+        "arts_boost"
+      ],
+      "criticalColors": [],
+      "rarities": [
+        "C"
+      ],
+      "products": [
+        "スタートデッキ アソビ★まわり隊！推し 百灯キョーコ"
+      ],
+      "illustrators": [],
+      "qas": [],
+      "deckLimit": null,
+      "releaseDate": "2026-10-30",
+      "searchText": "百灯きょーこ hsd20-002 笑顔にさせちゃっていいですか!?? [せんたーぽじしょん限定]自分のすてーじにえーるが2枚以上あるなら、このあーつ+20。 このほろめんはでっきに何枚でも入れられる",
+      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3029"
+    },
+    {
+      "cardNumber": "hSD20-003",
+      "name": "百灯キョーコ",
+      "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-003_U.png",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-003_U.png",
+      "cardType": "holomem",
+      "colors": [
+        "red"
+      ],
+      "bloomLevel": "debut",
+      "isBuzz": false,
+      "debutType": "normal",
+      "hp": 130,
+      "tags": [
+        "#アソビ★まわり隊！"
+      ],
+      "isLimited": false,
+      "abilities": [
+        {
+          "type": "collab",
+          "text": "即集合！\n自分が後攻で最初のターンなら、自分のデッキから、[#アソビ★まわり隊！を持つDebutホロメンと1st〈百灯キョーコ〉]1枚ずつを公開し、手札に加える。そしてデッキをシャッフルする。"
+        }
+      ],
+      "arts": [
+        {
+          "name": "ドンチャン大騒ぎの始まり",
+          "requiredCheers": [
+            {
+              "color": "any",
+              "count": 1
+            }
+          ],
+          "damage": 20
+        }
+      ],
+      "batonPass": [
+        {
+          "color": "any",
+          "count": 1
+        }
+      ],
+      "effectTags": [
+        "second_turn_one",
+        "collab_effect",
+        "deck_search"
+      ],
+      "criticalColors": [],
+      "rarities": [
+        "U"
+      ],
+      "products": [
+        "スタートデッキ アソビ★まわり隊！推し 百灯キョーコ"
+      ],
+      "illustrators": [
+        "兎未枝"
+      ],
+      "qas": [],
+      "releaseDate": "2026-10-30",
+      "searchText": "百灯きょーこ hsd20-003 即集合! 自分が後攻で最初のたーんなら、自分のでっきから、[#あそび★まわり隊!を持つdebutほろめんと1st〈百灯きょーこ〉]1枚ずつを公開し、手札に加える。そしてでっきをしゃっふるする。 どんちゃん大騒ぎの始まり",
+      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3030"
+    },
+    {
+      "cardNumber": "hSD20-004",
+      "name": "百灯キョーコ",
+      "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-004_C.png",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-004_C.png",
+      "cardType": "holomem",
+      "colors": [
+        "red"
+      ],
+      "bloomLevel": "first",
+      "isBuzz": false,
+      "hp": 180,
+      "tags": [
+        "#アソビ★まわり隊！"
+      ],
+      "isLimited": false,
+      "abilities": [],
+      "arts": [
+        {
+          "name": "出勤準備完了！",
+          "requiredCheers": [
+            {
+              "color": "red",
+              "count": 1
+            },
+            {
+              "color": "any",
+              "count": 1
+            }
+          ],
+          "damage": 60
+        },
+        {
+          "name": "拡声器いらずのビッグボイス",
+          "requiredCheers": [
+            {
+              "color": "red",
+              "count": 1
+            },
+            {
+              "color": "any",
+              "count": 3
+            }
+          ],
+          "damage": 140
+        }
+      ],
+      "batonPass": [
+        {
+          "color": "any",
+          "count": 1
+        }
+      ],
+      "effectTags": [],
+      "criticalColors": [],
+      "rarities": [
+        "C"
+      ],
+      "products": [
+        "スタートデッキ アソビ★まわり隊！推し 百灯キョーコ"
+      ],
+      "illustrators": [
+        "鉢谷ナギ"
+      ],
+      "qas": [],
+      "releaseDate": "2026-10-30",
+      "searchText": "百灯きょーこ hsd20-004 出勤準備完了! 拡声器いらずのびっぐぼいす",
+      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3031"
+    },
+    {
+      "cardNumber": "hSD20-005",
+      "name": "百灯キョーコ",
+      "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-005_U.png",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-005_U.png",
+      "cardType": "holomem",
+      "colors": [
+        "red"
+      ],
+      "bloomLevel": "first",
+      "isBuzz": false,
+      "hp": 150,
+      "tags": [
+        "#アソビ★まわり隊！"
+      ],
+      "isLimited": false,
+      "abilities": [
+        {
+          "type": "bloom",
+          "text": "差し伸べる手\n自分のステージの#アソビ★まわり隊！を持つホロメン1人を選ぶ。このターンの間、選んだホロメンのアーツ+20。"
+        }
+      ],
+      "arts": [
+        {
+          "name": "考えるより先に動く",
+          "requiredCheers": [
+            {
+              "color": "any",
+              "count": 1
+            }
+          ],
+          "damage": 30
+        }
+      ],
+      "batonPass": [
+        {
+          "color": "any",
+          "count": 1
+        }
+      ],
+      "effectTags": [
+        "bloom_effect",
+        "arts_boost"
+      ],
+      "criticalColors": [],
+      "rarities": [
+        "U"
+      ],
+      "products": [
+        "スタートデッキ アソビ★まわり隊！推し 百灯キョーコ"
+      ],
+      "illustrators": [
+        "TOH."
+      ],
+      "qas": [],
+      "releaseDate": "2026-10-30",
+      "searchText": "百灯きょーこ hsd20-005 差し伸べる手 自分のすてーじの#あそび★まわり隊!を持つほろめん1人を選ぶ。このたーんの間、選んだほろめんのあーつ+20。 考えるより先に動く",
+      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3032"
+    },
+    {
+      "cardNumber": "hSD20-006",
+      "name": "百灯キョーコ",
+      "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-006_R.png",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-006_R.png",
+      "cardType": "holomem",
+      "colors": [
+        "red"
+      ],
+      "bloomLevel": "first",
+      "isBuzz": false,
+      "hp": 160,
+      "tags": [
+        "#アソビ★まわり隊！"
+      ],
+      "isLimited": false,
+      "abilities": [
+        {
+          "type": "collab",
+          "text": "誰にだって手を伸ばす！\n自分のステージのエール1枚をアーカイブできる:自分のアーカイブの#アソビ★まわり隊！を持つホロメン1枚を手札に戻す。"
+        }
+      ],
+      "arts": [
+        {
+          "name": "渦巻くハイテンション",
+          "requiredCheers": [
+            {
+              "color": "red",
+              "count": 1
+            },
+            {
+              "color": "any",
+              "count": 1
+            }
+          ],
+          "damage": 50,
+          "effectText": "自分のステージにエールが6枚以上あるなら、このアーツ+20。"
+        }
+      ],
+      "batonPass": [
+        {
+          "color": "any",
+          "count": 1
+        }
+      ],
+      "effectTags": [
+        "collab_effect",
+        "arts_boost"
+      ],
+      "criticalColors": [],
+      "rarities": [
+        "R"
+      ],
+      "products": [
+        "スタートデッキ アソビ★まわり隊！推し 百灯キョーコ"
+      ],
+      "illustrators": [
+        "宮波"
+      ],
+      "qas": [
+        {
+          "id": "Q753",
+          "question": "自分の推しがhSD20-001〈百灯キョーコ〉の時、hSD20-006〈百灯キョーコ〉がコラボしました。\nこの場合、hSD20-001〈百灯キョーコ〉の推しステージスキル「広がる情熱」の能力とhSD20-006〈百灯キョーコ〉のコラボエフェクト「誰にだって手を伸ばす！」の能力はどちらから処理されますか?",
+          "answer": "どちらも「コラボした時」に使える能力であるため、好きな順番で処理ができます。",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3033#faq",
+          "publishedAt": "2026-10-23",
+          "relatedCardNumbers": [
+            "hSD20-001",
+            "hSD20-006"
+          ]
+        }
+      ],
+      "releaseDate": "2026-10-30",
+      "searchText": "百灯きょーこ hsd20-006 誰にだって手を伸ばす! 自分のすてーじのえーる1枚をあーかいぶできる:自分のあーかいぶの#あそび★まわり隊!を持つほろめん1枚を手札に戻す。 渦巻くはいてんしょん 自分のすてーじにえーるが6枚以上あるなら、このあーつ+20。 自分の推しがhsd20-001〈百灯きょーこ〉の時、hsd20-006〈百灯きょーこ〉がこらぼしました。 この場合、hsd20-001〈百灯きょーこ〉の推しすてーじすきる「広がる情熱」の能力とhsd20-006〈百灯きょーこ〉のこらぼえふぇくと「誰にだって手を伸ばす!」の能力はどちらから処理されますか? どちらも「こらぼした時」に使える能力であるため、好きな順番で処理ができます。",
+      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3033"
+    },
+    {
+      "cardNumber": "hSD20-007",
+      "name": "百灯キョーコ",
+      "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-007_RR.png",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-007_RR.png",
+      "cardType": "holomem",
+      "colors": [
+        "red"
+      ],
+      "bloomLevel": "second",
+      "isBuzz": false,
+      "hp": 190,
+      "tags": [
+        "#アソビ★まわり隊！"
+      ],
+      "isLimited": false,
+      "abilities": [
+        {
+          "type": "gift",
+          "text": "情熱系ヒーローポリス\n[センターポジション限定]自分のコラボホロメンのアーツ+20。"
+        }
+      ],
+      "arts": [
+        {
+          "name": "「最強」担当",
+          "requiredCheers": [
+            {
+              "color": "red",
+              "count": 2
+            },
+            {
+              "color": "any",
+              "count": 1
+            }
+          ],
+          "damage": 150,
+          "effectText": "自分のステージにエールが6枚以上あるなら、このアーツ+50。",
+          "critical": {
+            "color": "green",
+            "bonusDamage": 50
+          }
+        }
+      ],
+      "batonPass": [
+        {
+          "color": "any",
+          "count": 2
+        }
+      ],
+      "effectTags": [
+        "gift",
+        "arts_boost"
+      ],
+      "criticalColors": [
+        "green"
+      ],
+      "rarities": [
+        "RR"
+      ],
+      "products": [
+        "スタートデッキ アソビ★まわり隊！推し 百灯キョーコ"
+      ],
+      "illustrators": [
+        "gaha"
+      ],
+      "qas": [],
+      "releaseDate": "2026-10-30",
+      "searchText": "百灯きょーこ hsd20-007 情熱系ひーろーぽりす [せんたーぽじしょん限定]自分のこらぼほろめんのあーつ+20。 「最強」担当 自分のすてーじにえーるが6枚以上あるなら、このあーつ+50。",
+      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3034"
+    },
+    {
+      "cardNumber": "hSD20-008",
+      "name": "宙科そぴあ",
+      "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-008_C.png",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-008_C.png",
+      "cardType": "holomem",
+      "colors": [
+        "blue"
+      ],
+      "bloomLevel": "debut",
+      "isBuzz": false,
+      "debutType": "extra",
+      "hp": 120,
+      "tags": [
+        "#アソビ★まわり隊！"
+      ],
+      "isLimited": false,
+      "abilities": [
+        {
+          "type": "gift",
+          "text": "夢は弾けるビッグバン！\n相手のターンで、このホロメンがダウンした時、自分のデッキを1枚引く。"
+        }
+      ],
+      "arts": [
+        {
+          "name": "全部この目で確かめにいくよ！",
+          "requiredCheers": [
+            {
+              "color": "any",
+              "count": 1
+            }
+          ],
+          "damage": 10
+        }
+      ],
+      "batonPass": [
+        {
+          "color": "any",
+          "count": 1
+        }
+      ],
+      "extraText": "このホロメンはデッキに何枚でも入れられる",
+      "effectTags": [
+        "gift",
+        "draw"
+      ],
+      "criticalColors": [],
+      "rarities": [
+        "C"
+      ],
+      "products": [
+        "スタートデッキ アソビ★まわり隊！推し 百灯キョーコ",
+        "スタートデッキ アソビ★まわり隊！推し 熱千めら"
+      ],
+      "illustrators": [],
+      "qas": [],
+      "deckLimit": null,
+      "releaseDate": "2026-10-30",
+      "searchText": "宙科そぴあ hsd20-008 夢は弾けるびっぐばん! 相手のたーんで、このほろめんがだうんした時、自分のでっきを1枚引く。 全部この目で確かめにいくよ! このほろめんはでっきに何枚でも入れられる",
+      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3035"
+    },
+    {
+      "cardNumber": "hSD20-009",
+      "name": "宙科そぴあ",
+      "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-009_U.png",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-009_U.png",
+      "cardType": "holomem",
+      "colors": [
+        "blue"
+      ],
+      "bloomLevel": "first",
+      "isBuzz": false,
+      "hp": 160,
+      "tags": [
+        "#アソビ★まわり隊！"
+      ],
+      "isLimited": false,
+      "abilities": [
+        {
+          "type": "bloom",
+          "text": "面白さの探求\n自分のステージに#アソビ★まわり隊！を持つホロメンが3人以上いるなら、このホロメンのエール1枚をアーカイブできる：自分のデッキを2枚引く。"
+        }
+      ],
+      "arts": [
+        {
+          "name": "抑えきれない知的好奇心",
+          "requiredCheers": [
+            {
+              "color": "any",
+              "count": 1
+            }
+          ],
+          "damage": 30
+        }
+      ],
+      "batonPass": [
+        {
+          "color": "any",
+          "count": 1
+        }
+      ],
+      "effectTags": [
+        "bloom_effect",
+        "draw"
+      ],
+      "criticalColors": [],
+      "rarities": [
+        "U"
+      ],
+      "products": [
+        "スタートデッキ アソビ★まわり隊！推し 百灯キョーコ",
+        "スタートデッキ アソビ★まわり隊！推し 熱千めら"
+      ],
+      "illustrators": [
+        "カロクチトセ"
+      ],
+      "qas": [],
+      "releaseDate": "2026-10-30",
+      "searchText": "宙科そぴあ hsd20-009 面白さの探求 自分のすてーじに#あそび★まわり隊!を持つほろめんが3人以上いるなら、このほろめんのえーる1枚をあーかいぶできる:自分のでっきを2枚引く。 抑えきれない知的好奇心",
+      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3036"
+    },
+    {
+      "cardNumber": "hSD20-010",
+      "name": "宙科そぴあ",
+      "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-010_R.png",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-010_R.png",
+      "cardType": "holomem",
+      "colors": [
+        "blue"
+      ],
+      "bloomLevel": "first",
+      "isBuzz": false,
+      "hp": 130,
+      "tags": [
+        "#アソビ★まわり隊！"
+      ],
+      "isLimited": false,
+      "abilities": [
+        {
+          "type": "bloom",
+          "text": "仲間を探すぞ～！\n自分のデッキの上から3枚を見る。その中から、#アソビ★まわり隊！を持つホロメン1枚を公開し、手札に加える。そして残ったカードを好きな順でデッキの下に戻す。"
+        }
+      ],
+      "arts": [
+        {
+          "name": "面白いもの見つけたよ！",
+          "requiredCheers": [
+            {
+              "color": "blue",
+              "count": 1
+            },
+            {
+              "color": "any",
+              "count": 1
+            }
+          ],
+          "damage": 50,
+          "effectText": "このホロメンのエール1枚を自分の他の#アソビ★まわり隊！を持つホロメンに付け替えられる。"
+        }
+      ],
+      "batonPass": [
+        {
+          "color": "any",
+          "count": 1
+        }
+      ],
+      "effectTags": [
+        "bloom_effect",
+        "deck_search"
+      ],
+      "criticalColors": [],
+      "rarities": [
+        "R"
+      ],
+      "products": [
+        "スタートデッキ アソビ★まわり隊！推し 百灯キョーコ",
+        "スタートデッキ アソビ★まわり隊！推し 熱千めら"
+      ],
+      "illustrators": [
+        "大熊まい"
+      ],
+      "qas": [],
+      "releaseDate": "2026-10-30",
+      "searchText": "宙科そぴあ hsd20-010 仲間を探すぞ~! 自分のでっきの上から3枚を見る。その中から、#あそび★まわり隊!を持つほろめん1枚を公開し、手札に加える。そして残ったかーどを好きな順ででっきの下に戻す。 面白いもの見つけたよ! このほろめんのえーる1枚を自分の他の#あそび★まわり隊!を持つほろめんに付け替えられる。",
+      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3037"
+    },
+    {
+      "cardNumber": "hSD20-011",
+      "name": "宙科そぴあ",
+      "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-011_RR.png",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-011_RR.png",
+      "cardType": "holomem",
+      "colors": [
+        "blue"
+      ],
+      "bloomLevel": "second",
+      "isBuzz": false,
+      "hp": 200,
+      "tags": [
+        "#アソビ★まわり隊！"
+      ],
+      "isLimited": false,
+      "abilities": [
+        {
+          "type": "collab",
+          "text": "（自称）天才宇宙飛行士\n自分のアーカイブのエール2枚を自分の#アソビ★まわり隊！を持つホロメン1人に送れる。"
+        }
+      ],
+      "arts": [
+        {
+          "name": "「ひらめき」担当",
+          "requiredCheers": [
+            {
+              "color": "blue",
+              "count": 1
+            },
+            {
+              "color": "any",
+              "count": 1
+            }
+          ],
+          "damage": 80,
+          "effectText": "このホロメンのエール1～3枚をアーカイブできる:アーカイブしたエール1枚につき、このアーツ+20。",
+          "critical": {
+            "color": "white",
+            "bonusDamage": 50
+          }
+        }
+      ],
+      "batonPass": [
+        {
+          "color": "any",
+          "count": 2
+        }
+      ],
+      "effectTags": [
+        "collab_effect",
+        "arts_boost"
+      ],
+      "criticalColors": [
+        "white"
+      ],
+      "rarities": [
+        "RR"
+      ],
+      "products": [
+        "スタートデッキ アソビ★まわり隊！推し 百灯キョーコ",
+        "スタートデッキ アソビ★まわり隊！推し 熱千めら"
+      ],
+      "illustrators": [
+        "夕城"
+      ],
+      "qas": [
+        {
+          "id": "Q758",
+          "question": "自分のアーカイブのエールが2枚以上の場合、hSD20-011〈宙科そぴあ〉のコラボエフェクト「（自称）天才宇宙飛行士」の能力で、#アソビ★まわり隊！を持つホロメンにエールを1枚のみ送ることはできますか？",
+          "answer": "いいえ、できません。\n必ず2枚送ります。",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3038#faq",
+          "publishedAt": "2026-10-23",
+          "relatedCardNumbers": [
+            "hSD20-011"
+          ]
+        },
+        {
+          "id": "Q757",
+          "question": "自分のアーカイブのエールが1枚の場合、hSD20-011〈宙科そぴあ〉のコラボエフェクト「（自称）天才宇宙飛行士」の能力で、#アソビ★まわり隊！を持つホロメンにエールを送ることはできますか？",
+          "answer": "はい、できます。",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3038#faq",
+          "publishedAt": "2026-10-23",
+          "relatedCardNumbers": [
+            "hSD20-011"
+          ]
+        }
+      ],
+      "releaseDate": "2026-10-30",
+      "searchText": "宙科そぴあ hsd20-011 (自称)天才宇宙飛行士 自分のあーかいぶのえーる2枚を自分の#あそび★まわり隊!を持つほろめん1人に送れる。 「ひらめき」担当 このほろめんのえーる1~3枚をあーかいぶできる:あーかいぶしたえーる1枚につき、このあーつ+20。 自分のあーかいぶのえーるが2枚以上の場合、hsd20-011〈宙科そぴあ〉のこらぼえふぇくと「(自称)天才宇宙飛行士」の能力で、#あそび★まわり隊!を持つほろめんにえーるを1枚のみ送ることはできますか? いいえ、できません。 必ず2枚送ります。 自分のあーかいぶのえーるが1枚の場合、hsd20-011〈宙科そぴあ〉のこらぼえふぇくと「(自称)天才宇宙飛行士」の能力で、#あそび★まわり隊!を持つほろめんにえーるを送ることはできますか? はい、できます。",
+      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3038"
+    },
+    {
+      "cardNumber": "hSD20-012",
+      "name": "アソビ★まわり隊！",
+      "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-012_U.png",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-012_U.png",
+      "cardType": "support",
+      "colors": [],
+      "isBuzz": false,
+      "tags": [],
+      "supportType": "event",
+      "isLimited": true,
+      "supportSearchCategory": "limited",
+      "abilities": [
+        {
+          "type": "normal",
+          "text": "このカードは、自分の手札がこのカードを含まずに6枚以下でなければ使えない。\n自分のデッキの上から4枚を見る。その中から、#アソビ★まわり隊！を持つホロメンを好きな枚数公開し、公開したホロメンを手札に加える。そして残ったカードを好きな順でデッキの下に戻す。\nLIMITED:ターンに1枚しか使えない。"
+        }
+      ],
+      "arts": [],
+      "batonPass": [],
+      "effectTags": [
+        "deck_search"
+      ],
+      "criticalColors": [],
+      "rarities": [
+        "U"
+      ],
+      "products": [
+        "スタートデッキ アソビ★まわり隊！推し 百灯キョーコ",
+        "スタートデッキ アソビ★まわり隊！推し 熱千めら"
+      ],
+      "illustrators": [
+        "緜"
+      ],
+      "qas": [],
+      "releaseDate": "2026-10-30",
+      "searchText": "あそび★まわり隊! hsd20-012 このかーどは、自分の手札がこのかーどを含まずに6枚以下でなければ使えない。 自分のでっきの上から4枚を見る。その中から、#あそび★まわり隊!を持つほろめんを好きな枚数公開し、公開したほろめんを手札に加える。そして残ったかーどを好きな順ででっきの下に戻す。 limited:たーんに1枚しか使えない。",
+      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3039"
+    },
+    {
+      "cardNumber": "hSD20-013",
+      "name": "ぐるぐるTIME！",
+      "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-013_U.png",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-013_U.png",
+      "cardType": "support",
+      "colors": [],
+      "isBuzz": false,
+      "tags": [],
+      "supportType": "event",
+      "isLimited": true,
+      "supportSearchCategory": "limited",
+      "abilities": [
+        {
+          "type": "normal",
+          "text": "このカードは、自分のステージのホロメン全員が#アソビ★まわり隊！を持つホロメンでなければ使えない。\n相手のバックホロメン1人を選ぶ。選んだホロメンと相手のセンターホロメンを交代させる。その後、相手と勝敗が決まるまでじゃんけんする。自分が勝ったなら、自分のデッキを3枚引く。\nLIMITED:ターンに1枚しか使えない。"
+        }
+      ],
+      "arts": [],
+      "batonPass": [],
+      "effectTags": [
+        "draw"
+      ],
+      "criticalColors": [],
+      "rarities": [
+        "U"
+      ],
+      "products": [
+        "スタートデッキ アソビ★まわり隊！推し 百灯キョーコ",
+        "スタートデッキ アソビ★まわり隊！推し 熱千めら"
+      ],
+      "illustrators": [
+        "deru"
+      ],
+      "qas": [],
+      "releaseDate": "2026-10-30",
+      "searchText": "ぐるぐるtime! hsd20-013 このかーどは、自分のすてーじのほろめん全員が#あそび★まわり隊!を持つほろめんでなければ使えない。 相手のばっくほろめん1人を選ぶ。選んだほろめんと相手のせんたーほろめんを交代させる。その後、相手と勝敗が決まるまでじゃんけんする。自分が勝ったなら、自分のでっきを3枚引く。 limited:たーんに1枚しか使えない。",
+      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3040"
+    },
+    {
+      "cardNumber": "hSD20-014",
+      "name": "百灯キョーコの拡声器",
+      "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-014_U.png",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-014_U.png",
+      "cardType": "support",
+      "colors": [],
+      "isBuzz": false,
+      "tags": [],
+      "supportType": "tool",
+      "isLimited": false,
+      "supportSearchCategory": "tool",
+      "abilities": [
+        {
+          "type": "normal",
+          "text": "このツールが付いている〈百灯キョーコ〉のアーツ+20。\n◆1st以上の〈百灯キョーコ〉に付いていたら能力追加\nこのホロメンが相手のホロメンをダウンさせた時、自分のアーカイブのエール1枚を自分の#アソビ★まわり隊！を持つバックホロメンに送れる。\nツールは、自分のホロメン1人につき1枚だけ付けられる。"
+        }
+      ],
+      "arts": [],
+      "batonPass": [],
+      "effectTags": [
+        "arts_boost"
+      ],
+      "criticalColors": [],
+      "rarities": [
+        "U"
+      ],
+      "products": [
+        "スタートデッキ アソビ★まわり隊！推し 百灯キョーコ"
+      ],
+      "illustrators": [
+        "那桜"
+      ],
+      "qas": [],
+      "releaseDate": "2026-10-30",
+      "searchText": "百灯きょーこの拡声器 hsd20-014 このつーるが付いている〈百灯きょーこ〉のあーつ+20。 ◆1st以上の〈百灯きょーこ〉に付いていたら能力追加 このほろめんが相手のほろめんをだうんさせた時、自分のあーかいぶのえーる1枚を自分の#あそび★まわり隊!を持つばっくほろめんに送れる。 つーるは、自分のほろめん1人につき1枚だけ付けられる。",
+      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3041"
+    },
+    {
+      "cardNumber": "hSD21-001",
+      "name": "熱千めら",
+      "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD21/hSD21-001_OSR.png",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD21/hSD21-001_OSR.png",
+      "cardType": "oshi",
+      "colors": [
+        "purple"
+      ],
+      "isBuzz": false,
+      "life": 5,
+      "tags": [],
+      "isLimited": false,
+      "abilities": [
+        {
+          "type": "normal",
+          "text": "サラマンダーの恩返し自分のホロメンがコラボした時、自分のセンターが〈熱千めら〉なら、自分のデッキを1枚引き、手札1枚をアーカイブする。"
+        },
+        {
+          "type": "normal",
+          "text": "[ホロパワー:-2]ご利益じゃ！[ターンに1回]自分のステージのホロメン1人を選ぶ。自分のアーカイブのギフトを持つホロメン1枚につき、このターンの間、選んだホロメンのアーツ+10。さらに、選んだホロメンが〈熱千めら〉なら、そのホロメンのアーツに必要な無色-1。"
+        }
+      ],
+      "arts": [],
+      "batonPass": [],
+      "effectTags": [
+        "draw",
+        "arts_boost"
+      ],
+      "criticalColors": [],
+      "rarities": [
+        "OSR"
+      ],
+      "products": [
+        "スタートデッキ アソビ★まわり隊！推し 熱千めら"
+      ],
+      "illustrators": [
+        "夕城"
+      ],
+      "qas": [
+        {
+          "id": "Q756",
+          "question": "自分のアーカイブのホロメンが0枚の時、hSD21-001〈熱千めら〉の推しスキル「ご利益じゃ！」を使い、アーカイブに置いたホロパワーの中にホロメン2枚ありました。\nこの場合、選んだホロメンのアーツは+20されますか？",
+          "answer": "はい、されます。",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3043#faq",
+          "publishedAt": "2026-10-23",
+          "relatedCardNumbers": [
+            "hSD21-001"
+          ]
+        },
+        {
+          "id": "Q755",
+          "question": "hSD21-001〈熱千めら〉の推しスキル「ご利益じゃ！」は、アーカイブにホロメンがいなくても使うことはできますか？",
+          "answer": "はい、使えます。",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3043#faq",
+          "publishedAt": "2026-10-23",
+          "relatedCardNumbers": [
+            "hSD21-001"
+          ]
+        },
+        {
+          "id": "Q754",
+          "question": "自分の推しがhSD21-001〈熱千めら〉の時、hSD21-003〈熱千めら〉がコラボしました。\nこの場合、hSD21-001〈熱千めら〉の推しステージスキル「サラマンダーの恩返し」の能力とhSD21-003〈熱千めら〉のコラボエフェクト「炎を鎮める不思議な力」の能力はどちらから処理されますか?",
+          "answer": "どちらも「コラボした時」に使える能力であるため、好きな順番で処理ができます。",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3043#faq",
+          "publishedAt": "2026-10-23",
+          "relatedCardNumbers": [
+            "hSD21-001",
+            "hSD21-003"
+          ]
+        }
+      ],
+      "releaseDate": "2026-10-30",
+      "searchText": "熱千めら hsd21-001 さらまんだーの恩返し自分のほろめんがこらぼした時、自分のせんたーが〈熱千めら〉なら、自分のでっきを1枚引き、手札1枚をあーかいぶする。 [ほろぱわー:-2]ご利益じゃ![たーんに1回]自分のすてーじのほろめん1人を選ぶ。自分のあーかいぶのぎふとを持つほろめん1枚につき、このたーんの間、選んだほろめんのあーつ+10。さらに、選んだほろめんが〈熱千めら〉なら、そのほろめんのあーつに必要な無色-1。 自分のあーかいぶのほろめんが0枚の時、hsd21-001〈熱千めら〉の推しすきる「ご利益じゃ!」を使い、あーかいぶに置いたほろぱわーの中にほろめん2枚ありました。 この場合、選んだほろめんのあーつは+20されますか? はい、されます。 hsd21-001〈熱千めら〉の推しすきる「ご利益じゃ!」は、あーかいぶにほろめんがいなくても使うことはできますか? はい、使えます。 自分の推しがhsd21-001〈熱千めら〉の時、hsd21-003〈熱千めら〉がこらぼしました。 この場合、hsd21-001〈熱千めら〉の推しすてーじすきる「さらまんだーの恩返し」の能力とhsd21-003〈熱千めら〉のこらぼえふぇくと「炎を鎮める不思議な力」の能力はどちらから処理されますか? どちらも「こらぼした時」に使える能力であるため、好きな順番で処理ができます。",
+      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3043"
+    },
+    {
+      "cardNumber": "hSD21-002",
+      "name": "熱千めら",
+      "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD21/hSD21-002_C.png",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD21/hSD21-002_C.png",
+      "cardType": "holomem",
+      "colors": [
+        "purple"
+      ],
+      "bloomLevel": "debut",
+      "isBuzz": false,
+      "debutType": "extra",
+      "hp": 120,
+      "tags": [
+        "#アソビ★まわり隊！"
+      ],
+      "isLimited": false,
+      "abilities": [
+        {
+          "type": "gift",
+          "text": "防火対策 基礎！\nこのホロメンが受けるアーツダメージ-10。"
+        }
+      ],
+      "arts": [
+        {
+          "name": "火の用心じゃ～！",
+          "requiredCheers": [
+            {
+              "color": "any",
+              "count": 1
+            }
+          ],
+          "damage": 20
+        }
+      ],
+      "batonPass": [
+        {
+          "color": "any",
+          "count": 1
+        }
+      ],
+      "extraText": "このホロメンはデッキに何枚でも入れられる",
+      "effectTags": [
+        "gift"
+      ],
+      "criticalColors": [],
+      "rarities": [
+        "C"
+      ],
+      "products": [
+        "スタートデッキ アソビ★まわり隊！推し 熱千めら"
+      ],
+      "illustrators": [],
+      "qas": [],
+      "deckLimit": null,
+      "releaseDate": "2026-10-30",
+      "searchText": "熱千めら hsd21-002 防火対策 基礎! このほろめんが受けるあーつだめーじ-10。 火の用心じゃ~! このほろめんはでっきに何枚でも入れられる",
+      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3044"
+    },
+    {
+      "cardNumber": "hSD21-003",
+      "name": "熱千めら",
+      "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD21/hSD21-003_U.png",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD21/hSD21-003_U.png",
+      "cardType": "holomem",
+      "colors": [
+        "purple"
+      ],
+      "bloomLevel": "debut",
+      "isBuzz": false,
+      "debutType": "normal",
+      "hp": 130,
+      "tags": [
+        "#アソビ★まわり隊！"
+      ],
+      "isLimited": false,
+      "abilities": [
+        {
+          "type": "collab",
+          "text": "炎を鎮める不思議な力\n自分が後攻で最初のターンなら、自分のデッキから、ギフトを持つ〈熱千めら〉2枚を公開する。その中から1枚を手札に加え、残ったカードをアーカイブする。そしてデッキをシャッフルする。"
+        }
+      ],
+      "arts": [
+        {
+          "name": "響く拍子木",
+          "requiredCheers": [
+            {
+              "color": "any",
+              "count": 1
+            }
+          ],
+          "damage": 20
+        }
+      ],
+      "batonPass": [
+        {
+          "color": "any",
+          "count": 1
+        }
+      ],
+      "effectTags": [
+        "second_turn_one",
+        "collab_effect"
+      ],
+      "criticalColors": [],
+      "rarities": [
+        "U"
+      ],
+      "products": [
+        "スタートデッキ アソビ★まわり隊！推し 熱千めら"
+      ],
+      "illustrators": [
+        "那桜"
+      ],
+      "qas": [
+        {
+          "id": "Q754",
+          "question": "自分の推しがhSD21-001〈熱千めら〉の時、hSD21-003〈熱千めら〉がコラボしました。\nこの場合、hSD21-001〈熱千めら〉の推しステージスキル「サラマンダーの恩返し」の能力とhSD21-003〈熱千めら〉のコラボエフェクト「炎を鎮める不思議な力」の能力はどちらから処理されますか?",
+          "answer": "どちらも「コラボした時」に使える能力であるため、好きな順番で処理ができます。",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3045#faq",
+          "publishedAt": "2026-10-23",
+          "relatedCardNumbers": [
+            "hSD21-001",
+            "hSD21-003"
+          ]
+        }
+      ],
+      "releaseDate": "2026-10-30",
+      "searchText": "熱千めら hsd21-003 炎を鎮める不思議な力 自分が後攻で最初のたーんなら、自分のでっきから、ぎふとを持つ〈熱千めら〉2枚を公開する。その中から1枚を手札に加え、残ったかーどをあーかいぶする。そしてでっきをしゃっふるする。 響く拍子木 自分の推しがhsd21-001〈熱千めら〉の時、hsd21-003〈熱千めら〉がこらぼしました。 この場合、hsd21-001〈熱千めら〉の推しすてーじすきる「さらまんだーの恩返し」の能力とhsd21-003〈熱千めら〉のこらぼえふぇくと「炎を鎮める不思議な力」の能力はどちらから処理されますか? どちらも「こらぼした時」に使える能力であるため、好きな順番で処理ができます。",
+      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3045"
+    },
+    {
+      "cardNumber": "hSD21-004",
+      "name": "熱千めら",
+      "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD21/hSD21-004_C.png",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD21/hSD21-004_C.png",
+      "cardType": "holomem",
+      "colors": [
+        "purple"
+      ],
+      "bloomLevel": "first",
+      "isBuzz": false,
+      "hp": 160,
+      "tags": [
+        "#アソビ★まわり隊！"
+      ],
+      "isLimited": false,
+      "abilities": [
+        {
+          "type": "gift",
+          "text": "防火対策 応用！\nこのホロメンが受けるアーツダメージ-20。"
+        }
+      ],
+      "arts": [
+        {
+          "name": "元気な頑張り屋",
+          "requiredCheers": [
+            {
+              "color": "purple",
+              "count": 1
+            }
+          ],
+          "damage": 30,
+          "effectText": "自分のデッキを1枚引き、手札1枚をアーカイブする。"
+        }
+      ],
+      "batonPass": [
+        {
+          "color": "any",
+          "count": 1
+        }
+      ],
+      "effectTags": [
+        "gift",
+        "draw"
+      ],
+      "criticalColors": [],
+      "rarities": [
+        "C"
+      ],
+      "products": [
+        "スタートデッキ アソビ★まわり隊！推し 熱千めら"
+      ],
+      "illustrators": [
+        "にゃまそ"
+      ],
+      "qas": [],
+      "releaseDate": "2026-10-30",
+      "searchText": "熱千めら hsd21-004 防火対策 応用! このほろめんが受けるあーつだめーじ-20。 元気な頑張り屋 自分のでっきを1枚引き、手札1枚をあーかいぶする。",
+      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3046"
+    },
+    {
+      "cardNumber": "hSD21-005",
+      "name": "熱千めら",
+      "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD21/hSD21-005_U.png",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD21/hSD21-005_U.png",
+      "cardType": "holomem",
+      "colors": [
+        "purple"
+      ],
+      "bloomLevel": "first",
+      "isBuzz": false,
+      "hp": 170,
+      "tags": [
+        "#アソビ★まわり隊！"
+      ],
+      "isLimited": false,
+      "abilities": [
+        {
+          "type": "collab",
+          "text": "ハジけるアソビの渦\n自分のアーカイブにギフトを持つホロメンが3枚以上あるなら、相手のセンターホロメンかコラボホロメンに特殊ダメージ20を与える。"
+        }
+      ],
+      "arts": [
+        {
+          "name": "最高の非日常へ",
+          "requiredCheers": [
+            {
+              "color": "purple",
+              "count": 1
+            }
+          ],
+          "damage": 40
+        }
+      ],
+      "batonPass": [
+        {
+          "color": "any",
+          "count": 1
+        }
+      ],
+      "effectTags": [
+        "collab_effect",
+        "special_damage"
+      ],
+      "criticalColors": [],
+      "rarities": [
+        "U"
+      ],
+      "products": [
+        "スタートデッキ アソビ★まわり隊！推し 熱千めら"
+      ],
+      "illustrators": [
+        "gaha"
+      ],
+      "qas": [],
+      "releaseDate": "2026-10-30",
+      "searchText": "熱千めら hsd21-005 はじけるあそびの渦 自分のあーかいぶにぎふとを持つほろめんが3枚以上あるなら、相手のせんたーほろめんかこらぼほろめんに特殊だめーじ20を与える。 最高の非日常へ",
+      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3047"
+    },
+    {
+      "cardNumber": "hSD21-006",
+      "name": "熱千めら",
+      "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD21/hSD21-006_R.png",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD21/hSD21-006_R.png",
+      "cardType": "holomem",
+      "colors": [
+        "purple"
+      ],
+      "bloomLevel": "first",
+      "isBuzz": false,
+      "hp": 160,
+      "tags": [
+        "#アソビ★まわり隊！"
+      ],
+      "isLimited": false,
+      "abilities": [
+        {
+          "type": "gift",
+          "text": "ご利益パワー\nこのホロメンがダウンした時、このホロメンのエール1～2枚を選び、自分の他のホロメンに割り振って付け替えられる。"
+        }
+      ],
+      "arts": [
+        {
+          "name": "火消しの本領発揮じゃ！",
+          "requiredCheers": [
+            {
+              "color": "purple",
+              "count": 1
+            },
+            {
+              "color": "any",
+              "count": 1
+            }
+          ],
+          "damage": 60
+        }
+      ],
+      "batonPass": [
+        {
+          "color": "any",
+          "count": 1
+        }
+      ],
+      "effectTags": [
+        "gift"
+      ],
+      "criticalColors": [],
+      "rarities": [
+        "R"
+      ],
+      "products": [
+        "スタートデッキ アソビ★まわり隊！推し 熱千めら"
+      ],
+      "illustrators": [
+        "梅之シイ"
+      ],
+      "qas": [],
+      "releaseDate": "2026-10-30",
+      "searchText": "熱千めら hsd21-006 ご利益ぱわー このほろめんがだうんした時、このほろめんのえーる1~2枚を選び、自分の他のほろめんに割り振って付け替えられる。 火消しの本領発揮じゃ!",
+      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3048"
+    },
+    {
+      "cardNumber": "hSD21-007",
+      "name": "熱千めら",
+      "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD21/hSD21-007_RR.png",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD21/hSD21-007_RR.png",
+      "cardType": "holomem",
+      "colors": [
+        "purple"
+      ],
+      "bloomLevel": "second",
+      "isBuzz": false,
+      "hp": 210,
+      "tags": [
+        "#アソビ★まわり隊！"
+      ],
+      "isLimited": false,
+      "abilities": [
+        {
+          "type": "gift",
+          "text": "火消しのサラマンダー\nこのホロメンがダウンした時、自分のデッキを2枚引く。"
+        }
+      ],
+      "arts": [
+        {
+          "name": "「ご利益」担当",
+          "requiredCheers": [
+            {
+              "color": "purple",
+              "count": 1
+            },
+            {
+              "color": "any",
+              "count": 1
+            }
+          ],
+          "damage": 100,
+          "effectText": "自分のアーカイブにギフトを持つホロメンが3枚以上あるなら、このアーツ+50。",
+          "critical": {
+            "color": "yellow",
+            "bonusDamage": 50
+          }
+        }
+      ],
+      "batonPass": [
+        {
+          "color": "any",
+          "count": 2
+        }
+      ],
+      "effectTags": [
+        "gift",
+        "draw",
+        "arts_boost"
+      ],
+      "criticalColors": [
+        "yellow"
+      ],
+      "rarities": [
+        "RR"
+      ],
+      "products": [
+        "スタートデッキ アソビ★まわり隊！推し 熱千めら"
+      ],
+      "illustrators": [
+        "TOH."
+      ],
+      "qas": [],
+      "releaseDate": "2026-10-30",
+      "searchText": "熱千めら hsd21-007 火消しのさらまんだー このほろめんがだうんした時、自分のでっきを2枚引く。 「ご利益」担当 自分のあーかいぶにぎふとを持つほろめんが3枚以上あるなら、このあーつ+50。",
+      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3049"
+    },
+    {
+      "cardNumber": "hSD21-008",
+      "name": "熱千めらの拍子木",
+      "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD21/hSD21-008_U.png",
+      "representativeImageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD21/hSD21-008_U.png",
+      "cardType": "support",
+      "colors": [],
+      "isBuzz": false,
+      "tags": [],
+      "supportType": "tool",
+      "isLimited": false,
+      "supportSearchCategory": "tool",
+      "abilities": [
+        {
+          "type": "normal",
+          "text": "このツールが付いている〈熱千めら〉のアーツ+20。\n◆1st以上の〈熱千めら〉に付いていたら能力追加\nこのホロメンが相手のホロメンをダウンさせた時、自分のデッキを1枚引き、手札1枚をアーカイブする。\nツールは、自分のホロメン1人につき1枚だけ付けられる。"
+        }
+      ],
+      "arts": [],
+      "batonPass": [],
+      "effectTags": [
+        "draw",
+        "arts_boost"
+      ],
+      "criticalColors": [],
+      "rarities": [
+        "U"
+      ],
+      "products": [
+        "スタートデッキ アソビ★まわり隊！推し 熱千めら"
+      ],
+      "illustrators": [
+        "にゃまそ"
+      ],
+      "qas": [],
+      "releaseDate": "2026-10-30",
+      "searchText": "熱千めらの拍子木 hsd21-008 このつーるが付いている〈熱千めら〉のあーつ+20。 ◆1st以上の〈熱千めら〉に付いていたら能力追加 このほろめんが相手のほろめんをだうんさせた時、自分のでっきを1枚引き、手札1枚をあーかいぶする。 つーるは、自分のほろめん1人につき1枚だけ付けられる。",
+      "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3050"
     },
     {
       "cardNumber": "hY01-001",

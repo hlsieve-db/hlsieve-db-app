@@ -1,8 +1,8 @@
 {
   "format": "hlsieve-card-printings",
   "formatVersion": 1,
-  "cardsDataVersion": "sha256:772677875c7f04652ff7e1a04e32866c25cddf2330e8d2722187b2bf12effeb7",
-  "dataVersion": "sha256:30fcc4c9b04c011afcbba57cec4305e7601176f07aeed0d721088fa6a183f944",
+  "cardsDataVersion": "sha256:8500a607759083a4a16220e619dae5590b674be939ec1256aad7fa14728dc599",
+  "dataVersion": "sha256:e23422066c2a361c71986f165f0d76a8c5b80d0552ad03090f011668a8181a8e",
   "cards": {
     "hBD24-001": {
       "defaultPrintingOfficialId": "199",
@@ -19061,6 +19061,18 @@
             "【使用可能カード】セレクションカップ"
           ],
           "illustrator": "Hyde"
+        },
+        {
+          "officialId": "3017",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3017",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hPR/hBP05-074_P_04.png",
+          "rarity": "P",
+          "products": [
+            "PRカード",
+            "【使用可能カード】セレクションカップ"
+          ],
+          "illustrator": "じっぽ"
         }
       ]
     },
@@ -30582,6 +30594,18 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "EEJU"
+        },
+        {
+          "officialId": "3015",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3015",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hPR/hBP09-031_P.png",
+          "rarity": "P",
+          "products": [
+            "PRカード",
+            "【使用可能カード】セレクションカップ"
+          ],
+          "illustrator": "はまなし"
         }
       ]
     },
@@ -32265,6 +32289,18 @@
             "ブースターパック「ボリュームヴォルテックス」"
           ],
           "illustrator": "MyungYi"
+        },
+        {
+          "officialId": "3016",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3016",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hPR/hBP09-086_P.png",
+          "rarity": "P",
+          "products": [
+            "PRカード",
+            "【使用可能カード】セレクションカップ"
+          ],
+          "illustrator": "小二病"
         }
       ]
     },
@@ -33784,6 +33820,18 @@
             "エクストラブースター サマー・ホログラム"
           ],
           "illustrator": "ソンシル"
+        },
+        {
+          "officialId": "3018",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3018",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hPR/hEB01-025_P.png",
+          "rarity": "P",
+          "products": [
+            "PRカード",
+            "【使用可能カード】セレクションカップ"
+          ],
+          "illustrator": "ソンシル"
         }
       ]
     },
@@ -33799,6 +33847,18 @@
           "products": [
             "【使用可能カード】セレクションカップ",
             "エクストラブースター サマー・ホログラム"
+          ],
+          "illustrator": "はたほまめ"
+        },
+        {
+          "officialId": "3019",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3019",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hPR/hEB01-026_P.png",
+          "rarity": "P",
+          "products": [
+            "PRカード",
+            "【使用可能カード】セレクションカップ"
           ],
           "illustrator": "はたほまめ"
         }
@@ -33818,6 +33878,18 @@
             "エクストラブースター サマー・ホログラム"
           ],
           "illustrator": "みゃーこ"
+        },
+        {
+          "officialId": "3020",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3020",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hPR/hEB01-027_P.png",
+          "rarity": "P",
+          "products": [
+            "PRカード",
+            "【使用可能カード】セレクションカップ"
+          ],
+          "illustrator": "みゃーこ"
         }
       ]
     },
@@ -33833,6 +33905,18 @@
           "products": [
             "【使用可能カード】セレクションカップ",
             "エクストラブースター サマー・ホログラム"
+          ],
+          "illustrator": "Haる"
+        },
+        {
+          "officialId": "3021",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3021",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hPR/hEB01-028_P.png",
+          "rarity": "P",
+          "products": [
+            "PRカード",
+            "【使用可能カード】セレクションカップ"
           ],
           "illustrator": "Haる"
         }
@@ -33852,6 +33936,18 @@
             "エクストラブースター サマー・ホログラム"
           ],
           "illustrator": "しわ"
+        },
+        {
+          "officialId": "3022",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3022",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hPR/hEB01-029_P.png",
+          "rarity": "P",
+          "products": [
+            "PRカード",
+            "【使用可能カード】セレクションカップ"
+          ],
+          "illustrator": "しわ"
         }
       ]
     },
@@ -33867,6 +33963,18 @@
           "products": [
             "【使用可能カード】セレクションカップ",
             "エクストラブースター サマー・ホログラム"
+          ],
+          "illustrator": "汐張神奈"
+        },
+        {
+          "officialId": "3023",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3023",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hPR/hEB01-030_P.png",
+          "rarity": "P",
+          "products": [
+            "PRカード",
+            "【使用可能カード】セレクションカップ"
           ],
           "illustrator": "汐張神奈"
         }
@@ -33886,6 +33994,18 @@
             "エクストラブースター サマー・ホログラム"
           ],
           "illustrator": "いかり"
+        },
+        {
+          "officialId": "3024",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3024",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hPR/hEB01-031_P.png",
+          "rarity": "P",
+          "products": [
+            "PRカード",
+            "【使用可能カード】セレクションカップ"
+          ],
+          "illustrator": "いかり"
         }
       ]
     },
@@ -33901,6 +34021,18 @@
           "products": [
             "【使用可能カード】セレクションカップ",
             "エクストラブースター サマー・ホログラム"
+          ],
+          "illustrator": "おるだん"
+        },
+        {
+          "officialId": "3025",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3025",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hPR/hEB01-032_P.png",
+          "rarity": "P",
+          "products": [
+            "PRカード",
+            "【使用可能カード】セレクションカップ"
           ],
           "illustrator": "おるだん"
         }
@@ -33920,6 +34052,18 @@
             "エクストラブースター サマー・ホログラム"
           ],
           "illustrator": "汐張神奈"
+        },
+        {
+          "officialId": "3026",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3026",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hPR/hEB01-033_P.png",
+          "rarity": "P",
+          "products": [
+            "PRカード",
+            "【使用可能カード】セレクションカップ"
+          ],
+          "illustrator": "汐張神奈"
         }
       ]
     },
@@ -33935,6 +34079,18 @@
           "products": [
             "【使用可能カード】セレクションカップ",
             "エクストラブースター サマー・ホログラム"
+          ],
+          "illustrator": "BISAI"
+        },
+        {
+          "officialId": "3027",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3027",
+          "isParallel": true,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hPR/hEB01-034_P.png",
+          "rarity": "P",
+          "products": [
+            "PRカード",
+            "【使用可能カード】セレクションカップ"
           ],
           "illustrator": "BISAI"
         }
@@ -38221,19 +38377,19 @@
       ]
     },
     "hSD14-010": {
-      "defaultPrintingOfficialId": "2324",
+      "defaultPrintingOfficialId": "3042",
       "printings": [
         {
-          "officialId": "2324",
-          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2324",
+          "officialId": "3042",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3042",
           "isParallel": false,
-          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP08/hSD14-010_C_02.png",
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD14-010_C_03.png",
           "rarity": "C",
           "products": [
-            "【使用可能カード】セレクションカップ",
-            "ブースターパック バウンサーバウンド"
+            "スタートデッキ アソビ★まわり隊！推し 熱千めら",
+            "スタートデッキ アソビ★まわり隊！推し 百灯キョーコ"
           ],
-          "illustrator": "絹谷ゆたか"
+          "illustrator": "白襟"
         },
         {
           "officialId": "2074",
@@ -38251,6 +38407,18 @@
             "ライブスタートデッキ 白上フブキ"
           ],
           "illustrator": "ミュシャ"
+        },
+        {
+          "officialId": "2324",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=2324",
+          "isParallel": false,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hBP08/hSD14-010_C_02.png",
+          "rarity": "C",
+          "products": [
+            "【使用可能カード】セレクションカップ",
+            "ブースターパック バウンサーバウンド"
+          ],
+          "illustrator": "絹谷ゆたか"
         },
         {
           "officialId": "2202",
@@ -39132,6 +39300,361 @@
             "ライブスタートデッキ 大空スバル"
           ],
           "illustrator": "紅木春"
+        }
+      ]
+    },
+    "hSD20-001": {
+      "defaultPrintingOfficialId": "3028",
+      "printings": [
+        {
+          "officialId": "3028",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3028",
+          "isParallel": false,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-001_OSR.png",
+          "rarity": "OSR",
+          "products": [
+            "スタートデッキ アソビ★まわり隊！推し 百灯キョーコ"
+          ],
+          "illustrator": "耳ン"
+        }
+      ]
+    },
+    "hSD20-002": {
+      "defaultPrintingOfficialId": "3029",
+      "printings": [
+        {
+          "officialId": "3029",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3029",
+          "isParallel": false,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-002_C.png",
+          "rarity": "C",
+          "products": [
+            "スタートデッキ アソビ★まわり隊！推し 百灯キョーコ"
+          ]
+        }
+      ]
+    },
+    "hSD20-003": {
+      "defaultPrintingOfficialId": "3030",
+      "printings": [
+        {
+          "officialId": "3030",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3030",
+          "isParallel": false,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-003_U.png",
+          "rarity": "U",
+          "products": [
+            "スタートデッキ アソビ★まわり隊！推し 百灯キョーコ"
+          ],
+          "illustrator": "兎未枝"
+        }
+      ]
+    },
+    "hSD20-004": {
+      "defaultPrintingOfficialId": "3031",
+      "printings": [
+        {
+          "officialId": "3031",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3031",
+          "isParallel": false,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-004_C.png",
+          "rarity": "C",
+          "products": [
+            "スタートデッキ アソビ★まわり隊！推し 百灯キョーコ"
+          ],
+          "illustrator": "鉢谷ナギ"
+        }
+      ]
+    },
+    "hSD20-005": {
+      "defaultPrintingOfficialId": "3032",
+      "printings": [
+        {
+          "officialId": "3032",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3032",
+          "isParallel": false,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-005_U.png",
+          "rarity": "U",
+          "products": [
+            "スタートデッキ アソビ★まわり隊！推し 百灯キョーコ"
+          ],
+          "illustrator": "TOH."
+        }
+      ]
+    },
+    "hSD20-006": {
+      "defaultPrintingOfficialId": "3033",
+      "printings": [
+        {
+          "officialId": "3033",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3033",
+          "isParallel": false,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-006_R.png",
+          "rarity": "R",
+          "products": [
+            "スタートデッキ アソビ★まわり隊！推し 百灯キョーコ"
+          ],
+          "illustrator": "宮波"
+        }
+      ]
+    },
+    "hSD20-007": {
+      "defaultPrintingOfficialId": "3034",
+      "printings": [
+        {
+          "officialId": "3034",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3034",
+          "isParallel": false,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-007_RR.png",
+          "rarity": "RR",
+          "products": [
+            "スタートデッキ アソビ★まわり隊！推し 百灯キョーコ"
+          ],
+          "illustrator": "gaha"
+        }
+      ]
+    },
+    "hSD20-008": {
+      "defaultPrintingOfficialId": "3035",
+      "printings": [
+        {
+          "officialId": "3035",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3035",
+          "isParallel": false,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-008_C.png",
+          "rarity": "C",
+          "products": [
+            "スタートデッキ アソビ★まわり隊！推し 熱千めら",
+            "スタートデッキ アソビ★まわり隊！推し 百灯キョーコ"
+          ]
+        }
+      ]
+    },
+    "hSD20-009": {
+      "defaultPrintingOfficialId": "3036",
+      "printings": [
+        {
+          "officialId": "3036",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3036",
+          "isParallel": false,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-009_U.png",
+          "rarity": "U",
+          "products": [
+            "スタートデッキ アソビ★まわり隊！推し 熱千めら",
+            "スタートデッキ アソビ★まわり隊！推し 百灯キョーコ"
+          ],
+          "illustrator": "カロクチトセ"
+        }
+      ]
+    },
+    "hSD20-010": {
+      "defaultPrintingOfficialId": "3037",
+      "printings": [
+        {
+          "officialId": "3037",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3037",
+          "isParallel": false,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-010_R.png",
+          "rarity": "R",
+          "products": [
+            "スタートデッキ アソビ★まわり隊！推し 熱千めら",
+            "スタートデッキ アソビ★まわり隊！推し 百灯キョーコ"
+          ],
+          "illustrator": "大熊まい"
+        }
+      ]
+    },
+    "hSD20-011": {
+      "defaultPrintingOfficialId": "3038",
+      "printings": [
+        {
+          "officialId": "3038",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3038",
+          "isParallel": false,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-011_RR.png",
+          "rarity": "RR",
+          "products": [
+            "スタートデッキ アソビ★まわり隊！推し 熱千めら",
+            "スタートデッキ アソビ★まわり隊！推し 百灯キョーコ"
+          ],
+          "illustrator": "夕城"
+        }
+      ]
+    },
+    "hSD20-012": {
+      "defaultPrintingOfficialId": "3039",
+      "printings": [
+        {
+          "officialId": "3039",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3039",
+          "isParallel": false,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-012_U.png",
+          "rarity": "U",
+          "products": [
+            "スタートデッキ アソビ★まわり隊！推し 熱千めら",
+            "スタートデッキ アソビ★まわり隊！推し 百灯キョーコ"
+          ],
+          "illustrator": "緜"
+        }
+      ]
+    },
+    "hSD20-013": {
+      "defaultPrintingOfficialId": "3040",
+      "printings": [
+        {
+          "officialId": "3040",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3040",
+          "isParallel": false,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-013_U.png",
+          "rarity": "U",
+          "products": [
+            "スタートデッキ アソビ★まわり隊！推し 熱千めら",
+            "スタートデッキ アソビ★まわり隊！推し 百灯キョーコ"
+          ],
+          "illustrator": "deru"
+        }
+      ]
+    },
+    "hSD20-014": {
+      "defaultPrintingOfficialId": "3041",
+      "printings": [
+        {
+          "officialId": "3041",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3041",
+          "isParallel": false,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD20/hSD20-014_U.png",
+          "rarity": "U",
+          "products": [
+            "スタートデッキ アソビ★まわり隊！推し 百灯キョーコ"
+          ],
+          "illustrator": "那桜"
+        }
+      ]
+    },
+    "hSD21-001": {
+      "defaultPrintingOfficialId": "3043",
+      "printings": [
+        {
+          "officialId": "3043",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3043",
+          "isParallel": false,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD21/hSD21-001_OSR.png",
+          "rarity": "OSR",
+          "products": [
+            "スタートデッキ アソビ★まわり隊！推し 熱千めら"
+          ],
+          "illustrator": "夕城"
+        }
+      ]
+    },
+    "hSD21-002": {
+      "defaultPrintingOfficialId": "3044",
+      "printings": [
+        {
+          "officialId": "3044",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3044",
+          "isParallel": false,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD21/hSD21-002_C.png",
+          "rarity": "C",
+          "products": [
+            "スタートデッキ アソビ★まわり隊！推し 熱千めら"
+          ]
+        }
+      ]
+    },
+    "hSD21-003": {
+      "defaultPrintingOfficialId": "3045",
+      "printings": [
+        {
+          "officialId": "3045",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3045",
+          "isParallel": false,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD21/hSD21-003_U.png",
+          "rarity": "U",
+          "products": [
+            "スタートデッキ アソビ★まわり隊！推し 熱千めら"
+          ],
+          "illustrator": "那桜"
+        }
+      ]
+    },
+    "hSD21-004": {
+      "defaultPrintingOfficialId": "3046",
+      "printings": [
+        {
+          "officialId": "3046",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3046",
+          "isParallel": false,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD21/hSD21-004_C.png",
+          "rarity": "C",
+          "products": [
+            "スタートデッキ アソビ★まわり隊！推し 熱千めら"
+          ],
+          "illustrator": "にゃまそ"
+        }
+      ]
+    },
+    "hSD21-005": {
+      "defaultPrintingOfficialId": "3047",
+      "printings": [
+        {
+          "officialId": "3047",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3047",
+          "isParallel": false,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD21/hSD21-005_U.png",
+          "rarity": "U",
+          "products": [
+            "スタートデッキ アソビ★まわり隊！推し 熱千めら"
+          ],
+          "illustrator": "gaha"
+        }
+      ]
+    },
+    "hSD21-006": {
+      "defaultPrintingOfficialId": "3048",
+      "printings": [
+        {
+          "officialId": "3048",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3048",
+          "isParallel": false,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD21/hSD21-006_R.png",
+          "rarity": "R",
+          "products": [
+            "スタートデッキ アソビ★まわり隊！推し 熱千めら"
+          ],
+          "illustrator": "梅之シイ"
+        }
+      ]
+    },
+    "hSD21-007": {
+      "defaultPrintingOfficialId": "3049",
+      "printings": [
+        {
+          "officialId": "3049",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3049",
+          "isParallel": false,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD21/hSD21-007_RR.png",
+          "rarity": "RR",
+          "products": [
+            "スタートデッキ アソビ★まわり隊！推し 熱千めら"
+          ],
+          "illustrator": "TOH."
+        }
+      ]
+    },
+    "hSD21-008": {
+      "defaultPrintingOfficialId": "3050",
+      "printings": [
+        {
+          "officialId": "3050",
+          "officialUrl": "https://hololive-official-cardgame.com/cardlist/?id=3050",
+          "isParallel": false,
+          "imageUrl": "https://hololive-official-cardgame.com/wp-content/images/cardlist/hSD21/hSD21-008_U.png",
+          "rarity": "U",
+          "products": [
+            "スタートデッキ アソビ★まわり隊！推し 熱千めら"
+          ],
+          "illustrator": "にゃまそ"
         }
       ]
     },

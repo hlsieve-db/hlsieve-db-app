@@ -313,7 +313,7 @@ describe('CardSearchPage loading and results', () => {
     renderPage()
 
     const notice = screen.getByLabelText('最新のカードデータ更新')
-    expect(notice).toHaveTextContent('カードデータ更新 2026/10/21')
+    expect(notice).toHaveTextContent('カードデータ更新 2026/10/24')
     expect(notice).toHaveTextContent('公式カード情報を更新しました')
   })
 

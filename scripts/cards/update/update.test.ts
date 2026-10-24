@@ -246,7 +246,7 @@ describe('production Card update audit', () => {
     const report = auditProductionUpdate(input())
 
     expect(report.chronology).toMatchObject({
-      products: 39,
+      products: 41,
       missingProductReleaseDates: [],
       intentionallyNoSingleReleaseDate: [
         '【使用可能カード】セレクションカップ',

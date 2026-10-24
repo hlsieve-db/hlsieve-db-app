@@ -22,10 +22,10 @@ describe('production SEO assets', () => {
       (match) => match[1],
     )
 
-    expect(cards.cards).toHaveLength(1387)
+    expect(cards.cards).toHaveLength(1409)
     expect(sitemap).toBe(expected)
-    expect(locations).toHaveLength(1396)
-    expect(new Set(locations)).toHaveProperty('size', 1396)
+    expect(locations).toHaveLength(1418)
+    expect(new Set(locations)).toHaveProperty('size', 1418)
     expect(locations[0]).toBe(`${SITE_ORIGIN}/cards`)
     expect(locations[1]).toBe(`${SITE_ORIGIN}/qa`)
     expect(locations[2]).toBe(`${SITE_ORIGIN}/probability`)
