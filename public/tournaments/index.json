@@ -1,9 +1,70 @@
 {
   "format": "hlsieve-tournament-index",
   "formatVersion": 1,
-  "dataVersion": "2608ec1b3ebb6d4f",
+  "dataVersion": "5022d2c5d34eaf49",
   "startDate": "2026-09-19",
   "events": [
+    {
+      "id": "evt_adea9d724c078c9e",
+      "tournament": {
+        "type": "selectioncup",
+        "environment": "bp09",
+        "seriesName": "【ホロカ】セレクションカップ（2026年10月）"
+      },
+      "date": "2026-10-26",
+      "venue": {
+        "slug": "venue-f35f099c04331272",
+        "name": "Japan TCG Center錦糸町マルイ店"
+      },
+      "participantCount": 32,
+      "resultCoverage": {
+        "kind": "exact",
+        "maxRank": 8
+      },
+      "resultCount": 8,
+      "results": [
+        {
+          "id": "res_62d426ae32940d62",
+          "rank": 1,
+          "oshiCardNumber": "hBP09-005"
+        },
+        {
+          "id": "res_55f30fe915694aad",
+          "rank": 2,
+          "oshiCardNumber": "hBP09-004"
+        },
+        {
+          "id": "res_af7c4e526793ac7e",
+          "rank": 3,
+          "oshiCardNumber": "hBP09-004"
+        },
+        {
+          "id": "res_54c7d398f757027c",
+          "rank": 4,
+          "oshiCardNumber": "hBP09-004"
+        },
+        {
+          "id": "res_7e4e52e7ef4d35ab",
+          "rank": 5,
+          "oshiCardNumber": "hBP09-005"
+        },
+        {
+          "id": "res_3874166e38f4b2a2",
+          "rank": 6,
+          "oshiCardNumber": "hBP09-001"
+        },
+        {
+          "id": "res_5f19eb6a720559d6",
+          "rank": 7,
+          "oshiCardNumber": "hBP09-004"
+        },
+        {
+          "id": "res_e56fe61e8b32a052",
+          "rank": 8,
+          "oshiCardNumber": "hBP09-001"
+        }
+      ]
+    },
     {
       "id": "evt_1155d4d0b1606da4",
       "tournament": {
