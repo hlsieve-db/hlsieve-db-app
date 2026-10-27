@@ -1,9 +1,69 @@
 {
   "format": "hlsieve-tournament-index",
   "formatVersion": 1,
-  "dataVersion": "5022d2c5d34eaf49",
+  "dataVersion": "e8aa5b5d285ee3a1",
   "startDate": "2026-09-19",
   "events": [
+    {
+      "id": "evt_8bc0df56f7360092",
+      "tournament": {
+        "type": "selectioncup",
+        "environment": "bp09",
+        "seriesName": "【ホロカ】セレクションカップ（2026年10月）"
+      },
+      "date": "2026-10-27",
+      "venue": {
+        "slug": "venue-ee26c4ff75eb98b1",
+        "name": "カードボックス京都店"
+      },
+      "participantCount": 32,
+      "resultCoverage": {
+        "kind": "variable"
+      },
+      "resultCount": 8,
+      "results": [
+        {
+          "id": "res_fd70bb898018a435",
+          "rank": 1,
+          "oshiCardNumber": "hBP09-002"
+        },
+        {
+          "id": "res_7a5fa4df2aed1203",
+          "rank": 2,
+          "oshiCardNumber": "hBP09-004"
+        },
+        {
+          "id": "res_5cafe08e458dad32",
+          "rank": 3,
+          "oshiCardNumber": "hBP09-004"
+        },
+        {
+          "id": "res_5feb7b5bf92905e7",
+          "rank": 4,
+          "oshiCardNumber": "hBP09-003"
+        },
+        {
+          "id": "res_ebdcf0e30a43ebbf",
+          "rank": 4,
+          "oshiCardNumber": "hBP09-004"
+        },
+        {
+          "id": "res_4755c49b194072af",
+          "rank": 6,
+          "oshiCardNumber": "hBP09-004"
+        },
+        {
+          "id": "res_88e965124f1cbc3e",
+          "rank": 7,
+          "oshiCardNumber": "hBP09-004"
+        },
+        {
+          "id": "res_3ea82be18caa2c1d",
+          "rank": 8,
+          "oshiCardNumber": "hBP09-007"
+        }
+      ]
+    },
     {
       "id": "evt_adea9d724c078c9e",
       "tournament": {
