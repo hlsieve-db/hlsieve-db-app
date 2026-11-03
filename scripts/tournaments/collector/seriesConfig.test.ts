@@ -25,6 +25,12 @@ describe('Tournament Collector series config', () => {
       year: 2026,
     })
     expect(bloom).not.toHaveProperty('round')
+    const novemberBloom = getTournamentSeriesConfig('3576')
+    expect(novemberBloom).toMatchObject({
+      type: 'bloomcup',
+      year: 2026,
+    })
+    expect(novemberBloom).not.toHaveProperty('round')
   })
 })
 
@@ -46,6 +52,16 @@ describe('public series name mapping', () => {
     expect(
       findTournamentSeriesByPublicName(
         '【ホロカ】セレクションカップ（2026年10月・追加開催）',
+      ),
+    ).toBeUndefined()
+    expect(
+      findTournamentSeriesByPublicName(
+        '  【ホロカ】ブルームカップ「白銀ノエル」 （2026年11月開催）  ',
+      )?.seriesId,
+    ).toBe('3576')
+    expect(
+      findTournamentSeriesByPublicName(
+        '【ホロカ】ブルームカップ「白銀ノエル」 （2026年12月開催）',
       ),
     ).toBeUndefined()
   })

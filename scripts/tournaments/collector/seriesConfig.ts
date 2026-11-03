@@ -26,6 +26,12 @@ export const TOURNAMENT_SERIES_CONFIGS: readonly TournamentSeriesConfig[] = [
     seriesName: '【ホロカ】ブルームカップ「響咲リオナ」 （2026年9月開催）',
     year: 2026,
   },
+  {
+    seriesId: '3576',
+    type: 'bloomcup',
+    seriesName: '【ホロカ】ブルームカップ「白銀ノエル」 （2026年11月開催）',
+    year: 2026,
+  },
 ]
 
 export function normalizePublicSeriesName(value: string): string {
