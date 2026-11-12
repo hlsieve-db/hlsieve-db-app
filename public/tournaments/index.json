@@ -1,9 +1,129 @@
 {
   "format": "hlsieve-tournament-index",
   "formatVersion": 1,
-  "dataVersion": "0c624c74cf774a60",
+  "dataVersion": "e11a47ce8fe7491a",
   "startDate": "2026-09-19",
   "events": [
+    {
+      "id": "evt_777839fb83311b17",
+      "tournament": {
+        "type": "bloomcup",
+        "seriesName": "【ホロカ】ブルームカップ「白銀ノエル」 （2026年11月開催）"
+      },
+      "date": "2026-11-12",
+      "venue": {
+        "slug": "venue-bb94e8a4187c9e99",
+        "name": "ドラゴンスター池袋店"
+      },
+      "participantCount": 47,
+      "resultCoverage": {
+        "kind": "exact",
+        "maxRank": 8
+      },
+      "resultCount": 8,
+      "results": [
+        {
+          "id": "res_d83f8edc15dd2488",
+          "rank": 1,
+          "oshiCardNumber": "hBP07-006"
+        },
+        {
+          "id": "res_dce13feadfeddd9e",
+          "rank": 2,
+          "oshiCardNumber": "hBP06-006"
+        },
+        {
+          "id": "res_8c069e15d61caf21",
+          "rank": 3,
+          "oshiCardNumber": "hBP01-008"
+        },
+        {
+          "id": "res_7f6ec4ccfd6c1760",
+          "rank": 4,
+          "oshiCardNumber": "hBP01-008"
+        },
+        {
+          "id": "res_6ada313ff8d4d613",
+          "rank": 5,
+          "oshiCardNumber": "hBP06-006"
+        },
+        {
+          "id": "res_dc155406c2a33ec2",
+          "rank": 6,
+          "oshiCardNumber": "hBP09-001"
+        },
+        {
+          "id": "res_8b1e9d0ad13ed0ce",
+          "rank": 7,
+          "oshiCardNumber": "hBP06-006"
+        },
+        {
+          "id": "res_c2838889984dffe5",
+          "rank": 8,
+          "oshiCardNumber": "hBP07-003"
+        }
+      ]
+    },
+    {
+      "id": "evt_ebc5d3b7eaaf9e8b",
+      "tournament": {
+        "type": "bloomcup",
+        "seriesName": "【ホロカ】ブルームカップ「白銀ノエル」 （2026年11月開催）"
+      },
+      "date": "2026-11-12",
+      "venue": {
+        "slug": "venue-cec82eb29117f6ed",
+        "name": "Japan TCG Center吉祥寺駅北口店"
+      },
+      "participantCount": 25,
+      "resultCoverage": {
+        "kind": "exact",
+        "maxRank": 8
+      },
+      "resultCount": 8,
+      "results": [
+        {
+          "id": "res_ab73bd5654dc9ed2",
+          "rank": 1,
+          "oshiCardNumber": "hBP07-006"
+        },
+        {
+          "id": "res_81fbdf0d28f73fe1",
+          "rank": 2,
+          "oshiCardNumber": "hBP06-006"
+        },
+        {
+          "id": "res_93c89f104f50de54",
+          "rank": 3,
+          "oshiCardNumber": "hBP07-006"
+        },
+        {
+          "id": "res_209623a2979ddd0e",
+          "rank": 4,
+          "oshiCardNumber": "hBP07-003"
+        },
+        {
+          "id": "res_ed75b10f2e387d0b",
+          "rank": 5,
+          "oshiCardNumber": "hBP09-003"
+        },
+        {
+          "id": "res_89b4c70ecde3ea02",
+          "rank": 6,
+          "oshiCardNumber": "hBP06-006"
+        },
+        {
+          "id": "res_23ac05d9ac138bdd",
+          "rank": 7,
+          "oshiCardNumber": "hBP06-006"
+        },
+        {
+          "id": "res_154189c314a2d477",
+          "rank": 8,
+          "oshiCardNumber": "hBP07-003"
+        }
+      ]
+    },
     {
       "id": "evt_17e496a3edac1917",
       "tournament": {
