@@ -1,9 +1,69 @@
 {
   "format": "hlsieve-tournament-index",
   "formatVersion": 1,
-  "dataVersion": "e11a47ce8fe7491a",
+  "dataVersion": "037ca419dfda105d",
   "startDate": "2026-09-19",
   "events": [
+    {
+      "id": "evt_82c37127c18c8fab",
+      "tournament": {
+        "type": "bloomcup",
+        "seriesName": "【ホロカ】ブルームカップ「白銀ノエル」 （2026年11月開催）"
+      },
+      "date": "2026-11-13",
+      "venue": {
+        "slug": "venue-111af825539cab10",
+        "name": "カードゲームのシーガル郡山店"
+      },
+      "participantCount": 19,
+      "resultCoverage": {
+        "kind": "exact",
+        "maxRank": 8
+      },
+      "resultCount": 8,
+      "results": [
+        {
+          "id": "res_f95b5ded76308c01",
+          "rank": 1,
+          "oshiCardNumber": "hBP01-008"
+        },
+        {
+          "id": "res_5cfc4ab28cf8d776",
+          "rank": 2,
+          "oshiCardNumber": "hBP07-003"
+        },
+        {
+          "id": "res_0f65e24eea040682",
+          "rank": 3,
+          "oshiCardNumber": "hBP06-006"
+        },
+        {
+          "id": "res_68a57c2828793474",
+          "rank": 4,
+          "oshiCardNumber": "hSD13-002"
+        },
+        {
+          "id": "res_f3926f0066e9b4ac",
+          "rank": 5,
+          "oshiCardNumber": "hBP06-003"
+        },
+        {
+          "id": "res_4a13bac2159e31b6",
+          "rank": 6,
+          "oshiCardNumber": "hBP06-004"
+        },
+        {
+          "id": "res_bddebfb23fcbb71e",
+          "rank": 7,
+          "oshiCardNumber": "hBP07-003"
+        },
+        {
+          "id": "res_747cdc36650850c2",
+          "rank": 8,
+          "oshiCardNumber": "hBP07-006"
+        }
+      ]
+    },
     {
       "id": "evt_777839fb83311b17",
       "tournament": {
