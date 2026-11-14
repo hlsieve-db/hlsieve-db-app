@@ -1,9 +1,609 @@
 {
   "format": "hlsieve-tournament-index",
   "formatVersion": 1,
-  "dataVersion": "037ca419dfda105d",
+  "dataVersion": "c7410a8ee7414baa",
   "startDate": "2026-09-19",
   "events": [
+    {
+      "id": "evt_003dbca0875e142c",
+      "tournament": {
+        "type": "bloomcup",
+        "seriesName": "【ホロカ】ブルームカップ「白銀ノエル」 （2026年11月開催）"
+      },
+      "date": "2026-11-14",
+      "venue": {
+        "slug": "venue-bb91256cb60dac4f",
+        "name": "Japan TCG Center那覇沖映通り店"
+      },
+      "participantCount": 21,
+      "resultCoverage": {
+        "kind": "exact",
+        "maxRank": 8
+      },
+      "resultCount": 8,
+      "results": [
+        {
+          "id": "res_eba519898dbf7fad",
+          "rank": 1,
+          "oshiCardNumber": "hBP06-006"
+        },
+        {
+          "id": "res_cfcadd2f81f19f7b",
+          "rank": 2,
+          "oshiCardNumber": "hBP09-004"
+        },
+        {
+          "id": "res_850ab5cf255b1703",
+          "rank": 3,
+          "oshiCardNumber": "hBP01-008"
+        },
+        {
+          "id": "res_b6a422834df50f4f",
+          "rank": 4,
+          "oshiCardNumber": "hEB01-003"
+        },
+        {
+          "id": "res_a42887aa911e2f8e",
+          "rank": 5,
+          "oshiCardNumber": "hBP09-004"
+        },
+        {
+          "id": "res_b387692b16790657",
+          "rank": 6,
+          "oshiCardNumber": "hBP07-005"
+        },
+        {
+          "id": "res_b3c016030793df2f",
+          "rank": 7,
+          "oshiCardNumber": "hBP09-003"
+        },
+        {
+          "id": "res_1a5d74ef4c532d3b",
+          "rank": 8,
+          "oshiCardNumber": "hBP09-004"
+        }
+      ]
+    },
+    {
+      "id": "evt_083dd8e808aa79ec",
+      "tournament": {
+        "type": "bloomcup",
+        "seriesName": "【ホロカ】ブルームカップ「白銀ノエル」 （2026年11月開催）"
+      },
+      "date": "2026-11-14",
+      "venue": {
+        "slug": "venue-64bf9f80ed17b93b",
+        "name": "トーナメントセンターバトロコ金沢駅前"
+      },
+      "participantCount": 32,
+      "resultCoverage": {
+        "kind": "exact",
+        "maxRank": 8
+      },
+      "resultCount": 8,
+      "results": [
+        {
+          "id": "res_23a808f0ca6b5c0c",
+          "rank": 1,
+          "oshiCardNumber": "hBP01-008"
+        },
+        {
+          "id": "res_10e114b99b5e464d",
+          "rank": 2,
+          "oshiCardNumber": "hBP06-006"
+        },
+        {
+          "id": "res_bb54fbd1c06ffc15",
+          "rank": 3,
+          "oshiCardNumber": "hBP06-006"
+        },
+        {
+          "id": "res_de2f932185d3c355",
+          "rank": 4,
+          "oshiCardNumber": "hBP07-003"
+        },
+        {
+          "id": "res_c5981e4e81aae70a",
+          "rank": 5,
+          "oshiCardNumber": "hBP06-006"
+        },
+        {
+          "id": "res_97618fa8e55a272c",
+          "rank": 6,
+          "oshiCardNumber": "hBP06-006"
+        },
+        {
+          "id": "res_cff183e51a1cd019",
+          "rank": 7,
+          "oshiCardNumber": "hBP07-003"
+        },
+        {
+          "id": "res_f8de9d56ba3ea7ca",
+          "rank": 8,
+          "oshiCardNumber": "hBP07-006"
+        }
+      ]
+    },
+    {
+      "id": "evt_581d3a2d1df88979",
+      "tournament": {
+        "type": "bloomcup",
+        "seriesName": "【ホロカ】ブルームカップ「白銀ノエル」 （2026年11月開催）"
+      },
+      "date": "2026-11-14",
+      "venue": {
+        "slug": "venue-dc883dffe76940fc",
+        "name": "カードラボ広島店"
+      },
+      "participantCount": 25,
+      "resultCoverage": {
+        "kind": "exact",
+        "maxRank": 8
+      },
+      "resultCount": 8,
+      "results": [
+        {
+          "id": "res_933fffb2c5e94446",
+          "rank": 1,
+          "oshiCardNumber": "hBP01-008"
+        },
+        {
+          "id": "res_4f15af28ec46b98c",
+          "rank": 2,
+          "oshiCardNumber": "hBP06-006"
+        },
+        {
+          "id": "res_4b69e5d351d5186f",
+          "rank": 3,
+          "oshiCardNumber": "hBP07-003"
+        },
+        {
+          "id": "res_25103981c0bed97d",
+          "rank": 4,
+          "oshiCardNumber": "hBP06-006"
+        },
+        {
+          "id": "res_ccf3ebafef79204b",
+          "rank": 5,
+          "oshiCardNumber": "hBP06-006"
+        },
+        {
+          "id": "res_06bb65c354d658f7",
+          "rank": 6,
+          "oshiCardNumber": "hEB01-002"
+        },
+        {
+          "id": "res_7ab367d6f08c9252",
+          "rank": 7,
+          "oshiCardNumber": "hBP01-008"
+        },
+        {
+          "id": "res_4904de38a6dad5fc",
+          "rank": 8,
+          "oshiCardNumber": "hBP06-004"
+        }
+      ]
+    },
+    {
+      "id": "evt_5dccc2cff206ab6b",
+      "tournament": {
+        "type": "bloomcup",
+        "seriesName": "【ホロカ】ブルームカップ「白銀ノエル」 （2026年11月開催）"
+      },
+      "date": "2026-11-14",
+      "venue": {
+        "slug": "venue-fd64e970e1ebc1ef",
+        "name": "カードショップ竜星のPAO立川店"
+      },
+      "participantCount": 38,
+      "resultCoverage": {
+        "kind": "exact",
+        "maxRank": 8
+      },
+      "resultCount": 8,
+      "results": [
+        {
+          "id": "res_3df293bc75d8b250",
+          "rank": 1,
+          "oshiCardNumber": "hBP07-003"
+        },
+        {
+          "id": "res_48af4edd9c2efd09",
+          "rank": 2,
+          "oshiCardNumber": "hBP07-003"
+        },
+        {
+          "id": "res_751ce35e191943a2",
+          "rank": 3,
+          "oshiCardNumber": "hBP06-006"
+        },
+        {
+          "id": "res_b768a2afd32eec7b",
+          "rank": 4,
+          "oshiCardNumber": "hBP06-006"
+        },
+        {
+          "id": "res_89472571ecb1b02d",
+          "rank": 5,
+          "oshiCardNumber": "hBP09-001"
+        },
+        {
+          "id": "res_9bdeeb99f959095d",
+          "rank": 6,
+          "oshiCardNumber": "hBP07-003"
+        },
+        {
+          "id": "res_2b8b72c1243f97f5",
+          "rank": 7,
+          "oshiCardNumber": "hBP06-006"
+        },
+        {
+          "id": "res_de8f6661429e07dd",
+          "rank": 8,
+          "oshiCardNumber": "hBP09-001"
+        }
+      ]
+    },
+    {
+      "id": "evt_68e4f2ff9aa2d8ab",
+      "tournament": {
+        "type": "bloomcup",
+        "seriesName": "【ホロカ】ブルームカップ「白銀ノエル」 （2026年11月開催）"
+      },
+      "date": "2026-11-14",
+      "venue": {
+        "slug": "venue-674f4861778cdcae",
+        "name": "遊ING熊本上通り店"
+      },
+      "participantCount": 30,
+      "resultCoverage": {
+        "kind": "exact",
+        "maxRank": 8
+      },
+      "resultCount": 8,
+      "results": [
+        {
+          "id": "res_c9d580500a143d3c",
+          "rank": 1,
+          "oshiCardNumber": "hEB01-002"
+        },
+        {
+          "id": "res_6a001e94d57f4dc0",
+          "rank": 2,
+          "oshiCardNumber": "hBP06-006"
+        },
+        {
+          "id": "res_7aa0fa1ae2a48e5e",
+          "rank": 3,
+          "oshiCardNumber": "hBP07-006"
+        },
+        {
+          "id": "res_1e076980a2a3d57c",
+          "rank": 4,
+          "oshiCardNumber": "hBP07-005"
+        },
+        {
+          "id": "res_64713c62dd4f1dee",
+          "rank": 5,
+          "oshiCardNumber": "hBP06-003"
+        },
+        {
+          "id": "res_3c006f589c85fa34",
+          "rank": 6,
+          "oshiCardNumber": "hBP06-006"
+        },
+        {
+          "id": "res_1ffadc1ade3d12d6",
+          "rank": 7,
+          "oshiCardNumber": "hBP06-006"
+        },
+        {
+          "id": "res_7bccaf94e6371b38",
+          "rank": 8,
+          "oshiCardNumber": "hBP06-006"
+        }
+      ]
+    },
+    {
+      "id": "evt_7a69342a0bb4f546",
+      "tournament": {
+        "type": "bloomcup",
+        "seriesName": "【ホロカ】ブルームカップ「白銀ノエル」 （2026年11月開催）"
+      },
+      "date": "2026-11-14",
+      "venue": {
+        "slug": "venue-dcae23f74b804dca",
+        "name": "GIRAFULLなんば店"
+      },
+      "participantCount": 57,
+      "resultCoverage": {
+        "kind": "exact",
+        "maxRank": 8
+      },
+      "resultCount": 8,
+      "results": [
+        {
+          "id": "res_c1e88a5177e00b9d",
+          "rank": 1,
+          "oshiCardNumber": "hBP06-006"
+        },
+        {
+          "id": "res_54a085ad7c923019",
+          "rank": 2,
+          "oshiCardNumber": "hBP01-008"
+        },
+        {
+          "id": "res_1609bac276da861e",
+          "rank": 3,
+          "oshiCardNumber": "hBP09-001"
+        },
+        {
+          "id": "res_e297de86884d0682",
+          "rank": 4,
+          "oshiCardNumber": "hBP07-005"
+        },
+        {
+          "id": "res_e8ab28084517017c",
+          "rank": 5,
+          "oshiCardNumber": "hBP09-001"
+        },
+        {
+          "id": "res_72403745f640b799",
+          "rank": 6,
+          "oshiCardNumber": "hBP01-008"
+        },
+        {
+          "id": "res_430c971d33595791",
+          "rank": 7,
+          "oshiCardNumber": "hBP06-006"
+        },
+        {
+          "id": "res_f2910f51c7b0e7d5",
+          "rank": 8,
+          "oshiCardNumber": "hBP06-006"
+        }
+      ]
+    },
+    {
+      "id": "evt_9a2e20cb2f388f27",
+      "tournament": {
+        "type": "bloomcup",
+        "seriesName": "【ホロカ】ブルームカップ「白銀ノエル」 （2026年11月開催）"
+      },
+      "date": "2026-11-14",
+      "venue": {
+        "slug": "venue-bf0e7641797aaad0",
+        "name": "GIRAFULL 京都店"
+      },
+      "participantCount": 31,
+      "resultCoverage": {
+        "kind": "exact",
+        "maxRank": 8
+      },
+      "resultCount": 8,
+      "results": [
+        {
+          "id": "res_ef31a97403de7a08",
+          "rank": 1,
+          "oshiCardNumber": "hEB01-002"
+        },
+        {
+          "id": "res_885ff6d27a45c316",
+          "rank": 2,
+          "oshiCardNumber": "hBP06-006"
+        },
+        {
+          "id": "res_e246461dcad667d9",
+          "rank": 3,
+          "oshiCardNumber": "hBP04-002"
+        },
+        {
+          "id": "res_35fd0eea73be59be",
+          "rank": 4,
+          "oshiCardNumber": "hBP06-008"
+        },
+        {
+          "id": "res_25e2ee291ba9bd55",
+          "rank": 5,
+          "oshiCardNumber": "hEB01-002"
+        },
+        {
+          "id": "res_12c302f96932735d",
+          "rank": 6,
+          "oshiCardNumber": "hEB01-002"
+        },
+        {
+          "id": "res_8d28f7f1b6a7ec95",
+          "rank": 7,
+          "oshiCardNumber": "hBP07-005"
+        },
+        {
+          "id": "res_bdccb3ec26833790",
+          "rank": 8,
+          "oshiCardNumber": "hBP01-008"
+        }
+      ]
+    },
+    {
+      "id": "evt_9aa10758c752a1dc",
+      "tournament": {
+        "type": "bloomcup",
+        "seriesName": "【ホロカ】ブルームカップ「白銀ノエル」 （2026年11月開催）"
+      },
+      "date": "2026-11-14",
+      "venue": {
+        "slug": "venue-e56b861a19659a13",
+        "name": "BUSHIROAD TCG SHOP with GiGO"
+      },
+      "participantCount": 23,
+      "resultCoverage": {
+        "kind": "exact",
+        "maxRank": 8
+      },
+      "resultCount": 8,
+      "results": [
+        {
+          "id": "res_89a7ac9f50159223",
+          "rank": 1,
+          "oshiCardNumber": "hBP06-006"
+        },
+        {
+          "id": "res_2d0156343cddb660",
+          "rank": 2,
+          "oshiCardNumber": "hBP01-001"
+        },
+        {
+          "id": "res_fe0b904da4b7c3c9",
+          "rank": 3,
+          "oshiCardNumber": "hBP06-006"
+        },
+        {
+          "id": "res_0d3b8755f8dd0b19",
+          "rank": 4,
+          "oshiCardNumber": "hBP09-001"
+        },
+        {
+          "id": "res_e92f1265aeaa7f79",
+          "rank": 5,
+          "oshiCardNumber": "hBP06-003"
+        },
+        {
+          "id": "res_cdbfa871f61204dd",
+          "rank": 6,
+          "oshiCardNumber": "hBP07-001"
+        },
+        {
+          "id": "res_a23f155dae7900f1",
+          "rank": 7,
+          "oshiCardNumber": "hBP09-003"
+        },
+        {
+          "id": "res_72bd9211b02e0dbd",
+          "rank": 8,
+          "oshiCardNumber": "hBP01-008"
+        }
+      ]
+    },
+    {
+      "id": "evt_d1075fd539acfe99",
+      "tournament": {
+        "type": "bloomcup",
+        "seriesName": "【ホロカ】ブルームカップ「白銀ノエル」 （2026年11月開催）"
+      },
+      "date": "2026-11-14",
+      "venue": {
+        "slug": "venue-f23870b937740874",
+        "name": "カードゲームショップオレタン松山店"
+      },
+      "participantCount": 32,
+      "resultCoverage": {
+        "kind": "exact",
+        "maxRank": 8
+      },
+      "resultCount": 8,
+      "results": [
+        {
+          "id": "res_5806f4822a376ee6",
+          "rank": 1,
+          "oshiCardNumber": "hBP07-006"
+        },
+        {
+          "id": "res_19be8cd6704cc8a2",
+          "rank": 2,
+          "oshiCardNumber": "hBP06-006"
+        },
+        {
+          "id": "res_ddc8b78d0b0b0071",
+          "rank": 3,
+          "oshiCardNumber": "hBP06-006"
+        },
+        {
+          "id": "res_f4ce5326346864e2",
+          "rank": 4,
+          "oshiCardNumber": "hBP01-008"
+        },
+        {
+          "id": "res_f119a15d43db1889",
+          "rank": 5,
+          "oshiCardNumber": "hBP06-006"
+        },
+        {
+          "id": "res_f8c90e092efbcde5",
+          "rank": 6,
+          "oshiCardNumber": "hBP06-008"
+        },
+        {
+          "id": "res_d92781cda182e449",
+          "rank": 7,
+          "oshiCardNumber": "hBP07-006"
+        },
+        {
+          "id": "res_7ae59a8f00a28203",
+          "rank": 8,
+          "oshiCardNumber": "hBP07-001"
+        }
+      ]
+    },
+    {
+      "id": "evt_e09b4bdb9c8a4c37",
+      "tournament": {
+        "type": "bloomcup",
+        "seriesName": "【ホロカ】ブルームカップ「白銀ノエル」 （2026年11月開催）"
+      },
+      "date": "2026-11-14",
+      "venue": {
+        "slug": "venue-aa27af91e7b8cf57",
+        "name": "カードラボオタロード本店"
+      },
+      "participantCount": 32,
+      "resultCoverage": {
+        "kind": "exact",
+        "maxRank": 8
+      },
+      "resultCount": 8,
+      "results": [
+        {
+          "id": "res_60d0a7f94d5f7c0d",
+          "rank": 1,
+          "oshiCardNumber": "hBP09-004"
+        },
+        {
+          "id": "res_24295f605a00ed54",
+          "rank": 2,
+          "oshiCardNumber": "hBP06-006"
+        },
+        {
+          "id": "res_3b2b52ab6e871677",
+          "rank": 3,
+          "oshiCardNumber": "hBP07-006"
+        },
+        {
+          "id": "res_0849de5883305af4",
+          "rank": 4,
+          "oshiCardNumber": "hBP04-002"
+        },
+        {
+          "id": "res_f19ab69ef302a732",
+          "rank": 5,
+          "oshiCardNumber": "hBP07-001"
+        },
+        {
+          "id": "res_b8288aee92fcf9a2",
+          "rank": 6,
+          "oshiCardNumber": "hBP04-006"
+        },
+        {
+          "id": "res_46df001eeff4ff32",
+          "rank": 7,
+          "oshiCardNumber": "hBP01-008"
+        },
+        {
+          "id": "res_464bfe7559eadbe9",
+          "rank": 8,
+          "oshiCardNumber": "hBP06-006"
+        }
+      ]
+    },
     {
       "id": "evt_82c37127c18c8fab",
       "tournament": {
