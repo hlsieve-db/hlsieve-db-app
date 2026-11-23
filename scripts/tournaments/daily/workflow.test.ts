@@ -186,6 +186,41 @@ describe('Tournament Daily workflow', () => {
     expect(deps.publish).toHaveBeenNthCalledWith(2, ['2'], true)
     expect(deps.transitionPublished).toHaveBeenCalledWith('2', 'evt_2')
   })
+  it('publishes an already-ready Event from the configured weekly range', async () => {
+    const deps = dependencies(queue([['2', 'ready']]))
+    deps.eligibleDates = [
+      '2026-09-28',
+      '2026-09-29',
+      '2026-09-30',
+      '2026-10-01',
+      '2026-10-02',
+      '2026-10-03',
+      '2026-10-04',
+    ]
+    vi.mocked(deps.processDue).mockResolvedValue({
+      selected: [],
+      processed: [],
+      discovery: {
+        status: 'ok',
+        attempted: 28,
+        observed: 28,
+        zero: 27,
+        saturated: 0,
+        failed: 0,
+        challenge: 0,
+        added: 0,
+        existing: 1,
+      },
+    })
+
+    const result = await runDailyWorkflow(
+      { targetDate: '2026-10-04', dryRun: false },
+      deps,
+    )
+
+    expect(result.ready).toEqual(['2'])
+    expect(result.published).toEqual(['2'])
+  })
   it('never writes, commits, pushes, or transitions during a dry-run', async () => {
     const deps = dependencies(queue([['1', 'ready']]))
     await runDailyWorkflow({ targetDate: '2026-10-04', dryRun: true }, deps)

@@ -90,7 +90,10 @@ try {
   const summary = await runDailyWorkflow(options, {
     assertGitStart: async () => gitStart,
     processDue: async () => {
-      const overlapDates = createOverlapDates(options.targetDate)
+      const overlapDates = createOverlapDates(
+        options.targetDate,
+        options.lookbackDays,
+      )
       const discoveredAt = new Date().toISOString()
       const discoveryPhase = await runTournamentDailyDiscoveryPhase({
         discover: async () => {
@@ -208,6 +211,7 @@ try {
         },
       }
     },
+    eligibleDates: createOverlapDates(options.targetDate, options.lookbackDays),
     loadQueue: () => repository.load(),
     loadArtifact: (id) => artifacts.load(id, cardsData),
     publish: async (ids, write) => {

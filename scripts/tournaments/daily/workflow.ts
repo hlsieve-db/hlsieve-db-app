@@ -66,6 +66,7 @@ export type DailyProcessResult = {
 export type DailyDependencies = {
   assertGitStart: () => Promise<DailyGitStart>
   processDue: () => Promise<DailyProcessResult>
+  eligibleDates?: readonly string[]
   loadQueue: () => Promise<TournamentQueueFile>
   loadArtifact: (sourceEventId: string) => Promise<TournamentReadyArtifact>
   publish: (ids: string[], write: boolean) => Promise<PublishedSummary>
@@ -125,9 +126,10 @@ export async function runDailyWorkflow(
     byStatus(queue, 'ready').map((id) => deps.loadArtifact(id)),
   )
   const selected = new Set(processResult.selected)
+  const eligibleDates = new Set(deps.eligibleDates ?? [options.targetDate])
   const targets = readyArtifacts.filter(
     ({ sourceEventId, event }) =>
-      event.date === options.targetDate || selected.has(sourceEventId),
+      eligibleDates.has(event.date) || selected.has(sourceEventId),
   )
   const ready = targets.map(({ sourceEventId }) => sourceEventId)
   const waiting = byStatus(queue, 'waiting-result')

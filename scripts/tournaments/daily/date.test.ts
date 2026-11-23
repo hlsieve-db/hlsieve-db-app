@@ -19,16 +19,27 @@ describe('Tournament Daily date', () => {
     expect(parseTournamentDailyCli(['--date', '2026-10-01'])).toEqual({
       targetDate: '2026-10-01',
       dryRun: false,
+      lookbackDays: 4,
     })
     expect(parseTournamentDailyCli(['--date', '2026-10-04'])).toEqual({
       targetDate: '2026-10-04',
       dryRun: false,
+      lookbackDays: 4,
     })
     expect(
       parseTournamentDailyCli(
         ['--yesterday', '--dry-run'],
         new Date('2026-10-05T03:00:00Z'),
       ),
-    ).toEqual({ targetDate: '2026-10-04', dryRun: true })
+    ).toEqual({ targetDate: '2026-10-04', dryRun: true, lookbackDays: 4 })
+    expect(
+      parseTournamentDailyCli(
+        ['--yesterday', '--lookback-days', '7'],
+        new Date('2026-10-05T03:00:00Z'),
+      ),
+    ).toEqual({ targetDate: '2026-10-04', dryRun: false, lookbackDays: 7 })
+    expect(() =>
+      parseTournamentDailyCli(['--yesterday', '--lookback-days', '8']),
+    ).toThrow('lookback')
   })
 })

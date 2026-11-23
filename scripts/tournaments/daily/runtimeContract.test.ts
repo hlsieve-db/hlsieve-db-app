@@ -15,7 +15,7 @@ describe('Tournament Daily runtime contract', () => {
     expect(queue).not.toContain('headless: true')
     expect(daily).toContain("'tournaments:queue'")
     expect(daily).toContain('runTournamentDailyDiscoveryPhase')
-    expect(daily).toContain('createOverlapDates(options.targetDate)')
+    expect(daily).toContain('options.lookbackDays')
     expect(daily).toContain('eligibleDates: overlapDates')
     expect(daily).toContain('chromium.launch({ headless: false })')
     expect(daily).not.toContain('headless: true')
@@ -27,6 +27,14 @@ describe('Tournament Daily runtime contract', () => {
   it('provides a Task Scheduler wrapper that propagates the exit code without credentials', async () => {
     const wrapper = await readFile('scripts/tournaments/run-daily.ps1', 'utf8')
     expect(wrapper).toContain('npm run tournaments:daily -- --yesterday')
+    expect(wrapper).toContain('exit $LASTEXITCODE')
+    expect(wrapper).not.toMatch(/token|password|secret/i)
+  })
+  it('provides a weekly reconciliation wrapper with one bounded seven-day run', async () => {
+    const wrapper = await readFile('scripts/tournaments/run-weekly.ps1', 'utf8')
+    expect(wrapper).toContain(
+      'npm run tournaments:weekly -- --yesterday --lookback-days 7',
+    )
     expect(wrapper).toContain('exit $LASTEXITCODE')
     expect(wrapper).not.toMatch(/token|password|secret/i)
   })
