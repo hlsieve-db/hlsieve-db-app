@@ -1,7 +1,7 @@
 {
   "format": "hlsieve-tournament-index",
   "formatVersion": 1,
-  "dataVersion": "da0ef84f5e02fe5b",
+  "dataVersion": "df0b300e7879a032",
   "startDate": "2026-09-19",
   "events": [
     {
@@ -121,6 +121,66 @@
           "id": "res_6fd64b0aa6ca353e",
           "rank": 8,
           "oshiCardNumber": "hBP06-006"
+        }
+      ]
+    },
+    {
+      "id": "evt_c5cbbe44603b4ca8",
+      "tournament": {
+        "type": "bloomcup",
+        "seriesName": "【ホロカ】ブルームカップ「白銀ノエル」 （2026年11月開催）"
+      },
+      "date": "2026-11-24",
+      "venue": {
+        "slug": "venue-160a4929efac83a8",
+        "name": "カードショップ竜星のPAO秋葉原ロケット無線店"
+      },
+      "participantCount": 32,
+      "resultCoverage": {
+        "kind": "exact",
+        "maxRank": 8
+      },
+      "resultCount": 8,
+      "results": [
+        {
+          "id": "res_f455061544326699",
+          "rank": 1,
+          "oshiCardNumber": "hBP09-003"
+        },
+        {
+          "id": "res_2323ea81928a881d",
+          "rank": 2,
+          "oshiCardNumber": "hBP09-001"
+        },
+        {
+          "id": "res_fe1a3e712e270c65",
+          "rank": 3,
+          "oshiCardNumber": "hBP01-008"
+        },
+        {
+          "id": "res_49e35561913d2575",
+          "rank": 4,
+          "oshiCardNumber": "hBP07-007"
+        },
+        {
+          "id": "res_9f5723b1794bf37d",
+          "rank": 5,
+          "oshiCardNumber": "hBP07-006"
+        },
+        {
+          "id": "res_aa78a30f4a48db93",
+          "rank": 6,
+          "oshiCardNumber": "hBP07-005"
+        },
+        {
+          "id": "res_ce7442f42d3016a8",
+          "rank": 7,
+          "oshiCardNumber": "hBP01-008"
+        },
+        {
+          "id": "res_5400a33f4bd6b1ab",
+          "rank": 8,
+          "oshiCardNumber": "hBP01-008"
         }
       ]
     },
